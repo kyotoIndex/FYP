@@ -1,0 +1,808 @@
+{
+  "name": "pcla_formal_v2_sst2_bert_base_alpha_0_3",
+  "stage": "cross_dataset_model_formal",
+  "protocol_version": "formal_v2_explicit_sync",
+  "dataset": {
+    "name": "SST-2",
+    "format": "sst2_tsv",
+    "train_file": "data/SST-2/train.tsv",
+    "dev_file": "data/SST-2/dev.tsv",
+    "num_labels": 2,
+    "max_length": 64,
+    "eval_samples": 872,
+    "model": "bert-base-uncased",
+    "local_files_only": true,
+    "proxy_source": "train",
+    "proxy_split_seed": 20260728,
+    "round_eval_samples": 872,
+    "eval_monitor_seed": 20260728,
+    "metric": "accuracy",
+    "secondary_metric": "macro_f1"
+  },
+  "data_heterogeneity": {
+    "mode": "constrained_dirichlet_label_skew",
+    "alpha": 0.3,
+    "samples_per_client_fixed": true,
+    "preserve_global_label_distribution": true,
+    "sample_reuse": false
+  },
+  "federated": {
+    "seeds": [
+      7,
+      13,
+      21,
+      42,
+      87
+    ],
+    "total_clients": 50,
+    "selected_clients": 10,
+    "samples_per_client": 256,
+    "rounds": 30,
+    "local_epochs": 1,
+    "batch_size": 16,
+    "eval_batch_size": 64,
+    "learning_rate": 0.001,
+    "client_selection": "uniform_random_without_replacement"
+  },
+  "lora": {
+    "target_modules": [
+      "query",
+      "value"
+    ],
+    "rank": 16,
+    "alpha": 16.0,
+    "dropout": 0.1,
+    "num_encoder_layers": 12,
+    "total_rank_budget": 192
+  },
+  "resource_heterogeneity": {
+    "capability_names": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "layer_fractions": [
+      0.5,
+      0.75,
+      1.0
+    ],
+    "client_ratio": [
+      0.6,
+      0.3,
+      0.1
+    ],
+    "compute_factors": [
+      1.8,
+      1.2,
+      0.7
+    ],
+    "communication_factors": [
+      1.3,
+      1.0,
+      0.8
+    ],
+    "communication_time_per_mb": 1.5
+  },
+  "communication_protocol": {
+    "version": "explicit_component_sync_v2",
+    "backbone_cached_on_client": true,
+    "layer_method_download": "active_lora_and_classifier",
+    "layer_method_upload": "active_lora_and_classifier",
+    "component_method_download": "selected_A_and_B_components_and_classifier",
+    "component_method_upload": "trained_factor_components_and_classifier",
+    "importance_refresh_download": "full_current_lora_adapter_and_classifier"
+  },
+  "fedhello": {
+    "importance_score": "fim_gradient_norm",
+    "importance_source": "server_proxy",
+    "proxy_samples": 512,
+    "proxy_batch_size": 16,
+    "proxy_batches": 8,
+    "allocation": "probability_clustered_sampling_without_replacement",
+    "random_seeded_allocation": true,
+    "resource_levels_sorted_ascending": true,
+    "rgd_pattern": "bottleneck",
+    "rgd_hla_rounds": 5,
+    "fim_update_interval": 5,
+    "combined_schedule": "rgd_then_periodic_fim"
+  },
+  "pcla_component": {
+    "components_per_layer": 8,
+    "importance_refresh_interval": 3,
+    "importance_ema": 0.8,
+    "importance_batch_size": 16,
+    "importance_batches_per_client": 1,
+    "exploration_beta": 0.5,
+    "freshness_gamma": 0.05,
+    "stability_delta": 0.0,
+    "importance_overhead_in_time": true,
+    "frozen_factor_cached_on_client": false
+  },
+  "baselines": [
+    "fedlora",
+    "fedhello",
+    "random_component_alternating",
+    "pcla_component_alternating"
+  ],
+  "full_layer_methods": [
+    "fedlora"
+  ],
+  "metrics": [
+    "accuracy",
+    "macro_f1",
+    "round_time",
+    "cumulative_time",
+    "round_comm_mb",
+    "cumulative_comm_mb",
+    "avg_waiting_time",
+    "trainable_parameters_per_client",
+    "download_parameters",
+    "upload_parameters",
+    "importance_sync_parameters",
+    "importance_overhead_seconds",
+    "selection_coverage",
+    "selection_stability"
+  ],
+  "target_accuracy": 0.8,
+  "output_dir": "results/formal_v2/sst2_bert_base_alpha_0_3",
+  "executed_seed": 7,
+  "executed_methods": [
+    "fedlora",
+    "fedhello",
+    "random_component_alternating",
+    "pcla_component_alternating"
+  ],
+  "device": "cuda",
+  "effective_clients": [
+    {
+      "client_id": 0,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.0,
+      "samples": 256,
+      "label_counts": [
+        256,
+        0
+      ]
+    },
+    {
+      "client_id": 1,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 1.0,
+      "samples": 256,
+      "label_counts": [
+        0,
+        256
+      ]
+    },
+    {
+      "client_id": 2,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.20703125,
+      "samples": 256,
+      "label_counts": [
+        203,
+        53
+      ]
+    },
+    {
+      "client_id": 3,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.16015625,
+      "samples": 256,
+      "label_counts": [
+        215,
+        41
+      ]
+    },
+    {
+      "client_id": 4,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.0390625,
+      "samples": 256,
+      "label_counts": [
+        246,
+        10
+      ]
+    },
+    {
+      "client_id": 5,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.05859375,
+      "samples": 256,
+      "label_counts": [
+        241,
+        15
+      ]
+    },
+    {
+      "client_id": 6,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.99609375,
+      "samples": 256,
+      "label_counts": [
+        1,
+        255
+      ]
+    },
+    {
+      "client_id": 7,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.9453125,
+      "samples": 256,
+      "label_counts": [
+        14,
+        242
+      ]
+    },
+    {
+      "client_id": 8,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.80078125,
+      "samples": 256,
+      "label_counts": [
+        51,
+        205
+      ]
+    },
+    {
+      "client_id": 9,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.77734375,
+      "samples": 256,
+      "label_counts": [
+        57,
+        199
+      ]
+    },
+    {
+      "client_id": 10,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.19921875,
+      "samples": 256,
+      "label_counts": [
+        205,
+        51
+      ]
+    },
+    {
+      "client_id": 11,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.015625,
+      "samples": 256,
+      "label_counts": [
+        252,
+        4
+      ]
+    },
+    {
+      "client_id": 12,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.5703125,
+      "samples": 256,
+      "label_counts": [
+        110,
+        146
+      ]
+    },
+    {
+      "client_id": 13,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.00390625,
+      "samples": 256,
+      "label_counts": [
+        255,
+        1
+      ]
+    },
+    {
+      "client_id": 14,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.73046875,
+      "samples": 256,
+      "label_counts": [
+        69,
+        187
+      ]
+    },
+    {
+      "client_id": 15,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.8671875,
+      "samples": 256,
+      "label_counts": [
+        34,
+        222
+      ]
+    },
+    {
+      "client_id": 16,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.6875,
+      "samples": 256,
+      "label_counts": [
+        80,
+        176
+      ]
+    },
+    {
+      "client_id": 17,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 1.0,
+      "samples": 256,
+      "label_counts": [
+        0,
+        256
+      ]
+    },
+    {
+      "client_id": 18,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 1.0,
+      "samples": 256,
+      "label_counts": [
+        0,
+        256
+      ]
+    },
+    {
+      "client_id": 19,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.7578125,
+      "samples": 256,
+      "label_counts": [
+        62,
+        194
+      ]
+    },
+    {
+      "client_id": 20,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.53125,
+      "samples": 256,
+      "label_counts": [
+        120,
+        136
+      ]
+    },
+    {
+      "client_id": 21,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.8984375,
+      "samples": 256,
+      "label_counts": [
+        26,
+        230
+      ]
+    },
+    {
+      "client_id": 22,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.7265625,
+      "samples": 256,
+      "label_counts": [
+        70,
+        186
+      ]
+    },
+    {
+      "client_id": 23,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.53515625,
+      "samples": 256,
+      "label_counts": [
+        119,
+        137
+      ]
+    },
+    {
+      "client_id": 24,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.49609375,
+      "samples": 256,
+      "label_counts": [
+        129,
+        127
+      ]
+    },
+    {
+      "client_id": 25,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.55078125,
+      "samples": 256,
+      "label_counts": [
+        115,
+        141
+      ]
+    },
+    {
+      "client_id": 26,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.05859375,
+      "samples": 256,
+      "label_counts": [
+        241,
+        15
+      ]
+    },
+    {
+      "client_id": 27,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.00390625,
+      "samples": 256,
+      "label_counts": [
+        255,
+        1
+      ]
+    },
+    {
+      "client_id": 28,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.0,
+      "samples": 256,
+      "label_counts": [
+        256,
+        0
+      ]
+    },
+    {
+      "client_id": 29,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 1.0,
+      "samples": 256,
+      "label_counts": [
+        0,
+        256
+      ]
+    },
+    {
+      "client_id": 30,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.0,
+      "samples": 256,
+      "label_counts": [
+        256,
+        0
+      ]
+    },
+    {
+      "client_id": 31,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.015625,
+      "samples": 256,
+      "label_counts": [
+        252,
+        4
+      ]
+    },
+    {
+      "client_id": 32,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 1.0,
+      "samples": 256,
+      "label_counts": [
+        0,
+        256
+      ]
+    },
+    {
+      "client_id": 33,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.98046875,
+      "samples": 256,
+      "label_counts": [
+        5,
+        251
+      ]
+    },
+    {
+      "client_id": 34,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.96875,
+      "samples": 256,
+      "label_counts": [
+        8,
+        248
+      ]
+    },
+    {
+      "client_id": 35,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.9609375,
+      "samples": 256,
+      "label_counts": [
+        10,
+        246
+      ]
+    },
+    {
+      "client_id": 36,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.78515625,
+      "samples": 256,
+      "label_counts": [
+        55,
+        201
+      ]
+    },
+    {
+      "client_id": 37,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.953125,
+      "samples": 256,
+      "label_counts": [
+        12,
+        244
+      ]
+    },
+    {
+      "client_id": 38,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.1875,
+      "samples": 256,
+      "label_counts": [
+        208,
+        48
+      ]
+    },
+    {
+      "client_id": 39,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 1.0,
+      "samples": 256,
+      "label_counts": [
+        0,
+        256
+      ]
+    },
+    {
+      "client_id": 40,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.10546875,
+      "samples": 256,
+      "label_counts": [
+        229,
+        27
+      ]
+    },
+    {
+      "client_id": 41,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.23828125,
+      "samples": 256,
+      "label_counts": [
+        195,
+        61
+      ]
+    },
+    {
+      "client_id": 42,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.0,
+      "samples": 256,
+      "label_counts": [
+        256,
+        0
+      ]
+    },
+    {
+      "client_id": 43,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.99609375,
+      "samples": 256,
+      "label_counts": [
+        1,
+        255
+      ]
+    },
+    {
+      "client_id": 44,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.98046875,
+      "samples": 256,
+      "label_counts": [
+        5,
+        251
+      ]
+    },
+    {
+      "client_id": 45,
+      "capability": "high",
+      "capacity": 12,
+      "compute_factor": 0.7,
+      "communication_factor": 0.8,
+      "positive_ratio": 0.84375,
+      "samples": 256,
+      "label_counts": [
+        40,
+        216
+      ]
+    },
+    {
+      "client_id": 46,
+      "capability": "high",
+      "capacity": 12,
+      "compute_factor": 0.7,
+      "communication_factor": 0.8,
+      "positive_ratio": 0.12109375,
+      "samples": 256,
+      "label_counts": [
+        225,
+        31
+      ]
+    },
+    {
+      "client_id": 47,
+      "capability": "high",
+      "capacity": 12,
+      "compute_factor": 0.7,
+      "communication_factor": 0.8,
+      "positive_ratio": 0.765625,
+      "samples": 256,
+      "label_counts": [
+        60,
+        196
+      ]
+    },
+    {
+      "client_id": 48,
+      "capability": "high",
+      "capacity": 12,
+      "compute_factor": 0.7,
+      "communication_factor": 0.8,
+      "positive_ratio": 0.6953125,
+      "samples": 256,
+      "label_counts": [
+        78,
+        178
+      ]
+    },
+    {
+      "client_id": 49,
+      "capability": "high",
+      "capacity": 12,
+      "compute_factor": 0.7,
+      "communication_factor": 0.8,
+      "positive_ratio": 0.67578125,
+      "samples": 256,
+      "label_counts": [
+        83,
+        173
+      ]
+    }
+  ]
+}

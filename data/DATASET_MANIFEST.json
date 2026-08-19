@@ -1,0 +1,53 @@
+{
+  "QNLI": {
+    "source_url": "https://dl.fbaipublicfiles.com/glue/data/QNLIv2.zip",
+    "raw_sha256": "e634e78627a29adaecd4f955359b22bf5e70f2cbd93b493f2d624138a0c0e5f5",
+    "rows": {
+      "train": 104743,
+      "dev": 5463
+    },
+    "labels": {
+      "train": {
+        "not_entailment": 52366,
+        "entailment": 52377
+      },
+      "dev": {
+        "entailment": 2702,
+        "not_entailment": 2761
+      }
+    },
+    "processed_sha256": {
+      "train": "3bb7026735a0d4cd439dc1ca6ea162e0c1cc8f962f52df9cc50ee8f8278e0c0e",
+      "dev": "ac19409dcb04631eaaa094bdebdcf621086bc352503dfb6a1a648b614986f4fd"
+    }
+  },
+  "AG_NEWS": {
+    "source_url": "https://github.com/mhjabreel/CharCnn_Keras/tree/master/data/ag_news_csv",
+    "raw_sha256": {
+      "train": "76a0a2d2f92b286371fe4d4044640910a04a803fdd2538e0f3f29a5c6f6b672e",
+      "test": "521465c2428ed7f02f8d6db6ffdd4b5447c1c701962353eb2c40d548c3c85699"
+    },
+    "rows": {
+      "train": 120000,
+      "dev": 7600
+    },
+    "labels": {
+      "train": {
+        "2": 30000,
+        "3": 30000,
+        "1": 30000,
+        "0": 30000
+      },
+      "dev": {
+        "2": 1900,
+        "3": 1900,
+        "1": 1900,
+        "0": 1900
+      }
+    },
+    "processed_sha256": {
+      "train": "02eaea97ddfaa1ba0fa169c33a18bf9c8b280a0209ab8dab526dffb80248076f",
+      "dev": "419184c5e817e3a450fccde842ea872cd745c0ff0cf146f8f7255b18a6671b02"
+    }
+  }
+}

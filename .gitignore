@@ -1,0 +1,28 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.conda/
+.conda-*/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Hugging Face and local dataset caches
+.hf_cache/
+.hf_datasets_cache/
+
+# Large model artifacts: keep configuration/tokenizer files, not weights
+models/**/model*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+
+# Local logs and temporary outputs
+*.log
+*.tmp
