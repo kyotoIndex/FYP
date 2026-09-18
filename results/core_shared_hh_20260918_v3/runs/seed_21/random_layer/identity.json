@@ -1,0 +1,209 @@
+{
+  "seed": 21,
+  "config": {
+    "rounds": 30,
+    "selected_clients": 10,
+    "credits_per_layer": 8,
+    "learning_rate": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "adam_eps": 1e-08,
+    "weight_decay": 0.01,
+    "local_epochs": 1,
+    "batch_size": 16,
+    "eval_batch_size": 64,
+    "probe_batch_size": 16,
+    "probe_batches": 1,
+    "refresh_rounds": 3,
+    "ema": 0.8,
+    "beta": 0.5,
+    "gamma": 0.05,
+    "score": "normalized_projection",
+    "forward_mode": "active_frozen",
+    "aggregation": "fixed",
+    "train_head": true,
+    "clip_grad_norm": null,
+    "probe_rounds": [
+      5,
+      15,
+      30
+    ],
+    "head_learning_rate": 0.001,
+    "lora_learning_rate": 0.001,
+    "record_optimization_diagnostics": false
+  },
+  "provenance": {
+    "legacy_blob": "ab6931b79036721dcd368bb85ca08af476d6c639",
+    "base_config": {
+      "name": "pcla_formal_v2_sst2_bert_base_alpha_0_3",
+      "stage": "cross_dataset_model_formal",
+      "protocol_version": "formal_v2_explicit_sync",
+      "dataset": {
+        "name": "SST-2",
+        "format": "sst2_tsv",
+        "train_file": "data/SST-2/train.tsv",
+        "dev_file": "data/SST-2/dev.tsv",
+        "num_labels": 2,
+        "max_length": 64,
+        "eval_samples": 872,
+        "model": "bert-base-uncased",
+        "local_files_only": true,
+        "proxy_source": "train",
+        "proxy_split_seed": 20260728,
+        "round_eval_samples": 872,
+        "eval_monitor_seed": 20260728,
+        "metric": "accuracy",
+        "secondary_metric": "macro_f1"
+      },
+      "data_heterogeneity": {
+        "mode": "constrained_dirichlet_label_skew",
+        "alpha": 0.3,
+        "samples_per_client_fixed": true,
+        "preserve_global_label_distribution": true,
+        "sample_reuse": false
+      },
+      "federated": {
+        "seeds": [
+          7,
+          13,
+          21,
+          42,
+          87
+        ],
+        "total_clients": 50,
+        "selected_clients": 10,
+        "samples_per_client": 256,
+        "rounds": 30,
+        "local_epochs": 1,
+        "batch_size": 16,
+        "eval_batch_size": 64,
+        "learning_rate": 0.001,
+        "client_selection": "uniform_random_without_replacement"
+      },
+      "lora": {
+        "target_modules": [
+          "query",
+          "value"
+        ],
+        "rank": 16,
+        "alpha": 16.0,
+        "dropout": 0.1,
+        "num_encoder_layers": 12,
+        "total_rank_budget": 192
+      },
+      "resource_heterogeneity": {
+        "capability_names": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "layer_fractions": [
+          0.5,
+          0.75,
+          1.0
+        ],
+        "client_ratio": [
+          0.6,
+          0.3,
+          0.1
+        ],
+        "compute_factors": [
+          1.8,
+          1.2,
+          0.7
+        ],
+        "communication_factors": [
+          1.3,
+          1.0,
+          0.8
+        ],
+        "communication_time_per_mb": 1.5
+      },
+      "communication_protocol": {
+        "version": "explicit_component_sync_v2",
+        "backbone_cached_on_client": true,
+        "layer_method_download": "active_lora_and_classifier",
+        "layer_method_upload": "active_lora_and_classifier",
+        "component_method_download": "selected_A_and_B_components_and_classifier",
+        "component_method_upload": "trained_factor_components_and_classifier",
+        "importance_refresh_download": "full_current_lora_adapter_and_classifier"
+      },
+      "fedhello": {
+        "importance_score": "fim_gradient_norm",
+        "importance_source": "server_proxy",
+        "proxy_samples": 512,
+        "proxy_batch_size": 16,
+        "proxy_batches": 8,
+        "allocation": "probability_clustered_sampling_without_replacement",
+        "random_seeded_allocation": true,
+        "resource_levels_sorted_ascending": true,
+        "rgd_pattern": "bottleneck",
+        "rgd_hla_rounds": 5,
+        "fim_update_interval": 5,
+        "combined_schedule": "rgd_then_periodic_fim"
+      },
+      "pcla_component": {
+        "components_per_layer": 8,
+        "importance_refresh_interval": 3,
+        "importance_ema": 0.8,
+        "importance_batch_size": 16,
+        "importance_batches_per_client": 1,
+        "exploration_beta": 0.5,
+        "freshness_gamma": 0.05,
+        "stability_delta": 0.0,
+        "importance_overhead_in_time": true,
+        "frozen_factor_cached_on_client": false
+      },
+      "baselines": [
+        "fedlora",
+        "fedhello",
+        "random_component_alternating",
+        "pcla_component_alternating"
+      ],
+      "full_layer_methods": [
+        "fedlora"
+      ],
+      "metrics": [
+        "accuracy",
+        "macro_f1",
+        "round_time",
+        "cumulative_time",
+        "round_comm_mb",
+        "cumulative_comm_mb",
+        "avg_waiting_time",
+        "trainable_parameters_per_client",
+        "download_parameters",
+        "upload_parameters",
+        "importance_sync_parameters",
+        "importance_overhead_seconds",
+        "selection_coverage",
+        "selection_stability"
+      ],
+      "target_accuracy": 0.8,
+      "output_dir": "results/formal_v2/sst2_bert_base_alpha_0_3"
+    },
+    "train_file_sha256": "48eac26399f8456935f81dd9e3a745c1430adb6c62e233ccfe22db4a0d15d1d1",
+    "dev_file_sha256": "54a9c12c77e402fc14d6a66a506f24d999f596b0176eb777c972cccc2f9cc4b0",
+    "partition_sha256": "09a75e6482d4ddb5e646b13ede96f87bf63f83096750c5c028c248608b57c9d0",
+    "initial_loaded_model_sha256": "8d01581de9ab45dffe62caf55feb409bd16e67c60b016b32adcb2c70a9fb76a2",
+    "evaluation_split": "benchmark_dev",
+    "plan_sha256": "e038b4eb8f983f3c26e8f93d9031595aaf1c20a24a7caded2e1f84b2317e13b1",
+    "code_files": {
+      "pcla_repair/__init__.py": "d8ab3147577b2acc5cf5a55955459d7859711491355ac06695376cbad24f23da",
+      "pcla_repair/bridge.py": "583b749f5e8a5f8e545d7dea3bd22129ad6eff93204d47f34544d88d797f586d",
+      "pcla_repair/core.py": "dde28d7b7a1838c7a9d113142ce9fffb60583ccbd41aa18599b63f153e73bcdd",
+      "pcla_repair/diagnostics.py": "20f20e25beb50d4dc647d4ef517bac39974e7193c1332e346a8d904b29ad72df",
+      "pcla_repair/optimization_dev.py": "b890c28d5ffe0858312dc2eded62bc29bd7be079d2ded224ccdd964f083e84dc",
+      "pcla_repair/runtime.py": "577e3be7cf56d2708638eac75bba0962709a9f5a038c0ccf3b82777ccb902283",
+      "pcla_repair/testing.py": "edee243fc0ab52066d5e5700cdd9f98f16c14c10fd67b3a47c93686cd91f7acb",
+      "scripts/run_pcla_repaired.py": "4dbca4ae63f778bc9aca2a472b66623f4f7014e7b4f775e548ae91551fc6d0a1"
+    },
+    "torch": "2.5.1+cu121",
+    "cuda": "12.1"
+  },
+  "initial_adapter_sha256": "dc3d06b7ed07ddbf7b057e5692def8aa2ed8ca54fd9be181ef7901fe8f796a31",
+  "identity_hash": "093a947fd9214a20225e5f5080ba75d788cbf2a13143dc18f56fb5819bd1f2b4",
+  "policy": "random_layer"
+}

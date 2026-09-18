@@ -6,6 +6,7 @@
 
 | 目录 | 角色 | 状态 |
 |---|---|---|
+| [core_shared_hh_20260918_v3](core_shared_hh_20260918_v3/README.md) | 层与 rank 选择的同预算比较 | 8 方法 × 5 seed × 30 轮完成；评分预测能力诊断进行中 |
 | expanded_sst2_bert_base_dirichlet_v1 | 经典 baseline 主表 | 3 seed，已审计 |
 | pcla_large_scale_constrained_dirichlet_v1 | 组件级 PCLA 主线 | 3 seed，已审计 |
 | legend_large_scale_constrained_dirichlet_v2 | 确定性成本模型的 LEGEND 对照 | 已验证的正式对照 |

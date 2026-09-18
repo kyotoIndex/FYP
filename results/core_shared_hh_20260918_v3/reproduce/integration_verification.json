@@ -1,0 +1,55 @@
+{
+  "synthetic": false,
+  "scope": "real pretrained BERT on SST-2; tuning-only software integration, no formal scientific conclusion",
+  "resume_vs_continuous": {
+    "adapter_bitwise_equal": true,
+    "trace_bitwise_equal": true,
+    "predictions_equal_all_rounds": true,
+    "loss_equal_all_rounds": true
+  },
+  "replay_layer_counts_equal": true,
+  "methods": {
+    "pcla": {
+      "rounds": 4,
+      "head_changed": true,
+      "finite_adapter": true,
+      "initial_adapter_sha256": "84e4b4b35291c2ef23c7e15be69048ddbafdcf2d2bb6a9daf50bdbc0e09e0281",
+      "final_adapter_sha256": "a519ed1b152164948378b716dd3cafd40b89a80925b8972f52c20d5b3309bf6e",
+      "peak_cuda_allocated": 957826560,
+      "last_tuning_accuracy": 0.5576171875,
+      "total_round_wall_seconds": 42.84207199513912
+    },
+    "replay_random_rank": {
+      "rounds": 4,
+      "head_changed": true,
+      "finite_adapter": true,
+      "initial_adapter_sha256": "84e4b4b35291c2ef23c7e15be69048ddbafdcf2d2bb6a9daf50bdbc0e09e0281",
+      "final_adapter_sha256": "ae7703f9e968bec1cb9abb4f0763545cf66a4eb505890e7c0b50ef6285b47915",
+      "peak_cuda_allocated": 957826560,
+      "last_tuning_accuracy": 0.5576171875,
+      "total_round_wall_seconds": 33.32877900823951
+    },
+    "random_layer": {
+      "rounds": 4,
+      "head_changed": true,
+      "finite_adapter": true,
+      "initial_adapter_sha256": "84e4b4b35291c2ef23c7e15be69048ddbafdcf2d2bb6a9daf50bdbc0e09e0281",
+      "final_adapter_sha256": "24d2a939ddd7f6838eb47c0912dd97c0e9d5d112c51b9b3df9efe2e622182bcc",
+      "peak_cuda_allocated": 978658816,
+      "last_tuning_accuracy": 0.5576171875,
+      "total_round_wall_seconds": 30.164798848330975
+    },
+    "head_only": {
+      "rounds": 4,
+      "head_changed": true,
+      "finite_adapter": true,
+      "initial_adapter_sha256": "84e4b4b35291c2ef23c7e15be69048ddbafdcf2d2bb6a9daf50bdbc0e09e0281",
+      "final_adapter_sha256": "ce7b8a4d63789efe004760fd63414e3551b686ff2b4dbaa5b09d3a1126898161",
+      "peak_cuda_allocated": 648117760,
+      "last_tuning_accuracy": 0.5576171875,
+      "total_round_wall_seconds": 16.229371536523104
+    }
+  },
+  "planned_formal_jobs_completed": 0,
+  "planned_formal_jobs": 40
+}

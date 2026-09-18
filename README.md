@@ -8,6 +8,7 @@
 
 | 目的 | 入口 |
 |---|---|
+| 查看本次层与 rank 选择实验 | [五 seed 比较与中文说明](results/core_shared_hh_20260918_v3/README.md) |
 | 了解研究问题和方法 | [docs/PCLA.md](docs/PCLA.md) |
 | 复现实验 | [docs/REPRODUCE.md](docs/REPRODUCE.md) |
 | 查看结果状态和证据边界 | [results/README.md](results/README.md) 和 [docs/RESULTS.md](docs/RESULTS.md) |
