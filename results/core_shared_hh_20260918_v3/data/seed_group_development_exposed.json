@@ -1,0 +1,284 @@
+{
+  "complete_planned_matrix": true,
+  "missing_or_failed": [],
+  "paired_estimates": [
+    {
+      "comparison": "pcla - random",
+      "paired_seeds": [
+        7,
+        13
+      ],
+      "planned_seeds": [
+        7,
+        13
+      ],
+      "mean_last5_difference_pp": 0.9977064220183463,
+      "per_seed_difference_pp": [
+        0.6880733944954143,
+        1.3073394495412782
+      ],
+      "descriptive_t_interval": [
+        -2.9365542187696416,
+        4.931967062806334
+      ],
+      "role": "standalone policy comparison"
+    },
+    {
+      "comparison": "pcla - layer_only",
+      "paired_seeds": [
+        7,
+        13
+      ],
+      "planned_seeds": [
+        7,
+        13
+      ],
+      "mean_last5_difference_pp": 1.0091743119266083,
+      "per_seed_difference_pp": [
+        -0.0688073394495392,
+        2.087155963302756
+      ],
+      "descriptive_t_interval": [
+        -12.687881252298414,
+        14.706229876151632
+      ],
+      "role": "standalone policy comparison"
+    },
+    {
+      "comparison": "pcla - replay_random_rank",
+      "paired_seeds": [
+        7,
+        13
+      ],
+      "planned_seeds": [
+        7,
+        13
+      ],
+      "mean_last5_difference_pp": -0.43577981651376496,
+      "per_seed_difference_pp": [
+        -0.16055045871559148,
+        -0.7110091743119384
+      ],
+      "descriptive_t_interval": [
+        -3.9329003861032357,
+        3.061340753075706
+      ],
+      "role": "trajectory-conditioned intervention, not standalone policy"
+    },
+    {
+      "comparison": "pcla - random_layer",
+      "paired_seeds": [
+        7,
+        13
+      ],
+      "planned_seeds": [
+        7,
+        13
+      ],
+      "mean_last5_difference_pp": 2.454128440366965,
+      "per_seed_difference_pp": [
+        2.477064220183489,
+        2.431192660550441
+      ],
+      "descriptive_t_interval": [
+        2.1627017262343857,
+        2.7455551544995442
+      ],
+      "role": "standalone policy comparison"
+    },
+    {
+      "comparison": "pcla - uniform_cyclic",
+      "paired_seeds": [
+        7,
+        13
+      ],
+      "planned_seeds": [
+        7,
+        13
+      ],
+      "mean_last5_difference_pp": 1.8348623853210955,
+      "per_seed_difference_pp": [
+        2.499999999999991,
+        1.1697247706421998
+      ],
+      "descriptive_t_interval": [
+        -6.616512324519826,
+        10.286237095162017
+      ],
+      "role": "standalone policy comparison"
+    },
+    {
+      "comparison": "pcla - head_only",
+      "paired_seeds": [
+        7,
+        13
+      ],
+      "planned_seeds": [
+        7,
+        13
+      ],
+      "mean_last5_difference_pp": 24.392201834862387,
+      "per_seed_difference_pp": [
+        22.29357798165138,
+        26.490825688073393
+      ],
+      "descriptive_t_interval": [
+        -2.27334250825648,
+        51.05774617798126
+      ],
+      "role": "standalone policy comparison"
+    },
+    {
+      "comparison": "pcla - full_alt",
+      "paired_seeds": [
+        7,
+        13
+      ],
+      "planned_seeds": [
+        7,
+        13
+      ],
+      "mean_last5_difference_pp": 0.12614678899081633,
+      "per_seed_difference_pp": [
+        -0.20642201834862872,
+        0.4587155963302614
+      ],
+      "descriptive_t_interval": [
+        -4.09954056592961,
+        4.351834143911242
+      ],
+      "role": "standalone policy comparison"
+    }
+  ],
+  "records": [
+    {
+      "seed": 7,
+      "policy": "pcla",
+      "last5_accuracy": 0.8155963302752294,
+      "final_accuracy": 0.8681192660550459,
+      "serialized_traffic_bytes": 825404762,
+      "probe_seconds": 20.876278921961784
+    },
+    {
+      "seed": 7,
+      "policy": "random",
+      "last5_accuracy": 0.8087155963302752,
+      "final_accuracy": 0.8600917431192661,
+      "serialized_traffic_bytes": 825364314,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 7,
+      "policy": "layer_only",
+      "last5_accuracy": 0.8162844036697248,
+      "final_accuracy": 0.8669724770642202,
+      "serialized_traffic_bytes": 824435565,
+      "probe_seconds": 15.540862008929253
+    },
+    {
+      "seed": 7,
+      "policy": "replay_random_rank",
+      "last5_accuracy": 0.8172018348623853,
+      "final_accuracy": 0.8704128440366973,
+      "serialized_traffic_bytes": 825404762,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 7,
+      "policy": "random_layer",
+      "last5_accuracy": 0.7908256880733945,
+      "final_accuracy": 0.8509174311926605,
+      "serialized_traffic_bytes": 824435117,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 7,
+      "policy": "uniform_cyclic",
+      "last5_accuracy": 0.7905963302752295,
+      "final_accuracy": 0.8486238532110092,
+      "serialized_traffic_bytes": 826638768,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 7,
+      "policy": "head_only",
+      "last5_accuracy": 0.5926605504587156,
+      "final_accuracy": 0.7259174311926605,
+      "serialized_traffic_bytes": 717050400,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 7,
+      "policy": "full_alt",
+      "last5_accuracy": 0.8176605504587157,
+      "final_accuracy": 0.8727064220183486,
+      "serialized_traffic_bytes": 1074404400,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 13,
+      "policy": "pcla",
+      "last5_accuracy": 0.843348623853211,
+      "final_accuracy": 0.8738532110091743,
+      "serialized_traffic_bytes": 826902220,
+      "probe_seconds": 20.55763617530465
+    },
+    {
+      "seed": 13,
+      "policy": "random",
+      "last5_accuracy": 0.8302752293577982,
+      "final_accuracy": 0.8658256880733946,
+      "serialized_traffic_bytes": 826865484,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 13,
+      "policy": "layer_only",
+      "last5_accuracy": 0.8224770642201834,
+      "final_accuracy": 0.8738532110091743,
+      "serialized_traffic_bytes": 825925542,
+      "probe_seconds": 15.37363738939166
+    },
+    {
+      "seed": 13,
+      "policy": "replay_random_rank",
+      "last5_accuracy": 0.8504587155963304,
+      "final_accuracy": 0.8692660550458715,
+      "serialized_traffic_bytes": 826902220,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 13,
+      "policy": "random_layer",
+      "last5_accuracy": 0.8190366972477066,
+      "final_accuracy": 0.8658256880733946,
+      "serialized_traffic_bytes": 825924774,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 13,
+      "policy": "uniform_cyclic",
+      "last5_accuracy": 0.831651376146789,
+      "final_accuracy": 0.8589449541284404,
+      "serialized_traffic_bytes": 828113712,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 13,
+      "policy": "head_only",
+      "last5_accuracy": 0.578440366972477,
+      "final_accuracy": 0.7373853211009175,
+      "serialized_traffic_bytes": 717050400,
+      "probe_seconds": 0.0
+    },
+    {
+      "seed": 13,
+      "policy": "full_alt",
+      "last5_accuracy": 0.8387614678899084,
+      "final_accuracy": 0.8715596330275229,
+      "serialized_traffic_bytes": 1074404400,
+      "probe_seconds": 0.0
+    }
+  ],
+  "inference_note": "seeds are independent units; rounds/clients/ranks are not extra independent replicates. No automatic acceptance, equivalence or superiority verdict."
+}
