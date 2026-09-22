@@ -297,25 +297,26 @@ def run_job(site, job, output, dependency_roots):
      environment) = values
     cfg = copy.deepcopy(plan["training"])
     cfg["aggregation"] = job["rule"]
-    family = "trace" if job["kind"] == "trace" else "online"
-    study = {
+    identity_family = ("fixed_trace" if job["kind"] == "trace"
+                       else "online_contributors_pair")
+    identity_study = {
         "batch": BATCH,
-        "family": family,
-        "kind": job["kind"],
+        "family": identity_family,
         "source_policy": source_policy,
         "rule": job["rule"],
         "seed": job["seed"],
         "original_identity": source["identity_hash"],
         "original_checkpoint_sha256": sha256_file(source_dir / "checkpoint.pt"),
         "handoff_sources": handoff_hashes(),
-        "environment": environment,
     }
+    study = {**identity_study, "kind": job["kind"],
+             "environment": environment}
     provenance.update({
         "code_files": source["identity"]["provenance"]["code_files"],
         "torch": str(torch.__version__),
         "cuda": torch.version.cuda,
         "base_plan_sha256": source["identity"]["provenance"]["plan_sha256"],
-        "aggregation_study": study,
+        "aggregation_study": identity_study,
     })
     updated_plan = copy.deepcopy(plan)
     updated_plan["name"] = BATCH
@@ -326,7 +327,7 @@ def run_job(site, job, output, dependency_roots):
     donor = None
     shape = (max(layout.values()) + 1,
              next(iter(core.lora_modules(model).values())).rank)
-    if family == "trace":
+    if job["kind"] == "trace":
         trace = validate_trace(torch, core, source, clients, capacities,
                                cfg, shape, job["seed"])
     if job["kind"] == "online_replay":
@@ -336,11 +337,9 @@ def run_job(site, job, output, dependency_roots):
         donor_study = parent["identity"]["provenance"].get("aggregation_study", {})
         require(parent["policy"] == "pcla" and parent["round"] == 30,
                 "online donor is incomplete")
-        require(donor_study.get("batch") == BATCH and
-                donor_study.get("family") == "online" and
-                donor_study.get("rule") == "contributors" and
+        require(donor_study == identity_study and
                 parent["identity"]["seed"] == job["seed"],
-                "online donor has another study identity")
+                "online donor has another paired-study identity")
 
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
