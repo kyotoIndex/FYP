@@ -1,0 +1,18 @@
+{
+  "repo": "/ABSOLUTE/PATH/TO/UNCHANGED/pcla-experiments",
+  "source_root": "/ABSOLUTE/PATH/TO/core_shared_hh_20260918_v3",
+  "queue_root": "/ABSOLUTE/PATH/TO/NEW/shared_queue",
+  "scratch_root": "/tmp/pcla-aggregation-20260923-v3",
+  "python_pcla": "/ABSOLUTE/PATH/TO/original/venv/bin/python",
+  "require_slurm": true,
+  "worker_idle_seconds": 4,
+  "full_run_timeout_seconds": 1800,
+  "diagnostic_timeout_seconds": 900,
+  "claim_stale_seconds": 7200,
+  "environment": {
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}
