@@ -254,8 +254,11 @@ def compare_source_parity(torch, runtime, source, source_dir, current, run_dir):
     require(len(source["metrics"]) == len(current["metrics"]) == 30,
             "parity run has incomplete metrics")
     common_metric_keys = set(source["metrics"][0]) & set(current["metrics"][0])
-    ignored = {"simulator_round_wall_seconds", "cuda_peak_allocated",
-               "cuda_peak_reserved"}
+    ignored = {
+        "train_seconds", "probe_seconds", "eval_seconds",
+        "simulator_round_wall_seconds", "cuda_peak_allocated",
+        "cuda_peak_reserved",
+    }
     common_metric_keys -= ignored
     metrics_equal = all(
         all(old[key] == new[key] for key in common_metric_keys)
@@ -280,7 +283,7 @@ def compare_source_parity(torch, runtime, source, source_dir, current, run_dir):
             torch.equal(value, current["trace"][key])
             for key, value in source["trace"].items()
         ),
-        "metrics_equal_on_common_fields": metrics_equal,
+        "metrics_equal_on_nontiming_fields": metrics_equal,
         "predictions_equal": predictions_equal,
         "selected_client_sequence_equal": clients_equal,
     }
@@ -309,8 +312,6 @@ def run_job(site, job, output, dependency_roots):
         "original_checkpoint_sha256": sha256_file(source_dir / "checkpoint.pt"),
         "handoff_sources": handoff_hashes(),
     }
-    study = {**identity_study, "kind": job["kind"],
-             "environment": environment}
     provenance.update({
         "code_files": source["identity"]["provenance"]["code_files"],
         "torch": str(torch.__version__),
@@ -345,13 +346,20 @@ def run_job(site, job, output, dependency_roots):
     output.mkdir(parents=True, exist_ok=True)
     run_dir = output / "run"
     run_dir.mkdir(exist_ok=True)
-    metadata = {**study, "job_id": job["id"],
-                "donor_sha256": sha256_file(donor) if donor else None}
+    stable_metadata = {
+        **identity_study,
+        "kind": job["kind"],
+        "job_id": job["id"],
+        "donor_sha256": sha256_file(donor) if donor else None,
+    }
     marker = output / "study.json"
     if marker.exists():
-        require(read_json(marker) == metadata, "recovery identity changed")
+        require(read_json(marker) == stable_metadata,
+                "recovery identity changed")
     else:
-        atomic_json(marker, metadata)
+        atomic_json(marker, stable_metadata)
+    atomic_json(output / f"environment_attempt_{time.time_ns()}.json",
+                environment)
 
     lock = run_dir / ".run.lock"
     descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
