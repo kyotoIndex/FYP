@@ -134,27 +134,78 @@ def load_queue(queue):
 
 
 def current_attempt(paths, job_id):
-    records = sorted(paths["attempts"].glob(job_id + "__attempt_*.json"))
-    return len(records) + 1
+    numbers = []
+    for path in paths["attempts"].glob(job_id + "__attempt_*.json"):
+        try:
+            numbers.append(int(path.stem.rsplit("_", 1)[1]))
+        except (ValueError, IndexError):
+            raise ValueError(f"invalid attempt record name: {path.name}")
+    return max(numbers, default=0) + 1
 
 
 def process_exists(pid):
     try:
         os.kill(int(pid), 0)
         return True
-    except (ProcessLookupError, ValueError):
+    except (ProcessLookupError, ValueError, TypeError):
         return False
     except PermissionError:
         return True
 
 
+def terminal_sets(paths):
+    return ({p.stem for p in paths["done"].glob("*.json")},
+            {p.stem for p in paths["failed"].glob("*.json")},
+            {p.stem for p in paths["blocked"].glob("*.json")})
+
+
+def transitive_blocked(plan, failed):
+    blocked = set()
+    changed = True
+    while changed:
+        before = len(blocked)
+        for job in plan["jobs"]:
+            if job["id"] in failed:
+                continue
+            if any(dep in failed | blocked for dep in job["dependencies"]):
+                blocked.add(job["id"])
+        changed = len(blocked) != before
+    return blocked
+
+
+def refresh_blocked(plan, paths):
+    failed = {p.stem for p in paths["failed"].glob("*.json")}
+    desired = transitive_blocked(plan, failed)
+    existing = {p.stem for p in paths["blocked"].glob("*.json")}
+    for job_id in sorted(existing - desired):
+        (paths["blocked"] / f"{job_id}.json").unlink()
+    for job_id in sorted(desired - existing):
+        job = next(x for x in plan["jobs"] if x["id"] == job_id)
+        atomic_json(paths["blocked"] / f"{job_id}.json", {
+            "job_id": job_id,
+            "reason": "failed_dependency",
+            "failed_dependencies": sorted(
+                dependency for dependency in job["dependencies"]
+                if dependency in failed | desired
+            ),
+        })
+    return desired
+
+
+def open_phase_pending(queue, plan, paths):
+    open_phase = int(read_json(queue / "control.json")["open_phase"])
+    done, failed, blocked = terminal_sets(paths)
+    active = {job["id"] for job in plan["jobs"] if job["phase"] <= open_phase}
+    return active - done - failed - blocked
+
+
 def claim_ready(queue, plan, site, paths, gpu_uuid):
+    if (queue / "ABORT.json").exists():
+        return None, None
     control = read_json(queue / "control.json")
     open_phase = int(control["open_phase"])
     host = os.uname().nodename
-    failed = {p.stem for p in paths["failed"].glob("*.json")}
-    done = {p.stem for p in paths["done"].glob("*.json")}
-    blocked = {p.stem for p in paths["blocked"].glob("*.json")}
+    done, failed, blocked = terminal_sets(paths)
     for job in sorted(plan["jobs"], key=lambda x: (x["phase"], x["priority"], x["id"])):
         job_id = job["id"]
         if job["phase"] > open_phase or job_id in done | failed | blocked:
@@ -163,10 +214,10 @@ def claim_ready(queue, plan, site, paths, gpu_uuid):
             continue
         if not all(dep in done for dep in job["dependencies"]):
             continue
-        recovery = paths["recovery"] / f"{job_id}.json"
-        recovery_record = read_json(recovery) if recovery.exists() else None
-        if recovery_record and recovery_record.get("same_host_only"):
-            if recovery_record["required_host"] != host:
+        recovery_path = paths["recovery"] / f"{job_id}.json"
+        recovery = read_json(recovery_path) if recovery_path.exists() else None
+        if recovery and recovery.get("same_host_only"):
+            if recovery["required_host"] != host:
                 continue
         claim = paths["claims"] / f"{job_id}.json"
         try:
@@ -178,8 +229,7 @@ def claim_ready(queue, plan, site, paths, gpu_uuid):
             "job": job_id, "attempt": attempt, "gpu_uuid": gpu_uuid,
             "host": host, "pid": os.getpid(),
             "slurm_job": os.environ.get("SLURM_JOB_ID"),
-            "claimed_unix": time.time(),
-            "recovery": recovery_record,
+            "claimed_unix": time.time(), "recovery": recovery,
         }
         os.write(descriptor, json.dumps(record).encode())
         os.close(descriptor)
@@ -187,7 +237,7 @@ def claim_ready(queue, plan, site, paths, gpu_uuid):
     return None, None
 
 
-def dependency_roots(work, queue, paths, job):
+def dependency_roots(work, paths, job):
     result = {}
     for dependency in job["dependencies"]:
         record = read_json(paths["done"] / f"{dependency}.json")
@@ -196,6 +246,107 @@ def dependency_roots(work, queue, paths, job):
                          record["archive"]["sha256"], destination)
         result[dependency] = str(destination)
     return result
+
+
+def create_abort(queue, record):
+    path = queue / "ABORT.json"
+    try:
+        descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        return
+    os.write(descriptor, json.dumps(record, ensure_ascii=False, indent=2).encode())
+    os.close(descriptor)
+
+
+def run_claimed_job(queue, plan, site, paths, gpu_uuid, job, claim):
+    job_id = job["id"]
+    attempt = claim["attempt"]
+    stable_work = Path(site["scratch_root"]) / BATCH / job_id
+    recovery = claim.get("recovery")
+    stable_work.mkdir(parents=True, exist_ok=True)
+    attempt_dir = stable_work / "attempts" / f"attempt_{attempt:03d}"
+    attempt_dir.mkdir(parents=True, exist_ok=False)
+    started = time.time()
+    error = None
+    returncode = None
+    try:
+        result_dir = stable_work / "result"
+        if result_dir.exists() and not recovery:
+            raise RuntimeError(f"unexpected existing result scratch for {job_id}")
+        dependencies = dependency_roots(stable_work, paths, job)
+        job_file = attempt_dir / "job.json"
+        deps_file = attempt_dir / "dependencies.json"
+        atomic_json(job_file, job)
+        atomic_json(deps_file, dependencies)
+        env = os.environ.copy()
+        env.update({str(k): str(v) for k, v in site.get("environment", {}).items()})
+        env["PCLA_EXPECTED_GPU_UUID"] = gpu_uuid
+        command = [
+            site["python_pcla"], str(ROOT / "pcla_runner.py"),
+            "--site", str(queue / "frozen_site.json"),
+            "--job", str(job_file),
+            "--out", str(result_dir),
+            "--dependencies", str(deps_file),
+        ]
+        atomic_json(attempt_dir / "command.json", {
+            "argv": command, "environment_overrides": site.get("environment", {}),
+            "gpu_uuid": gpu_uuid, "host": os.uname().nodename,
+            "handoff_sources": handoff_hashes(),
+        })
+        with (attempt_dir / "console.log").open("w", encoding="utf-8") as log:
+            process = subprocess.Popen(
+                command, stdout=log, stderr=subprocess.STDOUT,
+                env=env, start_new_session=True,
+            )
+            try:
+                returncode = process.wait(timeout=job["timeout"])
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+                raise RuntimeError("job exceeded fixed technical timeout")
+        require(returncode == 0, "job process returned nonzero")
+        result = read_json(result_dir / "result.json")
+        require(result["state"] == "completed", "missing completion record")
+    except BaseException:
+        error = traceback.format_exc()
+        (attempt_dir / "worker_exception.txt").write_text(error, encoding="utf-8")
+    attempt_record = {
+        "job_id": job_id, "job_sha256": fingerprint(job),
+        "attempt": attempt, "gpu_uuid": gpu_uuid,
+        "host": os.uname().nodename, "pid": os.getpid(),
+        "returncode": returncode, "started_unix": started,
+        "ended_unix": time.time(),
+        "state": "completed" if error is None else "failed",
+        "recovery": recovery,
+    }
+    atomic_json(attempt_dir / "attempt.json", attempt_record)
+    atomic_json(paths["attempts"] / f"{job_id}__attempt_{attempt:03d}.json",
+                attempt_record)
+    payload = stable_work / f"payload_attempt_{attempt:03d}"
+    require(not payload.exists(), "attempt payload already exists")
+    payload.mkdir()
+    if (stable_work / "result").exists():
+        shutil.copytree(stable_work / "result", payload / "result")
+    shutil.copytree(attempt_dir, payload / "attempt")
+    archive = archive_tree(
+        payload, paths["archives"] / f"{job_id}__attempt_{attempt:03d}.zip"
+    )
+    final_record = {**attempt_record, "archive": archive}
+    destination = paths["done"] if error is None else paths["failed"]
+    atomic_json(destination / f"{job_id}.json", final_record)
+    (paths["claims"] / f"{job_id}.json").unlink(missing_ok=True)
+    (paths["recovery"] / f"{job_id}.json").unlink(missing_ok=True)
+    if error is not None:
+        create_abort(queue, {
+            "state": "aborted_after_job_failure", "job_id": job_id,
+            "attempt": attempt, "utc": time.time(),
+            "failure_record": str((paths["failed"] / f"{job_id}.json").resolve()),
+        })
+    return error is None
 
 
 def worker(queue_path, gpu_uuid, max_jobs):
@@ -213,114 +364,35 @@ def worker(queue_path, gpu_uuid, max_jobs):
     }).encode())
     os.close(descriptor)
     completed = 0
+    no_ready_since = None
     try:
         while completed < max_jobs:
+            refresh_blocked(plan, paths)
+            if (queue / "ABORT.json").exists():
+                return
             job, claim = claim_ready(queue, plan, site, paths, gpu_uuid)
             if job is None:
-                return
-            job_id = job["id"]
-            attempt = claim["attempt"]
-            stable_work = Path(site["scratch_root"]) / BATCH / job_id
-            recovery = claim.get("recovery")
-            if stable_work.exists() and not recovery:
-                raise RuntimeError(f"unexpected existing scratch for {job_id}")
-            stable_work.mkdir(parents=True, exist_ok=True)
-            attempt_dir = stable_work / "attempts" / f"attempt_{attempt:03d}"
-            attempt_dir.mkdir(parents=True, exist_ok=False)
-            dependencies = dependency_roots(stable_work, queue, paths, job)
-            job_file = attempt_dir / "job.json"
-            deps_file = attempt_dir / "dependencies.json"
-            atomic_json(job_file, job)
-            atomic_json(deps_file, dependencies)
-            env = os.environ.copy()
-            env.update({str(k): str(v) for k, v in site.get("environment", {}).items()})
-            env["PCLA_EXPECTED_GPU_UUID"] = gpu_uuid
-            command = [
-                site["python_pcla"], str(ROOT / "pcla_runner.py"),
-                "--site", str(queue / "frozen_site.json"),
-                "--job", str(job_file),
-                "--out", str(stable_work / "result"),
-                "--dependencies", str(deps_file),
-            ]
-            atomic_json(attempt_dir / "command.json", {
-                "argv": command, "environment_overrides": site.get("environment", {}),
-                "gpu_uuid": gpu_uuid, "host": os.uname().nodename,
-                "handoff_sources": handoff_hashes(),
-            })
-            started = time.time()
-            error = None
-            returncode = None
-            try:
-                with (attempt_dir / "console.log").open("w", encoding="utf-8") as log:
-                    process = subprocess.Popen(
-                        command, stdout=log, stderr=subprocess.STDOUT,
-                        env=env, start_new_session=True,
-                    )
-                    try:
-                        returncode = process.wait(timeout=job["timeout"])
-                    except subprocess.TimeoutExpired:
-                        os.killpg(process.pid, signal.SIGTERM)
-                        try:
-                            process.wait(timeout=30)
-                        except subprocess.TimeoutExpired:
-                            os.killpg(process.pid, signal.SIGKILL)
-                            process.wait()
-                        raise RuntimeError("job exceeded fixed technical timeout")
-                require(returncode == 0, "job process returned nonzero")
-                result = read_json(stable_work / "result" / "result.json")
-                require(result["state"] == "completed", "missing completion record")
-            except BaseException:
-                error = traceback.format_exc()
-                (attempt_dir / "worker_exception.txt").write_text(error, encoding="utf-8")
-            attempt_record = {
-                "job_id": job_id, "job_sha256": fingerprint(job),
-                "attempt": attempt, "gpu_uuid": gpu_uuid,
-                "host": os.uname().nodename, "pid": os.getpid(),
-                "returncode": returncode, "started_unix": started,
-                "ended_unix": time.time(),
-                "state": "completed" if error is None else "failed",
-                "recovery": recovery,
-            }
-            atomic_json(attempt_dir / "attempt.json", attempt_record)
-            atomic_json(paths["attempts"] / f"{job_id}__attempt_{attempt:03d}.json",
-                        attempt_record)
-            payload = stable_work / f"payload_attempt_{attempt:03d}"
-            require(not payload.exists(), "attempt payload already exists")
-            payload.mkdir()
-            if (stable_work / "result").exists():
-                shutil.copytree(stable_work / "result", payload / "result")
-            shutil.copytree(attempt_dir, payload / "attempt")
-            archive = archive_tree(
-                payload,
-                paths["archives"] / f"{job_id}__attempt_{attempt:03d}.zip",
-            )
-            final_record = {**attempt_record, "archive": archive}
-            destination = paths["done"] if error is None else paths["failed"]
-            atomic_json(destination / f"{job_id}.json", final_record)
-            (paths["claims"] / f"{job_id}.json").unlink(missing_ok=True)
-            (paths["recovery"] / f"{job_id}.json").unlink(missing_ok=True)
-            completed += 1
-            if error is not None:
-                # Scientific and implementation failures are not auto-retried.
+                if not open_phase_pending(queue, plan, paths):
+                    return
+                if no_ready_since is None:
+                    no_ready_since = time.time()
+                idle_limit = int(site.get("worker_no_ready_timeout_seconds", 300))
+                if time.time() - no_ready_since >= idle_limit:
+                    return
+                time.sleep(float(site.get("worker_idle_seconds", 4)))
                 continue
+            no_ready_since = None
+            success = run_claimed_job(queue, plan, site, paths, gpu_uuid, job, claim)
+            completed += 1
+            if not success:
+                return
     finally:
         lease.unlink(missing_ok=True)
 
 
-def transitive_blocked(plan, failed):
-    blocked = set()
-    changed = True
-    while changed:
-        before = len(blocked)
-        for job in plan["jobs"]:
-            if any(dep in failed | blocked for dep in job["dependencies"]):
-                blocked.add(job["id"])
-        changed = len(blocked) != before
-    return blocked - failed
-
-
 def doctor(queue_path):
     queue, plan, site, paths = load_queue(queue_path)
+    blocked = refresh_blocked(plan, paths)
     now = time.time()
     claims, leases = [], []
     for directory, output in ((paths["claims"], claims), (paths["leases"], leases)):
@@ -334,21 +406,14 @@ def doctor(queue_path):
                     if record.get("host") == os.uname().nodename else None
                 ),
             })
-    failed = {p.stem for p in paths["failed"].glob("*.json")}
-    blocked = transitive_blocked(plan, failed)
-    for job_id in blocked:
-        path = paths["blocked"] / f"{job_id}.json"
-        if not path.exists():
-            atomic_json(path, {"job_id": job_id,
-                               "reason": "failed_dependency",
-                               "failed_dependencies": sorted(failed)})
+    done, failed, _ = terminal_sets(paths)
     report = {
         "open_phase": read_json(queue / "control.json")["open_phase"],
-        "done": len(list(paths["done"].glob("*.json"))),
-        "failed": len(failed),
-        "blocked": len(blocked),
-        "claims": claims, "leases": leases,
-        "queue": str(queue),
+        "abort": (read_json(queue / "ABORT.json")
+                  if (queue / "ABORT.json").exists() else None),
+        "done": len(done), "failed": len(failed), "blocked": len(blocked),
+        "pending_open_phase": sorted(open_phase_pending(queue, plan, paths)),
+        "claims": claims, "leases": leases, "queue": str(queue),
     }
     atomic_json(queue / "doctor_latest.json", report)
     print(json.dumps(report, indent=2))
@@ -362,33 +427,64 @@ def recover(queue_path, job_id, reason, confirm_process_stopped,
     queue, plan, site, paths = load_queue(queue_path)
     job = next((x for x in plan["jobs"] if x["id"] == job_id), None)
     require(job is not None, "unknown job")
-    done = paths["done"] / f"{job_id}.json"
-    require(not done.exists(), "completed job cannot be recovered")
+    require(not (paths["done"] / f"{job_id}.json").exists(),
+            "completed job cannot be recovered")
     claim_path = paths["claims"] / f"{job_id}.json"
+    failure_path = paths["failed"] / f"{job_id}.json"
     claim = read_json(claim_path) if claim_path.exists() else None
-    if claim and claim.get("host") == os.uname().nodename:
-        require(not process_exists(claim.get("pid")), "old worker process is alive")
-    failure = paths["failed"] / f"{job_id}.json"
+    failure = read_json(failure_path) if failure_path.exists() else None
+    require(claim is not None or failure is not None,
+            "no interrupted/failed attempt exists")
+    origin = claim or failure
+    if origin.get("host") == os.uname().nodename:
+        require(not process_exists(origin.get("pid")), "old process is still alive")
     history = paths["history"] / f"{job_id}__{time.time_ns()}"
     history.mkdir(parents=True)
-    if claim_path.exists():
+    if claim:
+        attempt = int(claim["attempt"])
+        attempt_record = paths["attempts"] / f"{job_id}__attempt_{attempt:03d}.json"
+        if not attempt_record.exists():
+            atomic_json(attempt_record, {
+                "job_id": job_id, "attempt": attempt,
+                "state": "interrupted_before_worker_record",
+                "host": claim.get("host"), "pid": claim.get("pid"),
+                "gpu_uuid": claim.get("gpu_uuid"),
+                "claimed_unix": claim.get("claimed_unix"),
+            })
         shutil.move(claim_path, history / "claim.json")
-    if failure.exists():
-        shutil.move(failure, history / "failed.json")
+    if failure:
+        shutil.move(failure_path, history / "failed.json")
+    abort_path = queue / "ABORT.json"
+    if abort_path.exists() and read_json(abort_path).get("job_id") == job_id:
+        shutil.move(abort_path, history / "ABORT.json")
     work = Path(site["scratch_root"]) / BATCH / job_id
     run_lock = work / "result" / "run" / ".run.lock"
     if run_lock.exists():
         run_lock.unlink()
-    required_host = claim.get("host") if claim else os.uname().nodename
-    record = {
+    required_host = origin.get("host") or os.uname().nodename
+    recovery = {
         "job_id": job_id, "reason": reason,
         "approved_unix": time.time(),
-        "same_host_only": bool(same_host_only and work.exists()),
+        "same_host_only": bool(same_host_only),
         "required_host": required_host,
         "restart_if_scratch_missing": True,
     }
-    atomic_json(paths["recovery"] / f"{job_id}.json", record)
-    print(json.dumps(record, indent=2))
+    atomic_json(paths["recovery"] / f"{job_id}.json", recovery)
+    refresh_blocked(plan, paths)
+    print(json.dumps(recovery, indent=2))
+
+
+def release_lease(queue_path, gpu_uuid, confirm_process_stopped):
+    require(confirm_process_stopped, "process-stopped confirmation is required")
+    queue, plan, site, paths = load_queue(queue_path)
+    lease = paths["leases"] / f"{gpu_uuid}.json"
+    require(lease.exists(), "lease does not exist")
+    record = read_json(lease)
+    if record.get("host") == os.uname().nodename:
+        require(not process_exists(record.get("pid")), "lease process is alive")
+    history = paths["history"] / f"lease_{gpu_uuid}_{time.time_ns()}.json"
+    shutil.move(lease, history)
+    print(json.dumps({"released": gpu_uuid, "history": str(history)}, indent=2))
 
 
 def materialize(queue_path, output):
@@ -440,6 +536,10 @@ def main():
     command.add_argument("--reason", required=True)
     command.add_argument("--confirm-process-stopped", action="store_true")
     command.add_argument("--same-host-only", action="store_true")
+    command = sub.add_parser("release-lease")
+    command.add_argument("--queue", required=True)
+    command.add_argument("--gpu-uuid", required=True)
+    command.add_argument("--confirm-process-stopped", action="store_true")
     command = sub.add_parser("materialize")
     command.add_argument("--queue", required=True)
     command.add_argument("--out", required=True)
@@ -453,6 +553,9 @@ def main():
     elif args.command == "recover":
         recover(args.queue, args.job, args.reason,
                 args.confirm_process_stopped, args.same_host_only)
+    elif args.command == "release-lease":
+        release_lease(args.queue, args.gpu_uuid,
+                      args.confirm_process_stopped)
     else:
         materialize(args.queue, args.out)
 
