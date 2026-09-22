@@ -33,6 +33,23 @@ def coverage_report(torch, client_rows, total_weight, shape):
     require(overall_examples == total_weight, "coverage total weight differs")
     result = []
     tiers = sorted({str(x["capacity"]) for x in client_rows})
+    participant_sample_weights = {
+        tier: sum(x["sample_weight"] for x in client_rows
+                  if str(x["capacity"]) == tier)
+        for tier in tiers
+    }
+    participant_client_counts = {
+        tier: sum(1 for x in client_rows if str(x["capacity"]) == tier)
+        for tier in tiers
+    }
+    participant_sample_shares = {
+        tier: participant_sample_weights[tier] / overall_examples
+        for tier in tiers
+    }
+    participant_client_shares = {
+        tier: participant_client_counts[tier] / len(client_rows)
+        for tier in tiers
+    }
     for layer in range(layers):
         for component in range(rank):
             selected = [x for x in client_rows if x["support"][layer][component]]
@@ -47,6 +64,24 @@ def coverage_report(torch, client_rows, total_weight, shape):
                 tier: sum(1 for x in selected if str(x["capacity"]) == tier)
                 for tier in tiers
             }
+            sample_shares = (
+                {tier: sample_tiers[tier] / weight for tier in tiers}
+                if weight else None
+            )
+            client_shares = (
+                {tier: client_tiers[tier] / len(selected) for tier in tiers}
+                if selected else None
+            )
+            sample_tv = (
+                0.5 * sum(abs(sample_shares[tier] -
+                              participant_sample_shares[tier]) for tier in tiers)
+                if sample_shares else None
+            )
+            client_tv = (
+                0.5 * sum(abs(client_shares[tier] -
+                              participant_client_shares[tier]) for tier in tiers)
+                if client_shares else None
+            )
             result.append({
                 "layer": layer,
                 "rank": component,
@@ -61,6 +96,12 @@ def coverage_report(torch, client_rows, total_weight, shape):
                 ),
                 "capacity_sample_weights": sample_tiers,
                 "capacity_client_counts": client_tiers,
+                "capacity_sample_shares": sample_shares,
+                "capacity_client_shares": client_shares,
+                "participant_capacity_sample_shares": participant_sample_shares,
+                "participant_capacity_client_shares": participant_client_shares,
+                "capacity_sample_total_variation": sample_tv,
+                "capacity_client_total_variation": client_tv,
             })
     return result
 
@@ -240,7 +281,6 @@ def run_diagnostic(site, job, output):
                         ),
                         "aggregation": readouts[policy],
                     })
-            # The next inspected round has one common factual parent.
             parent = {
                 name: value.clone()
                 for name, value in states["pcla"]["fixed"].items()
