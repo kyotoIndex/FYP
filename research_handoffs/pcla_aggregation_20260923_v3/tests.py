@@ -14,7 +14,10 @@ from common import (
 )
 from aggregation import accumulator_type
 from analyze import classification
-from dispatch import initialize, load_queue, make_jobs, recover
+from dispatch import (
+    claim_ready, create_abort, initialize, load_queue, make_jobs,
+    open_phase_pending, recover, refresh_blocked,
+)
 from fixed_state import coverage_report
 
 CORE = RUNTIME = REPO = None
@@ -79,8 +82,6 @@ class AggregationTests(unittest.TestCase):
         self.add_b(acc, delta2.tolist(), [[0, 1], [0, 0]], 1)
         first = acc.readout()
 
-        # Different reciprocal gauges per rank component preserve every rank-1
-        # function contribution but change parameter-space weighting.
         column_scale = torch.tensor([7.0, 0.5], dtype=torch.float64)
         transformed = {name: value.clone() for name, value in base.items()}
         transformed["x.lora_a"] /= column_scale[:, None]
@@ -137,12 +138,15 @@ class UtilityTests(unittest.TestCase):
         self.assertAlmostEqual(rows[0]["coverage_fraction"], 1 / 3)
         self.assertAlmostEqual(rows[0]["contributor_positive_ratio"], 0.8)
         self.assertAlmostEqual(rows[1]["contributor_positive_ratio"], 0.2)
+        self.assertGreater(rows[0]["capacity_sample_total_variation"], 0)
 
-    def test_classification_recomputation(self):
+    def test_classification_recomputation_and_nonfinite_rejection(self):
         result = classification([[2.0, 0.0], [0.0, 2.0]], [0, 1])
         self.assertEqual(result["accuracy"], 1.0)
         self.assertEqual(result["confusion"], [[1, 0], [0, 1]])
         self.assertFalse(result["strict_one_class"])
+        with self.assertRaises(ValueError):
+            classification([[float("nan"), 0.0]], [0])
 
     def test_unsafe_archive_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -165,36 +169,54 @@ class UtilityTests(unittest.TestCase):
                           for phase in (1, 2, 3, 4)},
                          {1: 4, 2: 8, 3: 16, 4: 24})
 
-    def test_frozen_site_and_recovery_bookkeeping(self):
+    def _dummy_queue(self, root):
+        repo = root / "repo"; repo.mkdir()
+        source = root / "source"; source.mkdir()
+        python = root / "python"; python.write_text("x")
+        site = {
+            "repo": str(repo), "source_root": str(source),
+            "queue_root": str(root / "queue"),
+            "scratch_root": str(root / "scratch"),
+            "python_pcla": str(python), "require_slurm": False,
+            "environment": {}, "full_run_timeout_seconds": 1800,
+            "diagnostic_timeout_seconds": 900,
+        }
+        site_path = root / "site.json"; atomic_json(site_path, site)
+        report = root / "tests.json"
+        atomic_json(report, {"passed": True,
+                             "handoff_sources": handoff_hashes()})
+        initialize(site_path, report)
+        return site_path, load_queue(root / "queue")
+
+    def test_frozen_site_abort_blocking_and_recovery(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            repo = root / "repo"; repo.mkdir()
-            source = root / "source"; source.mkdir()
-            python = root / "python"; python.write_text("x")
-            site = {
-                "repo": str(repo), "source_root": str(source),
-                "queue_root": str(root / "queue"),
-                "scratch_root": str(root / "scratch"),
-                "python_pcla": str(python), "require_slurm": False,
-                "environment": {}, "full_run_timeout_seconds": 1800,
-                "diagnostic_timeout_seconds": 900,
-            }
-            site_path = root / "site.json"; atomic_json(site_path, site)
-            report = root / "tests.json"
-            atomic_json(report, {"passed": True,
-                                 "handoff_sources": handoff_hashes()})
-            initialize(site_path, report)
-            queue, plan, frozen, paths = load_queue(root / "queue")
+            site_path, loaded = self._dummy_queue(root)
+            queue, plan, frozen, paths = loaded
             original_hash = sha256_file(queue / "frozen_site.json")
-            site["repo"] = str(root / "changed")
-            atomic_json(site_path, site)
+            changed = json.loads(site_path.read_text())
+            changed["repo"] = str(root / "changed")
+            atomic_json(site_path, changed)
             self.assertEqual(original_hash,
                              sha256_file(queue / "frozen_site.json"))
+
             failed = paths["failed"] / "parity_pcla_7.json"
-            atomic_json(failed, {"state": "failed"})
+            atomic_json(failed, {"state": "failed", "job_id": "parity_pcla_7"})
+            blocked = refresh_blocked(plan, paths)
+            self.assertIn("trace_pcla_contributors_7", blocked)
+            create_abort(queue, {"job_id": "parity_pcla_7"})
+            job, claim = claim_ready(queue, plan, frozen, paths, "GPU-test")
+            self.assertIsNone(job)
+            self.assertIsNone(claim)
+
             recover(queue, "parity_pcla_7", "external_interruption",
                     True, False)
-            self.assertTrue((paths["recovery"] / "parity_pcla_7.json").exists())
+            self.assertFalse((queue / "ABORT.json").exists())
+            self.assertFalse((paths["failed"] / "parity_pcla_7.json").exists())
+            self.assertFalse((paths["blocked"] /
+                              "trace_pcla_contributors_7.json").exists())
+            self.assertIn("parity_pcla_7",
+                          open_phase_pending(queue, plan, paths))
 
     def test_four_round_exact_support_replay(self):
         from pcla_repair.testing import fixture, tiny_config
