@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -23,9 +22,7 @@ CORE = RUNTIME = REPO = None
 
 class AggregationTests(unittest.TestCase):
     def accumulator(self, base, total=2):
-        cls = accumulator_type(
-            CORE.DeltaAccumulator, torch, {"x": 1.0}
-        )
+        cls = accumulator_type(CORE.DeltaAccumulator, torch, {"x": 1.0})
         return cls(base, total, "fixed")
 
     def base(self):
@@ -37,8 +34,7 @@ class AggregationTests(unittest.TestCase):
         }
 
     def add_b(self, accumulator, delta, mask, head, weight=1):
-        base = accumulator.base
-        local = {name: value.clone() for name, value in base.items()}
+        local = {name: value.clone() for name, value in accumulator.base.items()}
         local["x.lora_b"] += torch.tensor(delta, dtype=torch.float64)
         local["classifier.bias"] += torch.tensor([head], dtype=torch.float64)
         accumulator.add(local, {
@@ -46,18 +42,17 @@ class AggregationTests(unittest.TestCase):
             "classifier.bias": torch.ones(1, dtype=torch.bool),
         }, weight)
 
-    def test_denominators_and_head_identity(self):
-        acc = self.accumulator(self.base())
-        self.add_b(acc, [[2, 2], [0, 0]], [[1, 1], [0, 0]], 1)
-        self.add_b(acc, [[0, 2], [0, 0]], [[0, 1], [0, 0]], 3)
-        # total client weight supplied to the original accumulator must match.
-        self.assertRaises(ValueError, acc.finish)
+    def test_missing_client_weight_is_rejected(self):
+        acc = self.accumulator(self.base(), total=3)
+        self.add_b(acc, [[2, 2], [0, 0]], [[1, 1], [0, 0]], 1, weight=1)
+        self.add_b(acc, [[0, 2], [0, 0]], [[0, 1], [0, 0]], 3, weight=1)
+        with self.assertRaises(ValueError):
+            acc.finish()
 
     def test_denominators_function_and_parameter_controls(self):
-        cls = accumulator_type(CORE.DeltaAccumulator, torch, {"x": 1.0})
-        acc = cls(self.base(), 2, "fixed")
-        self.add_b(acc, [[2, 2], [0, 0]], [[1, 1], [0, 0]], 1)
-        self.add_b(acc, [[0, 2], [0, 0]], [[0, 1], [0, 0]], 3 - 2)
+        acc = self.accumulator(self.base(), total=2)
+        self.add_b(acc, [[2, 2], [0, 0]], [[1, 1], [0, 0]], 1, weight=1)
+        self.add_b(acc, [[0, 2], [0, 0]], [[0, 1], [0, 0]], 3, weight=1)
         fixed = acc.result_for("fixed")
         contributors = acc.result_for("contributors")
         function = acc.result_for("function_norm_matched")
@@ -74,21 +69,27 @@ class AggregationTests(unittest.TestCase):
         self.assertFalse(torch.equal(parameter["x.lora_b"],
                                      function["x.lora_b"]))
 
-    def test_function_gain_is_reciprocal_gauge_invariant(self):
+    def test_function_gain_is_rankwise_gauge_invariant(self):
         cls = accumulator_type(CORE.DeltaAccumulator, torch, {"x": 1.0})
         base = self.base()
         acc = cls(base, 2, "fixed")
-        self.add_b(acc, [[2, 2], [0, 0]], [[1, 1], [0, 0]], 1)
-        self.add_b(acc, [[0, 2], [0, 0]], [[0, 1], [0, 0]], 1)
+        delta1 = torch.tensor([[2.0, 2.0], [0.0, 0.0]])
+        delta2 = torch.tensor([[0.0, 2.0], [0.0, 0.0]])
+        self.add_b(acc, delta1.tolist(), [[1, 1], [0, 0]], 1)
+        self.add_b(acc, delta2.tolist(), [[0, 1], [0, 0]], 1)
         first = acc.readout()
 
-        scale = 7.0
+        # Different reciprocal gauges per rank component preserve every rank-1
+        # function contribution but change parameter-space weighting.
+        column_scale = torch.tensor([7.0, 0.5], dtype=torch.float64)
         transformed = {name: value.clone() for name, value in base.items()}
-        transformed["x.lora_a"] /= scale
-        transformed["x.lora_b"] *= scale
+        transformed["x.lora_a"] /= column_scale[:, None]
+        transformed["x.lora_b"] *= column_scale[None, :]
         other = cls(transformed, 2, "fixed")
-        self.add_b(other, [[14, 14], [0, 0]], [[1, 1], [0, 0]], 1)
-        self.add_b(other, [[0, 14], [0, 0]], [[0, 1], [0, 0]], 1)
+        self.add_b(other, (delta1 * column_scale[None, :]).tolist(),
+                   [[1, 1], [0, 0]], 1)
+        self.add_b(other, (delta2 * column_scale[None, :]).tolist(),
+                   [[0, 1], [0, 0]], 1)
         second = other.readout()
         self.assertAlmostEqual(first["function_gain"], second["function_gain"],
                                places=12)
@@ -96,8 +97,7 @@ class AggregationTests(unittest.TestCase):
                                   second["parameter_gain"], places=5)
 
     def test_full_coverage_rules_agree(self):
-        cls = accumulator_type(CORE.DeltaAccumulator, torch, {"x": 1.0})
-        acc = cls(self.base(), 2, "fixed")
+        acc = self.accumulator(self.base(), total=2)
         self.add_b(acc, [[1, 2], [3, 4]], [[1, 1], [1, 1]], 1)
         self.add_b(acc, [[5, 6], [7, 8]], [[1, 1], [1, 1]], 1)
         reference = acc.result_for("fixed")
