@@ -1,0 +1,421 @@
+--- a/common.py
++++ b/common.py
+@@ -14,7 +14,7 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ VERSION = '4.1'
+-BATCH = 'pcla-v5b-open-questions-20260924'
++BATCH = 'pcla-v5e-missing-metrics-20260924'
+ SEEDS = (7, 13, 21, 42, 87)
+ COMMIT = 'e53078b638ee30a633bad98195c1e2d4476523f5'
+ CONFIG = 'configs/pcla_repair/core_shared_hh_20260918_v3.json'
+--- a/execute_job.py
++++ b/execute_job.py
+@@ -44,7 +44,7 @@
+     if job['kind'] in ('fixed','online','online_replay'):
+         from run_aggregation import run_bundle
+         run_bundle(b,out,job['rule'],b.source,job['kind']!='fixed',donor,stop,resume,reason,job.get('parity',False),
+-                   job.get('refactor'))
++                   job.get('refactor'),job.get('v5e_factors',False))
+     elif job['kind']=='runtime_policy':
+         from run_runtime import run_bundle
+         reference=None
+@@ -53,7 +53,7 @@
+             else:
+                 from context import load_original
+                 reference=load_original(root,job['seed'],'pcla',repo)
+-        run_bundle(b,out,job['policy'],donor,reference,stop,resume,reason)
++        run_bundle(b,out,job['policy'],donor,reference,stop,resume,reason,job.get('v5e_ema'))
+     elif job['kind']=='diagnostic':
+         from run_fixed_state import run_bundle
+         if test:
+@@ -71,6 +71,15 @@
+     else:raise ValueError('unknown job kind')
+     from audit_run import audit
+     report=audit(out,repo,require_complete=not bool(job.get('stop_after')))
++    if job.get('v5e_ema') or job.get('v5e_factors'):
++        from v5e_metrics import parity, audit_ema
++        reference_job=Path(site['v5b_materialized'])/job['reference_job']
++        result=parity(reference_job,Path(out), 'ema' if job.get('v5e_ema') else 'svd')
++        atomic_json(Path(out)/'v5e_parity.json',result)
++        require(result['passed'],'V5e trajectory parity failed')
++        if job.get('v5e_ema'):
++            rows=audit_ema(out,job['v5e_ema'])
++            atomic_json(Path(out)/'v5e_ema_rows.json',rows)
+     for name in parity_files(job):
+         require(read(Path(out)/name)['passed'],'technical parity did not pass: '+name)
+     if job.get('stop_after'):
+--- a/job_plan.py
++++ b/job_plan.py
+@@ -1,93 +1,67 @@
+-"""V5b open-question batch: AG_NEWS controls (D), 100-round SST-2 PCLA (L2), SVD-refactored online PCLA (V4).
+-Technical S0 jobs gate only their own type; no accuracy-threshold selection."""
++"""V5e: instrumented deterministic replays for the two missing V5 metrics."""
+ from __future__ import annotations
+ import argparse
+ from pathlib import Path
+ from common import BATCH,SEEDS,CONFIG,DATASETS,atomic_json,read,require
+ 
+-CONTROLS=('central_iid_both','fed_both_mean','fed_both_exact')
+-RUNTIME=(('pcla','pcla'),('full_alt','full_alt'),('replay_random_rank','replay'))
++STAGE_DEPENDENCIES={'S0':[],'S1':[]}
+ 
+ 
+ def build():
+     jobs=[]
+-    def add(id,**kw):jobs.append(dict(id=id,**kw))
+-    add('parity_online_pcla_fixed_s7',family='aggregation',kind='online',source='pcla',rule='fixed',parity=True,
+-        seed=7,stage='S0',pool='4090',depends=[],priority=1)
+-    for mode in CONTROLS:
+-        add(f'smoke_agnews_{mode}_s7',family='lora_control',kind='control',mode=mode,dataset='ag_news',seed=7,
+-            stop_after=5,stage='S0',pool='technical',depends=[],priority=2)
+-    for policy,tag in RUNTIME:
+-        extra=dict(donor='smoke_agnews_pcla_s7') if policy=='replay_random_rank' else {}
+-        add(f'smoke_agnews_{tag}_s7',family='runtime',kind='runtime_policy',policy=policy,dataset='ag_news',rounds=5,
+-            seed=7,stage='S0',pool='technical',depends=list(extra.values()),priority=2,**extra)
+-    add('smoke_agnews_online_C_s7',family='aggregation',kind='online',rule='contributors',dataset='ag_news',seed=7,
+-        stop_after=5,stage='S0',pool='technical',depends=[],priority=2)
+-    add('smoke_pcla_svd_s7',family='aggregation',kind='online',source='pcla',rule='fixed',refactor='svd',seed=7,
+-        stop_after=5,stage='S0',pool='technical',depends=[],priority=2)
++    def add(id,**kw): jobs.append({'id':id,**kw})
++    add('smoke_l2_ema_s7',family='runtime',kind='runtime_policy',policy='pcla',
++        dataset='sst2',rounds=100,v5e_ema=.8,reference_job='L2_pcla_r100_s7',
++        seed=7,stop_after=5,stage='S0',pool='4090',depends=[],priority=1)
++    add('smoke_v4_factors_s7',family='aggregation',kind='online',source='pcla',rule='fixed',
++        refactor='svd',v5e_factors=True,reference_job='V4_pcla_svd_s7',
++        seed=7,stop_after=5,stage='S0',pool='4090',depends=[],priority=1)
+     for seed in SEEDS:
+-        for mode in CONTROLS:
+-            add(f'D_agnews_{mode}_s{seed}',family='lora_control',kind='control',mode=mode,dataset='ag_news',seed=seed,
+-                stage='S1',pool='4090',depends=[f'smoke_agnews_{mode}_s7'],priority=4)
+-        for policy,tag in RUNTIME:
+-            extra=dict(donor=f'D_agnews_pcla_s{seed}') if policy=='replay_random_rank' else {}
+-            add(f'D_agnews_{tag}_s{seed}',family='runtime',kind='runtime_policy',policy=policy,dataset='ag_news',seed=seed,
+-                stage='S1',pool='4090',depends=[f'smoke_agnews_{tag}_s7',*extra.values()],
+-                priority=3 if policy=='pcla' else 4,**extra)
+-        add(f'D_agnews_online_C_s{seed}',family='aggregation',kind='online',rule='contributors',dataset='ag_news',seed=seed,
+-            stage='S1',pool='4090',depends=['smoke_agnews_online_C_s7'],priority=4)
+-        add(f'L2_pcla_r100_s{seed}',family='runtime',kind='runtime_policy',policy='pcla',dataset='sst2',rounds=100,
+-            prefix_parity=True,seed=seed,stage='S1',pool='4090',depends=['smoke_agnews_pcla_s7'],priority=3)
+-        add(f'V4_pcla_svd_s{seed}',family='aggregation',kind='online',source='pcla',rule='fixed',refactor='svd',seed=seed,
+-            stage='S1',pool='4090',depends=['smoke_pcla_svd_s7','parity_online_pcla_fixed_s7'],priority=4)
+-    require(len(jobs)==54 and len({j['id'] for j in jobs})==54,'job inventory differs')
++        add(f'L2_ema_s{seed}',family='runtime',kind='runtime_policy',policy='pcla',
++            dataset='sst2',rounds=100,v5e_ema=.8,reference_job=f'L2_pcla_r100_s{seed}',
++            seed=seed,stage='S1',pool='4090',depends=['smoke_l2_ema_s7'],priority=2)
++        add(f'V4_factors_s{seed}',family='aggregation',kind='online',source='pcla',rule='fixed',
++            refactor='svd',v5e_factors=True,reference_job=f'V4_pcla_svd_s{seed}',
++            seed=seed,stage='S1',pool='4090',depends=['smoke_v4_factors_s7'],priority=2)
++    require(len(jobs)==12 and len({j['id'] for j in jobs})==12,'V5e inventory differs')
+     return jobs
+ 
+ 
+-STAGE_DEPENDENCIES={'S0':[],'S1':[]}
+-
+-
+ def parity_files(job):
+-    """Technical equalities a job must pass before it counts as completed."""
+-    return ((['parity.json'] if job.get('parity') or job.get('mode')=='bridge_full_alt' else [])+
+-            (['prefix_parity.json'] if job.get('prefix_parity') else []))
++    return ['v5e_parity.json']
+ 
+ 
+ def job_inputs(job,site):
+-    """Files the job actually reads outside the locked code: dataset config/TSVs, old SST-2 PCLA sources."""
+     repo,root=Path(site['repo']),Path(site['source_root'])
+-    spec=DATASETS[job.get('dataset') or 'sst2'];ds=read(repo/spec['config'])['dataset']
++    spec=DATASETS['sst2'];ds=read(repo/spec['config'])['dataset']
+     paths=[repo/CONFIG,repo/spec['config'],repo/ds['train_file'],repo/ds['dev_file']]
+-    old=root/f"seed_{job['seed']}"
+-    if not job.get('dataset'):paths.append(old/job.get('source','full_alt')/'checkpoint.pt')
+-    if job.get('parity') or job.get('prefix_parity'):
+-        paths+=[old/'pcla'/'checkpoint.pt']+[old/'pcla'/f'predictions_round_{r:03d}.json'
+-                                            for r in range(1,read(repo/CONFIG)['training']['rounds']+1)]
+-    return sorted({str(p) for p in paths})
++    if job['kind']=='online':paths.append(root/f"seed_{job['seed']}"/'pcla'/'checkpoint.pt')
++    reference=Path(site['v5b_materialized'])/job['reference_job']
++    run=reference/'run'/'run'
++    paths += [reference/'EXTRACTION_RECEIPT.json',run/'checkpoint.pt',run/'metrics.json',
++              run/'probe_round_005.pt']
++    n=30 if job['kind']=='online' else 100
++    for r in range(1,n+1):
++        paths += [run/f'clients_round_{r:03d}.json',run/f'predictions_round_{r:03d}.json']
++        if job['kind']=='online':
++            paths.append(reference/'run'/'evidence'/f'{r:03d}'/'refactor.json')
++    return sorted(map(str,set(paths)))
+ 
+ 
+ def validate(jobs):
+     ids={j['id'] for j in jobs};require(len(ids)==len(jobs),'duplicate job IDs')
+     for j in jobs:
+         require(j['stage'] in STAGE_DEPENDENCIES and set(j['depends'])<=ids,'invalid dependencies')
+-        require(not j.get('donor') or j['donor'] in j['depends'],'donor must be a dependency')
+-    visiting,done=set(),set()
+-    lookup={j['id']:j for j in jobs}
+-    def visit(key):
+-        require(key not in visiting,'dependency cycle')
+-        if key in done:return
+-        visiting.add(key)
+-        j=lookup[key]
+-        deps=set(j['depends'])|{x['id'] for x in jobs if x['stage'] in STAGE_DEPENDENCIES[j['stage']]}
+-        for dep in deps:visit(dep)
+-        visiting.remove(key);done.add(key)
+-    for key in ids:visit(key)
++        require(j['reference_job'] and bool(j.get('v5e_ema')) != bool(j.get('v5e_factors')),
++                'invalid V5e instrumentation')
+     return True
+ 
+ 
+ def main():
+-    p=argparse.ArgumentParser();p.add_argument('--out',required=True);a=p.parse_args();jobs=build();validate(jobs)
+-    atomic_json(a.out,{'batch':BATCH,'jobs':jobs,'count':len(jobs),'stage_dependencies':STAGE_DEPENDENCIES,
+-        'gate_type':'technical_and_integrity_only; no accuracy-threshold selection'})
++    p=argparse.ArgumentParser();p.add_argument('--out',required=True);a=p.parse_args()
++    jobs=build();validate(jobs)
++    atomic_json(a.out,{'batch':BATCH,'jobs':jobs,'count':len(jobs),
++                       'stage_dependencies':STAGE_DEPENDENCIES,
++                       'gate_type':'trajectory_parity_and_integrity; no accuracy-threshold selection'})
+ 
+ if __name__=='__main__':main()
+--- a/run_aggregation.py
++++ b/run_aggregation.py
+@@ -89,7 +89,7 @@
+ 
+ 
+ @contextlib.contextmanager
+-def instrument(bundle, out, rule, trace, resume_checkpoint=None, refactor=None):
++def instrument(bundle, out, rule, trace, resume_checkpoint=None, refactor=None, v5e_factors=False):
+     from pcla_repair import core, runtime as rt
+     from lora_matrix import refactor_module
+     from run_lora_controls import projection_state, load_projections
+@@ -123,6 +123,10 @@
+                   'pre_lora_sha256': core.tensor_digest(lora(state)), 'post_lora_sha256': core.tensor_digest(lora(new)),
+                   'download_bytes': sizes[r][0], 'adapter_only_download_bytes': sizes[r][1]}
+         atomic_json(out/'evidence'/f'{r:03d}'/'refactor.json', record)
++        if v5e_factors:
++            atomic_torch(out/'v5e_factors'/f'round_{r:03d}.pt', {
++                'round': r, 'post': lora(new),
++                'post_lora_sha256': core.tensor_digest(lora(new))})
+         if r in anchors:
+             atomic_torch(out/'evidence'/f'{r:03d}'/'refactor_bank.pt', {
+                 'round': r, 'scalings': scalings, 'pre': lora(state), 'post': lora(new),
+@@ -196,11 +200,13 @@
+ 
+ 
+ def run_bundle(bundle, out, rule='fixed', source=None, online=False, donor=None,
+-               stop_after=None, resume=False, recovery_reason=None, parity=False, refactor=None):
++               stop_after=None, resume=False, recovery_reason=None, parity=False, refactor=None,
++               v5e_factors=False):
+     from pcla_repair import core, runtime as rt
+     from run_lora_controls import projection_state, load_projections
+     require(rule in ('fixed','contributors','function_norm_matched'), 'invalid long-run rule')
+     require(refactor in (None, 'svd'), 'unknown refactor')
++    require(not v5e_factors or refactor == 'svd', 'factor record needs SVD refactor')
+     require(refactor is None or (online and donor is None), 'SVD refactor is defined for online PCLA only')
+     out = Path(out); exists = out.exists()
+     require(not exists or resume, 'output exists; use explicit same-identity recovery')
+@@ -259,7 +265,7 @@
+                 meta['embedded_donor_sha256'] = sha256(out/'donor_reference.pt')
+             atomic_json(out/'study.json', meta); write_evaluation_identity(out, bundle)
+         try:
+-            with instrument(bundle, out, rule, trace, saved, refactor):
++            with instrument(bundle, out, rule, trace, saved, refactor, v5e_factors):
+                 rows = rt.run_experiment(bundle.model, bundle.layout, bundle.clients, bundle.capacities,
+                     bundle.evaluation, cfg, bundle.seed, policy, run, prov,
+                     partition=bundle.partition, donor_path=Path(donor) if donor else None, stop_after=stop_after)
+--- a/run_runtime.py
++++ b/run_runtime.py
+@@ -3,6 +3,7 @@
+ import argparse
+ import copy
+ from pathlib import Path
++from contextlib import nullcontext
+ import time
+ import traceback
+ 
+@@ -46,10 +47,11 @@
+ 
+ 
+ def run_bundle(bundle, out, policy, donor=None, reference=None, stop_after=None, resume=False,
+-               recovery_reason=None):
++               recovery_reason=None, ema_readout=None):
+     from pcla_repair import runtime as rt
+     require(policy in POLICIES, 'unsupported runtime policy')
+     require((policy == 'replay_random_rank') == (donor is not None), 'replay needs a PCLA donor; other policies take none')
++    require(ema_readout is None or (policy == 'pcla' and 0 < ema_readout < 1), 'EMA readout requires PCLA')
+     out = Path(out); require(not out.exists() or resume, 'output exists; use explicit same-identity recovery')
+     out.mkdir(parents=True, exist_ok=True); run = out/'run'
+     cfg = copy.deepcopy(bundle.cfg)
+@@ -81,9 +83,12 @@
+                 meta['embedded_donor_sha256'] = sha256(out/'donor_reference.pt')
+             atomic_json(out/'study.json', meta); write_evaluation_identity(out, bundle)
+         try:
+-            rt.run_experiment(bundle.model, bundle.layout, bundle.clients, bundle.capacities, bundle.evaluation,
+-                              cfg, bundle.seed, policy, run, identity['provenance'], partition=bundle.partition,
+-                              donor_path=Path(donor) if donor else None, stop_after=stop_after)
++            if ema_readout is not None:
++                from v5e_metrics import runtime_ema
++            with (runtime_ema(bundle, out, ema_readout) if ema_readout is not None else nullcontext()):
++                rt.run_experiment(bundle.model, bundle.layout, bundle.clients, bundle.capacities, bundle.evaluation,
++                                  cfg, bundle.seed, policy, run, identity['provenance'], partition=bundle.partition,
++                                  donor_path=Path(donor) if donor else None, stop_after=stop_after)
+             cp = rt.load_checkpoint(run/'checkpoint.pt')
+             require(cp['identity_hash'] == identifier, 'runtime identity differs from wrapper identity')
+             complete = cp['round'] == cfg['rounds']
+--- a/selftest.py
++++ b/selftest.py
+@@ -23,7 +23,7 @@
+     env=os.environ.copy()
+     env.update({'OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','MKL_NUM_THREADS':'1',
+                 'PYTHONDONTWRITEBYTECODE':'1','NO_COLOR':'1'})
+-    command=[sys.executable,'-m','pytest','-q','tests','--color=no',f'--junitxml={junit}']
++    command=[sys.executable,'-m','pytest','-q','tests_v5e','--color=no',f'--junitxml={junit}']
+     started=time.perf_counter()
+     run=subprocess.run(command,cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+     log.write_text(run.stdout,encoding='utf-8')
+--- /dev/null
++++ b/v5e_metrics.py
+@@ -0,0 +1,143 @@
++"""Read-only EMA readout and parity checks for the V5e deterministic replays."""
++from __future__ import annotations
++
++import contextlib
++from pathlib import Path
++
++import torch
++
++from common import atomic_json, atomic_torch, read, require, sha256, tensor_load
++
++
++@contextlib.contextmanager
++def runtime_ema(bundle, out, beta=0.8):
++    """Observe each post-aggregation state without changing the training trajectory."""
++    from pcla_repair import core, runtime as rt
++    out = Path(out)
++    directory = out / 'v5e_ema'
++    directory.mkdir(exist_ok=True)
++    original = rt.evaluate
++    checkpoint = out / 'run' / 'checkpoint.pt'
++    committed = rt.load_checkpoint(checkpoint)['round'] if checkpoint.exists() else 0
++    ema = None
++    if committed:
++        prior = tensor_load(directory / f'round_{committed:03d}.pt')
++        require(prior['round'] == committed, 'EMA recovery horizon differs')
++        ema = prior['ema']
++    count = committed
++
++    def evaluate(model, layout, dataset, batch_size, device, *, record_logits=False):
++        nonlocal ema, count
++        factual = original(model, layout, dataset, batch_size, device,
++                           record_logits=record_logits)
++        count += 1
++        current = core.adapter_state(model)
++        previous = ema
++        ema = ({n: v.double() for n, v in current.items()} if previous is None else
++               {n: beta * previous[n] + (1 - beta) * v.double() for n, v in current.items()})
++        before_hash = core.tensor_digest(current)
++        rng = torch.get_rng_state().clone()
++        cuda_rng = torch.cuda.get_rng_state(device) if device.type == 'cuda' else None
++        try:
++            core.load_adapter(model, {n: v.to(current[n].dtype) for n, v in ema.items()})
++            observed = original(model, layout, dataset, batch_size, device, record_logits=True)
++        finally:
++            core.load_adapter(model, current)
++        require(core.tensor_digest(core.adapter_state(model)) == before_hash,
++                'EMA evaluation changed global training parameters')
++        require(torch.equal(torch.get_rng_state(), rng), 'EMA evaluation changed CPU RNG')
++        if cuda_rng is not None:
++            require(torch.equal(torch.cuda.get_rng_state(device), cuda_rng),
++                    'EMA evaluation changed CUDA RNG')
++        require(observed['labels'] == bundle.labels, 'EMA labels/order differ')
++        atomic_torch(directory / f'round_{count:03d}.pt',
++                     {'round': count, 'beta': beta, 'global': current, 'ema': ema,
++                      'global_sha256': before_hash, 'previous_ema_sha256':
++                       None if previous is None else core.tensor_digest(previous),
++                      'ema_sha256': core.tensor_digest(ema)})
++        atomic_json(directory / f'evaluation_{count:03d}.json', observed)
++        return factual
++
++    rt.evaluate = evaluate
++    try:
++        yield
++    finally:
++        rt.evaluate = original
++
++
++def parity(original_job, replay, family):
++    """Compare scientific trajectory fields with a completed, read-only V5b job."""
++    from pcla_repair import core, runtime as rt
++    original_job, replay = Path(original_job), Path(replay)
++    original_run = original_job / 'run' / 'run'
++    new_run = replay / 'run'
++    old = rt.load_checkpoint(original_run / 'checkpoint.pt')
++    new = rt.load_checkpoint(new_run / 'checkpoint.pt')
++    n = new['round']
++    require(0 < n <= old['round'], 'parity horizon differs')
++    old_state = old if n == old['round'] else rt.load_checkpoint(original_run / f'probe_round_{n:03d}.pt')
++    checks = {}
++    fields = ('round', 'accuracy', 'loss', 'samples', 'selected_clients',
++              'serialized_traffic_bytes')
++    checks['per_round_metrics'] = all(
++        all(a.get(k) == b.get(k) for k in fields) for a, b in zip(old['metrics'][:n], new['metrics']))
++    checks['predictions'] = all(
++        read(original_run / f'predictions_round_{r:03d}.json') ==
++        read(new_run / f'predictions_round_{r:03d}.json') for r in range(1, n + 1))
++    checks['clients_and_support'] = all(
++        _client_science(read(original_run / f'clients_round_{r:03d}.json')) ==
++        _client_science(read(new_run / f'clients_round_{r:03d}.json')) for r in range(1, n + 1))
++    checks['trace'] = (set(old_state['trace']) == set(new['trace']) and all(
++        torch.equal(v, new['trace'][k]) for k, v in old_state['trace'].items()))
++    checks['final_adapter'] = (set(old_state['adapter']) == set(new['adapter']) and all(
++        torch.equal(v, new['adapter'][k]) for k, v in old_state['adapter'].items()))
++    if family == 'svd':
++        checks['final_base'] = (set(old_state['v5b_base']) == set(new['v5b_base']) and all(
++            torch.equal(v, new['v5b_base'][k]) for k, v in old_state['v5b_base'].items()))
++        checks['refactor_records'] = all(
++            read(original_job / 'run' / 'evidence' / f'{r:03d}' / 'refactor.json') ==
++            read(replay / 'evidence' / f'{r:03d}' / 'refactor.json')
++            for r in range(1, n + 1))
++    result = {'passed': all(checks.values()), 'checks': checks, 'family': family,
++              'rounds': n, 'seed': old['identity']['seed'],
++              'reference_checkpoint_sha256': sha256(original_run / 'checkpoint.pt'),
++              'reference_archive_sha256': read(original_job / 'EXTRACTION_RECEIPT.json')['archive_sha256'],
++              'final_adapter_sha256': core.tensor_digest(new['adapter']),
++              'final_base_sha256': core.tensor_digest(new['v5b_base']) if family == 'svd' else None}
++    return result
++
++
++def _client_science(clients):
++    return [{k: c[k] for k in ('client', 'support', 'factor', 'sample_weight', 'credits',
++                               'logical_update_parameters', 'optimizer_tensor_parameters')}
++            for c in clients]
++
++
++def audit_ema(out, beta=0.8):
++    from pcla_repair import core, runtime as rt
++    out = Path(out)
++    cp = rt.load_checkpoint(out / 'run' / 'checkpoint.pt')
++    expected = None
++    rows = []
++    for r in range(1, cp['round'] + 1):
++        bank = tensor_load(out / 'v5e_ema' / f'round_{r:03d}.pt')
++        evaluation = read(out / 'v5e_ema' / f'evaluation_{r:03d}.json')
++        require(bank['round'] == r and bank['beta'] == beta, 'EMA round/beta differs')
++        global_state = bank['global']
++        require(core.tensor_digest(global_state) == bank['global_sha256'], 'EMA global hash differs')
++        previous = expected
++        expected = ({n: v.double() for n, v in global_state.items()} if previous is None else
++                    {n: beta * previous[n] + (1 - beta) * v.double() for n, v in global_state.items()})
++        require(bank['previous_ema_sha256'] ==
++                (None if previous is None else core.tensor_digest(previous)), 'EMA chain broken')
++        require(all(torch.equal(expected[n], bank['ema'][n]) for n in expected), 'EMA state differs')
++        require(core.tensor_digest(expected) == bank['ema_sha256'], 'EMA hash differs')
++        require(evaluation['labels'] and len(evaluation['predictions']) == cp['metrics'][r-1]['samples'],
++                'EMA evaluation sample count differs')
++        accuracy = sum(p == y for p, y in zip(evaluation['predictions'], evaluation['labels'])) / len(evaluation['labels'])
++        require(accuracy == evaluation['accuracy'], 'EMA accuracy differs from predictions')
++        rows.append({'round': r, 'accuracy': accuracy, 'loss': evaluation['loss'],
++                     'global_sha256': bank['global_sha256'], 'ema_sha256': bank['ema_sha256']})
++    require(core.tensor_digest(tensor_load(out / 'v5e_ema' / f'round_{cp["round"]:03d}.pt')['global']) ==
++            core.tensor_digest(cp['adapter']), 'final EMA source differs from final global adapter')
++    return rows

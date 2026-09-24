@@ -1,0 +1,174 @@
+--- /dev/null
++++ b/analyze.py
+@@ -0,0 +1,171 @@
++"""Audit first, then produce every predeclared paired comparison without selection gates."""
++from __future__ import annotations
++import argparse
++import csv
++import math
++from pathlib import Path
++import json
++import statistics
++import numpy as np
++from scipy.stats import t
++from common import (SEEDS,require,read,atomic_json,sha256,fingerprint,bind_repo,source_files)
++from audit_run import audit,prediction_readout
++from context import labels_from_tsv,validate_partition,load_original
++
++
++def write_csv(path,rows):
++    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
++    if not rows:return
++    fields=list(dict.fromkeys(k for row in rows for k in row))
++    with path.open('w',encoding='utf-8',newline='') as f:
++        w=csv.DictWriter(f,fieldnames=fields);w.writeheader()
++        for row in rows:
++            w.writerow({k:json.dumps(v,ensure_ascii=False) if isinstance(v,(list,dict)) else v for k,v in row.items()})
++
++
++def old_report(repo,root,seed,policy):
++    _,core,rt,_=bind_repo(repo)
++    cp,path=load_original(root,seed,policy,repo)
++    part=read(path.parent/'partition_ids.json');validate_partition(part)
++    require(fingerprint(part)==cp['identity']['provenance']['partition_sha256'],'old partition changed')
++    labels=labels_from_tsv(repo,part,cp['identity']['provenance'],'benchmark_dev')
++    require([x['round'] for x in cp['metrics']]==list(range(1,31)),'old horizon incomplete')
++    rows=[]
++    for row in cp['metrics']:
++        p=read(path.parent/f"predictions_round_{row['round']:03d}.json")
++        stat=prediction_readout(p,labels)
++        require(stat['accuracy']==row['accuracy'] and stat['samples']==row['samples'],'old predictions/metric differs')
++        require(math.isfinite(row['loss']),'old GPU loss is nonfinite')
++        rows.append({'round':row['round'],**{k:v for k,v in stat.items() if k!='predictions'},
++                     'gpu_nll':row['loss'],'nll_float64':None,'nll_source':'original_GPU_loss_only',
++                     'train_seconds':row['train_seconds'],'probe_seconds':row['probe_seconds'],
++                     'serialized_traffic_bytes':row['serialized_traffic_bytes']})
++    return {'audited':True,'kind':'old_control','policy':policy,'seed':seed,'complete':True,
++            'checkpoint_sha256':sha256(path),'identity_hash':cp['identity_hash'],
++            'partition_sha256':fingerprint(part),'evaluation_ids_sha256':fingerprint(part['benchmark_dev']),
++            'labels_sha256':fingerprint(labels),'rows':rows}
++
++
++def endpoint(report):
++    require(report['complete'] and len(report['rows'])==30,'full endpoint requires 30 rounds')
++    require([x['round'] for x in report['rows']]==list(range(1,31)),'non-contiguous endpoint')
++    tail=report['rows'][-5:]
++    return {'accuracy':statistics.mean(x['accuracy'] for x in tail),
++            'gpu_nll':statistics.mean(x['gpu_nll'] for x in tail),
++            'balanced_accuracy':statistics.mean(x['balanced_accuracy'] for x in tail),
++            'last_accuracy':tail[-1]['accuracy'],'tail_min':min(x['accuracy'] for x in tail),
++            'tail_max':max(x['accuracy'] for x in tail),
++            'tail_single_class_rounds':sum(x['one_class_prediction'] for x in tail)}
++
++
++def paired_summary(name,values,seeds):
++    missing=[s for s in seeds if s not in values]
++    if missing:return {'comparison':name,'status':'incomplete','missing_seeds':missing,'seeds':list(seeds)}
++    x=np.array([values[s] for s in seeds],dtype=float)
++    require(np.isfinite(x).all(),'invalid paired differences')
++    radius=float(t.ppf(.975,len(x)-1)*x.std(ddof=1)/math.sqrt(len(x)))
++    return {'comparison':name,'status':'complete','seeds':list(seeds),'per_seed_difference_pp':x.tolist(),
++        'mean_difference_pp':float(x.mean()),'descriptive_t_95_pp':[float(x.mean()-radius),float(x.mean()+radius)],
++        'positive_seeds':int((x>0).sum()),'negative_seeds':int((x<0).sum()),
++        'interpretation':'descriptive small-seed interval; not equivalence or adjusted multiple-testing evidence'}
++
++
++def comparison_definitions():
++    result=[]
++    for src in ('pcla','replay_random_rank','random'):
++        for l,r in (('contributors','fixed'),('function_norm_matched','fixed'),('contributors','function_norm_matched')):
++            result.append((f'{src}: {l} - {r}',[(1,('fixed_support',src,l)),(-1,('fixed_support',src,r))]))
++    for rule in ('fixed','contributors','function_norm_matched'):
++        for other in ('random','replay_random_rank'):
++            result.append((f'{rule}: PCLA_support - {other}',[(1,('fixed_support','pcla',rule)),(-1,('fixed_support',other,rule))]))
++    result.append(('online C: PCLA - same-donor replay',[(1,('online','pcla','contributors')),(-1,('online','replay_random_rank','contributors'))]))
++    result.append(('selection × aggregation interaction',[(1,('fixed_support','pcla','contributors')),(-1,('fixed_support','random','contributors')),
++                   (-1,('fixed_support','pcla','fixed')),(1,('fixed_support','random','fixed'))]))
++    for l,r in (('central_pooled_both','central_serial_both'),('central_serial_both','central_serial_alt'),
++                ('central_serial_alt','full_alt'),('fed_both_mean','full_alt'),('fed_both_exact','fed_both_mean')):
++        result.append((f'LoRA controls: {l} - {r}',[(1,('control',l,'none')),(-1,('control',r,'none'))]))
++    return result
++
++
++def analyze(root,repo,source_root,out,allow_partial=False):
++    root=Path(root);out=Path(out);out.mkdir(parents=True,exist_ok=False)
++    plan=read(root/'plan.json');inventory=read(root/'inventory.json')
++    require(plan['source_files']==source_files(),'materialized plan source differs')
++    state={x['job']:x for x in inventory}; reports={}; rawrows=[];ep=[];costs=[];g0=[];coverage_rows=[];cells={}
++    expected={j['id'] for j in plan['jobs']}
++    require(set(state)==expected,'job inventory differs')
++    for job in plan['jobs']:
++        key=job['id']
++        if state[key]['state']!='completed':continue
++        report=audit(root/key/'run',repo,require_complete=not bool(job.get('stop_after')))
++        atomic_json(out/'audits'/(key+'.json'),report); reports[key]=report
++        if job.get('parity'):
++            require(read(root/key/'run/parity.json')['passed'],'fixed replay prerequisite failed')
++            continue
++        if job.get('stop_after'):continue
++        if job['kind']=='diagnostic':
++            g0.extend({'job':key,'seed':job['seed'],'anchor':job['anchor'],**row} for row in report['rows'])
++            for path in sorted((root/key/'run/rounds').glob('*/*_coverage.json')):
++                coverage_rows.extend({'job':key,'seed':job['seed'],'round':int(path.parent.name),
++                    'support':path.name.removesuffix('_coverage.json'),**row} for row in read(path))
++            continue
++        e=endpoint(report)
++        ep.append({'job':key,'seed':job['seed'],**e})
++        rawrows.extend({'job':key,'seed':job['seed'],**row} for row in report['rows'])
++        if job['family']=='aggregation':
++            src='replay_random_rank' if job['kind']=='online_replay' else job['source']
++            family='fixed_support' if job['kind']=='fixed' else 'online'
++            name=(family,src,job['rule'])
++        else:name=('control',job['mode'],'none')
++        require((job['seed'],name) not in cells,'duplicate scientific cell')
++        cells[(job['seed'],name)]=(e,report)
++        sums={k:sum(row.get(k,0) for row in report['rows']) for k in
++              ('train_seconds','probe_seconds','train_and_server_seconds','upload_bytes','download_bytes','serialized_traffic_bytes')}
++        costs.append({'job':key,'seed':job['seed'],**sums})
++    parity_ready=all(k in reports for k in ('parity_pcla_seed7','parity_replay_random_rank_seed7'))
++    if parity_ready:
++        for seed in SEEDS:
++            for policy in ('pcla','random','replay_random_rank','full_alt'):
++                report=old_report(repo,source_root,seed,policy);e=endpoint(report)
++                name=('control','full_alt','none') if policy=='full_alt' else ('fixed_support',policy,'fixed')
++                cells[(seed,name)]=(e,report)
++                ep.append({'job':'old_'+policy,'seed':seed,**e})
++                atomic_json(out/'audits'/f'old_{policy}_{seed}.json',report)
++    missing=[key for key,s in state.items() if s['state']!='completed']
++    summaries={}
++    for group,seeds in {'all_five':SEEDS,'prior_LR_development':(7,13),'not_used_for_prior_LR_ranking':(21,42,87)}.items():
++        rows=[]
++        for name,terms in comparison_definitions():
++            values={}
++            for seed in seeds:
++                selected_cells=[cells.get((seed,cell)) for _,cell in terms]
++                if any(v is None for v in selected_cells):continue
++                parts={v[1]['partition_sha256'] for v in selected_cells}
++                evaluations={v[1]['evaluation_ids_sha256'] for v in selected_cells}
++                labels={v[1]['labels_sha256'] for v in selected_cells}
++                require(len(parts)==len(evaluations)==len(labels)==1,'paired cohort identity mismatch')
++                values[seed]=100*sum(w*v[0]['accuracy'] for (w,_),v in zip(terms,selected_cells))
++            rows.append(paired_summary(name,values,seeds))
++        summaries[group]=rows;atomic_json(out/(group+'.json'),rows)
++    write_csv(out/'per_seed_endpoints.csv',ep);write_csv(out/'full_curves.csv',rawrows)
++    write_csv(out/'fixed_state_metrics.csv',g0);write_csv(out/'fixed_state_coverage.csv',coverage_rows)
++    write_csv(out/'costs.csv',costs)
++    atomic_json(out/'STATUS.json',{'complete':not missing,'missing_or_failed':missing,'old_controls_reused':parity_ready,
++        'all_planned_contrasts_retained':True,'rounds_as_independent_samples':False,'new_scientific_success_verdict':None})
++    lines=['# 实验汇总','',f'完整状态：{not missing}；未完成/失败作业：{len(missing)}。','',
++           '|预定比较|五 seed 平均差（百分点）|描述性 95% 区间|','|---|---:|---|']
++    for row in summaries['all_five']:
++        lines.append(f"|{row['comparison']}|{row.get('mean_difference_pp','未完成')}|{row.get('descriptive_t_95_pp','未完成')}|")
++    lines.extend(['','NLL：旧 F 仅保存 GPU loss；新运行额外按 logits 重算 float64 NLL。',
++                  '以上不把未完成 seed 删除后当作完整五 seed 结论，也不把不显著解释为等价。'])
++    (out/'SUMMARY.md').write_text('\n'.join(lines),encoding='utf-8')
++    require(allow_partial or not missing,'complete analysis withheld: missing/failed planned jobs; partial inventory was written')
++    return {'complete':not missing,'endpoint_count':len(ep),'comparisons_per_group':len(comparison_definitions())}
++
++
++def main():
++    p=argparse.ArgumentParser();p.add_argument('--root',required=True);p.add_argument('--repo',required=True)
++    p.add_argument('--source-root',required=True);p.add_argument('--out',required=True);p.add_argument('--allow-partial',action='store_true')
++    a=p.parse_args();analyze(a.root,a.repo,a.source_root,a.out,a.allow_partial)
++
++if __name__=='__main__':main()

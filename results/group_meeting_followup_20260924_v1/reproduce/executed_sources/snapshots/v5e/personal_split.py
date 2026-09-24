@@ -1,0 +1,69 @@
+"""Per-client local test sets for the V5 personalization family (SST-2 only).
+
+Each client gets n held-out SST-2 train rows drawn with its own positive/negative proportion from
+rows that belong to no client, proxy, tuning or evaluation split and whose exact text appears in
+no client's training data. Draws are keyed by (seed, client) and disjoint across clients, so every
+job that calls this with the same partition obtains identical lists.
+"""
+from __future__ import annotations
+import csv
+import hashlib
+import json
+import random
+from pathlib import Path
+
+N_TEST = 128
+
+
+def keyed(seed, *parts):
+    text = json.dumps([seed, 'personal_test', *parts])
+    return int.from_bytes(hashlib.sha256(text.encode()).digest()[:8], 'big')
+
+
+def train_rows(repo):
+    with (Path(repo) / 'data/SST-2/train.tsv').open(encoding='utf-8-sig', newline='') as f:
+        return [(r['sentence'], int(r['label'])) for r in csv.DictReader(f, delimiter='\t')]
+
+
+def local_test_ids(partition, seed, repo, n=N_TEST):
+    rows = train_rows(repo)
+    label = {f'train:{i}': y for i, (_, y) in enumerate(rows)}
+    text = {f'train:{i}': s.strip() for i, (s, _) in enumerate(rows)}
+    used = {x for ids in partition['clients'].values() for x in ids}
+    used |= set(partition['proxy']) | set(partition['tuning']) | set(partition['benchmark_dev'])
+    client_texts = {text[x] for ids in partition['clients'].values() for x in ids}
+    pool = {y: sorted((x for x in label if x not in used and text[x] not in client_texts and label[x] == y),
+                      key=lambda x: int(x.split(':')[1])) for y in (0, 1)}
+    out = {}
+    for k in sorted(partition['clients'], key=int):
+        ids = partition['clients'][k]
+        pos = round(n * sum(label[x] for x in ids) / len(ids))
+        rng = random.Random(keyed(seed, int(k)))
+        chosen = []
+        for y, m in ((1, pos), (0, n - pos)):
+            if len(pool[y]) < m:
+                raise ValueError('personal test pool exhausted')
+            picked = set(rng.sample(pool[y], m))
+            pool[y] = [x for x in pool[y] if x not in picked]
+            chosen += sorted(picked, key=lambda x: int(x.split(':')[1]))
+        out[k] = chosen
+    return out, {k: [label[x] for x in v] for k, v in out.items()}
+
+
+def fingerprint(obj):
+    return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
+
+
+def majority_baseline(partition, repo, test_labels):
+    """Accuracy/balanced accuracy of always predicting each client's training majority label."""
+    rows = train_rows(repo)
+    per = {}
+    for k, ids in partition['clients'].items():
+        ys = [rows[int(x.split(':')[1])][1] for x in ids]
+        guess = int(sum(ys) * 2 >= len(ys))
+        t = test_labels[k]
+        acc = sum(y == guess for y in t) / len(t)
+        present = sorted(set(t))
+        bal = sum(sum(y == guess for y in t if y == c) / sum(1 for y in t if y == c) for c in present) / len(present)
+        per[k] = {'accuracy': acc, 'balanced_accuracy': bal, 'guess': guess}
+    return per

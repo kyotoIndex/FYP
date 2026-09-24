@@ -1,0 +1,450 @@
+--- /dev/null
++++ b/dispatch.py
+@@ -0,0 +1,447 @@
++"""Frozen plan, atomic task claims, one-GPU workers, verified archives, explicit recovery."""
++from __future__ import annotations
++import argparse
++import contextlib
++import os
++from pathlib import Path
++import signal
++import socket
++import subprocess
++import sys
++import time
++import traceback
++import uuid
++
++from common import (ROOT,BATCH,read,require,atomic_json,sha256,fingerprint,source_files,
++                    verify_repo,exclusive,make_archive,verify_archive,extract_archive)
++from job_plan import build,validate,STAGE_DEPENDENCIES
++
++
++def runtime_identity(python):
++    command=[python,'-c',"import sys,torch,json; print(json.dumps({'python':sys.version,'torch':str(torch.__version__),'cuda':torch.version.cuda}))"]
++    result=subprocess.run(command,text=True,capture_output=True,check=True,timeout=180)
++    import json
++    return json.loads(result.stdout.splitlines()[-1])
++
++
++def initialize(site_path,queue,test_report,custom_jobs=None):
++    site=read(site_path);queue=Path(queue).resolve()
++    require(not queue.exists(),'new queue directory required')
++    testing=bool(site.get('testing',False))
++    for key in ('repo','source_root','scratch_root'):
++        site[key]=str(Path(site[key]).resolve())
++    # A venv interpreter is a symlink to its base interpreter; resolving it drops the venv
++    # site-packages (V4.1 attempt 1 ran Transformers 4.57.6 from the linked kvaf_tooling env).
++    site['python_pcla']=os.path.abspath(site['python_pcla'])
++    verify_repo(site['repo'])
++    require(Path(site['python_pcla']).is_file(),'Python executable missing')
++    tests=read(test_report)
++    require(tests.get('passed') is True and tests.get('source_files')==source_files(),'CPU tests missing, failed or stale')
++    jobs=custom_jobs or build();require(testing or jobs==build(),'production plan cannot be changed by site config')
++    validate(jobs)
++    site.setdefault('threads_per_gpu',4);site.setdefault('timeout_seconds',3600)
++    site.setdefault('idle_seconds',5);site.setdefault('require_slurm',True)
++    site['queue_root']=str(queue)
++    require(Path(site['source_root'])!=queue and Path(site['repo']) not in queue.parents,
++            'queue must be outside the source repository and source results')
++    sources={};donor_inputs={};donor_provenance={}
++    if not testing:
++        from context import load_original
++        for seed in sorted({j['seed'] for j in jobs}):
++            cp,path=load_original(site['source_root'],seed,'full_alt',site['repo'])
++            sources[str(path)]=sha256(path)
++            job_id=f'C_central_replay_random_rank_r30_s{seed}'
++            donor_id=f'C_central_pcla_r30_s{seed}'
++            donor_root=Path(site['donor_root'])/donor_id
++            donor_queue=Path(site['donor_queue'])
++            status=read(donor_queue/'status'/f'{donor_id}.json')
++            require(status['state']=='completed' and sha256(status['receipt'])==status['receipt_sha256'],
++                    'central donor queue receipt incomplete or changed')
++            receipt=read(status['receipt']);archive=receipt['archive']
++            require(receipt['job']['id']==donor_id and receipt['state']=='completed' and
++                    sha256(archive['path'])==archive['sha256'], 'central donor archive differs from receipt')
++            extraction=read(donor_root/'EXTRACTION_RECEIPT.json')
++            require(extraction['archive_sha256']==archive['sha256'], 'central donor extraction differs')
++            files=[donor_root/'run'/'checkpoint.pt', donor_root/'run'/'study.json',
++                   donor_root/'EXTRACTION_RECEIPT.json']+[
++                   donor_root/'run'/'rounds'/f'{r:03d}'/'record.json' for r in range(1,31)]
++            donor_inputs[job_id]={str(p):sha256(p) for p in files}
++            donor_provenance[job_id]={'source_queue_receipt_sha256':status['receipt_sha256'],
++                                      'archive_sha256':archive['sha256'],'donor_job':donor_id}
++        for rel,expected in read(ROOT/'reference_assets/model_files_sha256.json').items():
++            require(sha256(Path(site['repo'])/rel)==expected,'BERT asset hash differs: '+rel)
++    runtime=runtime_identity(site['python_pcla'])
++    if not testing:
++        require(runtime['torch']=='2.5.1+cu121' and runtime['cuda']=='12.1','use original PCLA execution environment')
++        tf=subprocess.run([site['python_pcla'],'-c',"import importlib.metadata as m; print(m.version('transformers'))"],
++                          text=True,capture_output=True,check=True,timeout=180).stdout.split()[-1]
++        require(tf=='4.57.1','interpreter does not import the original Transformers 4.57.1: '+tf)
++        runtime['transformers']=tf
++    manifest={'batch':BATCH,'site':site,'jobs':jobs,'stage_dependencies':STAGE_DEPENDENCIES,
++              'source_files':source_files(),'input_sha256':sources,'donor_inputs':donor_inputs,
++              'donor_provenance':donor_provenance,'runtime':runtime,
++              'python_executable_sha256':sha256(site['python_pcla']),
++              'cpu_test_report_sha256':sha256(test_report),'created':time.time()}
++    queue.mkdir(parents=True)
++    for d in ('status','claims','leases','archives','receipts','recovery','pauses'):(queue/d).mkdir()
++    atomic_json(queue/'FROZEN.json',manifest)
++    atomic_json(queue/'FROZEN_SHA256.json',{'sha256':sha256(queue/'FROZEN.json')})
++    atomic_json(queue/'frozen_site.json',site)
++    for j in jobs:
++        atomic_json(queue/'status'/f"{j['id']}.json",{'job':j['id'],'state':'planned','attempt':0})
++    return manifest
++
++
++def frozen(queue):
++    queue=Path(queue)
++    require(sha256(queue/'FROZEN.json')==read(queue/'FROZEN_SHA256.json')['sha256'],'frozen plan changed')
++    data=read(queue/'FROZEN.json')
++    require(data['source_files']==source_files(),'code changed since queue initialization')
++    require(read(queue/'frozen_site.json')==data['site'],'frozen site changed')
++    require(sha256(data['site']['python_pcla'])==data['python_executable_sha256'],'Python executable changed')
++    return data
++
++
++@contextlib.contextmanager
++def transaction(queue):
++    p=Path(queue)/'.queue.lock';deadline=time.monotonic()+20
++    while True:
++        try:
++            p.mkdir();break
++        except FileExistsError:
++            require(time.monotonic()<deadline,'queue transaction lock stale/busy; doctor required')
++            time.sleep(.03)
++    try:yield
++    finally:p.rmdir()
++
++
++def all_status(queue,plan):
++    return {j['id']:read(Path(queue)/'status'/f"{j['id']}.json") for j in plan['jobs']}
++
++
++def dependencies(job,plan):
++    stages=plan['stage_dependencies'][job['stage']]
++    return set(job['depends'])|{j['id'] for j in plan['jobs'] if j['stage'] in stages}
++
++
++def mark_blocked(queue,plan,statuses):
++    bad={k for k,s in statuses.items() if s['state'] in ('failed','blocked')}
++    changed=True
++    while changed:
++        size=len(bad)
++        for job in plan['jobs']:
++            if statuses[job['id']]['state']=='planned' and dependencies(job,plan)&bad:
++                bad.add(job['id'])
++                value={**statuses[job['id']],'state':'blocked','reason':'dependency_failed',
++                       'blocked_by':sorted(dependencies(job,plan)&bad)}
++                statuses[job['id']]=value
++                atomic_json(Path(queue)/'status'/f"{job['id']}.json",value)
++        changed=len(bad)!=size
++    return statuses
++
++
++def ready_jobs(queue,pool):
++    plan=frozen(queue)
++    with transaction(queue):
++        statuses=mark_blocked(queue,plan,all_status(queue,plan))
++    done={k for k,s in statuses.items() if s['state']=='completed'}
++    return [j for j in sorted(plan['jobs'],key=lambda j:(j['priority'],j['id']))
++        if statuses[j['id']]['state']=='planned' and
++           (j['pool']=='technical' or j['pool']==pool) and
++           not (Path(queue)/'pauses'/f"{j['stage']}.json").exists() and dependencies(j,plan)<=done]
++
++
++def claim(queue,job_id,worker_meta):
++    queue=Path(queue);plan=frozen(queue);jobs={j['id']:j for j in plan['jobs']}
++    require(job_id in jobs,'unknown job')
++    with transaction(queue):
++        statuses=all_status(queue,plan);s=statuses[job_id];j=jobs[job_id]
++        require(s['state']=='planned','job is not claimable')
++        require(all(statuses[d]['state']=='completed' for d in dependencies(j,plan)),'dependency not verified')
++        require(not (queue/'pauses'/f"{j['stage']}.json").exists(),'stage paused')
++        require(j['pool']=='technical' or j['pool']==worker_meta['pool'],'wrong GPU pool')
++        token=uuid.uuid4().hex;attempt=s['attempt']+1
++        require(attempt<=2,'only one external-interruption recovery allowed')
++        cp={'job':job_id,'state':'running','attempt':attempt,'token':token,
++            'worker':worker_meta,'started':time.time(),'heartbeat':time.time(),
++            'resume_from':s.get('resume_from'),'recovery_reason':s.get('recovery_reason')}
++        fd=os.open(queue/'claims'/f'{job_id}.json',os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
++        import json
++        os.write(fd,json.dumps(cp).encode());os.fsync(fd);os.close(fd)
++        atomic_json(queue/'status'/f'{job_id}.json',cp)
++    return cp
++
++
++def update_running(queue,job_id,token,**values):
++    queue=Path(queue)
++    with transaction(queue):
++        s=read(queue/'status'/f'{job_id}.json')
++        require(s['state']=='running' and s['token']==token,'claim owner changed')
++        atomic_json(queue/'status'/f'{job_id}.json',{**s,**values,'heartbeat':time.time()})
++
++
++def finish(queue,job,claim_info,work,returncode,error=None):
++    queue=Path(queue);work=Path(work);plan=frozen(queue)
++    # A process exit alone is not a completed scientific result.
++    status='failed'
++    if returncode==0 and error is None:
++        import torch
++        torch.set_num_threads(plan['site']['threads_per_gpu'])
++        from audit_run import audit
++        report=audit(work/'run',plan['site']['repo'],require_complete=not bool(job.get('stop_after')))
++        require(report['audit_sources']==plan['source_files'],'audit source mismatch')
++        if job['kind']=='control':
++            from execute_job import check_params
++            check_params(job,report,bool(plan['site'].get('testing')))
++        if job.get('parity') or job.get('mode')=='bridge_full_alt':
++            require(read(work/'run/parity.json')['passed'],'missing passing parity')
++        atomic_json(work/'audit.json',report);status='completed'
++    record={'job':job,'job_sha256':fingerprint(job),'attempt':claim_info['attempt'],
++            'token':claim_info['token'],'state':status,'exit_code':returncode,'error':error,
++            'worker':claim_info['worker'],'ended':time.time(),'source_files':source_files()}
++    atomic_json(work/'receipt.json',record)
++    archive=make_archive(work,queue/'archives'/f"{job['id']}_attempt{claim_info['attempt']}.zip")
++    record['archive']=archive
++    receipt_path=queue/'receipts'/f"{job['id']}_attempt{claim_info['attempt']}.json"
++    atomic_json(receipt_path,record)
++    with transaction(queue):
++        current=read(queue/'status'/f"{job['id']}.json")
++        require(current['token']==claim_info['token'],'completion token differs')
++        atomic_json(queue/'status'/f"{job['id']}.json",{**current,'state':status,'ended':time.time(),
++            'receipt':str(receipt_path),'receipt_sha256':sha256(receipt_path),'work':str(work)})
++        (queue/'claims'/f"{job['id']}.json").unlink()
++    return record
++
++
++def worker(queue,pool,max_jobs=100,test_cpu=False):
++    queue=Path(queue).resolve();plan=frozen(queue);site=plan['site'];testing=site.get('testing',False)
++    require(testing==test_cpu,'CPU worker mode must match explicit test site')
++    if not testing:
++        require(os.environ.get('SLURM_JOB_ID') and os.environ.get('SLURM_STEP_ID'),'use an existing Slurm job step')
++        import json
++        script = ('import json; from context import original_environment,visible_gpu; '
++                  f"original_environment('cuda',{site['threads_per_gpu']}); print(json.dumps(visible_gpu()))")
++        env = os.environ.copy(); env['PYTHONPATH'] = str(ROOT)+os.pathsep+env.get('PYTHONPATH','')
++        check = subprocess.run([site['python_pcla'],'-c',script],env=env,text=True,
++                               capture_output=True,check=True,timeout=180)
++        gpu=json.loads(check.stdout.splitlines()[-1])
++        # The preflight process exits here: it does not keep a second CUDA context resident.
++        if pool=='4090':require('4090' in gpu['name'],'scientific pool must use RTX4090 family')
++        elif pool=='A100':require('A100' in gpu['name'],'A100 pool device differs')
++    else:gpu={'uuid':'CPU-TEST-'+str(os.getpid()),'name':'synthetic CPU'}
++    meta={'host':socket.gethostname(),'pid':os.getpid(),'pool':pool,'gpu':gpu,
++          'slurm_step':str(os.environ.get('SLURM_JOB_ID'))+'.'+str(os.environ.get('SLURM_STEP_ID')),
++          'cpu_affinity':sorted(os.sched_getaffinity(0))}
++    with exclusive(queue/'leases'/(gpu['uuid']+'.json'),meta):
++        finished=0
++        while finished<max_jobs:
++            ready=ready_jobs(queue,pool)
++            if not ready:
++                statuses=all_status(queue,plan)
++                if all(s['state'] in ('completed','failed','blocked','interrupted') for s in statuses.values()):break
++                if testing:break
++                compatible = [j for j in plan['jobs'] if (j['pool']=='technical' or j['pool']==pool)
++                              and statuses[j['id']]['state'] in ('planned','running')]
++                if not compatible:break
++                if compatible and all((queue/'pauses'/f"{j['stage']}.json").exists() for j in compatible):break
++                # Closed work on the other GPU family does not justify a busy loop.
++                time.sleep(site['idle_seconds']);continue
++            job=ready[0]
++            try:c=claim(queue,job['id'],meta)
++            except ValueError:continue  # another worker won the atomic transaction
++            attempt=c['attempt']
++            work=Path(site['scratch_root'])/BATCH/socket.gethostname()/job['id']/f'attempt_{attempt}'
++            try:
++                work.mkdir(parents=True,exist_ok=False)
++                update_running(queue,job['id'],c['token'],work=str(work),child_pid=None)
++            except BaseException:
++                # Do not overwrite an existing scratch tree or leave an unexplained running claim.
++                with transaction(queue):
++                    state=read(queue/'status'/f"{job['id']}.json")
++                    atomic_json(queue/'status'/f"{job['id']}.json",{**state,'state':'interrupted',
++                        'reason':'scratch_setup_failed','requested_work':str(work),
++                        'error':traceback.format_exc()})
++                raise
++            returncode=-1;error=None;proc=None
++            try:
++                if not testing:
++                    for path,digest in plan['input_sha256'].items():
++                        if f"seed_{job['seed']}/" in path:
++                            require(sha256(path)==digest,'frozen input checkpoint changed')
++                    for path,digest in plan['donor_inputs'][job['id']].items():
++                        require(sha256(path)==digest,'frozen central donor changed: '+path)
++                deps={}
++                for dep in job.get('depends',[]):
++                    if dep!=job.get('donor'):continue
++                    s=read(queue/'status'/f'{dep}.json');receipt=read(s['receipt'])
++                    require(sha256(s['receipt'])==s['receipt_sha256'],'dependency receipt changed')
++                    a=receipt['archive'];cache=Path(site['scratch_root'])/BATCH/'cache'/a['sha256']
++                    if not cache.exists():extract_archive(a['path'],a['sha256'],cache)
++                    else:require(read(cache/'EXTRACTION_RECEIPT.json')['archive_sha256']==a['sha256'],'bad dependency cache')
++                    deps[dep]=str(cache)
++                if c.get('resume_from'):
++                    import shutil
++                    old=Path(c['resume_from'])
++                    require(old.exists(),'old scratch missing; materialize the prior attempt before recovery')
++                    shutil.copytree(old/'run',work/'run')
++                    # A dead process can leave a run lock. Preserve it before removal.
++                    lock=work/'run/.run.lock'
++                    if lock.exists():lock.rename(work/'previous_dead_run_lock.json')
++                atomic_json(work/'job.json',job)
++                dependency_path=work.parent/('dependencies_'+c['token']+'.json');atomic_json(dependency_path,deps)
++                cmd=[site['python_pcla'],str(ROOT/'execute_job.py'),'--site',str(queue/'frozen_site.json'),
++                     '--job',str(work/'job.json'),'--out',str(work/'run'),'--dependencies',str(dependency_path)]
++                if c.get('resume_from'):cmd+=['--resume','--reason',c['recovery_reason']]
++                env=os.environ.copy();env['PYTHONDONTWRITEBYTECODE']='1'
++                if not testing:env['PCLA_EXPECTED_GPU_UUID']=gpu['uuid']
++                atomic_json(work/'command.json',{'argv':cmd,'environment_device':env.get('CUDA_VISIBLE_DEVICES')})
++                with (work/'console.log').open('w',encoding='utf-8') as log:
++                    proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,env=env,start_new_session=True)
++                    update_running(queue,job['id'],c['token'],child_pid=proc.pid)
++                    start=time.monotonic()
++                    while proc.poll() is None:
++                        if time.monotonic()-start>site['timeout_seconds']:
++                            os.killpg(proc.pid,signal.SIGTERM)
++                            try:proc.wait(timeout=20)
++                            except subprocess.TimeoutExpired:os.killpg(proc.pid,signal.SIGKILL);proc.wait()
++                            raise RuntimeError('fixed technical wall-time cap exceeded; retain checkpoint')
++                        if not testing:update_running(queue,job['id'],c['token'])
++                        time.sleep(.05 if testing else 5)
++                    returncode=proc.returncode
++                if returncode:raise RuntimeError('job process failed; see console.log')
++            except BaseException:
++                if proc is not None and proc.poll() is None:
++                    os.killpg(proc.pid,signal.SIGTERM)
++                    try:proc.wait(timeout=20)
++                    except subprocess.TimeoutExpired:os.killpg(proc.pid,signal.SIGKILL);proc.wait()
++                error=traceback.format_exc();(work/'worker_error.txt').write_text(error,encoding='utf-8')
++            try:finish(queue,job,c,work,returncode,error)
++            except BaseException:
++                # Retain a failed publication/audit rather than a false 'complete' flag.
++                (work/'publication_error.txt').write_text(traceback.format_exc(),encoding='utf-8')
++                with transaction(queue):
++                    s=read(queue/'status'/f"{job['id']}.json")
++                    atomic_json(queue/'status'/f"{job['id']}.json",{**s,'state':'interrupted','work':str(work),
++                        'reason':'audit_or_archive_publication_failed'})
++                raise
++            finished+=1
++    return finished
++
++
++def process_dead(pid):
++    if not pid:return True
++    try:os.kill(int(pid),0)
++    except ProcessLookupError:return True
++    except PermissionError:return False
++    return False
++
++
++def recover(queue,job_id,evidence_path):
++    queue=Path(queue);plan=frozen(queue);e=read(evidence_path)
++    with transaction(queue):
++        s=read(queue/'status'/f'{job_id}.json')
++        require(s['state'] in ('running','interrupted','failed'),'job cannot be recovered')
++        require(s['attempt']==1,'recovery already used')
++        require(e['job']==job_id and e['token']==s['token'] and e['classification']=='external_interruption',
++                'recovery evidence does not identify this external interruption')
++        require(e.get('reason'),'reason required')
++        if s['worker']['host']==socket.gethostname():
++            require(process_dead(s.get('child_pid')) and process_dead(s['worker']['pid']), 'previous process still alive')
++        else:
++            require(e.get('slurm_step')==s['worker']['slurm_step'] and e.get('verified_dead') is True,
++                    'remote recovery needs verified Slurm accounting')
++            require(sha256(e['accounting_file'])==e['accounting_sha256'],'accounting evidence missing')
++        require(Path(s['work']).exists(),'old scratch must be recovered first')
++        cp=Path(s['work'])/'run'/'checkpoint.pt'
++        if not cp.exists():cp=Path(s['work'])/'run'/'run'/'checkpoint.pt'
++        require(cp.exists(),'no resumable checkpoint; request a separately documented restart')
++        atomic_json(queue/'recovery'/f'{job_id}_{time.time_ns()}.json',{'previous':s,'evidence':e})
++        (queue/'claims'/f'{job_id}.json').unlink(missing_ok=True)
++        atomic_json(queue/'status'/f'{job_id}.json',{'job':job_id,'state':'planned','attempt':1,
++                    'resume_from':s['work'],'recovery_reason':e['reason']})
++        # Reopen only descendants previously blocked by a technical dependency.
++        for j in plan['jobs']:
++            p=queue/'status'/f"{j['id']}.json";x=read(p)
++            if x['state']=='blocked' and x.get('reason')=='dependency_failed':
++                atomic_json(p,{'job':j['id'],'state':'planned','attempt':x['attempt']})
++
++
++def doctor(queue):
++    plan=frozen(queue);statuses=all_status(queue,plan)
++    return {'counts':{state:sum(s['state']==state for s in statuses.values())
++                      for state in sorted({s['state'] for s in statuses.values()})},
++            'nonterminal':[s for s in statuses.values() if s['state'] in ('running','interrupted')],
++            'leases':[read(p) for p in (Path(queue)/'leases').glob('*.json')],
++            'outcome_based_gates':False}
++
++
++def materialize(queue,out):
++    queue=Path(queue);plan=frozen(queue);out=Path(out);out.mkdir(parents=True,exist_ok=False)
++    records=[]
++    for j in plan['jobs']:
++        s=read(queue/'status'/f"{j['id']}.json")
++        if s.get('receipt'):
++            require(sha256(s['receipt'])==s['receipt_sha256'],'receipt integrity failed')
++            rec=read(s['receipt']);a=rec['archive']
++            extract_archive(a['path'],a['sha256'],out/j['id'])
++        records.append({'job':j['id'],'state':s['state'],'attempt':s['attempt']})
++    atomic_json(out/'inventory.json',records);atomic_json(out/'plan.json',plan)
++
++
++def release_lease(queue,gpu_uuid,evidence):
++    queue=Path(queue);frozen(queue);p=queue/'leases'/(gpu_uuid+'.json')
++    require(p.exists(),'lease missing');lease=read(p);e=read(evidence)
++    require(e.get('token')==lease['token'] and e.get('reason'),'lease release evidence differs')
++    if lease['host']==socket.gethostname():require(process_dead(lease['pid']),'lease process still active')
++    else:
++        require(e.get('verified_dead') is True and e.get('slurm_step')==lease.get('slurm_step'),
++                'remote lease needs verified Slurm accounting')
++        require(sha256(e['accounting_file'])==e['accounting_sha256'],'accounting evidence missing')
++    atomic_json(queue/'recovery'/('lease_'+str(time.time_ns())+'.json'),{'lease':lease,'evidence':e})
++    p.unlink()
++
++
++def cleanup(queue,job_id,verified_only):
++    import shutil
++    queue=Path(queue);plan=frozen(queue);s=read(queue/'status'/f'{job_id}.json')
++    require(verified_only and s['state']=='completed','cleanup requires verified completed job')
++    require(sha256(s['receipt'])==s['receipt_sha256'],'receipt changed')
++    record=read(s['receipt']);archive=record['archive'];verify_archive(archive['path'],archive['sha256'])
++    work=Path(s['work']).resolve();base=(Path(plan['site']['scratch_root'])/BATCH).resolve()
++    require(base in work.parents and work.name.startswith('attempt_'),'cleanup target outside new run scratch')
++    require(not (work/'run/.run.lock').exists(),'active run lock')
++    if work.exists():
++        from common import file_manifest
++        require(file_manifest(work)==verify_archive(archive['path'],archive['sha256']),'scratch changed after archival')
++        shutil.rmtree(work)
++    atomic_json(queue/'recovery'/('cleanup_'+job_id+'.json'),{'archive':archive,'work':str(work)})
++
++
++def main():
++    p=argparse.ArgumentParser();sub=p.add_subparsers(dest='cmd',required=True)
++    q=sub.add_parser('init');q.add_argument('--site',required=True);q.add_argument('--queue',required=True);q.add_argument('--test-report',required=True)
++    q=sub.add_parser('worker');q.add_argument('--queue',required=True);q.add_argument('--pool',choices=('4090','A100'),required=True)
++    q.add_argument('--max-jobs',type=int,default=100);q.add_argument('--test-cpu',action='store_true')
++    for name in ('doctor','ready'):
++        q=sub.add_parser(name);q.add_argument('--queue',required=True)
++        if name=='ready':q.add_argument('--pool',choices=('4090','A100'),default='4090')
++    q=sub.add_parser('recover');q.add_argument('--queue',required=True);q.add_argument('--job',required=True);q.add_argument('--evidence',required=True)
++    q=sub.add_parser('materialize');q.add_argument('--queue',required=True);q.add_argument('--out',required=True)
++    q=sub.add_parser('release-lease');q.add_argument('--queue',required=True);q.add_argument('--gpu-uuid',required=True);q.add_argument('--evidence',required=True)
++    q=sub.add_parser('cleanup');q.add_argument('--queue',required=True);q.add_argument('--job',required=True);q.add_argument('--verified-only',action='store_true')
++    q=sub.add_parser('pause');q.add_argument('--queue',required=True);q.add_argument('--stage',required=True);q.add_argument('--reason',required=True)
++    a=p.parse_args()
++    if a.cmd=='init':r=initialize(a.site,a.queue,a.test_report)
++    elif a.cmd=='worker':r={'finished':worker(a.queue,a.pool,a.max_jobs,a.test_cpu)}
++    elif a.cmd=='doctor':r=doctor(a.queue)
++    elif a.cmd=='ready':r=ready_jobs(a.queue,a.pool)
++    elif a.cmd=='recover':recover(a.queue,a.job,a.evidence);r={'recovered':a.job}
++    elif a.cmd=='release-lease':release_lease(a.queue,a.gpu_uuid,a.evidence);r={'released':a.gpu_uuid}
++    elif a.cmd=='cleanup':cleanup(a.queue,a.job,a.verified_only);r={'cleaned':a.job}
++    elif a.cmd=='pause':
++        require(a.stage in STAGE_DEPENDENCIES,'unknown stage');frozen(a.queue)
++        atomic_json(Path(a.queue)/'pauses'/f'{a.stage}.json',{'reason':a.reason,'time':time.time()});r={'paused':a.stage}
++    else:materialize(a.queue,a.out);r={'materialized':a.out}
++    import json;print(json.dumps(r,ensure_ascii=False,indent=2))
++
++if __name__=='__main__':main()

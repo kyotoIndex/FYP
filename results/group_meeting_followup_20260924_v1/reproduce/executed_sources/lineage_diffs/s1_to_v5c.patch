@@ -1,0 +1,1218 @@
+--- a/audit_run.py
++++ b/audit_run.py
+@@ -366,6 +366,147 @@
+     return {'kind':'fixed_state','complete':done,'seed':ident['seed'],'anchor':anchor,'rows':rows}
+ 
+ 
++def label_counts(labels,epochs):
++    return {str(k):sum(y==k for y in labels)*epochs for k in sorted(set(labels))}
++
++
++def close(a,b,tol=1e-12):
++    if isinstance(a,dict):return isinstance(b,dict) and set(a)==set(b) and all(close(a[k],b[k],tol) for k in a)
++    if isinstance(a,(list,tuple)):return isinstance(b,(list,tuple)) and len(a)==len(b) and all(close(x,y,tol) for x,y in zip(a,b))
++    if isinstance(a,float) or isinstance(b,float):return a is not None and b is not None and abs(a-b)<=tol
++    return a==b
++
++
++def audit_personal(out,meta,ev_id,part,require_complete,repo=None):
++    from run_personal import FORMAT,items,item_file,synthetic_local_ids,majority,dev_check,summarize
++    out=Path(out);cp=tensor_load(out/'checkpoint.pt');identity=cp['identity'];cfg=identity['config'];seed=identity['seed']
++    require(cp['format']==FORMAT and fingerprint(identity)==cp['identity_hash']==meta['identity_hash'],'personal identity differs')
++    require(identity==meta['identity'] and identity['source_files']==source_files(),'personal source differs')
++    require(identity['partition_sha256']==fingerprint(part),'personal partition differs from bundle partition')
++    tests=read(out/'local_tests.json');train=client_labels(part,ev_id,repo)
++    require(fingerprint(tests)==identity['local_tests_sha256'],'local test record changed')
++    if ev_id['synthetic']:
++        ids,labels=synthetic_local_ids(part,seed)
++        baseline=majority({k:[train[s] for s in v] for k,v in part['clients'].items()},labels);provider='synthetic'
++    else:
++        import personal_split
++        ids,labels=personal_split.local_test_ids(part,seed,repo)
++        flat=[x for k in sorted(ids,key=int) for x in ids[k]]
++        resolved=dict(zip(flat,labels_from_tsv(repo,{'personal':flat},ev_id['data_provenance'],'personal')))
++        require(labels=={k:[resolved[x] for x in v] for k,v in ids.items()},'personal_split labels differ from TSV')
++        baseline=personal_split.majority_baseline(part,repo,labels);provider='personal_split'
++    require(tests['provider']==provider and tests['ids']==ids and tests['labels']==labels,'local test IDs/labels cannot be regenerated')
++    require(tests['baseline']==baseline,'P0 majority baseline differs')
++    clients=sorted(map(int,part['clients']));plan=items(clients,identity['finetune']);completed=cp['completed']
++    require([x['item'] for x in completed]==plan[:len(completed)] and all(set(x['evidence'])=={item_file(x['item'])} for x in completed),
++            'personal progress differs from plan')
++    verify_files(out,[x['evidence'] for x in completed]);stats={};p2=0;dev=None
++    for x in completed:
++        phase,c=x['item'];rec=read(out/item_file(x['item']))
++        if phase=='dev':
++            compare_evaluation(rec['evaluation'],ev_id['labels']);check=dev_check(rec['evaluation'],rec['reference'])
++            require(check['passed'] and rec['passed'] is True and rec['checks']==check['checks'],'dev readout does not reproduce the input checkpoint')
++            dev={'accuracy':rec['evaluation']['accuracy'],'reference_accuracy':rec['reference']['accuracy'],'passed':True};continue
++        require(rec['client']==c and rec['phase']==phase,'personal record identity differs')
++        stats[(phase,c)]=compare_evaluation(rec['evaluation'],tests['labels'][str(c)])
++        if phase=='p2':
++            t=rec['train'];ys=[train[s] for s in part['clients'][str(c)]];e=cfg['local_epochs']
++            require(t['optimizer_steps']==math.ceil(len(ys)/cfg['batch_size'])*e and t['training_examples_seen']==len(ys)*e and
++                    t['training_label_counts']==label_counts(ys,e) and t['adapter_before_sha256']==identity['global_adapter_sha256'] and
++                    t['adapter_after_sha256']!=t['adapter_before_sha256'],'P2 local training budget differs');p2+=1
++    complete=len(completed)==len(plan);expected=summarize(tests,stats,identity['finetune'],complete)
++    summary=read(out/'personal_evaluation.json')
++    require(summary['source']==identity['source'] and summary['seed']==seed and summary['input']==identity['input'] and
++            summary['dev_check']==dev and summary['complete']==complete and summary['finetune']==identity['finetune'],'personal summary header differs')
++    require(close(summary['clients'],expected['clients']) and close(summary['macro'],expected['macro']),'personal summary differs from logits')
++    done=read(out/'status.json')['state']=='completed' and complete
++    require(done or not require_complete,'personal evaluation incomplete')
++    inputs={identity['input']['path']:identity['input']['sha256']}
++    if identity['bundle_source_path']:inputs[identity['bundle_source_path']]=identity['source_original_checkpoint_sha256']
++    return {'kind':'personal_eval','complete':done,'seed':seed,'source':identity['source'],'finetune':identity['finetune'],
++            'p2_completed':p2,'dev_check':dev,'macro':expected['macro'],'inputs':inputs,
++            'rows':[{'client':int(k),**v} for k,v in expected['clients'].items()]}
++
++
++def audit_fedex_bank(bank,agg,a,participants):
++    from pcla_repair.core import tensor_digest
++    require([c['client'] for c in bank['clients']]==participants,'bank clients differ')
++    require(tensor_digest(bank['parent'])==a['parent_adapter_sha256'] and tensor_digest(bank['post'])==a['post_adapter_sha256'],
++            'bank states differ from round record')
++    clients=[c['state'] for c in bank['clients']];eps=torch.finfo(torch.float32).eps
++    require(all(set(c)==set(bank['parent'])==set(bank['post']) for c in clients),'bank key inventory differs')
++    for k,v in bank['post'].items():
++        stack=torch.stack([c[k].double() for c in clients])
++        if agg=='ffa' and 'lora_A' in k:
++            require(torch.equal(v,bank['parent'][k]) and all(torch.equal(c[k],v) for c in clients),'FFA shared A changed')
++        else:
++            require(float((v.double()-stack.mean(0)).abs().max())<=16*eps*max(1.,float(stack.abs().max())),
++                    'aggregated tensor is not the client mean: '+k)
++    if agg in ('normal','ffa'):
++        require(not bank['base_delta'],'unexpected base update');return None
++    s=bank['scaling'];distinguishable=0
++    for n in bank['modules']:
++        A=torch.stack([c[n+'.lora_A.default.weight'].double() for c in clients])
++        B=torch.stack([c[n+'.lora_B.default.weight'].double() for c in clients])
++        M=(B@A).mean(0);R=s*(M-B.mean(0)@A.mean(0));want,alt=(R.T,R) if agg=='ours' else (R,R.T)
++        tol=64*eps*max(1.,bank['base_parent_maxabs'][n],s*float(M.abs().max()));d=bank['base_delta'][n].double()
++        require(float((d-want).abs().max())<=tol,'base residual does not follow '+agg+': '+n)
++        if float((want-alt).abs().max())>10*tol:
++            require(float((d-alt).abs().max())>tol,'residual orientation not identifiable');distinguishable+=1
++    return {'modules':len(bank['modules']),'orientation_distinguishable':distinguishable}
++
++
++def audit_fedex(out,meta,ev_id,part,require_complete,repo=None):
++    from fedex_ref import FORMAT,COMMIT,UPSTREAM_SHA256,ADAPTATIONS,upstream_functions
++    from pcla_repair.core import keyed_seed,tensor_digest
++    out=Path(out);cp=tensor_load(out/'checkpoint.pt');identity=cp['identity'];cfg=identity['config'];seed=identity['seed'];agg=identity['agg']
++    require(cp['format']==FORMAT and fingerprint(identity)==cp['identity_hash']==meta['identity_hash'],'FedEx identity differs')
++    require(identity==meta['identity'] and identity['source_files']==source_files(),'FedEx source differs')
++    require(identity['upstream']=={'commit':COMMIT,'files':{f:UPSTREAM_SHA256[f] for f in sorted(UPSTREAM_SHA256)},
++            'functions':upstream_functions(agg)[1],'adaptations':list(ADAPTATIONS)},'upstream function identity differs')
++    require(identity['partition_sha256']==fingerprint(part),'FedEx partition differs from bundle partition')
++    order=sorted(map(int,part['clients']))
++    if identity['partition']=='noniid':expected={str(c):list(part['clients'][str(c)]) for c in order}
++    else:
++        n=len(part['clients'][str(order[0])]);require(all(len(part['clients'][str(c)])==n for c in order),'IID split needs equal clients')
++        pool=[(c,i) for c in order for i in range(n)];random.Random(keyed_seed(seed,'iid_partition')).shuffle(pool)
++        expected={str(c):[part['clients'][str(o)][i] for o,i in pool[j*n:(j+1)*n]] for j,c in enumerate(order)}
++        flat=[s for v in expected.values() for s in v]
++        require(sorted(flat)==sorted(s for v in part['clients'].values() for s in v),'IID split is not a permutation of client data')
++    require(read(out/'client_partition.json')==expected and fingerprint(expected)==identity['client_partition_sha256'],
++            'client partition cannot be regenerated')
++    labels=client_labels(part,ev_id,repo)
++    verify_files(out,[row['evidence'] for row in cp['metrics']])
++    require([x['round'] for x in cp['metrics']]==list(range(1,cp['round']+1)),'FedEx rounds incomplete')
++    previous=identity['initial_state_sha256'];rows=[];function=identity['upstream']['functions']['aggregate']['executed_sha256']
++    for row in cp['metrics']:
++        r=row['round'];rec=read(out/'rounds'/f'{r:03d}'/'record.json');participants=selected(seed,r,part,cfg)
++        require(rec['round']==r and rec['agg']==agg and rec['partition']==identity['partition'] and rec['selected_clients']==participants and
++                [c['client'] for c in rec['client_details']]==participants,'FedEx participants differ')
++        for c in rec['client_details']:
++            ids=expected[str(c['client'])];e=cfg['local_epochs']
++            require(c['steps']==math.ceil(len(ids)/cfg['batch_size'])*e and c['examples']==len(ids)*e and
++                    c['label_counts']==label_counts([labels[s] for s in ids],e) and c['sample_ids_sha256']==fingerprint(ids),
++                    'FedEx client budget or samples differ')
++        a=rec['aggregation']
++        require(a['function_executed_sha256']==function and a['parent_state_sha256']==previous,'FedEx aggregation chain broken')
++        if agg in ('normal','ffa'):require(a['post_base_sha256']==a['parent_base_sha256'],'base changed without residual aggregation')
++        previous=a['post_state_sha256']
++        stats=compare_evaluation(rec['evaluation'],ev_id['labels'])
++        require(row['accuracy']==stats['accuracy'] and row['gpu_nll']==stats['gpu_nll'],'FedEx row differs')
++        bank=out/'rounds'/f'{r:03d}'/'bank.pt'
++        require(bank.exists()==(r in identity['bank_rounds']),'bank inventory differs')
++        rows.append({'round':r,**{k:v for k,v in stats.items() if k!='predictions'},
++                     **{k:a['exactness'][k] for k in ('effective_error_fro','ideal_update_fro','relative_error','base_shift_from_initial_fro')},
++                     'bank':audit_fedex_bank(tensor_load(bank),agg,a,participants) if bank.exists() else None,
++                     'train_and_server_seconds':rec['training_and_server_seconds']})
++    require(previous==tensor_digest(cp['state']),'final state differs from last round')
++    done=read(out/'status.json')['state']=='completed' and cp['round']==cfg['rounds']
++    require(done or not require_complete,'FedEx reference horizon incomplete')
++    return {'kind':'fedex_ref','complete':done,'seed':seed,'agg':agg,'partition':identity['partition'],'rows':rows,
++            'inputs':{identity['bundle_source_path']:identity['source_original_checkpoint_sha256']} if identity['bundle_source_path'] else {}}
++
++
+ def audit(out,repo=None,require_complete=True):
+     bind_repo(repo)
+     out=Path(out);meta=read(out/'study.json')
+@@ -373,6 +514,8 @@
+     if meta['kind']=='aggregation':r=audit_aggregation(out,meta,ev_id,part,require_complete)
+     elif meta['kind']=='lora_control':r=audit_control(out,meta,ev_id,part,require_complete,repo)
+     elif meta['kind']=='fixed_state':r=audit_fixed_state(out,meta,ev_id,part,require_complete,repo)
++    elif meta['kind']=='personal_eval':r=audit_personal(out,meta,ev_id,part,require_complete,repo)
++    elif meta['kind']=='fedex_ref':r=audit_fedex(out,meta,ev_id,part,require_complete,repo)
+     else:raise ValueError('unknown result kind')
+     r.update({'audited':True,'audit_scope':'stored evidence/identities/metrics/algebra; no GPU forward rerun',
+               'identity_hash':meta['identity_hash'],'evaluation_ids_sha256':fingerprint(ev_id['source_ids']),
+--- a/common.py
++++ b/common.py
+@@ -14,7 +14,7 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ VERSION = '4.1'
+-BATCH = 'pcla-v41-supplement-s1-20260923'
++BATCH = 'pcla-v5c-open-questions-20260924'
+ SEEDS = (7, 13, 21, 42, 87)
+ COMMIT = 'e53078b638ee30a633bad98195c1e2d4476523f5'
+ CONFIG = 'configs/pcla_repair/core_shared_hh_20260918_v3.json'
+@@ -81,10 +81,15 @@
+     return torch.load(path, map_location='cpu', weights_only=True)
+ 
+ 
++UPSTREAM_FILES = ('fedex_lora_upstream/UPSTREAM_COMMIT.txt', 'fedex_lora_upstream/fed_agg.py',
++                  'fedex_lora_upstream/models.py', 'fedex_lora_upstream/train_eval.py',
++                  'fedex_lora_upstream/fed_train_glue.py')
++
++
+ def source_files():
+-    """Full execution and analysis source identity, not only selected modules."""
++    """Full execution and analysis source identity, including the executed upstream FedEx-LoRA files."""
+     return {p.relative_to(ROOT).as_posix(): sha256(p)
+-            for p in sorted(ROOT.glob('*.py'))}
++            for p in sorted(ROOT.glob('*.py')) + [ROOT/rel for rel in UPSTREAM_FILES]}
+ 
+ 
+ def verify_repo(repo):
+--- a/dispatch.py
++++ b/dispatch.py
+@@ -14,7 +14,7 @@
+ 
+ from common import (ROOT,BATCH,read,require,atomic_json,sha256,fingerprint,source_files,
+                     verify_repo,exclusive,make_archive,verify_archive,extract_archive)
+-from job_plan import build,validate,STAGE_DEPENDENCIES
++from job_plan import build,validate,job_inputs,STAGE_DEPENDENCIES
+ 
+ 
+ def runtime_identity(python):
+@@ -28,8 +28,8 @@
+     site=read(site_path);queue=Path(queue).resolve()
+     require(not queue.exists(),'new queue directory required')
+     testing=bool(site.get('testing',False))
+-    for key in ('repo','source_root','scratch_root'):
+-        site[key]=str(Path(site[key]).resolve())
++    for key in ('repo','source_root','scratch_root','v41_materialized','s1_materialized'):
++        if key in site:site[key]=str(Path(site[key]).resolve())
+     # A venv interpreter is a symlink to its base interpreter; resolving it drops the venv
+     # site-packages (V4.1 attempt 1 ran Transformers 4.57.6 from the linked kvaf_tooling env).
+     site['python_pcla']=os.path.abspath(site['python_pcla'])
+@@ -44,23 +44,35 @@
+     site['queue_root']=str(queue)
+     require(Path(site['source_root'])!=queue and Path(site['repo']) not in queue.parents,
+             'queue must be outside the source repository and source results')
+-    sources={}
++    require(testing or all(k in site for k in ('v41_materialized','s1_materialized')),'site lacks materialized V4.1/S1 input roots')
++    sources={};inputs={}
++    for j in jobs:inputs.update(job_inputs(site,j))
++    for path,(kind,name,seed) in sorted(inputs.items()):
++        if testing:
++            if Path(path).exists():sources[path]=sha256(path)
++            continue
++        if kind=='original':
++            from context import load_original
++            _,loaded=load_original(site['source_root'],seed,name,site['repo']);require(str(loaded)==path,'input path differs')
++        else:
++            from run_personal import validate_control_checkpoint
++            validate_control_checkpoint(path,name,seed)
++        sources[path]=sha256(path)
+     if not testing:
+-        from context import load_original
+-        for seed in sorted({j['seed'] for j in jobs}):
+-            cp,path=load_original(site['source_root'],seed,'full_alt',site['repo'])
+-            sources[str(path)]=sha256(path)
+         for rel,expected in read(ROOT/'reference_assets/model_files_sha256.json').items():
+             require(sha256(Path(site['repo'])/rel)==expected,'BERT asset hash differs: '+rel)
+     runtime=runtime_identity(site['python_pcla'])
+     if not testing:
+         require(runtime['torch']=='2.5.1+cu121' and runtime['cuda']=='12.1','use original PCLA execution environment')
+-        tf=subprocess.run([site['python_pcla'],'-c',"import importlib.metadata as m; print(m.version('transformers'))"],
+-                          text=True,capture_output=True,check=True,timeout=180).stdout.split()[-1]
++        tf,pf=subprocess.run([site['python_pcla'],'-c',"import importlib.metadata as m, peft; print(m.version('transformers'), peft.__version__)"],
++                             text=True,capture_output=True,check=True,timeout=180).stdout.split()[-2:]
+         require(tf=='4.57.1','interpreter does not import the original Transformers 4.57.1: '+tf)
+-        runtime['transformers']=tf
++        require(pf=='0.19.1','FedEx-LoRA reference was validated with peft 0.19.1, found '+pf)
++        runtime['transformers'],runtime['peft']=tf,pf
++    from common import UPSTREAM_FILES
+     manifest={'batch':BATCH,'site':site,'jobs':jobs,'stage_dependencies':STAGE_DEPENDENCIES,
+               'source_files':source_files(),'input_sha256':sources,'runtime':runtime,
++              'upstream_sha256':{rel:sha256(ROOT/rel) for rel in UPSTREAM_FILES},
+               'python_executable_sha256':sha256(site['python_pcla']),
+               'cpu_test_report_sha256':sha256(test_report),'created':time.time()}
+     queue.mkdir(parents=True)
+@@ -173,6 +185,9 @@
+         require(report['audit_sources']==plan['source_files'],'audit source mismatch')
+         if job.get('parity') or job.get('mode')=='bridge_full_alt':
+             require(read(work/'run/parity.json')['passed'],'missing passing parity')
++        for path,digest in report.get('inputs',{}).items():
++            require(plan['input_sha256'].get(path,digest if plan['site'].get('testing') else None)==digest,
++                    'run input differs from the frozen input: '+path)
+         atomic_json(work/'audit.json',report);status='completed'
+     record={'job':job,'job_sha256':fingerprint(job),'attempt':claim_info['attempt'],
+             'token':claim_info['token'],'state':status,'exit_code':returncode,'error':error,
+@@ -242,10 +257,9 @@
+                 raise
+             returncode=-1;error=None;proc=None
+             try:
+-                if not testing:
+-                    for path,digest in plan['input_sha256'].items():
+-                        if f"seed_{job['seed']}/" in path:
+-                            require(sha256(path)==digest,'frozen input checkpoint changed')
++                for path in job_inputs(site,job):
++                    if path in plan['input_sha256']:require(sha256(path)==plan['input_sha256'][path],'frozen input checkpoint changed')
++                    else:require(testing,'job input was not frozen at init: '+path)
+                 deps={}
+                 for dep in job.get('depends',[]):
+                     if dep!=job.get('donor'):continue
+--- a/execute_job.py
++++ b/execute_job.py
+@@ -5,6 +5,7 @@
+ import os
+ from common import read,require,atomic_json
+ from context import prepare_real,synthetic_bundle,original_synthetic,original_environment
++from job_plan import source_policy,personal_input,PERSONAL_SOURCES
+ 
+ 
+ def test_source(root,seed,policy):
+@@ -23,10 +24,21 @@
+     return cp,path
+ 
+ 
++def test_control_source(site,source,seed):
++    """Synthetic stand-in for a materialized, audited V4.1/S1 control run."""
++    path=personal_input(site,source,seed)
++    if source.startswith('old_') or path.exists():return path
++    from run_lora_controls import run_bundle
++    from audit_run import audit
++    b=synthetic_bundle(seed=seed);b.source,b.source_path=test_source(site['source_root'],seed,'full_alt')
++    run_bundle(b,path.parent,PERSONAL_SOURCES[source][1])
++    atomic_json(path.parent.parent/'audit.json',audit(path.parent))
++    return path
++
++
+ def execute(site,job,out,dependencies,resume=False,reason=None):
+     test=bool(site.get('testing',False));root=site['source_root'];repo=site['repo'];threads=site.get('threads_per_gpu',4)
+-    old_policy=job.get('source','full_alt') if job['family']=='aggregation' else 'full_alt'
+-    if job['kind']=='diagnostic':old_policy='pcla'
++    old_policy=source_policy(job)
+     role='tuning' if job['kind']=='diagnostic' else 'benchmark_dev'
+     if test:
+         original_environment('cpu',1)
+@@ -52,6 +64,13 @@
+     elif job['kind']=='control':
+         from run_lora_controls import run_bundle
+         run_bundle(b,out,job['mode'],stop,resume,reason)
++    elif job['kind']=='personal_eval':
++        from run_personal import run_bundle,local_tests
++        path=test_control_source(site,job['source'],job['seed']) if test else personal_input(site,job['source'],job['seed'])
++        run_bundle(b,out,job['source'],path,job['finetune'],local_tests(b,repo),stop,resume,reason)
++    elif job['kind']=='fedex_ref':
++        from fedex_ref import run_bundle
++        run_bundle(b,out,job['agg'],job['partition'],repo,stop,resume,reason)
+     else:raise ValueError('unknown job kind')
+     from audit_run import audit
+     report=audit(out,repo,require_complete=not bool(job.get('stop_after')))
+@@ -59,7 +78,8 @@
+         require(read(Path(out)/'parity.json')['passed'],'technical parity did not pass')
+     if job.get('stop_after'):
+         expected=2 if test else job['stop_after']
+-        require(report['rows'][-1]['round']==expected,'technical smoke horizon differs')
++        done=report['p2_completed'] if job['kind']=='personal_eval' else report['rows'][-1]['round']
++        require(done==expected,'technical smoke horizon differs')
+     atomic_json(Path(out).parent/'audit.json',report)
+     return report
+ 
+--- /dev/null
++++ b/fedex_lora_upstream/UPSTREAM_COMMIT.txt
+@@ -0,0 +1 @@
++2fa2e4a243f93c829e2b601e459e45aa748e4149
+--- /dev/null
++++ b/fedex_ref.py
+@@ -0,0 +1,448 @@
++"""Upstream FedEx-LoRA (commit 2fa2e4a) aggregation and client loop on our partition, participants and evaluation.
++
++Function bodies are compiled from the pinned upstream files; every edit is listed in ADAPTATIONS and recorded per run.
++"""
++from __future__ import annotations
++import ast
++import copy
++import difflib
++import hashlib
++import math
++import os
++from pathlib import Path
++import random
++import time
++import traceback
++from types import SimpleNamespace
++
++import numpy as np
++import torch
++from torch import nn
++from torch.utils.data import ConcatDataset, DataLoader, Subset
++from common import ROOT, require, read, atomic_json, atomic_torch, tensor_load, fingerprint, sha256, exclusive
++from context import base_study, write_evaluation_identity
++
++UPSTREAM = ROOT/'fedex_lora_upstream'
++COMMIT = '2fa2e4a243f93c829e2b601e459e45aa748e4149'
++UPSTREAM_SHA256 = {'fed_agg.py': '674c17d3fc4c9f41836b538227a3630433a0b674414d87c2466cd80714323840',
++                   'models.py': 'fece12e32b1c4bdffab978a5c40fcf66bff992d5cca790f71c9d3d04aa1c15ad',
++                   'train_eval.py': '15bb75638bf32f3b68d5df70a28c43719574f53172d116a7c941e32c8181fe07',
++                   'fed_train_glue.py': '541da5b94dcadd3304f239e33e57e1cc29659c2d048bd9d55b9fd0604e77aa12'}
++FORMAT = 'pcla-fedex-ref-v5c'
++PREFIX = 'base_model.model.'
++WARMUP_RATIO = 0.06
++AGGREGATIONS = {'normal': 'aggregate_models_normal', 'ffa': 'aggregate_models_ffa',
++                'ours': 'aggregate_models_ours', 'ours_fixed': 'aggregate_models_ours'}
++PARTITIONS = ('noniid', 'iid')
++ADAPTATIONS = (
++    {'where': 'fed_train_glue.py:106-111', 'change': 'aggregation receives the trained state dicts of the participating clients',
++     'reason': 'upstream passes the model objects client_models while fed_agg indexes client_models[i][k] (fed_agg.py:26,31,45,50,69,77,88,91); '
++               'the state dicts it collects at fed_train_glue.py:97-104 are otherwise unused'},
++    {'where': 'fed_train_glue.py:97-104 / train_eval.py:75', 'change': 'client state dicts are cloned and restricted to the keys the aggregators read (lora/classifier)',
++     'reason': 'one client model object is reused, and train_client returns model.state_dict(), which aliases live parameters'},
++    {'where': 'fed_train_glue.py:94-104', 'change': 'each round only the 10 sampled clients train and are aggregated',
++     'reason': 'our participation sequence random.Random(keyed_seed(seed,"participants",r)).sample(sorted(clients),10); upstream trains all clients'},
++    {'where': 'train_eval.py:67', 'change': 'wandb.log statement removed from train_client (AST edit); tqdm bound to identity',
++     'reason': 'wandb is absent on the HPC; logging and progress display have no numerical effect'},
++    {'where': 'fed_agg.py:1-17, train_eval.py:1-42, models.py:1-23', 'change': 'module-level imports not executed; functions compiled with only the names they use',
++     'reason': 'datasets/sklearn/opacus/nltk/pycocoevalcap/transformers.AdamW are unused by these functions and partly unavailable'},
++    {'where': 'models.py:28-30,48-50', 'change': 'RobertaForSequenceClassification.from_pretrained replaced by local bert-base-uncased (BertForSequenceClassification)',
++     'reason': 'same backbone, tokenization and evaluation set as our runs; LoraConfig body unchanged (r=16, alpha=16, dropout=0.1, query/value, rslora off)'},
++    {'where': 'fed_train_glue.py:78-81', 'change': 'initial LoRA A (B is zero in both) and classifier head copied from the same-seed bundle initial adapter',
++     'reason': 'identical starting point to our runs; backbone verified byte-equal to the bundle backbone'},
++    {'where': 'data_utils.py:95-102, fed_train_glue.py:58-60', 'change': 'bundle client datasets and benchmark dev; DataLoader(batch_size=16, shuffle=True) with generator '
++     'keyed_seed(keyed_seed(seed,"train",r,c),"data",0) and torch/python RNG seeded by keyed_seed(seed,"train",r,c) before each client',
++     'reason': 'same samples and batch order as our local_train for that client-round; resume reproduces the run exactly'},
++    {'where': 'train_eval.py:104-156', 'change': 'fp32 evaluation that stores logits (batch 16, no shuffle)',
++     'reason': 'upstream evaluation only logs metrics to wandb; logits are needed for independent audit'},
++    {'where': 'peft/tuners/lora/torchao.py (environment, not upstream)', 'change': 'peft torchao availability check forced to False before building models',
++     'reason': 'peft 0.19.1 raises ImportError on the HPC torchao 0.9.0 (<0.16) while dispatching LoRA layers; torchao only serves quantized layers, unused here'},
++    {'where': 'fed_agg.py:112-114', 'change': 'ours_fixed only: torch.transpose(residue * scaling_factor, 1, 0) -> residue * scaling_factor',
++     'reason': 'for nn.Linear, lora_B @ lora_A already has the shape and orientation of base_layer.weight'},
++)
++
++
++def _is_call(node, owner, attr):
++    return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == attr and
++            isinstance(node.func.value, ast.Name) and node.func.value.id == owner)
++
++
++class DropTranspose(ast.NodeTransformer):
++    def __init__(self): self.edits = 0
++
++    def visit_Call(self, node):
++        self.generic_visit(node)
++        if _is_call(node, 'torch', 'transpose'):
++            require(len(node.args) == 3 and [getattr(a, 'value', None) for a in node.args[1:]] == [1, 0], 'unexpected upstream transpose')
++            self.edits += 1
++            return node.args[0]
++        return node
++
++
++class DropWandb(ast.NodeTransformer):
++    def __init__(self): self.edits = 0
++
++    def visit_Expr(self, node):
++        if _is_call(node.value, 'wandb', 'log'):
++            self.edits += 1
++            return None
++        return node
++
++
++def upstream_file(name):
++    require((UPSTREAM/'UPSTREAM_COMMIT.txt').read_text().strip() == COMMIT, 'upstream commit differs')
++    require(sha256(UPSTREAM/name) == UPSTREAM_SHA256[name], 'upstream file differs from pinned commit: '+name)
++    return UPSTREAM/name
++
++
++def compile_upstream(file, name, namespace, edit=None):
++    path = upstream_file(file); source = path.read_text(encoding='utf-8')
++    found = [n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == name]
++    require(len(found) == 1, 'upstream function missing: '+name)
++    node = copy.deepcopy(found[0]); original = ast.unparse(found[0])
++    if edit is not None:
++        node = edit.visit(node); require(edit.edits == 1, 'upstream edit did not apply exactly once')
++    executed = ast.unparse(node)
++    scope = dict(namespace)
++    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), str(path), 'exec'), scope)
++    digest = lambda text: hashlib.sha256(text.encode()).hexdigest()
++    return scope[node.name], {'file': file, 'function': name, 'lines': [found[0].lineno, found[0].end_lineno],
++        'upstream_source_sha256': digest(ast.get_source_segment(source, found[0])),
++        'executed_sha256': digest(executed), 'edits': 0 if edit is None else edit.edits,
++        'diff': list(difflib.unified_diff(original.splitlines(), executed.splitlines(), lineterm='', n=0))}
++
++
++def disable_torchao():
++    import peft.import_utils as iu
++    import peft.tuners.lora.torchao as lt
++    iu.is_torchao_available = lt.is_torchao_available = lambda: False
++
++
++def upstream_functions(agg, loader=None):
++    """Aggregation, client loop and model factory for one aggregation type; loader=None yields records only."""
++    require(agg in AGGREGATIONS, 'unknown aggregation')
++    for f in UPSTREAM_SHA256: upstream_file(f)
++    agg_ns, train_ns, model_ns = {'torch': torch, 'np': np}, {}, {}
++    if loader is not None:
++        import peft
++        disable_torchao()
++        from transformers import get_linear_schedule_with_warmup
++        from torch.cuda.amp import GradScaler, autocast
++        train_ns = {'torch': torch, 'get_linear_schedule_with_warmup': get_linear_schedule_with_warmup,
++                    'GradScaler': GradScaler, 'autocast': autocast, 'tqdm': lambda iterable: iterable}
++        model_ns = {'RobertaForSequenceClassification': loader, 'LoraConfig': peft.LoraConfig,
++                    'TaskType': peft.TaskType, 'get_peft_model': peft.get_peft_model}
++    functions, records = {}, {}
++    functions['aggregate'], records['aggregate'] = compile_upstream('fed_agg.py', AGGREGATIONS[agg], agg_ns,
++        DropTranspose() if agg == 'ours_fixed' else None)
++    functions['train_client'], records['train_client'] = compile_upstream('train_eval.py', 'train_client', train_ns, DropWandb())
++    functions['create_model'], records['create_model'] = compile_upstream(
++        'models.py', 'create_peft_FFA_model' if agg == 'ffa' else 'create_peft_model', model_ns)
++    return functions, records
++
++
++class Pretrained:
++    """Stands in for RobertaForSequenceClassification inside the upstream create_peft_* bodies."""
++    def __init__(self, build): self.build = build
++
++    def from_pretrained(self, name, num_labels): return self.build(name, num_labels)
++
++
++class SyntheticBase(nn.Module):
++    """TinyModel topology with plain nn.Linear projections, wrapped by peft exactly as BERT query/value are."""
++    def __init__(self, tiny):
++        super().__init__()
++        from transformers import PretrainedConfig
++        self.config = PretrainedConfig()
++        self.blocks = nn.ModuleList([nn.ModuleDict({p: copy.deepcopy(b[p].base) for p in ('query', 'value')}) for b in tiny.blocks])
++        self.classifier = copy.deepcopy(tiny.classifier)
++
++    def forward(self, x=None, labels=None, **_):
++        from transformers.modeling_outputs import SequenceClassifierOutput
++        for block in self.blocks:
++            x = torch.tanh(.5*block['query'](x)+.5*block['value'](x))+0.1*x
++        logits = self.classifier(x)
++        return SequenceClassifierOutput(loss=nn.functional.cross_entropy(logits, labels), logits=logits)
++
++
++def base_builder(bundle):
++    if bundle.synthetic:
++        return lambda name, num_labels: SyntheticBase(bundle.model)
++    from transformers import AutoModelForSequenceClassification
++    ds = bundle.provenance['base_config']['dataset']
++
++    def build(name, num_labels):
++        model = AutoModelForSequenceClassification.from_pretrained(name, num_labels=num_labels,
++                                                                   local_files_only=ds.get('local_files_only', True))
++        require(type(model).__name__ == 'BertForSequenceClassification', 'reference backbone must be BertForSequenceClassification')
++        return model
++    return build
++
++
++def model_reference(bundle, repo):
++    if bundle.synthetic: return 'synthetic-tiny'
++    ds = bundle.provenance['base_config']['dataset']; p = Path(repo)/ds['model']
++    return str(p) if p.is_dir() else ds['model']
++
++
++def peft_keys(bundle):
++    from pcla_repair import core
++    keys = {}
++    for n in core.lora_modules(bundle.model):
++        keys[n+'.lora_a'] = (PREFIX+n+'.lora_A.default.weight',)
++        keys[n+'.lora_b'] = (PREFIX+n+'.lora_B.default.weight',)
++    for n, _ in bundle.model.classifier.named_parameters():
++        keys['classifier.'+n] = tuple(f'{PREFIX}classifier.{w}.{n}' for w in ('modules_to_save.default', 'original_module'))
++    return keys
++
++
++def as_ours(state, keys):
++    return {k: state[p[0]] for k, p in keys.items()}
++
++
++def tracked(model, device='cpu'):
++    return {k: v.detach().to(device, copy=True) for k, v in model.state_dict().items()
++            if 'lora_' in k or 'classifier' in k or '.base_layer.' in k}
++
++
++def adapter_part(state):
++    return {k: v for k, v in state.items() if '.base_layer.' not in k}
++
++
++def base_part(state):
++    return {k: v for k, v in state.items() if '.base_layer.' in k}
++
++
++def backbone_ours(model):
++    return {k.replace('.base.', '.'): v for k, v in model.state_dict().items()
++            if '.lora_' not in k and not k.startswith('classifier.') and not k.endswith('.update_mask')}
++
++
++def backbone_peft(model, lora_bases=True):
++    return {k[len(PREFIX):].replace('.base_layer.', '.'): v for k, v in model.state_dict().items()
++            if 'lora_' not in k and not k.startswith(PREFIX+'classifier.') and (lora_bases or '.base_layer.' not in k)}
++
++
++def module_names(model):
++    return [n for n, m in model.named_modules() if hasattr(m, 'lora_A') and hasattr(m, 'lora_B')]
++
++
++def trainable(model):
++    groups = {'lora_A': 0, 'lora_B': 0, 'classifier': 0, 'other': 0}
++    for n, p in model.named_parameters():
++        if p.requires_grad:
++            groups['lora_A' if 'lora_A' in n else 'lora_B' if 'lora_B' in n else 'classifier' if 'classifier' in n else 'other'] += p.numel()
++    return groups
++
++
++def install_initial(model, bundle, keys):
++    from pcla_repair import core
++    initial = core.adapter_state(bundle.model)
++    require(set(initial) == set(keys), 'adapter/peft key inventory differs')
++    values = {p: initial[k] for k, ps in keys.items() for p in ps}
++    require(set(values) <= set(model.state_dict()), 'peft key mapping failed')
++    require(not model.load_state_dict(values, strict=False).unexpected_keys, 'peft key mapping failed')
++
++
++def iid_assignment(partition, seed):
++    from pcla_repair.core import keyed_seed
++    order = sorted(map(int, partition['clients'])); sizes = {len(partition['clients'][str(c)]) for c in order}
++    require(len(sizes) == 1, 'IID reference requires equal client sizes')
++    n = sizes.pop(); pool = [(c, i) for c in order for i in range(n)]
++    random.Random(keyed_seed(seed, 'iid_partition')).shuffle(pool)
++    return {str(c): pool[j*n:(j+1)*n] for j, c in enumerate(order)}
++
++
++def client_data(bundle, partition):
++    order = sorted(bundle.clients)
++    if partition == 'noniid':
++        return {c: bundle.clients[c] for c in order}, {str(c): list(bundle.partition['clients'][str(c)]) for c in order}
++    assignment = iid_assignment(bundle.partition, bundle.seed); offsets, total = {}, 0
++    for c in order:
++        offsets[c] = total; total += len(bundle.clients[c])
++    pool = ConcatDataset([bundle.clients[c] for c in order])
++    return ({c: Subset(pool, [offsets[o]+i for o, i in assignment[str(c)]]) for c in order},
++            {str(c): [bundle.partition['clients'][str(o)][i] for o, i in assignment[str(c)]] for c in order})
++
++
++class Counted:
++    """Transparent loader wrapper recording the batches the upstream loop consumes."""
++    def __init__(self, loader): self.loader, self.steps, self.examples, self.labels = loader, 0, 0, {}
++
++    def __len__(self): return len(self.loader)
++
++    def __iter__(self):
++        for batch in self.loader:
++            y = batch['labels'].tolist(); self.steps += 1; self.examples += len(y)
++            for v in y: self.labels[str(v)] = self.labels.get(str(v), 0)+1
++            yield batch
++
++
++@torch.no_grad()
++def evaluate(model, dataset, batch_size, device):
++    from pcla_repair.optimization_dev import classification_readout
++    model.eval(); logits, labels, loss_sum = [], [], 0.
++    for batch in DataLoader(dataset, batch_size=batch_size, shuffle=False):
++        b = {k: v.to(device) for k, v in batch.items()}; out = model(**b)
++        require(bool(torch.isfinite(out.logits).all() and torch.isfinite(out.loss)), 'nonfinite evaluation')
++        logits.append(out.logits.detach().float().cpu()); labels += b['labels'].cpu().tolist()
++        loss_sum += float(out.loss)*b['labels'].numel()
++    z = torch.cat(logits); pred = z.argmax(-1).tolist(); n = len(labels)
++    return {'accuracy': sum(a == b for a, b in zip(labels, pred))/n, 'loss': loss_sum/n, 'samples': n, 'predictions': pred,
++            **classification_readout(z, torch.tensor(labels)), 'logits': z.tolist(), 'labels': labels}
++
++
++def product_means(states, modules, scaling):
++    return {n: scaling*sum(s[n+'.lora_B.default.weight'].double()@s[n+'.lora_A.default.weight'].double()
++                           for s in states)/len(states) for n in modules}
++
++
++def exactness(parent, post, target, modules, scaling, initial):
++    err = ideal = shift = 0.
++    for n in modules:
++        a, b, w = n+'.lora_A.default.weight', n+'.lora_B.default.weight', n+'.base_layer.weight'
++        prev = parent[w].double()+scaling*parent[b].double()@parent[a].double()
++        want = parent[w].double()+target[n]
++        got = post[w].double()+scaling*post[b].double()@post[a].double()
++        err += float((got-want).square().sum()); ideal += float((want-prev).square().sum())
++        shift += float((post[w].double()-initial[w].to(post[w].device).double()).square().sum())
++    return {'effective_error_fro': math.sqrt(err), 'ideal_update_fro': math.sqrt(ideal),
++            'relative_error': math.sqrt(err/ideal) if ideal else None, 'base_shift_from_initial_fro': math.sqrt(shift),
++            'definition': 'achieved W+sBA versus parent W + mean_k s B_k A_k, summed over LoRA modules'}
++
++
++def norms(state):
++    groups = {'lora_A': 0., 'lora_B': 0., 'classifier': 0.}
++    for k, v in adapter_part(state).items():
++        groups['lora_A' if 'lora_A' in k else 'lora_B' if 'lora_B' in k else 'classifier'] += float(v.double().square().sum())
++    return {k: math.sqrt(v) for k, v in groups.items()}
++
++
++def run_bundle(bundle, out, agg, partition='noniid', repo=None, stop_after=None, resume=False, recovery_reason=None):
++    from pcla_repair import core, runtime as rt
++    from run_lora_controls import client_sequence
++    require(agg in AGGREGATIONS and partition in PARTITIONS, 'unknown FedEx reference cell')
++    out = Path(out); require(not out.exists() or resume, 'use new output directory')
++    out.mkdir(parents=True, exist_ok=True)
++    cfg, device = bundle.cfg, bundle.device; study = base_study(bundle)
++    mods = core.lora_modules(bundle.model); first = next(iter(mods.values())); alpha = first.scaling*first.rank
++    args = SimpleNamespace(model=model_reference(bundle, repo), lora_r=first.rank,
++                           lora_alpha=int(alpha) if float(alpha).is_integer() else alpha, lora_dropout=first.dropout.p,
++                           rslora=False, lr=cfg['learning_rate'], local_epochs=cfg['local_epochs'],
++                           warmup_ratio=WARMUP_RATIO, batch_size=cfg['batch_size'], agg_type=agg)
++    if not bundle.synthetic:
++        require((args.lora_r, args.lora_alpha, args.lora_dropout, args.batch_size, args.local_epochs, args.lr) ==
++                (16, 16, .1, 16, 1, .001), 'real reference recipe differs from the protocol')
++    functions, records = upstream_functions(agg, Pretrained(base_builder(bundle)))
++    num_labels = 2 if bundle.synthetic else bundle.provenance['base_config']['dataset']['num_labels']
++    global_model = functions['create_model'](num_labels, args).to(device)
++    client_model = functions['create_model'](num_labels, args).to(device)
++    keys = peft_keys(bundle); install_initial(global_model, bundle, keys)
++    require(core.tensor_digest(backbone_peft(global_model)) == core.tensor_digest(backbone_ours(bundle.model)),
++            'peft backbone differs from the bundle backbone')
++    require(core.tensor_digest(as_ours(global_model.state_dict(), keys)) == study['initial_adapter_sha256'],
++            'initial adapter mapping differs')
++    modules = module_names(global_model)
++    require(sorted(m[len(PREFIX):] for m in modules) == sorted(mods), 'peft LoRA modules differ from bundle LoRA modules')
++    groups = trainable(client_model)
++    require(groups['other'] == 0 and groups['lora_B'] > 0 and groups['classifier'] > 0 and (groups['lora_A'] == 0) == (agg == 'ffa'),
++            'upstream trainable parameter set differs')
++    initial = tracked(global_model); initial_device = base_part(tracked(global_model, device))
++    scaling = args.lora_alpha/args.lora_r
++    datasets, client_ids = client_data(bundle, partition)
++    banks = sorted({1, cfg['rounds']})
++    identity = {**study, 'kind': 'fedex_ref', 'agg': agg, 'partition': partition, 'config': cfg, 'provenance': bundle.provenance,
++                'bundle_source_path': str(bundle.source_path) if bundle.source_path else None,
++                'upstream': {'commit': COMMIT, 'files': {f: UPSTREAM_SHA256[f] for f in sorted(UPSTREAM_SHA256)},
++                             'functions': records, 'adaptations': list(ADAPTATIONS)},
++                'args': vars(args), 'scaling': scaling, 'trainable_parameters': groups,
++                'client_partition_sha256': fingerprint(client_ids), 'initial_state_sha256': core.tensor_digest(initial),
++                'backbone_sha256': core.tensor_digest(backbone_peft(global_model)),
++                'other_frozen_sha256': core.tensor_digest(backbone_peft(global_model, False)),
++                'bank_rounds': banks, 'evaluation_batch_size': args.batch_size,
++                'order_seed': 'keyed_seed(keyed_seed(seed,"train",r,client),"data",0)'}
++    identifier = fingerprint(identity); checkpoint = out/'checkpoint.pt'; metrics, start = [], 1
++    with exclusive(out/'.run.lock', {'identity_hash': identifier}):
++        if resume:
++            require(recovery_reason and checkpoint.exists(), 'resume requires checkpoint and reason')
++            cp = tensor_load(checkpoint); require(cp['identity_hash'] == identifier, 'resume identity differs')
++            for row in cp['metrics']:
++                for rel, h in row['evidence'].items(): require(sha256(out/rel) == h, 'committed record changed')
++            for p in (out/'rounds').glob('*'):
++                if p.is_dir() and p.name.isdigit() and int(p.name) > cp['round']:
++                    dest = out/'recovery'/str(time.time_ns())/p.name; dest.parent.mkdir(parents=True, exist_ok=True); p.rename(dest)
++            require(set(cp['state']) == set(initial), 'checkpoint state inventory differs')
++            require(not global_model.load_state_dict(cp['state'], strict=False).unexpected_keys, 'checkpoint state differs')
++            metrics, start = cp['metrics'], cp['round']+1
++        else:
++            atomic_json(out/'study.json', {'kind': 'fedex_ref', 'identity': identity, 'identity_hash': identifier})
++            write_evaluation_identity(out, bundle)
++            atomic_json(out/'client_partition.json', client_ids)
++        attempts_path = out/'execution_attempts.json'
++        attempts = read(attempts_path) if attempts_path.exists() else []
++        attempts.append({'pid': os.getpid(), 'host': os.uname().nodename, 'start_round': start,
++                         'reason': recovery_reason, 'time': time.time()})
++        atomic_json(attempts_path, attempts)
++
++        def state(r):
++            return {'format': FORMAT, 'identity': identity, 'identity_hash': identifier, 'round': r,
++                    'state': tracked(global_model), 'metrics': copy.deepcopy(metrics)}
++        try:
++            if start == 1:
++                atomic_json(out/'evaluation_initial.json', evaluate(global_model, bundle.evaluation, args.batch_size, device))
++                atomic_torch(checkpoint, state(0))
++            for r in range(start, cfg['rounds']+1):
++                if device.type == 'cuda': torch.cuda.reset_peak_memory_stats(device)
++                selected = client_sequence(bundle, r); parent = tracked(global_model, device)
++                states, details = [], []
++                rt.synchronize(device); started = time.perf_counter()
++                for c in selected:
++                    s = core.keyed_seed(bundle.seed, 'train', r, c); rt.seed_train(s)
++                    client_model.load_state_dict(global_model.state_dict())
++                    loader = Counted(DataLoader(datasets[c], batch_size=args.batch_size, shuffle=True,
++                                                generator=torch.Generator().manual_seed(core.keyed_seed(s, 'data', 0))))
++                    t0 = time.perf_counter()
++                    trained = functions['train_client'](client_model, loader, args)
++                    rt.synchronize(device)
++                    states.append({k: v.detach().clone() for k, v in trained.items() if 'lora' in k or 'classifier' in k})
++                    details.append({'client': c, 'steps': loader.steps, 'examples': loader.examples, 'label_counts': loader.labels,
++                                    'sample_ids_sha256': fingerprint(client_ids[str(c)]), 'train_seconds': time.perf_counter()-t0})
++                bank = {'clients': [{'client': c, 'state': {k: v.cpu() for k, v in s.items()}} for c, s in zip(selected, states)]} if r in banks else None
++                target = product_means(states, modules, scaling)
++                returned = functions['aggregate'](global_model, states, args) if agg.startswith('ours') else functions['aggregate'](global_model, states)
++                require(returned is global_model, 'upstream aggregation replaced the global model object')
++                post = tracked(global_model, device); rt.synchronize(device)
++                summary = {'function_executed_sha256': records['aggregate']['executed_sha256'],
++                           'parent_state_sha256': core.tensor_digest(parent), 'post_state_sha256': core.tensor_digest(post),
++                           'parent_adapter_sha256': core.tensor_digest(adapter_part(parent)),
++                           'post_adapter_sha256': core.tensor_digest(adapter_part(post)),
++                           'parent_base_sha256': core.tensor_digest(base_part(parent)), 'post_base_sha256': core.tensor_digest(base_part(post)),
++                           'post_norms': norms(post), 'exactness': exactness(parent, post, target, modules, scaling, initial_device)}
++                seconds = time.perf_counter()-started
++                record = {'round': r, 'agg': agg, 'partition': partition, 'selected_clients': selected, 'client_details': details,
++                          'aggregation': summary, 'training_and_server_seconds': seconds}
++                record['evaluation'] = evaluate(global_model, bundle.evaluation, args.batch_size, device)
++                require(record['evaluation']['labels'] == bundle.labels, 'evaluation identity changed')
++                record['cuda_peak_allocated'] = torch.cuda.max_memory_allocated(device) if device.type == 'cuda' else 0
++                directory = out/'rounds'/f'{r:03d}'; directory.mkdir(parents=True, exist_ok=False)
++                files = [directory/'record.json']; atomic_json(files[0], record)
++                if bank is not None:
++                    bank.update({'parent': {k: v.cpu() for k, v in adapter_part(parent).items()},
++                                 'post': {k: v.cpu() for k, v in adapter_part(post).items()},
++                                 'base_delta': {n: (post[n+'.base_layer.weight']-parent[n+'.base_layer.weight']).cpu()
++                                                for n in modules} if agg.startswith('ours') else {},
++                                 'base_parent_maxabs': {n: float(parent[n+'.base_layer.weight'].abs().max()) for n in modules},
++                                 'scaling': scaling, 'modules': modules})
++                    files.append(directory/'bank.pt'); atomic_torch(files[-1], bank)
++                metrics.append({'round': r, 'accuracy': record['evaluation']['accuracy'], 'gpu_nll': record['evaluation']['loss'],
++                                'evidence': {p.relative_to(out).as_posix(): sha256(p) for p in files}})
++                atomic_torch(checkpoint, state(r))
++                del parent, post, target, states
++                if stop_after is not None and r >= stop_after and r < cfg['rounds']: break
++            require(core.tensor_digest(backbone_peft(global_model, False)) == identity['other_frozen_sha256'], 'frozen backbone changed')
++            complete = metrics[-1]['round'] == cfg['rounds']
++            atomic_json(out/'status.json', {'state': 'completed' if complete else 'paused', 'completed_round': metrics[-1]['round']})
++            return tensor_load(checkpoint)
++        except BaseException:
++            (out/'exception.txt').write_text(traceback.format_exc(), encoding='utf-8')
++            atomic_json(out/'status.json', {'state': 'failed'}); raise
+--- a/job_plan.py
++++ b/job_plan.py
+@@ -1,31 +1,71 @@
+-"""S1 supplement cells, a queue separate from the V4.1 81-job plan; technical stages do not select favorable results."""
++"""V5c open-question cells: personalization readouts (P) and the upstream FedEx-LoRA reference (R); technical gates only."""
+ from __future__ import annotations
+ import argparse
++from pathlib import Path
+ from common import BATCH,SEEDS,atomic_json,require
++
++PERSONAL_SOURCES={'old_pcla':('source_root','pcla'),'old_full_alt':('source_root','full_alt'),
++                  'fed_both_mean':('v41_materialized','fed_both_mean'),
++                  'fed_ffa_b':('s1_materialized','fed_ffa_b'),'central_iid_both':('s1_materialized','central_iid_both')}
++PERSONAL_FINETUNE=('old_pcla','old_full_alt','fed_both_mean')
++FEDEX_AGGREGATIONS=('normal','ffa','ours','ours_fixed')
++FEDEX_PARTITIONS=('noniid','iid')
++
++
++def personal_job(source,seed,**extra):
++    ft=source in PERSONAL_FINETUNE
++    return {**dict(id=f"P_{source}{'_ft' if ft else ''}_s{seed}",family='personal',kind='personal_eval',source=source,
++                   finetune=ft,seed=seed,stage='S1',pool='4090',depends=[],priority=4),**extra}
++
++
++def fedex_job(partition,agg,seed,**extra):
++    return {**dict(id=f'R_{partition}_{agg}_s{seed}',family='fedex_ref',kind='fedex_ref',partition=partition,agg=agg,
++                   seed=seed,stage='S1',pool='A100',depends=[],priority=4),**extra}
+ 
+ 
+ def build():
+-    jobs=[]
+-    for mode,pool in (('bridge_full_alt','4090'),('central_iid_both','technical'),('fed_ffa_b','technical')):
+-        jobs.append(dict(id=f'smoke_{mode}_s7',family='lora_control',kind='control',mode=mode,seed=7,
+-            stop_after=5,stage='S0',pool=pool,depends=[],priority=2))
+-    depends={'central_iid_both':['smoke_central_iid_both_s7'],
+-             'fed_ffa_b':['smoke_fed_ffa_b_s7','smoke_bridge_full_alt_s7']}
++    jobs=[{**personal_job('old_pcla',7,stop_after=2),'id':'smoke_P_old_pcla_ft_s7','stage':'S0','priority':2}]
++    jobs+=[{**fedex_job('noniid',agg,7,stop_after=5),'id':f'smoke_R_noniid_{agg}_s7','stage':'S0','priority':2}
++           for agg in FEDEX_AGGREGATIONS]
+     for seed in SEEDS:
+-        for mode in ('central_iid_both','fed_ffa_b'):
+-            jobs.append(dict(id=f'{mode}_s{seed}',family='lora_control',kind='control',mode=mode,seed=seed,
+-                stage='S1',pool='4090',depends=depends[mode],priority=4))
+-    require(len(jobs)==13 and len({j['id'] for j in jobs})==13,'job inventory differs')
++        jobs+=[personal_job(source,seed) for source in PERSONAL_SOURCES]
++        jobs+=[fedex_job(partition,agg,seed,depends=[f'smoke_R_noniid_{agg}_s7'])
++               for partition in FEDEX_PARTITIONS for agg in FEDEX_AGGREGATIONS]
++    require(len(jobs)==70 and len({j['id'] for j in jobs})==70,'job inventory differs')
+     return jobs
+ 
+ 
+ STAGE_DEPENDENCIES={'S0':[],'S1':[]}
+ 
+ 
++def source_policy(job):
++    if job['kind']=='personal_eval':return 'pcla' if job['source']=='old_pcla' else 'full_alt'
++    if job['family']=='aggregation':return job.get('source','full_alt')
++    return 'pcla' if job['kind']=='diagnostic' else 'full_alt'
++
++
++def personal_input(site,source,seed):
++    key,name=PERSONAL_SOURCES[source]
++    if key=='source_root':return Path(site[key])/f'seed_{seed}'/name/'checkpoint.pt'
++    return Path(site[key])/f'{name}_s{seed}'/'run'/'checkpoint.pt'
++
++
++def job_inputs(site,job):
++    """Every checkpoint a job reads, with how init validates it; frozen by SHA256 at queue init."""
++    s=job['seed'];policy=source_policy(job)
++    out={str(Path(site['source_root'])/f'seed_{s}'/policy/'checkpoint.pt'):('original',policy,s)}
++    if job['kind']=='personal_eval':
++        out.setdefault(str(personal_input(site,job['source'],s)),
++                       ('original' if job['source'].startswith('old_') else 'control',PERSONAL_SOURCES[job['source']][1],s))
++    return out
++
++
+ def validate(jobs):
+     ids={j['id'] for j in jobs};require(len(ids)==len(jobs),'duplicate job IDs')
+     for j in jobs:
+         require(j['stage'] in STAGE_DEPENDENCIES and set(j['depends'])<=ids,'invalid dependencies')
++        if j['kind']=='personal_eval':require(j['source'] in PERSONAL_SOURCES,'unknown personal source')
++        if j['kind']=='fedex_ref':require(j['agg'] in FEDEX_AGGREGATIONS and j['partition'] in FEDEX_PARTITIONS,'unknown FedEx reference cell')
+     visiting,done=set(),set()
+     lookup={j['id']:j for j in jobs}
+     def visit(key):
+--- /dev/null
++++ b/personal_split.py
+@@ -0,0 +1,69 @@
++"""Per-client local test sets for the V5 personalization family (SST-2 only).
++
++Each client gets n held-out SST-2 train rows drawn with its own positive/negative proportion from
++rows that belong to no client, proxy, tuning or evaluation split and whose exact text appears in
++no client's training data. Draws are keyed by (seed, client) and disjoint across clients, so every
++job that calls this with the same partition obtains identical lists.
++"""
++from __future__ import annotations
++import csv
++import hashlib
++import json
++import random
++from pathlib import Path
++
++N_TEST = 128
++
++
++def keyed(seed, *parts):
++    text = json.dumps([seed, 'personal_test', *parts])
++    return int.from_bytes(hashlib.sha256(text.encode()).digest()[:8], 'big')
++
++
++def train_rows(repo):
++    with (Path(repo) / 'data/SST-2/train.tsv').open(encoding='utf-8-sig', newline='') as f:
++        return [(r['sentence'], int(r['label'])) for r in csv.DictReader(f, delimiter='\t')]
++
++
++def local_test_ids(partition, seed, repo, n=N_TEST):
++    rows = train_rows(repo)
++    label = {f'train:{i}': y for i, (_, y) in enumerate(rows)}
++    text = {f'train:{i}': s.strip() for i, (s, _) in enumerate(rows)}
++    used = {x for ids in partition['clients'].values() for x in ids}
++    used |= set(partition['proxy']) | set(partition['tuning']) | set(partition['benchmark_dev'])
++    client_texts = {text[x] for ids in partition['clients'].values() for x in ids}
++    pool = {y: sorted((x for x in label if x not in used and text[x] not in client_texts and label[x] == y),
++                      key=lambda x: int(x.split(':')[1])) for y in (0, 1)}
++    out = {}
++    for k in sorted(partition['clients'], key=int):
++        ids = partition['clients'][k]
++        pos = round(n * sum(label[x] for x in ids) / len(ids))
++        rng = random.Random(keyed(seed, int(k)))
++        chosen = []
++        for y, m in ((1, pos), (0, n - pos)):
++            if len(pool[y]) < m:
++                raise ValueError('personal test pool exhausted')
++            picked = set(rng.sample(pool[y], m))
++            pool[y] = [x for x in pool[y] if x not in picked]
++            chosen += sorted(picked, key=lambda x: int(x.split(':')[1]))
++        out[k] = chosen
++    return out, {k: [label[x] for x in v] for k, v in out.items()}
++
++
++def fingerprint(obj):
++    return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
++
++
++def majority_baseline(partition, repo, test_labels):
++    """Accuracy/balanced accuracy of always predicting each client's training majority label."""
++    rows = train_rows(repo)
++    per = {}
++    for k, ids in partition['clients'].items():
++        ys = [rows[int(x.split(':')[1])][1] for x in ids]
++        guess = int(sum(ys) * 2 >= len(ys))
++        t = test_labels[k]
++        acc = sum(y == guess for y in t) / len(t)
++        present = sorted(set(t))
++        bal = sum(sum(y == guess for y in t if y == c) / sum(1 for y in t if y == c) for c in present) / len(present)
++        per[k] = {'accuracy': acc, 'balanced_accuracy': bal, 'guess': guess}
++    return per
+--- /dev/null
++++ b/run_personal.py
+@@ -0,0 +1,267 @@
++"""Personalization readouts of frozen final global models: P0 majority, P1 global model, P2 one local epoch per client."""
++from __future__ import annotations
++from collections import namedtuple
++import copy
++import math
++import os
++from pathlib import Path
++import random
++import time
++import traceback
++
++import torch
++from torch.utils.data import Subset
++from common import require, read, atomic_json, atomic_torch, tensor_load, fingerprint, sha256, exclusive
++from context import base_study, write_evaluation_identity
++from job_plan import PERSONAL_SOURCES
++from run_lora_controls import projection_state, load_projections
++
++FORMAT = 'pcla-personal-v5c'
++CONTROL_FORMAT = 'pcla-control-v4.1'
++SYNTHETIC_TESTS = 16
++LocalTests = namedtuple('LocalTests', 'provider ids labels datasets baseline')
++
++
++def majority(train_labels, test_labels):
++    """Same rule as personal_split.majority_baseline, for label lists already resolved."""
++    per = {}
++    for k, ys in train_labels.items():
++        guess = int(sum(ys)*2 >= len(ys)); t = test_labels[k]
++        present = sorted(set(t))
++        per[k] = {'accuracy': sum(y == guess for y in t)/len(t),
++                  'balanced_accuracy': sum(sum(y == guess for y in t if y == c)/sum(1 for y in t if y == c)
++                                           for c in present)/len(present), 'guess': guess}
++    return per
++
++
++def synthetic_local_ids(partition, seed, n=SYNTHETIC_TESTS):
++    """Synthetic stand-in for personal_split: per-client draws matching the client's label proportion."""
++    from pcla_repair.core import keyed_seed
++    from pcla_repair.testing import TinyDataset
++    ids, labels = {}, {}
++    for k in sorted(partition['clients'], key=int):
++        train = TinyDataset(100+int(k), len(partition['clients'][k])).y.tolist()
++        pool = TinyDataset(300+int(k), 4*n).y.tolist()
++        pos = round(n*sum(train)/len(train)); rng = random.Random(keyed_seed(seed, 'synthetic_personal_test', int(k)))
++        chosen = []
++        for y, m in ((1, pos), (0, n-pos)):
++            candidates = [i for i, v in enumerate(pool) if v == y]
++            require(len(candidates) >= m, 'synthetic personal pool exhausted')
++            chosen += sorted(rng.sample(candidates, m))
++        ids[k] = [f'synthetic_personal:{k}:{i}' for i in chosen]; labels[k] = [pool[i] for i in chosen]
++    return ids, labels
++
++
++def synthetic_local_tests(bundle):
++    from pcla_repair.testing import TinyDataset
++    from pcla_repair.optimization_dev import dataset_labels
++    ids, labels = synthetic_local_ids(bundle.partition, bundle.seed)
++    datasets = {int(k): Subset(TinyDataset(300+int(k), 4*SYNTHETIC_TESTS), [int(x.split(':')[2]) for x in v])
++                for k, v in ids.items()}
++    train = {str(c): dataset_labels(ds).tolist() for c, ds in bundle.clients.items()}
++    return LocalTests('synthetic', ids, labels, datasets, majority(train, labels))
++
++
++def real_local_tests(bundle, repo):
++    import personal_split
++    from pcla_repair.bridge import checked_legacy
++    from transformers import AutoTokenizer
++    ids, labels = personal_split.local_test_ids(bundle.partition, bundle.seed, repo)
++    baseline = personal_split.majority_baseline(bundle.partition, repo, labels)
++    ds = bundle.provenance['base_config']['dataset']; repo = Path(repo)
++    path = Path(ds['train_file']); path = path if path.is_absolute() else repo/path
++    require(sha256(path) == bundle.provenance['train_file_sha256'], 'train TSV changed')
++    legacy = checked_legacy(repo); rows = legacy.read_text_rows(path, ds); csv_rows = personal_split.train_rows(repo)
++    reference = str(repo/ds['model']) if (repo/ds['model']).is_dir() else ds['model']
++    tokenizer = AutoTokenizer.from_pretrained(reference, local_files_only=ds.get('local_files_only', True))
++    datasets = {}
++    for k, v in ids.items():
++        index = [int(x.split(':')[1]) for x in v]
++        require([legacy.row_label(rows[i]) for i in index] == labels[k] and
++                all(legacy.row_texts(rows[i])[0].strip() == csv_rows[i][0].strip() for i in index),
++                'personal test rows differ between legacy and TSV readers')
++        datasets[int(k)] = legacy.TextClassificationDataset([rows[i] for i in index], tokenizer, ds['max_length'])
++    return LocalTests('personal_split', ids, labels, datasets, baseline)
++
++
++def local_tests(bundle, repo):
++    return synthetic_local_tests(bundle) if bundle.synthetic else real_local_tests(bundle, repo)
++
++
++def validate_control_checkpoint(path, mode, seed):
++    path = Path(path); cp = tensor_load(path); identity = cp['identity']
++    require(cp.get('format') == CONTROL_FORMAT and fingerprint(identity) == cp['identity_hash'], 'control checkpoint identity invalid')
++    require(identity['mode'] == mode and identity['seed'] == seed and cp['round'] == identity['config']['rounds'] and
++            [m['round'] for m in cp['metrics']] == list(range(1, cp['round']+1)), 'control checkpoint incomplete or wrong cell')
++    report = read(path.parent.parent/'audit.json')
++    require(report['complete'] is True and report['kind'] == 'lora_control' and report['mode'] == mode and
++            report['identity_hash'] == cp['identity_hash'] and report['checkpoint_sha256'] == sha256(path),
++            'control checkpoint lacks a matching complete audit')
++    return cp
++
++
++def load_input(bundle, source, path, study):
++    """Validate a frozen final global model against the same-seed bundle; return its state and own final dev readout."""
++    from pcla_repair import core, runtime as rt
++    path = Path(path); name = PERSONAL_SOURCES[source][1]
++    if source.startswith('old_'):
++        cp = rt.load_checkpoint(path); identity = cp['identity']
++        require(cp['policy'] == name and cp['round'] == identity['config']['rounds'] and identity['seed'] == bundle.seed and
++                cp['identity_hash'] == rt.fingerprint(identity), 'original checkpoint incomplete or wrong cell')
++        require(bundle.source_path is not None and Path(bundle.source_path).resolve() == path.resolve(),
++                'bundle was not prepared from this original checkpoint')
++        require(identity['config'] == bundle.cfg and identity['initial_adapter_sha256'] == study['initial_adapter_sha256'] and
++                identity['provenance']['partition_sha256'] == study['partition_sha256'], 'original checkpoint differs from bundle')
++        r = cp['round']; p = path.parent/f'predictions_round_{r:03d}.json'
++        reference = {'accuracy': cp['metrics'][-1]['accuracy'], 'loss': cp['metrics'][-1]['loss'],
++                     'predictions': read(p), 'file': p.name, 'file_sha256': sha256(p)}
++        return {'adapter': cp['adapter'], 'projections': None, 'identity_hash': cp['identity_hash'],
++                'format': cp['format'], 'round': r, 'reference': reference}
++    cp = validate_control_checkpoint(path, name, bundle.seed); identity = cp['identity']
++    require(identity['config'] == bundle.cfg and identity['synthetic'] == bundle.synthetic and
++            identity['partition_sha256'] == study['partition_sha256'] and
++            identity['initial_adapter_sha256'] == study['initial_adapter_sha256'] and
++            identity['initial_projections_sha256'] == core.tensor_digest(projection_state(bundle.model)) and
++            identity['source_original_identity'] == study['source_original_identity'], 'control checkpoint differs from bundle')
++    r = cp['round']; rel = f'rounds/{r:03d}/record.json'
++    require(sha256(path.parent/rel) == cp['metrics'][-1]['evidence'][rel], 'control final record changed')
++    ev = read(path.parent/rel)['evaluation']
++    reference = {k: ev[k] for k in ('accuracy', 'loss', 'predictions', 'logits')} | {'file': rel, 'file_sha256': sha256(path.parent/rel)}
++    return {'adapter': cp['adapter'], 'projections': cp['projections'], 'identity_hash': cp['identity_hash'],
++            'format': cp['format'], 'round': r, 'reference': reference}
++
++
++def items(clients, finetune):
++    return [['dev', None]]+[['p1', c] for c in clients]+([['p2', c] for c in clients] if finetune else [])
++
++
++def item_file(item):
++    return 'dev_check.json' if item[0] == 'dev' else f'clients/{item[1]:03d}/{item[0]}.json'
++
++
++def dev_check(evaluation, reference):
++    checks = {'predictions': evaluation['predictions'] == reference['predictions'],
++              'accuracy': evaluation['accuracy'] == reference['accuracy'],
++              'loss': abs(evaluation['loss']-reference['loss']) <= 1e-6*max(1., abs(reference['loss']))}
++    extra = {}
++    if 'logits' in reference:
++        extra['logits_max_abs_difference'] = max(abs(a-b) for x, y in zip(evaluation['logits'], reference['logits']) for a, b in zip(x, y))
++    return {'passed': all(checks.values()), 'checks': checks, **extra}
++
++
++def summarize(tests, stats, finetune, complete):
++    clients = {}
++    for k in sorted(tests['ids'], key=int):
++        row = {'test_ids_sha256': fingerprint(tests['ids'][k]), 'test_samples': len(tests['ids'][k]),
++               'test_positive': sum(tests['labels'][k]), 'P0': tests['baseline'][k]}
++        for phase in ('p1', 'p2'):
++            s = stats.get((phase, int(k)))
++            row[phase.upper()] = None if s is None else {'accuracy': s['accuracy'], 'balanced_accuracy': s['balanced_accuracy']}
++        clients[k] = row
++    macro = {}
++    for p in ('P0', 'P1', 'P2'):
++        values = [row[p] for row in clients.values() if row[p] is not None]
++        macro[p] = None
++        if values and len(values) == len(clients):
++            macro[p] = {m: math.fsum(v[m] for v in values)/len(values) for m in ('accuracy', 'balanced_accuracy')}
++    return {'complete': complete, 'finetune': finetune, 'clients': clients, 'macro': macro,
++            'macro_definition': 'unweighted mean over clients; every client has the same local test size'}
++
++
++def run_bundle(bundle, out, source, input_path, finetune, tests, stop_after=None, resume=False, recovery_reason=None):
++    from pcla_repair import core, runtime as rt
++    require(source in PERSONAL_SOURCES, 'unknown personal source')
++    out = Path(out); require(not out.exists() or resume, 'use new output directory')
++    out.mkdir(parents=True, exist_ok=True)
++    study = base_study(bundle); clients = sorted(bundle.clients); cfg = bundle.cfg
++    require(sorted(map(int, tests.ids)) == clients and set(tests.labels) == set(tests.ids) == set(tests.baseline),
++            'local tests do not cover every client')
++    glob = load_input(bundle, source, input_path, study)
++    projections = glob['projections'] if glob['projections'] is not None else projection_state(bundle.model)
++    local = {'provider': tests.provider, 'ids': tests.ids, 'labels': tests.labels, 'baseline': tests.baseline}
++    identity = {**study, 'kind': 'personal_eval', 'source': source, 'finetune': bool(finetune),
++                'config': cfg, 'provenance': bundle.provenance,
++                'bundle_source_path': str(bundle.source_path) if bundle.source_path else None,
++                'input': {'path': str(input_path), 'sha256': sha256(input_path), 'identity_hash': glob['identity_hash'],
++                          'format': glob['format'], 'round': glob['round']},
++                'global_adapter_sha256': core.tensor_digest(glob['adapter']),
++                'global_projections_sha256': core.tensor_digest(projections),
++                'local_tests_sha256': fingerprint(local),
++                'finetune_recipe': {'trained': 'all LoRA A/B ranks and classifier head', 'optimizer': 'new AdamW per client from cfg',
++                                    'start': 'final global model for every client', 'epochs': cfg['local_epochs'],
++                                    'batch_size': cfg['batch_size'], 'seed_key': ['personal_ft', 'client'],
++                                    'routine': 'pcla_repair.runtime.local_train'} if finetune else None}
++    identifier = fingerprint(identity); checkpoint = out/'checkpoint.pt'; plan = items(clients, finetune)
++    full = torch.ones(bundle.shape, dtype=torch.bool); completed = []
++
++    def install():
++        core.load_adapter(bundle.model, glob['adapter']); load_projections(bundle.model, projections)
++
++    with exclusive(out/'.run.lock', {'identity_hash': identifier}):
++        if resume:
++            require(recovery_reason and checkpoint.exists(), 'resume requires checkpoint and reason')
++            cp = tensor_load(checkpoint); require(cp['identity_hash'] == identifier, 'resume identity differs')
++            completed = cp['completed']
++            for x in completed:
++                for rel, h in x['evidence'].items(): require(sha256(out/rel) == h, 'committed record changed')
++            done = {item_file(x['item']) for x in completed}
++            for item in plan:
++                p = out/item_file(item)
++                if p.exists() and item_file(item) not in done:
++                    dest = out/'recovery'/str(time.time_ns())/item_file(item); dest.parent.mkdir(parents=True, exist_ok=True)
++                    p.rename(dest)
++        else:
++            atomic_json(out/'study.json', {'kind': 'personal_eval', 'identity': identity, 'identity_hash': identifier})
++            write_evaluation_identity(out, bundle)
++            atomic_json(out/'local_tests.json', local)
++        attempts_path = out/'execution_attempts.json'
++        attempts = read(attempts_path) if attempts_path.exists() else []
++        attempts.append({'pid': os.getpid(), 'host': os.uname().nodename, 'start_item': len(completed),
++                         'reason': recovery_reason, 'time': time.time()})
++        atomic_json(attempts_path, attempts)
++
++        def commit():
++            atomic_torch(checkpoint, {'format': FORMAT, 'identity': identity, 'identity_hash': identifier,
++                                      'completed': copy.deepcopy(completed)})
++        try:
++            if not completed: commit()
++            p2_done = sum(x['item'][0] == 'p2' for x in completed)
++            for item in plan[len(completed):]:
++                if stop_after is not None and item[0] == 'p2' and p2_done >= stop_after: break
++                install(); phase, c = item; path = out/item_file(item)
++                if phase == 'dev':
++                    ev = rt.evaluate(bundle.model, bundle.layout, bundle.evaluation, cfg['eval_batch_size'], bundle.device, record_logits=True)
++                    require(ev['labels'] == bundle.labels, 'evaluation identity changed')
++                    check = dev_check(ev, glob['reference'])
++                    atomic_json(path, {'evaluation': ev, 'reference': glob['reference'], **check})
++                    require(check['passed'], 'loaded global model does not reproduce its recorded final dev readout')
++                else:
++                    record = {'client': c, 'phase': phase}
++                    if phase == 'p2':
++                        diagnostic = {}
++                        _, seconds, allocated = rt.local_train(bundle.model, bundle.layout, bundle.clients[c], full, 'both',
++                            core.keyed_seed(bundle.seed, 'personal_ft', c), cfg, bundle.device, diagnostic=diagnostic)
++                        require(core.tensor_digest(projection_state(bundle.model)) == identity['global_projections_sha256'],
++                                'local fine-tuning changed frozen projections')
++                        record['train'] = {k: diagnostic[k] for k in ('optimizer_steps', 'training_examples_seen', 'training_label_counts')} | {
++                            'train_seconds': seconds, 'optimizer_tensor_parameters': allocated,
++                            'adapter_before_sha256': identity['global_adapter_sha256'],
++                            'adapter_after_sha256': core.tensor_digest(core.adapter_state(bundle.model))}
++                    ev = rt.evaluate(bundle.model, bundle.layout, tests.datasets[c], cfg['eval_batch_size'], bundle.device, record_logits=True)
++                    require(ev['labels'] == tests.labels[str(c)], 'local test labels changed')
++                    record['evaluation'] = ev; path.parent.mkdir(parents=True, exist_ok=True); atomic_json(path, record)
++                    p2_done += phase == 'p2'
++                completed.append({'item': item, 'evidence': {item_file(item): sha256(path)}}); commit()
++            stats = {}
++            for x in completed:
++                if x['item'][0] != 'dev':
++                    stats[tuple(x['item'])] = read(out/item_file(x['item']))['evaluation']
++            complete = len(completed) == len(plan); dev = read(out/'dev_check.json')
++            atomic_json(out/'personal_evaluation.json', {'source': source, 'seed': bundle.seed, 'input': identity['input'],
++                        'dev_check': {'accuracy': dev['evaluation']['accuracy'], 'reference_accuracy': dev['reference']['accuracy'],
++                                      'passed': dev['passed']}, **summarize(local, stats, bool(finetune), complete)})
++            atomic_json(out/'status.json', {'state': 'completed' if complete else 'paused', 'completed_items': len(completed)})
++            return tensor_load(checkpoint)
++        except BaseException:
++            (out/'exception.txt').write_text(traceback.format_exc(), encoding='utf-8')
++            atomic_json(out/'status.json', {'state': 'failed'}); raise

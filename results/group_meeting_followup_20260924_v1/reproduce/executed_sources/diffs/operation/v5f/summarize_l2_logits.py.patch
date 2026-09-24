@@ -1,0 +1,71 @@
+--- /dev/null
++++ b/operations/v5f/summarize_l2_logits.py
+@@ -0,0 +1,68 @@
++"""Summarize completed V5f L2 readouts without accessing a GPU."""
++
++from __future__ import annotations
++
++import argparse
++import csv
++import hashlib
++import json
++from pathlib import Path
++
++
++SEEDS = (7, 13, 21, 42, 87)
++ROUNDS = (96, 97, 98, 99, 100)
++
++
++def sha256(path: Path) -> str:
++    h = hashlib.sha256()
++    with path.open("rb") as stream:
++        for block in iter(lambda: stream.read(8 << 20), b""):
++            h.update(block)
++    return h.hexdigest()
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    out = args.out
++    rows = []
++    for seed in SEEDS:
++        row = json.loads((out / f"L2_s{seed}_summary.json").read_text())
++        assert row["seed"] == seed and row["rounds"] == list(ROUNDS)
++        assert row["samples"] == 872 and len(row["logit_files"]) == 5
++        for round_id, record in zip(ROUNDS, row["logit_files"]):
++            expected = f"L2_s{seed}_r{round_id:03d}.json"
++            assert record["path"] == expected
++            assert sha256(out / expected) == record["sha256"]
++            detail = json.loads((out / expected).read_text())
++            assert detail["seed"] == seed and detail["round"] == round_id
++            assert detail["bank_global_sha256"] == record["bank_global_sha256"]
++            assert len(detail["labels"]) == len(detail["predictions"]) == len(detail["logits"]) == 872
++        rows.append(row)
++    csv_path = out / "l2_last5_mean_logits.csv"
++    with csv_path.open("x", newline="", encoding="utf-8") as stream:
++        writer = csv.DictWriter(stream, fieldnames=("seed", "samples", "correct",
++            "mean_logits_accuracy", "mean_round_accuracy", "partition_sha256"))
++        writer.writeheader()
++        for row in rows:
++            writer.writerow({key: row[key] for key in writer.fieldnames})
++    summary = {
++        "method": "L2 PCLA 100 rounds", "window": list(ROUNDS),
++        "definition": "argmax of arithmetic mean of five global logit vectors per sample",
++        "seeds": list(SEEDS), "samples_per_seed": 872,
++        "mean_logits_accuracy_across_seeds": sum(row["mean_logits_accuracy"] for row in rows) / 5,
++        "mean_round_accuracy_across_seeds": sum(row["mean_round_accuracy"] for row in rows) / 5,
++        "per_seed": rows,
++        "evaluation_source_sha256": sha256(out / "evaluate_l2_logits.py"),
++        "summary_source_sha256": sha256(Path(__file__)),
++        "csv_sha256": sha256(csv_path),
++    }
++    with (out / "l2_last5_mean_logits_summary.json").open("x", encoding="utf-8") as stream:
++        json.dump(summary, stream, ensure_ascii=False, indent=2, allow_nan=False)
++        stream.write("\n")
++    print("L2 last-five mean-logits accuracy:", summary["mean_logits_accuracy_across_seeds"])
++
++
++if __name__ == "__main__":
++    main()

@@ -1,0 +1,185 @@
+--- /dev/null
++++ b/JOB_PLAN.json
+@@ -0,0 +1,182 @@
++{
++  "batch": "pcla-v41-supplement-s1-20260923",
++  "jobs": [
++    {
++      "id": "smoke_bridge_full_alt_s7",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "bridge_full_alt",
++      "seed": 7,
++      "stop_after": 5,
++      "stage": "S0",
++      "pool": "4090",
++      "depends": [],
++      "priority": 2
++    },
++    {
++      "id": "smoke_central_iid_both_s7",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "central_iid_both",
++      "seed": 7,
++      "stop_after": 5,
++      "stage": "S0",
++      "pool": "technical",
++      "depends": [],
++      "priority": 2
++    },
++    {
++      "id": "smoke_fed_ffa_b_s7",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "fed_ffa_b",
++      "seed": 7,
++      "stop_after": 5,
++      "stage": "S0",
++      "pool": "technical",
++      "depends": [],
++      "priority": 2
++    },
++    {
++      "id": "central_iid_both_s7",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "central_iid_both",
++      "seed": 7,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_central_iid_both_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "fed_ffa_b_s7",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "fed_ffa_b",
++      "seed": 7,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_fed_ffa_b_s7",
++        "smoke_bridge_full_alt_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "central_iid_both_s13",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "central_iid_both",
++      "seed": 13,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_central_iid_both_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "fed_ffa_b_s13",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "fed_ffa_b",
++      "seed": 13,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_fed_ffa_b_s7",
++        "smoke_bridge_full_alt_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "central_iid_both_s21",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "central_iid_both",
++      "seed": 21,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_central_iid_both_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "fed_ffa_b_s21",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "fed_ffa_b",
++      "seed": 21,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_fed_ffa_b_s7",
++        "smoke_bridge_full_alt_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "central_iid_both_s42",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "central_iid_both",
++      "seed": 42,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_central_iid_both_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "fed_ffa_b_s42",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "fed_ffa_b",
++      "seed": 42,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_fed_ffa_b_s7",
++        "smoke_bridge_full_alt_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "central_iid_both_s87",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "central_iid_both",
++      "seed": 87,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_central_iid_both_s7"
++      ],
++      "priority": 4
++    },
++    {
++      "id": "fed_ffa_b_s87",
++      "family": "lora_control",
++      "kind": "control",
++      "mode": "fed_ffa_b",
++      "seed": 87,
++      "stage": "S1",
++      "pool": "4090",
++      "depends": [
++        "smoke_fed_ffa_b_s7",
++        "smoke_bridge_full_alt_s7"
++      ],
++      "priority": 4
++    }
++  ],
++  "count": 13,
++  "stage_dependencies": {
++    "S0": [],
++    "S1": []
++  },
++  "gate_type": "technical_and_integrity_only; no accuracy-threshold selection"
++}

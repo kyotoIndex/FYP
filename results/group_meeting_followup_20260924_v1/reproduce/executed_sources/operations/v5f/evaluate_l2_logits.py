@@ -1,0 +1,230 @@
+"""Read-only V5f readout: mean of the L2 global logits in rounds 96--100."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import importlib.metadata
+import json
+import os
+from pathlib import Path
+import sys
+
+import torch
+
+
+SEEDS = (7, 13, 21, 42, 87)
+ROUNDS = (96, 97, 98, 99, 100)
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
+def digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(8 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def read(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_new(path: Path, value) -> None:
+    # Results are immutable once written. Never replace an earlier readout.
+    with path.open("x", encoding="utf-8") as stream:
+        json.dump(value, stream, ensure_ascii=False, indent=2, allow_nan=False)
+        stream.write("\n")
+
+
+def run_seed(seed: int, root: Path, handoff: Path, site: dict, out: Path) -> dict:
+    sys.path.insert(0, str(handoff))
+    from common import bind_repo, sha256, tensor_load
+    from context import prepare_fresh
+    bind_repo(site["repo"])
+    from pcla_repair import core, runtime as rt
+
+    replay = root / "materialized_v5e" / f"L2_ema_s{seed}"
+    original = root / "materialized_v5b" / f"L2_pcla_r100_s{seed}"
+    require(replay.is_dir() and original.is_dir(), "missing materialized job")
+    parity_path = replay / "run/v5e_parity.json"
+    parity = read(parity_path)
+    require(parity["passed"] and parity["seed"] == seed and parity["rounds"] == 100,
+            "V5e/original L2 trajectory parity missing")
+    require(all(parity["checks"].values()), "V5e/original L2 parity checks failed")
+    original_cp_path = original / "run/run/checkpoint.pt"
+    require(parity["reference_checkpoint_sha256"] == sha256(original_cp_path),
+            "original checkpoint differs from V5e parity source")
+    require(parity["reference_archive_sha256"] ==
+            read(original / "EXTRACTION_RECEIPT.json")["archive_sha256"],
+            "original archive differs from V5e parity source")
+    original_cp = rt.load_checkpoint(original_cp_path)
+    require(original_cp["round"] == 100 and original_cp["identity"]["seed"] == seed,
+            "original L2 incomplete or wrong seed")
+    require(original_cp["policy"] == "pcla", "original L2 policy differs")
+    replay_cp_path = replay / "run/run/checkpoint.pt"
+    replay_cp = rt.load_checkpoint(replay_cp_path)
+    require(replay_cp["round"] == 100 and replay_cp["identity"]["seed"] == seed,
+            "V5e L2 incomplete or wrong seed")
+    # V5e records its own execution batch/source bundle under ``v5b``.
+    # Scientific config, initial adapter, and all upstream provenance must agree.
+    replay_identity = replay_cp["identity"]
+    original_identity = original_cp["identity"]
+    require(replay_identity["seed"] == original_identity["seed"] and
+            replay_identity["config"] == original_identity["config"] and
+            replay_identity["initial_adapter_sha256"] ==
+            original_identity["initial_adapter_sha256"] and
+            {k: v for k, v in replay_identity["provenance"].items() if k != "v5b"} ==
+            {k: v for k, v in original_identity["provenance"].items() if k != "v5b"},
+            "V5e and original L2 scientific identities differ")
+    require(core.tensor_digest(replay_cp["adapter"]) == parity["final_adapter_sha256"],
+            "V5e final adapter differs from parity report")
+
+    bundle = prepare_fresh(site["repo"], "sst2", seed, "benchmark_dev",
+                           threads=site["threads_per_gpu"])
+    bundle.cfg["rounds"] = 100
+    replay_identity = read(replay / "run/evaluation_identity.json")
+    original_identity = read(original / "run/evaluation_identity.json")
+    require(replay_identity == original_identity, "V5e and original dev identities differ")
+    require(replay_identity["role"] == "benchmark_dev" and not replay_identity["synthetic"],
+            "unexpected evaluation split")
+    require(replay_identity["source_ids"] == bundle.partition["benchmark_dev"] and
+            replay_identity["labels"] == bundle.labels,
+            "prepared sample IDs/labels differ from V5e")
+    require(replay_identity["data_provenance"]["base_config"] ==
+            bundle.provenance["base_config"], "base model/config differs from V5e")
+    for name in ("train_file_sha256", "dev_file_sha256"):
+        require(replay_identity["data_provenance"][name] == bundle.provenance[name],
+                "data file differs: " + name)
+    require(replay_identity["partition_sha256"] ==
+            rt.fingerprint(bundle.partition), "partition differs from V5e")
+    require(replay_cp["identity"]["config"] == bundle.cfg,
+            "training config differs from V5e")
+    require(replay_cp["identity"]["provenance"]["initial_loaded_model_sha256"] ==
+            bundle.provenance["initial_loaded_model_sha256"],
+            "base model initialization differs from V5e")
+    require(replay_cp["identity"]["initial_adapter_sha256"] ==
+            core.tensor_digest(core.adapter_state(bundle.model)),
+            "initial adapter differs from V5e")
+    require(str(torch.__version__) == "2.5.1+cu121" and torch.version.cuda == "12.1" and
+            importlib.metadata.version("transformers") == "4.57.1",
+            "evaluation environment differs from training")
+
+    all_logits = []
+    files = []
+    for round_id in ROUNDS:
+        bank_path = replay / "run/v5e_ema" / f"round_{round_id:03d}.pt"
+        bank = tensor_load(bank_path)
+        require(bank["round"] == round_id, "bank round differs")
+        require(core.tensor_digest(bank["global"]) == bank["global_sha256"],
+                "bank global adapter hash differs")
+        if round_id == 100:
+            require(bank["global_sha256"] == parity["final_adapter_sha256"],
+                    "last bank adapter differs from original L2")
+        core.load_adapter(bundle.model, bank["global"])
+        require(core.tensor_digest(core.adapter_state(bundle.model)) == bank["global_sha256"],
+                "loaded global adapter differs")
+        evaluation = rt.evaluate(bundle.model, bundle.layout, bundle.evaluation,
+                                 bundle.cfg["eval_batch_size"], bundle.device,
+                                 record_logits=True)
+        expected_predictions = read(replay / "run/run" /
+                                    f"predictions_round_{round_id:03d}.json")
+        require(evaluation["predictions"] == expected_predictions,
+                f"round {round_id} predictions differ from V5e trajectory")
+        require(evaluation["labels"] == bundle.labels,
+                f"round {round_id} labels/order differ")
+        expected_metric = replay_cp["metrics"][round_id - 1]
+        require(evaluation["accuracy"] == expected_metric["accuracy"] and
+                evaluation["samples"] == expected_metric["samples"],
+                f"round {round_id} accuracy/sample count differ")
+        require(len(evaluation["logits"]) == len(bundle.labels) == 872 and
+                all(len(pair) == 2 for pair in evaluation["logits"]),
+                f"round {round_id} logits dimensions differ")
+        require(torch.isfinite(torch.tensor(evaluation["logits"])).all().item(),
+                f"round {round_id} nonfinite logits")
+        all_logits.append(torch.tensor(evaluation["logits"], dtype=torch.float64))
+        output_path = out / f"L2_s{seed}_r{round_id:03d}.json"
+        save_new(output_path, {
+            "seed": seed, "round": round_id, "accuracy": evaluation["accuracy"],
+            "samples": evaluation["samples"], "labels": evaluation["labels"],
+            "predictions": evaluation["predictions"], "logits": evaluation["logits"],
+            "bank_global_sha256": bank["global_sha256"],
+            "bank_file_sha256": digest(bank_path),
+            "replay_prediction_sha256": digest(replay / "run/run" /
+                                               f"predictions_round_{round_id:03d}.json"),
+        })
+        files.append({"path": output_path.name, "sha256": digest(output_path),
+                      "bank_global_sha256": bank["global_sha256"],
+                      "bank_file_sha256": digest(bank_path)})
+
+    mean_logits = torch.stack(all_logits).mean(dim=0)
+    prediction = mean_logits.argmax(dim=1).tolist()
+    accuracy = sum(p == y for p, y in zip(prediction, bundle.labels)) / len(bundle.labels)
+    result = {
+        "seed": seed, "rounds": list(ROUNDS), "samples": len(bundle.labels),
+        "mean_logits_accuracy": accuracy,
+        "mean_round_accuracy": sum(replay_cp["metrics"][r - 1]["accuracy"]
+                                   for r in ROUNDS) / len(ROUNDS),
+        "correct": sum(p == y for p, y in zip(prediction, bundle.labels)),
+        "model": bundle.provenance["base_config"]["dataset"]["model"],
+        "evaluation_role": replay_identity["role"],
+        "dev_file_sha256": bundle.provenance["dev_file_sha256"],
+        "partition_sha256": replay_identity["partition_sha256"],
+        "evaluation_identity_sha256": digest(replay / "run/evaluation_identity.json"),
+        "v5e_parity_sha256": digest(parity_path),
+        "v5e_archive_sha256": read(replay / "EXTRACTION_RECEIPT.json")["archive_sha256"],
+        "original_l2_archive_sha256": parity["reference_archive_sha256"],
+        "original_l2_checkpoint_sha256": parity["reference_checkpoint_sha256"],
+        "logit_files": files,
+    }
+    save_new(out / f"L2_s{seed}_summary.json", result)
+    return result
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--handoff", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--seeds", type=int, nargs="+", default=SEEDS)
+    args = parser.parse_args()
+    site = read(args.root / "queue_v5e/frozen_site.json")
+    require(set(args.seeds).issubset(SEEDS), "unexpected seed")
+    args.out.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for seed in args.seeds:
+        row = run_seed(seed, args.root, args.handoff, site, args.out)
+        rows.append(row)
+        print(f"L2 seed {seed}: mean logits accuracy {row['mean_logits_accuracy']:.6f}",
+              flush=True)
+    if set(args.seeds) == set(SEEDS):
+        csv_path = args.out / "l2_last5_mean_logits.csv"
+        with csv_path.open("x", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=("seed", "samples", "correct",
+                "mean_logits_accuracy", "mean_round_accuracy", "partition_sha256"))
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({key: row[key] for key in writer.fieldnames})
+        save_new(args.out / "l2_last5_mean_logits_summary.json", {
+            "method": "L2 PCLA 100 rounds", "window": list(ROUNDS),
+            "definition": "argmax of arithmetic mean of five global logit vectors per sample",
+            "seeds": list(SEEDS),
+            "mean_logits_accuracy_across_seeds": sum(
+                row["mean_logits_accuracy"] for row in rows) / len(rows),
+            "mean_round_accuracy_across_seeds": sum(
+                row["mean_round_accuracy"] for row in rows) / len(rows),
+            "per_seed": rows,
+            "source_sha256": digest(Path(__file__)),
+            "source_lock_sha256": digest(args.handoff / "SOURCE_LOCK.json"),
+            "remote_root": str(args.root),
+            "handoff": str(args.handoff),
+        })
+
+
+if __name__ == "__main__":
+    main()

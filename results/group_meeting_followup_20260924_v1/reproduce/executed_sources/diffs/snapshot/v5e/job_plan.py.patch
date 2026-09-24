@@ -1,0 +1,70 @@
+--- /dev/null
++++ b/job_plan.py
+@@ -0,0 +1,67 @@
++"""V5e: instrumented deterministic replays for the two missing V5 metrics."""
++from __future__ import annotations
++import argparse
++from pathlib import Path
++from common import BATCH,SEEDS,CONFIG,DATASETS,atomic_json,read,require
++
++STAGE_DEPENDENCIES={'S0':[],'S1':[]}
++
++
++def build():
++    jobs=[]
++    def add(id,**kw): jobs.append({'id':id,**kw})
++    add('smoke_l2_ema_s7',family='runtime',kind='runtime_policy',policy='pcla',
++        dataset='sst2',rounds=100,v5e_ema=.8,reference_job='L2_pcla_r100_s7',
++        seed=7,stop_after=5,stage='S0',pool='4090',depends=[],priority=1)
++    add('smoke_v4_factors_s7',family='aggregation',kind='online',source='pcla',rule='fixed',
++        refactor='svd',v5e_factors=True,reference_job='V4_pcla_svd_s7',
++        seed=7,stop_after=5,stage='S0',pool='4090',depends=[],priority=1)
++    for seed in SEEDS:
++        add(f'L2_ema_s{seed}',family='runtime',kind='runtime_policy',policy='pcla',
++            dataset='sst2',rounds=100,v5e_ema=.8,reference_job=f'L2_pcla_r100_s{seed}',
++            seed=seed,stage='S1',pool='4090',depends=['smoke_l2_ema_s7'],priority=2)
++        add(f'V4_factors_s{seed}',family='aggregation',kind='online',source='pcla',rule='fixed',
++            refactor='svd',v5e_factors=True,reference_job=f'V4_pcla_svd_s{seed}',
++            seed=seed,stage='S1',pool='4090',depends=['smoke_v4_factors_s7'],priority=2)
++    require(len(jobs)==12 and len({j['id'] for j in jobs})==12,'V5e inventory differs')
++    return jobs
++
++
++def parity_files(job):
++    return ['v5e_parity.json']
++
++
++def job_inputs(job,site):
++    repo,root=Path(site['repo']),Path(site['source_root'])
++    spec=DATASETS['sst2'];ds=read(repo/spec['config'])['dataset']
++    paths=[repo/CONFIG,repo/spec['config'],repo/ds['train_file'],repo/ds['dev_file']]
++    if job['kind']=='online':paths.append(root/f"seed_{job['seed']}"/'pcla'/'checkpoint.pt')
++    reference=Path(site['v5b_materialized'])/job['reference_job']
++    run=reference/'run'/'run'
++    paths += [reference/'EXTRACTION_RECEIPT.json',run/'checkpoint.pt',run/'metrics.json',
++              run/'probe_round_005.pt']
++    n=30 if job['kind']=='online' else 100
++    for r in range(1,n+1):
++        paths += [run/f'clients_round_{r:03d}.json',run/f'predictions_round_{r:03d}.json']
++        if job['kind']=='online':
++            paths.append(reference/'run'/'evidence'/f'{r:03d}'/'refactor.json')
++    return sorted(map(str,set(paths)))
++
++
++def validate(jobs):
++    ids={j['id'] for j in jobs};require(len(ids)==len(jobs),'duplicate job IDs')
++    for j in jobs:
++        require(j['stage'] in STAGE_DEPENDENCIES and set(j['depends'])<=ids,'invalid dependencies')
++        require(j['reference_job'] and bool(j.get('v5e_ema')) != bool(j.get('v5e_factors')),
++                'invalid V5e instrumentation')
++    return True
++
++
++def main():
++    p=argparse.ArgumentParser();p.add_argument('--out',required=True);a=p.parse_args()
++    jobs=build();validate(jobs)
++    atomic_json(a.out,{'batch':BATCH,'jobs':jobs,'count':len(jobs),
++                       'stage_dependencies':STAGE_DEPENDENCIES,
++                       'gate_type':'trajectory_parity_and_integrity; no accuracy-threshold selection'})
++
++if __name__=='__main__':main()

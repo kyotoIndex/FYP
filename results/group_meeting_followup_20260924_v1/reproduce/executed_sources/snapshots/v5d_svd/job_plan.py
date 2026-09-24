@@ -1,0 +1,55 @@
+"""Five prespecified SVD refactor replay runs matched to completed V5b V4 donors."""
+from __future__ import annotations
+import argparse
+from pathlib import Path
+from common import BATCH, SEEDS, CONFIG, DATASETS, atomic_json, read, require, sha256
+
+
+def build():
+    return [dict(id=f'V5_replay_svd_s{seed}', family='aggregation', kind='online',
+                 source='pcla', rule='fixed', refactor='svd', external_donor=True,
+                 seed=seed, stage='S1', pool='4090', depends=[], priority=4)
+            for seed in SEEDS]
+
+
+STAGE_DEPENDENCIES={'S1': []}
+
+
+def parity_files(job):
+    return []
+
+
+def job_inputs(job,site):
+    repo,root=Path(site['repo']),Path(site['source_root'])
+    spec=DATASETS['sst2'];ds=read(repo/spec['config'])['dataset']
+    donor_id=f"V4_pcla_svd_s{job['seed']}"
+    donor_root=Path(site['donor_root'])/donor_id
+    donor_queue=Path(site['donor_queue'])
+    status=donor_queue/'status'/f'{donor_id}.json'
+    state=read(status)
+    require(state['state']=='completed' and sha256(state['receipt'])==state['receipt_sha256'],
+            'V4 donor is not a verified completed queue item')
+    receipt=Path(state['receipt']);record=read(receipt);archive=Path(record['archive']['path'])
+    require(record['state']=='completed' and record['job']['id']==donor_id and
+            sha256(archive)==record['archive']['sha256'], 'V4 donor archive differs from receipt')
+    extraction=donor_root/'EXTRACTION_RECEIPT.json'
+    require(read(extraction)['archive_sha256']==record['archive']['sha256'],
+            'V4 donor extraction differs from archived result')
+    paths=[repo/CONFIG,repo/spec['config'],repo/ds['train_file'],repo/ds['dev_file'],
+           root/f"seed_{job['seed']}"/'pcla'/'checkpoint.pt',
+           status,receipt,archive,extraction,donor_root/'run'/'run'/'checkpoint.pt']
+    return sorted({str(p) for p in paths})
+
+
+def validate(jobs):
+    require(jobs==build(), 'V5d SVD plan differs from five prespecified jobs')
+    return True
+
+
+def main():
+    p=argparse.ArgumentParser();p.add_argument('--out',required=True);a=p.parse_args();jobs=build();validate(jobs)
+    atomic_json(a.out,{'batch':BATCH,'jobs':jobs,'count':len(jobs),'stage_dependencies':STAGE_DEPENDENCIES,
+                       'gate_type':'integrity_only; no accuracy-based selection'})
+
+
+if __name__=='__main__':main()
