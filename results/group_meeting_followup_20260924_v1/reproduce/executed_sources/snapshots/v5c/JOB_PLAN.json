@@ -1,0 +1,936 @@
+{
+  "batch": "pcla-v5c-open-questions-20260924",
+  "jobs": [
+    {
+      "id": "smoke_P_old_pcla_ft_s7",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_pcla",
+      "finetune": true,
+      "seed": 7,
+      "stage": "S0",
+      "pool": "4090",
+      "depends": [],
+      "priority": 2,
+      "stop_after": 2
+    },
+    {
+      "id": "smoke_R_noniid_normal_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "normal",
+      "seed": 7,
+      "stage": "S0",
+      "pool": "A100",
+      "depends": [],
+      "priority": 2,
+      "stop_after": 5
+    },
+    {
+      "id": "smoke_R_noniid_ffa_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ffa",
+      "seed": 7,
+      "stage": "S0",
+      "pool": "A100",
+      "depends": [],
+      "priority": 2,
+      "stop_after": 5
+    },
+    {
+      "id": "smoke_R_noniid_ours_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours",
+      "seed": 7,
+      "stage": "S0",
+      "pool": "A100",
+      "depends": [],
+      "priority": 2,
+      "stop_after": 5
+    },
+    {
+      "id": "smoke_R_noniid_ours_fixed_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours_fixed",
+      "seed": 7,
+      "stage": "S0",
+      "pool": "A100",
+      "depends": [],
+      "priority": 2,
+      "stop_after": 5
+    },
+    {
+      "id": "P_old_pcla_ft_s7",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_pcla",
+      "finetune": true,
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_old_full_alt_ft_s7",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_full_alt",
+      "finetune": true,
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_both_mean_ft_s7",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_both_mean",
+      "finetune": true,
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_ffa_b_s7",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_ffa_b",
+      "finetune": false,
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_central_iid_both_s7",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "central_iid_both",
+      "finetune": false,
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_normal_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "normal",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ffa_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ffa",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_fixed_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours_fixed",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_normal_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "normal",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ffa_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ffa",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_fixed_s7",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours_fixed",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "P_old_pcla_ft_s13",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_pcla",
+      "finetune": true,
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_old_full_alt_ft_s13",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_full_alt",
+      "finetune": true,
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_both_mean_ft_s13",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_both_mean",
+      "finetune": true,
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_ffa_b_s13",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_ffa_b",
+      "finetune": false,
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_central_iid_both_s13",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "central_iid_both",
+      "finetune": false,
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_normal_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "normal",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ffa_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ffa",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_fixed_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours_fixed",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_normal_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "normal",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ffa_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ffa",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_fixed_s13",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours_fixed",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "P_old_pcla_ft_s21",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_pcla",
+      "finetune": true,
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_old_full_alt_ft_s21",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_full_alt",
+      "finetune": true,
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_both_mean_ft_s21",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_both_mean",
+      "finetune": true,
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_ffa_b_s21",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_ffa_b",
+      "finetune": false,
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_central_iid_both_s21",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "central_iid_both",
+      "finetune": false,
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_normal_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "normal",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ffa_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ffa",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_fixed_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours_fixed",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_normal_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "normal",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ffa_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ffa",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_fixed_s21",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours_fixed",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "P_old_pcla_ft_s42",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_pcla",
+      "finetune": true,
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_old_full_alt_ft_s42",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_full_alt",
+      "finetune": true,
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_both_mean_ft_s42",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_both_mean",
+      "finetune": true,
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_ffa_b_s42",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_ffa_b",
+      "finetune": false,
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_central_iid_both_s42",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "central_iid_both",
+      "finetune": false,
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_normal_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "normal",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ffa_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ffa",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_fixed_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours_fixed",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_normal_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "normal",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ffa_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ffa",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_fixed_s42",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours_fixed",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "P_old_pcla_ft_s87",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_pcla",
+      "finetune": true,
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_old_full_alt_ft_s87",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "old_full_alt",
+      "finetune": true,
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_both_mean_ft_s87",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_both_mean",
+      "finetune": true,
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_fed_ffa_b_s87",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "fed_ffa_b",
+      "finetune": false,
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "P_central_iid_both_s87",
+      "family": "personal",
+      "kind": "personal_eval",
+      "source": "central_iid_both",
+      "finetune": false,
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_normal_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "normal",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ffa_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ffa",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_noniid_ours_fixed_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "noniid",
+      "agg": "ours_fixed",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_normal_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "normal",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_normal_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ffa_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ffa",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ffa_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "R_iid_ours_fixed_s87",
+      "family": "fedex_ref",
+      "kind": "fedex_ref",
+      "partition": "iid",
+      "agg": "ours_fixed",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "A100",
+      "depends": [
+        "smoke_R_noniid_ours_fixed_s7"
+      ],
+      "priority": 4
+    }
+  ],
+  "count": 70,
+  "stage_dependencies": {
+    "S0": [],
+    "S1": []
+  },
+  "gate_type": "technical_and_integrity_only; no accuracy-threshold selection"
+}

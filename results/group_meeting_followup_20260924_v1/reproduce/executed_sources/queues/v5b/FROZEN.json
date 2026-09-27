@@ -1,0 +1,1515 @@
+{
+  "batch": "pcla-v5b-open-questions-20260924",
+  "site": {
+    "repo": "$HPC_HOME/pcla_repair_20260918/repo",
+    "source_root": "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3",
+    "scratch_root": "/tmp/pcla-v5b-20260924-<hpc_account>",
+    "python_pcla": "$HPC_HOME/pcla_repair_20260918/venv/bin/python",
+    "threads_per_gpu": 4,
+    "timeout_seconds": 5400,
+    "idle_seconds": 5,
+    "require_slurm": true,
+    "testing": false,
+    "planning_resources_user_reported": {
+      "RTX4090": 14,
+      "A100": 2
+    },
+    "queue_root": "$HPC_HOME/pcla_v5_20260924/queue_v5b"
+  },
+  "jobs": [
+    {
+      "id": "parity_online_pcla_fixed_s7",
+      "family": "aggregation",
+      "kind": "online",
+      "source": "pcla",
+      "rule": "fixed",
+      "parity": true,
+      "seed": 7,
+      "stage": "S0",
+      "pool": "4090",
+      "depends": [],
+      "priority": 1
+    },
+    {
+      "id": "smoke_agnews_central_iid_both_s7",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "central_iid_both",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stop_after": 5,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [],
+      "priority": 2
+    },
+    {
+      "id": "smoke_agnews_fed_both_mean_s7",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_mean",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stop_after": 5,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [],
+      "priority": 2
+    },
+    {
+      "id": "smoke_agnews_fed_both_exact_s7",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_exact",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stop_after": 5,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [],
+      "priority": 2
+    },
+    {
+      "id": "smoke_agnews_pcla_s7",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "ag_news",
+      "rounds": 5,
+      "seed": 7,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [],
+      "priority": 2
+    },
+    {
+      "id": "smoke_agnews_full_alt_s7",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "full_alt",
+      "dataset": "ag_news",
+      "rounds": 5,
+      "seed": 7,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [],
+      "priority": 2
+    },
+    {
+      "id": "smoke_agnews_replay_s7",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "replay_random_rank",
+      "dataset": "ag_news",
+      "rounds": 5,
+      "seed": 7,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 2,
+      "donor": "smoke_agnews_pcla_s7"
+    },
+    {
+      "id": "smoke_agnews_online_C_s7",
+      "family": "aggregation",
+      "kind": "online",
+      "rule": "contributors",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stop_after": 5,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [],
+      "priority": 2
+    },
+    {
+      "id": "smoke_pcla_svd_s7",
+      "family": "aggregation",
+      "kind": "online",
+      "source": "pcla",
+      "rule": "fixed",
+      "refactor": "svd",
+      "seed": 7,
+      "stop_after": 5,
+      "stage": "S0",
+      "pool": "technical",
+      "depends": [],
+      "priority": 2
+    },
+    {
+      "id": "D_agnews_central_iid_both_s7",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "central_iid_both",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_central_iid_both_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_mean_s7",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_mean",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_mean_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_exact_s7",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_exact",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_exact_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_pcla_s7",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "D_agnews_full_alt_s7",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "full_alt",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_full_alt_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_replay_s7",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "replay_random_rank",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_replay_s7",
+        "D_agnews_pcla_s7"
+      ],
+      "priority": 4,
+      "donor": "D_agnews_pcla_s7"
+    },
+    {
+      "id": "D_agnews_online_C_s7",
+      "family": "aggregation",
+      "kind": "online",
+      "rule": "contributors",
+      "dataset": "ag_news",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_online_C_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "L2_pcla_r100_s7",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "sst2",
+      "rounds": 100,
+      "prefix_parity": true,
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "V4_pcla_svd_s7",
+      "family": "aggregation",
+      "kind": "online",
+      "source": "pcla",
+      "rule": "fixed",
+      "refactor": "svd",
+      "seed": 7,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_pcla_svd_s7",
+        "parity_online_pcla_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_central_iid_both_s13",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "central_iid_both",
+      "dataset": "ag_news",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_central_iid_both_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_mean_s13",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_mean",
+      "dataset": "ag_news",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_mean_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_exact_s13",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_exact",
+      "dataset": "ag_news",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_exact_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_pcla_s13",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "ag_news",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "D_agnews_full_alt_s13",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "full_alt",
+      "dataset": "ag_news",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_full_alt_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_replay_s13",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "replay_random_rank",
+      "dataset": "ag_news",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_replay_s7",
+        "D_agnews_pcla_s13"
+      ],
+      "priority": 4,
+      "donor": "D_agnews_pcla_s13"
+    },
+    {
+      "id": "D_agnews_online_C_s13",
+      "family": "aggregation",
+      "kind": "online",
+      "rule": "contributors",
+      "dataset": "ag_news",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_online_C_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "L2_pcla_r100_s13",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "sst2",
+      "rounds": 100,
+      "prefix_parity": true,
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "V4_pcla_svd_s13",
+      "family": "aggregation",
+      "kind": "online",
+      "source": "pcla",
+      "rule": "fixed",
+      "refactor": "svd",
+      "seed": 13,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_pcla_svd_s7",
+        "parity_online_pcla_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_central_iid_both_s21",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "central_iid_both",
+      "dataset": "ag_news",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_central_iid_both_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_mean_s21",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_mean",
+      "dataset": "ag_news",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_mean_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_exact_s21",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_exact",
+      "dataset": "ag_news",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_exact_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_pcla_s21",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "ag_news",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "D_agnews_full_alt_s21",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "full_alt",
+      "dataset": "ag_news",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_full_alt_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_replay_s21",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "replay_random_rank",
+      "dataset": "ag_news",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_replay_s7",
+        "D_agnews_pcla_s21"
+      ],
+      "priority": 4,
+      "donor": "D_agnews_pcla_s21"
+    },
+    {
+      "id": "D_agnews_online_C_s21",
+      "family": "aggregation",
+      "kind": "online",
+      "rule": "contributors",
+      "dataset": "ag_news",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_online_C_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "L2_pcla_r100_s21",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "sst2",
+      "rounds": 100,
+      "prefix_parity": true,
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "V4_pcla_svd_s21",
+      "family": "aggregation",
+      "kind": "online",
+      "source": "pcla",
+      "rule": "fixed",
+      "refactor": "svd",
+      "seed": 21,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_pcla_svd_s7",
+        "parity_online_pcla_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_central_iid_both_s42",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "central_iid_both",
+      "dataset": "ag_news",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_central_iid_both_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_mean_s42",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_mean",
+      "dataset": "ag_news",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_mean_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_exact_s42",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_exact",
+      "dataset": "ag_news",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_exact_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_pcla_s42",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "ag_news",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "D_agnews_full_alt_s42",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "full_alt",
+      "dataset": "ag_news",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_full_alt_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_replay_s42",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "replay_random_rank",
+      "dataset": "ag_news",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_replay_s7",
+        "D_agnews_pcla_s42"
+      ],
+      "priority": 4,
+      "donor": "D_agnews_pcla_s42"
+    },
+    {
+      "id": "D_agnews_online_C_s42",
+      "family": "aggregation",
+      "kind": "online",
+      "rule": "contributors",
+      "dataset": "ag_news",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_online_C_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "L2_pcla_r100_s42",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "sst2",
+      "rounds": 100,
+      "prefix_parity": true,
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "V4_pcla_svd_s42",
+      "family": "aggregation",
+      "kind": "online",
+      "source": "pcla",
+      "rule": "fixed",
+      "refactor": "svd",
+      "seed": 42,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_pcla_svd_s7",
+        "parity_online_pcla_fixed_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_central_iid_both_s87",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "central_iid_both",
+      "dataset": "ag_news",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_central_iid_both_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_mean_s87",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_mean",
+      "dataset": "ag_news",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_mean_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_fed_both_exact_s87",
+      "family": "lora_control",
+      "kind": "control",
+      "mode": "fed_both_exact",
+      "dataset": "ag_news",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_fed_both_exact_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_pcla_s87",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "ag_news",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "D_agnews_full_alt_s87",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "full_alt",
+      "dataset": "ag_news",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_full_alt_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "D_agnews_replay_s87",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "replay_random_rank",
+      "dataset": "ag_news",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_replay_s7",
+        "D_agnews_pcla_s87"
+      ],
+      "priority": 4,
+      "donor": "D_agnews_pcla_s87"
+    },
+    {
+      "id": "D_agnews_online_C_s87",
+      "family": "aggregation",
+      "kind": "online",
+      "rule": "contributors",
+      "dataset": "ag_news",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_online_C_s7"
+      ],
+      "priority": 4
+    },
+    {
+      "id": "L2_pcla_r100_s87",
+      "family": "runtime",
+      "kind": "runtime_policy",
+      "policy": "pcla",
+      "dataset": "sst2",
+      "rounds": 100,
+      "prefix_parity": true,
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_agnews_pcla_s7"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "V4_pcla_svd_s87",
+      "family": "aggregation",
+      "kind": "online",
+      "source": "pcla",
+      "rule": "fixed",
+      "refactor": "svd",
+      "seed": 87,
+      "stage": "S1",
+      "pool": "4090",
+      "depends": [
+        "smoke_pcla_svd_s7",
+        "parity_online_pcla_fixed_s7"
+      ],
+      "priority": 4
+    }
+  ],
+  "stage_dependencies": {
+    "S0": [],
+    "S1": []
+  },
+  "source_files": {
+    "aggregation.py": "a50c9f4d3bf7c4166703ac4d35dfae530eb9fbc36b3ee17c8590a647ed7e74fd",
+    "analyze.py": "9b47c4ac877c4b8f4f9a0b506ff1c33a47f47b9862b59512113ae56b38c4523d",
+    "audit_run.py": "b37283025ea510f523a9a66f58207fa9f0da8c6858b09998cc7f732e9f5a1cfa",
+    "common.py": "c6b67bced08d55d28220e1d336d8bfcb4f9ca082ff57b34fc552fe9e539bd650",
+    "context.py": "dd93bcd720239db52482d10b61bbd73a62d2f3c8e040ce99f342cd150d1a903a",
+    "discovery_math.py": "3d5fc6ec6c95368422ef43a49094b193fe8e0193489e0e9d61dc6f2a475c9586",
+    "dispatch.py": "11215eb8b52413be8f68382e79ff85d8659a04d01b0315df814dde62c8e9d259",
+    "execute_job.py": "afbb657a727eaf54db748e252b427072f9cc9d0cfe23935af1b7ec237191c7f7",
+    "job_plan.py": "b7e3ed009f56b2ed8a61e47dad0d1dc36958d7f464761b0fc7b9c270edfd603d",
+    "lora_matrix.py": "a0fd825afe30ee1d974b2d4a6ddb490972a1506f5493ee605e601a3ec2e48c53",
+    "personal_split.py": "175f9284616f284b6d78ca6632aca1cc3960215a522b1c9a5957752976d2fba6",
+    "run_aggregation.py": "25b080de898e01da210582888873bfd8128f70aa5c6472914c2331549869a51d",
+    "run_fixed_state.py": "bed78e782a159cdd69e001b767b508faf4e3177405159afb32a741f9a113a298",
+    "run_lora_controls.py": "e422db37e0c6ae08b8b09909144d1ca49adcda8fa7468468d54f89ee42449c39",
+    "run_runtime.py": "56c81a3412208899af090c3a38f08ab21d70320dec2478d70cd84b34f1a9e97c",
+    "selftest.py": "c782556096e0518b29d84b8dcca10010c022bcf757445969b461620fcde0d820"
+  },
+  "input_sha256": {
+    "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json": "c2ef6d99444291320b975ece18e88dbdf9113563228bcf5aa1adf17fe6eb63af",
+    "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json": "aeba0ae575cfda0a200f1ff60d078ff6f9eb93019ea880fa0e9cd0853c8c055a",
+    "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv": "54a9c12c77e402fc14d6a66a506f24d999f596b0176eb777c972cccc2f9cc4b0",
+    "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv": "48eac26399f8456935f81dd9e3a745c1430adb6c62e233ccfe22db4a0d15d1d1",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/checkpoint.pt": "936f138e7cbd300ad93554ae1bc0c1bebb1d08f221db38da0efd83eba33213a3",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_001.json": "f764e09964a3c9a0996aeffea0a718e5a30041110e7cb90b3fb82e368b9134cb",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_002.json": "6956cb0032ba3f7d4feefdb200640d21141ec98bf953db3f01202b92a37155c7",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_003.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_004.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_005.json": "10ae77cae5d239285cef8f40f5109a2cc0178aa7897c2f8b3f254c51442678e3",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_006.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_007.json": "fade90c44d492b0b9c62e1dc0014998377271009e8ebc17ac4f4dea1ffc5ac82",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_008.json": "df09e4a9e86e177a8919e632088fabeb5d66d0c53a6db0245032aad9cfcd3efa",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_009.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_010.json": "b63fd6748e0b894d23371d7ff7f07de4002d7eae454abcdf889a6c93754ae601",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_011.json": "717d0af32a8d7780ec5d6d23b58d9ea0bc4ae3958152cd77f50f2bf5991dd378",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_012.json": "09bba61f083cb5a249576e7f4cdd9dbb94faf4517e5ad7069d1ca49cc021b1be",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_013.json": "553cfb7c50e60b5aa4da856def8e06c581908002224d8c3c108f453e1f12a8f0",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_014.json": "941e0f832cb7b70c6aa6c546e2952bf0ffe9bf5929da896c2fb8d3225b7de0dc",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_015.json": "3b25c6600d20805e6b276455fc6daec481796e2f7e880b6c641f2705996aa291",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_016.json": "e0a4f8e7e8e15f6688fd4034d5f12c99680f1d2f3c84e057e125b27acbb28fae",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_017.json": "dc02163d2d41cb753c0b2d4ea98027b998367439c120a6b77b0d54e09433d7f6",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_018.json": "718a323344ef41ae16d9e860e7bff42ea7b019b4553e17e618a299a67912cc34",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_019.json": "0b70dd059629219a307a3a055864e136f83d629d70334e4399e0d7484eaab4ec",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_020.json": "0a0de4bd7a3867dfabf450b9f2c11520c94d916d3098cf691fcd3906904add4c",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_021.json": "bb08394d5af604a975ce079f6e491794f5a17d132cd4cda982c894f145a527b2",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_022.json": "6f3782adc5aafa62ac6f98ed0867423fcc000569f64336321589c2258f2c3dd9",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_023.json": "cb26b4f06bf199a3ed985cfd8a2ed1759445493174b0eea1ffa60815249e2b4c",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_024.json": "35d3de30d8892ba3529bc19d7e26ccecbd136b16f88ef87baaa1992194a420a1",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_025.json": "333816302e6bda95ca01182c283ec260b5e6fdce416f4c2e732280a2de3b0059",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_026.json": "fc183c7541ef2e2e352b6acd51d5d38401f0926e5afa51a6198904f38ccd804b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_027.json": "9c8b31fd404dd15ac25b9dfada0df8632354f71dd0f8d92c9e28af6f1edbf27a",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_028.json": "d5414365232d588112a94c42d12e74607f3a68c4c077bc218c29e824aee96718",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_029.json": "7fb321b1fd42f8b05270d2a3514ba3e2231ebe00e126d1514b3ed0e943ed9d92",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_030.json": "6b17037d99d4acc2215504fb635e32a69dcffe4f9ebaa98dbb03f8413a937387",
+    "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json": "b5fefb0b2a58e71439b70c96e71042917cec19cd1c7fb5194b42669b0b6eb859",
+    "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv": "419184c5e817e3a450fccde842ea872cd745c0ff0cf146f8f7255b18a6671b02",
+    "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv": "02eaea97ddfaa1ba0fa169c33a18bf9c8b280a0209ab8dab526dffb80248076f",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/checkpoint.pt": "55a4b2aa547234ba599b9d3d55bf1be93f5632a33cde14a4354163a872266aab",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_001.json": "fade90c44d492b0b9c62e1dc0014998377271009e8ebc17ac4f4dea1ffc5ac82",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_002.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_003.json": "fade90c44d492b0b9c62e1dc0014998377271009e8ebc17ac4f4dea1ffc5ac82",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_004.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_005.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_006.json": "1878a809552126236d880c336835687f163ee699288c950dffd2dfd8c3d665c2",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_007.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_008.json": "fade90c44d492b0b9c62e1dc0014998377271009e8ebc17ac4f4dea1ffc5ac82",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_009.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_010.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_011.json": "5abf8e1f7e83e1bfb3e66670ecd8df8b3fd2e60edeebc2e43970f8e1a11e7e59",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_012.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_013.json": "6b730b665bb80941e00ac95bd505dc2977f7e965af7a0419350d2f4931d804fa",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_014.json": "c32dd10b5d913badbc9a25f5e068ae7ddce3b2482c57e04bb6def3737b6ceb78",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_015.json": "cbbfef020b9197b2384866592e5bfdd7e039ff7515e3d05fbdf4f55ada5439a1",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_016.json": "45357d116aef1f760c45878b1f28a16cb5726821662477e9e98dcc9384b9e201",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_017.json": "2548644afbc237ecca06175cd29fe5c3b47a4f25f11680b06d4af62cc6d0020e",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_018.json": "52675bc96a8e920e7a3a4271e383848418aaf5a3fe889440ea180867fdb6e5c6",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_019.json": "e842c40e25f96eb2c9613bfeb63a322d20d4be137cdb673f390e28b791502590",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_020.json": "ea3494533bd18e50a4cc3a4a4fd9a12ed03278e64f8438094228d869847b2e6f",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_021.json": "99f03f71ac9a2aed52d1f0e792a5545eb4d9c64c1218ccb0c14394f539f79a0d",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_022.json": "d4dbdfc1d2a4dc768d752a2f130e51e0d94b85d08c3cf7799e8c1cb436e28a81",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_023.json": "a23f39c1dca3bda12968fe5d14bc1df75960112f7e8ba3d8d210626e4aceeecb",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_024.json": "a4b42bc6b87fe5f8f128dd1d04aa0e478aab68b488c98e8319f5146cbee9b564",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_025.json": "cff66b4495ef4594c57874efb59e6ead9a14fe0c574a88fc77795e516ffef7fc",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_026.json": "2f15be16bfd96be11a97bfbe66c483d4b1149c8a9312735483a938696cc9a7e7",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_027.json": "0ee48495b44b1e92b8396eb6194c84a5a565e5cc84b6ae5b5995de07558c7734",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_028.json": "e824d2d605770715563ecf4c58c26bc9b4156909608c298cbbb5add8456b3fd7",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_029.json": "8dbe6979ec09b7a79f08f6a1b0cbebc466a9ae2e4b93e68b3b0c90a48912acbe",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_030.json": "747b0c2482f78cfeed7ab5eded6a376b024a6f16ecb315aee57c39ee78538916",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/checkpoint.pt": "ddfce722f3fe7e243957842e5ccf27f9b1c33d6ac1c5a1199bba17626dd8e2af",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_001.json": "fade90c44d492b0b9c62e1dc0014998377271009e8ebc17ac4f4dea1ffc5ac82",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_002.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_003.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_004.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_005.json": "707fe778388e2e0f8ebb989d297e491754abb170f9e7a44eb97ea2424e650e35",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_006.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_007.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_008.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_009.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_010.json": "684aafc1306cd5a70c020f8ffbd26f40d20f2687b7e4d1daa53824a498d35e36",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_011.json": "3a358b12ce09c50c2cc4909d64217d642f0344dc3e4a11e2aacb9d9586c03437",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_012.json": "03b5cc91d13b8bdcbe5cdc218b175587043facd47374ac1cfc2c2bd0207b0f6a",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_013.json": "d2affcf68dc02cf9d62792fa909869193e0c4865cb7f07de442dba4fe8eba8b4",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_014.json": "f62f05069e02ed2db18b8115eaabf99af67560886740e5d989a0c02e00e27ea8",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_015.json": "1ecdf9354323a9be268a583fa07ffba72e83f7ad9f18061bac59478356625a22",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_016.json": "d3fca6fa05cfbfcabcac820a6e48005c59f123a99e0488647543982debdac404",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_017.json": "c18068336f24636d9938111b663a86ef400a75cc7e149a3bff59de55aa065f20",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_018.json": "6a6327c40fa346b1cc7a98d75c11224474d61da3b36af00c36748d392bafac5b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_019.json": "f18ed9b47f1a395a37937dfdc7e06953c52679b4edd64872a6f2b2c054eff7d6",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_020.json": "18b54a94a52bf2b3a95c17e3f78d92bd04e9606cd61c664ffad7c279313c6ecd",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_021.json": "9b8acfaed26912efafbd5369024fc5c99af36a17f707130bf7c990e2c548dde8",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_022.json": "3429e96219e3888740cb5ff00cee31b9580a6cf7cf8890b1f44a4b734bdb3847",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_023.json": "fd652f178e481910de87593f42ad1b83ad248cb54e3f27b4fe288382bb575cef",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_024.json": "7cd601ccde802c37b029d10f8e92f2807efe685f4ad2572a0836284d579a04cf",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_025.json": "0848b7cfcf2022b3894f538cb4ad8110c819eed28422779605b42a6c50917b3f",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_026.json": "4ef9e0d9635095fef2021d43f8c82c165be0e77a1b0fbc1dbc1b9c48d0744b2b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_027.json": "50410f52456c96e256cb205f2f958e95186c64cfb3c383851d61fb68b19e1fa6",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_028.json": "cab32ba3aeff21d42991fbd7d1be3a3edafde7b9e0687e630c5fac967f1144e3",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_029.json": "26a00c7165c3a60546ed9ff6442d19bac6af10efbc7ef5837662aefe70db1c86",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_030.json": "0a3f06758001cd398299442142e6dbffba91afb5c1a8766493babe2a3196597f",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/checkpoint.pt": "0f86d741ccb2844ce4d4ce2140b8ea6ddb044e4f7add2737f191ab2a9a4242c0",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_001.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_002.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_003.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_004.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_005.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_006.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_007.json": "bad1e578ec70813cda956341b9be1e7d11d433ab32e3dd67d0a7f00aac34f2cc",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_008.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_009.json": "e0f06203f19b5031124de96f9e699de2a6b4f94a51fb8881dcdb0dbc7d4be550",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_010.json": "482c9a81bf28b9ef3695a805c5086d0a9af405db9311f7def9d24981ce76e864",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_011.json": "77ba70a68a2dcf5d4737418c3037b106b25428f40508a03322e470af729347a7",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_012.json": "16aa3c735ebe621d4fa01a29a7f12b87ff177aa71187bf372ee0b36d6ad286b2",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_013.json": "c2669bf1d5802f79f28107ac9af6c5324d2fca6b9259160fca98e089db20c251",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_014.json": "df80ab901c52daf5fbc7cd5db9ee9da7592e0a996b11f36a025a03bc95a924e3",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_015.json": "52d7a08cf72b6404301ff18af5b0e5280af427120171f53ce10a51a63745de5b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_016.json": "be6ddc584b00710460f878f9e9f4e0e5e6060c948e8e907919a5a672a6d16448",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_017.json": "9cb2e36db8c1625821bc06064681934b2745a6eeed35c0c9c72ed2a73b192995",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_018.json": "ff1adf4e69efc6d31315c4d9a633a867c6a068d85095f9d5c3ec33adbd2005d6",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_019.json": "f9509988b0c09542558d0969e97ac535717a63f21eec027ba2f4cda059eb6bac",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_020.json": "2304fd52f4178fba933a44dda37ba8c883ccdba08f90016702e31620a7a58c8c",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_021.json": "176c2992b0956a18a204ac7e38474d041cd4aae933cc40834c522cc158a328cc",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_022.json": "4b3873ba48a58e6034c0864c930286da36f8c49d0f626fbf0b271793b5b7a81d",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_023.json": "23d04421c0ff196e8b52a4eee0b48f57c263748f3e645b406fca3d91005e3a0b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_024.json": "ae2fd879a9aee4ff8651663f557e8ce27978be2aaab7f08d0b1fe3234618d99e",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_025.json": "21d6698ce537e9715431be78699786086eb4b99db235a96518c1cf9dceee31fc",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_026.json": "380f6988af9bf451c9504596f1c5ef411bac6ba0dcf7902117130a36ba40c73f",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_027.json": "0e6b88dfb886199000d48e707409bf123e6be16bbefd2e94ea223c18372338b1",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_028.json": "ab6ac07d2863a8ceaeedd68401798bfb67094408fe104eb99cc82144982eef5d",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_029.json": "a251ed9eea9bf44274a8e1cef21e32b0db6432ce49ddfcc81f7b1a32fb3a0dcd",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_030.json": "9750885c51f63604556bfbedf20377f81fab297bbf46f1a2481f6c42f56ec5f1",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/checkpoint.pt": "b679f32ce9f581b191cf3fd98c547d402440459022f82f2499248925c6eea05a",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_001.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_002.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_003.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_004.json": "fade90c44d492b0b9c62e1dc0014998377271009e8ebc17ac4f4dea1ffc5ac82",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_005.json": "314ba8835b774d560d07ef83269fbc871bf233fef3737ee7d47e7c9ce0e4ec8b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_006.json": "42137d8f0c9f476806ae832e3997205107555a876bc5a5d1e9725d715100896b",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_007.json": "486c1ccb88c3f35e74cf532b4ae02d9a8b034cf47893da141b8b77c906d524c9",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_008.json": "1dd111e5b771c72e909bf47237efa451970866a5b1bcd4fe4004634c563b6287",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_009.json": "6989c4e2b359267da4696b361e806b5b3ec9010593f98b453b83edc6e62744e7",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_010.json": "d64b803ea18ddc2ec64cdfa58702eb02ae58075b637a5039d14a7b8cf2f5b556",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_011.json": "0881c68ed26895bed7ab50a8deee14a9e346920dabfcdde9fa4d3559777be142",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_012.json": "e7f1a85d77e91673ccfda489ffda698863fa1fc7533617b056750f2c33c17f5c",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_013.json": "d1fb7b519514f1a7a5789ae7f8a468e8e90aab80cd0933596869f9ba65b9c843",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_014.json": "2e22c0a7a3c95c992d1a7e7f5b2631a3112ef61b080338866d1902f07e281ccd",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_015.json": "26c0cdf7d109b8bf7328f0e4c826cae9ebbb5fba83924202ead6cdd5a25e594e",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_016.json": "96e6fd62dfad01ad71b948bd6f1e92d64a36a068d5d53af06b069e8b80bcb5ee",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_017.json": "16d43ba5a0a3866eb7ca8dca8dbca5baff254e342e4cf62862f46dc3529d5e5e",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_018.json": "03075639551dde518eb39802f8ca53e1cc38c4eb0109c8a576308100a81ebad2",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_019.json": "abd0e037030eb55ce5fa11daebc0395f83379a3635f8024b67baee630cc494ee",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_020.json": "16b30df41b415fbc67086b615df5b7040df7f0bf5d5a9fa12a39bc2732437b90",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_021.json": "e24e5acdb1214c4857c7dc3f4865697282796410d8e2415d59a62ea3b0056386",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_022.json": "e8d2885ce9cf4cb76b3ad619e1ee257091b78f22fc05b03024ac91f53763a24e",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_023.json": "3d7d6742d724d89d4bdfbfb18de547b27c1f42da2cc88d2744d1c7b3e39d9494",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_024.json": "0400c771c2c59410048f28fd6ef7789d672ca017c8a14362db4bee1b0e967abe",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_025.json": "a08061f8699eeb190d8cb3aff36622e075aadeb0f6c77129f9aaeb5cece3027a",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_026.json": "d58b80f8fd759961e75cfc24e7a6323c33330cd114f2494add451c9a5f748f71",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_027.json": "f8c54af657e68e42500317771a043aec8cff5f255442b61168bcde6a03ec2923",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_028.json": "4030749df702264895bf9ac730fc17a0fc12b58ddfcae282bae8e8c2c6b27079",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_029.json": "51b028e19a655d2310b8631a15888cd099c8efc414007b9299ed41b00de4e479",
+    "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_030.json": "8ac07160bfdf003dbeb821e9c9b94647e09f0f3c11b7afde2540b8f66a0c630f"
+  },
+  "job_inputs": {
+    "parity_online_pcla_fixed_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/checkpoint.pt",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_001.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_002.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_003.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_004.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_005.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_006.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_007.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_008.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_009.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_010.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_011.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_012.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_013.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_014.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_015.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_016.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_017.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_018.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_019.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_020.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_021.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_022.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_023.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_024.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_025.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_026.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_027.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_028.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_029.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_030.json"
+    ],
+    "smoke_agnews_central_iid_both_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "smoke_agnews_fed_both_mean_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "smoke_agnews_fed_both_exact_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "smoke_agnews_pcla_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "smoke_agnews_full_alt_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "smoke_agnews_replay_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "smoke_agnews_online_C_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "smoke_pcla_svd_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/checkpoint.pt"
+    ],
+    "D_agnews_central_iid_both_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_mean_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_exact_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_pcla_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_full_alt_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_replay_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_online_C_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "L2_pcla_r100_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/checkpoint.pt",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_001.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_002.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_003.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_004.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_005.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_006.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_007.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_008.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_009.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_010.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_011.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_012.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_013.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_014.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_015.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_016.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_017.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_018.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_019.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_020.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_021.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_022.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_023.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_024.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_025.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_026.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_027.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_028.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_029.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/predictions_round_030.json"
+    ],
+    "V4_pcla_svd_s7": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_7/pcla/checkpoint.pt"
+    ],
+    "D_agnews_central_iid_both_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_mean_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_exact_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_pcla_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_full_alt_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_replay_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_online_C_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "L2_pcla_r100_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/checkpoint.pt",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_001.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_002.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_003.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_004.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_005.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_006.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_007.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_008.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_009.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_010.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_011.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_012.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_013.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_014.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_015.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_016.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_017.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_018.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_019.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_020.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_021.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_022.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_023.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_024.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_025.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_026.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_027.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_028.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_029.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/predictions_round_030.json"
+    ],
+    "V4_pcla_svd_s13": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_13/pcla/checkpoint.pt"
+    ],
+    "D_agnews_central_iid_both_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_mean_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_exact_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_pcla_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_full_alt_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_replay_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_online_C_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "L2_pcla_r100_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/checkpoint.pt",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_001.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_002.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_003.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_004.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_005.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_006.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_007.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_008.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_009.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_010.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_011.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_012.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_013.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_014.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_015.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_016.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_017.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_018.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_019.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_020.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_021.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_022.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_023.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_024.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_025.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_026.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_027.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_028.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_029.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/predictions_round_030.json"
+    ],
+    "V4_pcla_svd_s21": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_21/pcla/checkpoint.pt"
+    ],
+    "D_agnews_central_iid_both_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_mean_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_exact_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_pcla_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_full_alt_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_replay_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_online_C_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "L2_pcla_r100_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/checkpoint.pt",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_001.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_002.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_003.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_004.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_005.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_006.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_007.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_008.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_009.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_010.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_011.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_012.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_013.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_014.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_015.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_016.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_017.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_018.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_019.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_020.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_021.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_022.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_023.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_024.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_025.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_026.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_027.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_028.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_029.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/predictions_round_030.json"
+    ],
+    "V4_pcla_svd_s42": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_42/pcla/checkpoint.pt"
+    ],
+    "D_agnews_central_iid_both_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_mean_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_fed_both_exact_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_pcla_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_full_alt_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_replay_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "D_agnews_online_C_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/ag_news_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/AG_NEWS/train.tsv"
+    ],
+    "L2_pcla_r100_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/checkpoint.pt",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_001.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_002.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_003.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_004.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_005.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_006.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_007.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_008.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_009.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_010.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_011.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_012.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_013.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_014.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_015.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_016.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_017.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_018.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_019.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_020.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_021.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_022.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_023.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_024.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_025.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_026.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_027.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_028.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_029.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/predictions_round_030.json"
+    ],
+    "V4_pcla_svd_s87": [
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/formal_v2/sst2_bert_base_alpha_0_3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/configs/pcla_repair/core_shared_hh_20260918_v3.json",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/dev.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/data/SST-2/train.tsv",
+      "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3/seed_87/pcla/checkpoint.pt"
+    ]
+  },
+  "runtime": {
+    "python": "3.11.15 (main, Jun 11 2026, 15:20:16) [GCC 14.3.0]",
+    "torch": "2.5.1+cu121",
+    "cuda": "12.1",
+    "transformers": "4.57.1"
+  },
+  "python_executable_sha256": "abffd2db95a67a7ecc78d5b58b6e74ee356b61091ab28481f2de6eb52a0cfe25",
+  "cpu_test_report_sha256": "fa2a9f2500914e39268948f61b364ca3f2eed38f047d95f3390a739396228e4c",
+  "created": 1790184027.654288
+}

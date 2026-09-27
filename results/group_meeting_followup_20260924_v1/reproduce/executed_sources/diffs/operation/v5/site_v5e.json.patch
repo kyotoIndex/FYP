@@ -1,0 +1,19 @@
+--- /dev/null
++++ b/operations/v5/site_v5e.json
+@@ -0,0 +1,16 @@
++{
++  "repo": "$HPC_HOME/pcla_repair_20260918/repo",
++  "source_root": "$HPC_HOME/pcla_repair_20260918/repo/results/core_shared_hh_20260918_v3",
++  "scratch_root": "/tmp/pcla-v5e-20260924-<hpc_account>",
++  "python_pcla": "$HPC_HOME/pcla_repair_20260918/venv/bin/python",
++  "threads_per_gpu": 4,
++  "timeout_seconds": 5400,
++  "idle_seconds": 5,
++  "require_slurm": true,
++  "testing": false,
++  "planning_resources_user_reported": {
++    "RTX4090": 14,
++    "A100": 2
++  },
++  "v5b_materialized": "$HPC_HOME/pcla_v5_20260924/materialized_v5b"
++}

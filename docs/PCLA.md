@@ -1,5 +1,7 @@
 # PCLA：面向异构联邦微调的客户端特定 LoRA 组件分配方法
 
+> 历史方案记录：本文档写于后续聚合诊断之前，其中“只按实际贡献者聚合”等描述反映当时的设计设想，不代表产生现有实验结果的执行版本。当前实现、两批实验设置与结果见[组会问题实验入口](../results/group_meeting_followup_20260924_v1/README.md)和[实际方法说明](../results/group_meeting_followup_20260924_v1/METHODS.md)。
+
 ---
 
 ## 摘要
@@ -479,6 +481,5 @@ PCLA 没有达到 FedLoRA 和 FedHeLLo 的绝对准确率，但明显弥补了�
 PCLA 和 Random Component 位于相同通信预算，但 PCLA 的准确率明显更高。FedLoRA 与 FedHeLLo 使用更多通信取得进一步准确率提升。
 
 ---
-
 
 

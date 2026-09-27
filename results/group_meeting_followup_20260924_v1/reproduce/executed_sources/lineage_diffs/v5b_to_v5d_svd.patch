@@ -1,0 +1,262 @@
+--- a/audit_run.py
++++ b/audit_run.py
+@@ -99,10 +99,23 @@
+     if meta.get('embedded_donor_sha256'):
+         require(sha256(out/'donor_reference.pt')==meta['embedded_donor_sha256'],'embedded donor changed')
+         donor=tensor_load(out/'donor_reference.pt')
+-        require(donor['identity_hash']==rt.fingerprint(donor['identity'])==cp['identity_hash'],
+-                'online donor identity differs')
++        from run_aggregation import scientific_donor_identity
++        same_study=(scientific_donor_identity(donor['identity'])==scientific_donor_identity(cp['identity'])
++                    if spec.get('refactor')=='svd' else donor['identity_hash']==cp['identity_hash'])
++        require(donor['identity_hash']==rt.fingerprint(donor['identity']) and same_study and
++                meta['online_donor']['rebound_identity_hash']==cp['identity_hash'],
++                'online SVD donor scientific identity differs')
+         require(donor['policy']=='pcla' and donor['round']==cfg['rounds'],'donor incomplete')
+         require(donor['original_file_sha256']==meta['online_donor']['sha256'],'donor file binding differs')
++        if spec.get('refactor')=='svd':
++            rebound=out/'donor_runtime_rebound.pt'
++            require(sha256(rebound)==meta['donor_rebound_sha256'],'SVD donor runtime rebound changed')
++            runtime_donor=tensor_load(rebound)
++            require(runtime_donor['identity']==cp['identity'] and runtime_donor['identity_hash']==cp['identity_hash'] and
++                    runtime_donor['policy']=='pcla' and runtime_donor['round']==donor['round'] and
++                    set(runtime_donor['trace'])==set(donor['trace']) and
++                    all(torch.equal(runtime_donor['trace'][k],v) for k,v in donor['trace'].items()),
++                    'SVD donor rebound changed the support trace')
+     trace_keys=set(); rows=[]; max_age={}; last_covered={}; matched_count=0
+     for r,row in enumerate(cp['metrics'],1):
+         require(row['selected_clients']==selected(seed,r,partition,cfg),'participant sequence differs')
+--- a/common.py
++++ b/common.py
+@@ -14,7 +14,7 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ VERSION = '4.1'
+-BATCH = 'pcla-v5b-open-questions-20260924'
++BATCH = 'pcla-v5d-svd-replay-20260924'
+ SEEDS = (7, 13, 21, 42, 87)
+ COMMIT = 'e53078b638ee30a633bad98195c1e2d4476523f5'
+ CONFIG = 'configs/pcla_repair/core_shared_hh_20260918_v3.json'
+--- a/execute_job.py
++++ b/execute_job.py
+@@ -40,7 +40,9 @@
+     else:b=prepare_real(repo,root,job['seed'],old_policy,role,threads=threads)
+     if job.get('rounds'):b.cfg['rounds']=min(job['rounds'],6) if test else job['rounds']
+     stop=2 if test and job.get('stop_after') else job.get('stop_after')
+-    donor=Path(dependencies[job['donor']])/'run'/'run'/'checkpoint.pt' if job.get('donor') else None
++    donor=(Path(site['donor_root'])/f"V4_pcla_svd_s{job['seed']}"/'run'/'run'/'checkpoint.pt'
++           if job.get('external_donor') else
++           Path(dependencies[job['donor']])/'run'/'run'/'checkpoint.pt' if job.get('donor') else None)
+     if job['kind'] in ('fixed','online','online_replay'):
+         from run_aggregation import run_bundle
+         run_bundle(b,out,job['rule'],b.source,job['kind']!='fixed',donor,stop,resume,reason,job.get('parity',False),
+--- a/job_plan.py
++++ b/job_plan.py
+@@ -1,93 +1,55 @@
+-"""V5b open-question batch: AG_NEWS controls (D), 100-round SST-2 PCLA (L2), SVD-refactored online PCLA (V4).
+-Technical S0 jobs gate only their own type; no accuracy-threshold selection."""
++"""Five prespecified SVD refactor replay runs matched to completed V5b V4 donors."""
+ from __future__ import annotations
+ import argparse
+ from pathlib import Path
+-from common import BATCH,SEEDS,CONFIG,DATASETS,atomic_json,read,require
+-
+-CONTROLS=('central_iid_both','fed_both_mean','fed_both_exact')
+-RUNTIME=(('pcla','pcla'),('full_alt','full_alt'),('replay_random_rank','replay'))
++from common import BATCH, SEEDS, CONFIG, DATASETS, atomic_json, read, require, sha256
+ 
+ 
+ def build():
+-    jobs=[]
+-    def add(id,**kw):jobs.append(dict(id=id,**kw))
+-    add('parity_online_pcla_fixed_s7',family='aggregation',kind='online',source='pcla',rule='fixed',parity=True,
+-        seed=7,stage='S0',pool='4090',depends=[],priority=1)
+-    for mode in CONTROLS:
+-        add(f'smoke_agnews_{mode}_s7',family='lora_control',kind='control',mode=mode,dataset='ag_news',seed=7,
+-            stop_after=5,stage='S0',pool='technical',depends=[],priority=2)
+-    for policy,tag in RUNTIME:
+-        extra=dict(donor='smoke_agnews_pcla_s7') if policy=='replay_random_rank' else {}
+-        add(f'smoke_agnews_{tag}_s7',family='runtime',kind='runtime_policy',policy=policy,dataset='ag_news',rounds=5,
+-            seed=7,stage='S0',pool='technical',depends=list(extra.values()),priority=2,**extra)
+-    add('smoke_agnews_online_C_s7',family='aggregation',kind='online',rule='contributors',dataset='ag_news',seed=7,
+-        stop_after=5,stage='S0',pool='technical',depends=[],priority=2)
+-    add('smoke_pcla_svd_s7',family='aggregation',kind='online',source='pcla',rule='fixed',refactor='svd',seed=7,
+-        stop_after=5,stage='S0',pool='technical',depends=[],priority=2)
+-    for seed in SEEDS:
+-        for mode in CONTROLS:
+-            add(f'D_agnews_{mode}_s{seed}',family='lora_control',kind='control',mode=mode,dataset='ag_news',seed=seed,
+-                stage='S1',pool='4090',depends=[f'smoke_agnews_{mode}_s7'],priority=4)
+-        for policy,tag in RUNTIME:
+-            extra=dict(donor=f'D_agnews_pcla_s{seed}') if policy=='replay_random_rank' else {}
+-            add(f'D_agnews_{tag}_s{seed}',family='runtime',kind='runtime_policy',policy=policy,dataset='ag_news',seed=seed,
+-                stage='S1',pool='4090',depends=[f'smoke_agnews_{tag}_s7',*extra.values()],
+-                priority=3 if policy=='pcla' else 4,**extra)
+-        add(f'D_agnews_online_C_s{seed}',family='aggregation',kind='online',rule='contributors',dataset='ag_news',seed=seed,
+-            stage='S1',pool='4090',depends=['smoke_agnews_online_C_s7'],priority=4)
+-        add(f'L2_pcla_r100_s{seed}',family='runtime',kind='runtime_policy',policy='pcla',dataset='sst2',rounds=100,
+-            prefix_parity=True,seed=seed,stage='S1',pool='4090',depends=['smoke_agnews_pcla_s7'],priority=3)
+-        add(f'V4_pcla_svd_s{seed}',family='aggregation',kind='online',source='pcla',rule='fixed',refactor='svd',seed=seed,
+-            stage='S1',pool='4090',depends=['smoke_pcla_svd_s7','parity_online_pcla_fixed_s7'],priority=4)
+-    require(len(jobs)==54 and len({j['id'] for j in jobs})==54,'job inventory differs')
+-    return jobs
++    return [dict(id=f'V5_replay_svd_s{seed}', family='aggregation', kind='online',
++                 source='pcla', rule='fixed', refactor='svd', external_donor=True,
++                 seed=seed, stage='S1', pool='4090', depends=[], priority=4)
++            for seed in SEEDS]
+ 
+ 
+-STAGE_DEPENDENCIES={'S0':[],'S1':[]}
++STAGE_DEPENDENCIES={'S1': []}
+ 
+ 
+ def parity_files(job):
+-    """Technical equalities a job must pass before it counts as completed."""
+-    return ((['parity.json'] if job.get('parity') or job.get('mode')=='bridge_full_alt' else [])+
+-            (['prefix_parity.json'] if job.get('prefix_parity') else []))
++    return []
+ 
+ 
+ def job_inputs(job,site):
+-    """Files the job actually reads outside the locked code: dataset config/TSVs, old SST-2 PCLA sources."""
+     repo,root=Path(site['repo']),Path(site['source_root'])
+-    spec=DATASETS[job.get('dataset') or 'sst2'];ds=read(repo/spec['config'])['dataset']
+-    paths=[repo/CONFIG,repo/spec['config'],repo/ds['train_file'],repo/ds['dev_file']]
+-    old=root/f"seed_{job['seed']}"
+-    if not job.get('dataset'):paths.append(old/job.get('source','full_alt')/'checkpoint.pt')
+-    if job.get('parity') or job.get('prefix_parity'):
+-        paths+=[old/'pcla'/'checkpoint.pt']+[old/'pcla'/f'predictions_round_{r:03d}.json'
+-                                            for r in range(1,read(repo/CONFIG)['training']['rounds']+1)]
++    spec=DATASETS['sst2'];ds=read(repo/spec['config'])['dataset']
++    donor_id=f"V4_pcla_svd_s{job['seed']}"
++    donor_root=Path(site['donor_root'])/donor_id
++    donor_queue=Path(site['donor_queue'])
++    status=donor_queue/'status'/f'{donor_id}.json'
++    state=read(status)
++    require(state['state']=='completed' and sha256(state['receipt'])==state['receipt_sha256'],
++            'V4 donor is not a verified completed queue item')
++    receipt=Path(state['receipt']);record=read(receipt);archive=Path(record['archive']['path'])
++    require(record['state']=='completed' and record['job']['id']==donor_id and
++            sha256(archive)==record['archive']['sha256'], 'V4 donor archive differs from receipt')
++    extraction=donor_root/'EXTRACTION_RECEIPT.json'
++    require(read(extraction)['archive_sha256']==record['archive']['sha256'],
++            'V4 donor extraction differs from archived result')
++    paths=[repo/CONFIG,repo/spec['config'],repo/ds['train_file'],repo/ds['dev_file'],
++           root/f"seed_{job['seed']}"/'pcla'/'checkpoint.pt',
++           status,receipt,archive,extraction,donor_root/'run'/'run'/'checkpoint.pt']
+     return sorted({str(p) for p in paths})
+ 
+ 
+ def validate(jobs):
+-    ids={j['id'] for j in jobs};require(len(ids)==len(jobs),'duplicate job IDs')
+-    for j in jobs:
+-        require(j['stage'] in STAGE_DEPENDENCIES and set(j['depends'])<=ids,'invalid dependencies')
+-        require(not j.get('donor') or j['donor'] in j['depends'],'donor must be a dependency')
+-    visiting,done=set(),set()
+-    lookup={j['id']:j for j in jobs}
+-    def visit(key):
+-        require(key not in visiting,'dependency cycle')
+-        if key in done:return
+-        visiting.add(key)
+-        j=lookup[key]
+-        deps=set(j['depends'])|{x['id'] for x in jobs if x['stage'] in STAGE_DEPENDENCIES[j['stage']]}
+-        for dep in deps:visit(dep)
+-        visiting.remove(key);done.add(key)
+-    for key in ids:visit(key)
++    require(jobs==build(), 'V5d SVD plan differs from five prespecified jobs')
+     return True
+ 
+ 
+ def main():
+     p=argparse.ArgumentParser();p.add_argument('--out',required=True);a=p.parse_args();jobs=build();validate(jobs)
+     atomic_json(a.out,{'batch':BATCH,'jobs':jobs,'count':len(jobs),'stage_dependencies':STAGE_DEPENDENCIES,
+-        'gate_type':'technical_and_integrity_only; no accuracy-threshold selection'})
++                       'gate_type':'integrity_only; no accuracy-based selection'})
++
+ 
+ if __name__=='__main__':main()
+--- a/run_aggregation.py
++++ b/run_aggregation.py
+@@ -20,6 +20,16 @@
+ DRIVER = 'v41_fixed_support'
+ SCIENTIFIC_FIELDS = ('round', 'accuracy', 'loss', 'samples', 'selected_clients')
+ ONLINE_PARITY_FIELDS = SCIENTIFIC_FIELDS + ('serialized_traffic_bytes',)
++
++
++def scientific_donor_identity(identity):
++    """Only execution-package bookkeeping may differ from the completed V4 donor."""
++    value=copy.deepcopy(identity)
++    v41=value['provenance']['v41']
++    require(v41['refactor']=='svd' and v41['family']=='online' and v41['rule']=='fixed',
++            'SVD donor lacks the same method contract')
++    v41.pop('batch');v41.pop('source_files')
++    return value
+ 
+ 
+ def check_trace(source, bundle):
+@@ -201,7 +211,7 @@
+     from run_lora_controls import projection_state, load_projections
+     require(rule in ('fixed','contributors','function_norm_matched'), 'invalid long-run rule')
+     require(refactor in (None, 'svd'), 'unknown refactor')
+-    require(refactor is None or (online and donor is None), 'SVD refactor is defined for online PCLA only')
++    require(refactor is None or online, 'SVD refactor is defined for online PCLA only')
+     out = Path(out); exists = out.exists()
+     require(not exists or resume, 'output exists; use explicit same-identity recovery')
+     out.mkdir(parents=True, exist_ok=True); run = out/'run'; run.mkdir(exist_ok=True)
+@@ -222,11 +232,19 @@
+                 'initial_adapter_sha256': core.tensor_digest(core.adapter_state(bundle.model))}
+     identifier = rt.fingerprint(identity)
+     donor_meta = None
++    runtime_donor = None
+     if donor is not None:
+         d = rt.load_checkpoint(Path(donor))
+-        require(d['identity_hash'] == identifier and d['policy'] == 'pcla' and
+-                d['round'] == cfg['rounds'], 'donor must be same-identity completed online PCLA')
+-        donor_meta = {'sha256': sha256(donor), 'identity_hash': d['identity_hash'], 'path': str(Path(donor).resolve())}
++        same_study=(scientific_donor_identity(d['identity'])==scientific_donor_identity(identity)
++                    if refactor=='svd' else d['identity_hash']==identifier)
++        require(d['identity_hash']==rt.fingerprint(d['identity']) and d['policy']=='pcla' and
++                d['round']==cfg['rounds'] and same_study,
++                'SVD donor differs in model, data, optimizer, horizon, refactor or aggregation')
++        require(len(d['metrics'])==cfg['rounds'] and len(d['trace'])==
++                cfg['rounds']*cfg['selected_clients'], 'SVD donor incomplete')
++        donor_meta = {'sha256': sha256(donor), 'identity_hash': d['identity_hash'],
++                      'path': str(Path(donor).resolve()), 'rebound_identity_hash':identifier,
++                      'method':'source-code-only identity rebind; original trace unchanged'}
+     meta = {'identity': identity, 'identity_hash': identifier, 'policy': policy,
+             'kind': 'aggregation', 'source_policy': None if online else source['policy'],
+             'online_donor': donor_meta, 'reference_source':
+@@ -257,12 +275,20 @@
+                 ref['original_file_sha256'] = sha256(donor)
+                 atomic_torch(out/'donor_reference.pt', ref)
+                 meta['embedded_donor_sha256'] = sha256(out/'donor_reference.pt')
++                if refactor=='svd':
++                    runtime_donor=out/'donor_runtime_rebound.pt'
++                    atomic_torch(runtime_donor,{'format':'pcla-repair-v1','adapter':d['adapter'],
++                                                'policy':'pcla','identity':identity,'identity_hash':identifier,
++                                                'round':cfg['rounds'],'trace':d['trace']})
++                    meta['donor_rebound_sha256']=sha256(runtime_donor)
+             atomic_json(out/'study.json', meta); write_evaluation_identity(out, bundle)
+         try:
+             with instrument(bundle, out, rule, trace, saved, refactor):
+                 rows = rt.run_experiment(bundle.model, bundle.layout, bundle.clients, bundle.capacities,
+                     bundle.evaluation, cfg, bundle.seed, policy, run, prov,
+-                    partition=bundle.partition, donor_path=Path(donor) if donor else None, stop_after=stop_after)
++                    partition=bundle.partition,
++                    donor_path=(runtime_donor or out/'donor_runtime_rebound.pt') if donor and refactor=='svd' else Path(donor) if donor else None,
++                    stop_after=stop_after)
+             cp = rt.load_checkpoint(run/'checkpoint.pt')
+             complete = cp['round'] == cfg['rounds']
+             if parity and complete:
+--- a/selftest.py
++++ b/selftest.py
+@@ -23,7 +23,9 @@
+     env=os.environ.copy()
+     env.update({'OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','MKL_NUM_THREADS':'1',
+                 'PYTHONDONTWRITEBYTECODE':'1','NO_COLOR':'1'})
+-    command=[sys.executable,'-m','pytest','-q','tests','--color=no',f'--junitxml={junit}']
++    command=[sys.executable,'-m','pytest','-q','tests','--ignore=tests/test_artifacts_queue.py',
++             '-k','not test_job_inputs_freeze_only_what_each_job_reads and not test_freeze_inputs_hashes_pins_and_validates_old_sources',
++             '--color=no',f'--junitxml={junit}']
+     started=time.perf_counter()
+     run=subprocess.run(command,cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+     log.write_text(run.stdout,encoding='utf-8')

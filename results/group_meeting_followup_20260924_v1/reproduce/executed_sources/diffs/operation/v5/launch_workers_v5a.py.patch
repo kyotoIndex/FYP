@@ -1,0 +1,65 @@
+--- /dev/null
++++ b/operations/v5/launch_workers_v5a.py
+@@ -0,0 +1,62 @@
++"""Start one Slurm step per already allocated GPU for the PCLA v5a queue.
++
++Run only on the HPC login host after queue_v5a is initialized and doctor is clean.
++Never creates, cancels or requeues an allocation; steps enter existing jobs with --jobid.
++Attempt 1 (queue_v41, workers/) is kept untouched as the failed-launch record.
++"""
++from __future__ import annotations
++
++import json
++from pathlib import Path
++import shlex
++import subprocess
++import sys
++import time
++
++ROOT = Path('$HPC_HOME/pcla_v5_20260924')
++PYTHON = '$HPC_HOME/pcla_repair_20260918/venv/bin/python'  # venv symlink, never resolved
++DISPATCH = ROOT / 'handoff_v5a' / 'dispatch.py'
++QUEUE = ROOT / 'queue_v5a'
++LOGS = ROOT / 'workers_v5a'
++ALLOCATIONS = [  # live squeue 2026-09-23 21:03 CST; re-checked by preflight before launch
++    ('157325', 'A100', 2),
++    ('160347', '4090', 2),
++    ('172164', '4090', 4),
++    ('172165', '4090', 4),
++    ('172168', '4090', 2),
++    ('172169', '4090', 2),
++]
++
++
++def main() -> None:
++    only = set(sys.argv[1:])  # optional subset of allocation IDs
++    assert QUEUE.is_dir() and (QUEUE / 'FROZEN.json').is_file()
++    LOGS.mkdir(exist_ok=True)
++    manifest = LOGS / 'launch_manifest.json'
++    records = json.loads(manifest.read_text()) if manifest.exists() else []
++    for jobid, pool, count in ALLOCATIONS:
++        if only and jobid not in only:
++            continue
++        for index in range(count):
++            session = f'pcla_v5a_{jobid}_{index}'
++            present = subprocess.run(['tmux', 'has-session', '-t', f'={session}'],
++                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
++            assert present.returncode != 0, f'tmux session already exists: {session}'
++            argv = ['srun', f'--jobid={jobid}', '--nodes=1', '--ntasks=1',
++                    '--gpus-per-task=1', '--cpus-per-task=4', '--exact',
++                    '--cpu-bind=cores', PYTHON, str(DISPATCH), 'worker',
++                    '--queue', str(QUEUE), '--pool', pool, '--max-jobs', '100']
++            log = LOGS / f'{session}.log'
++            command = f'{shlex.join(argv)} > {shlex.quote(str(log))} 2>&1; echo "exit=$?" >> {shlex.quote(str(log))}'
++            subprocess.run(['tmux', 'new-session', '-d', '-s', session, command], check=True)
++            records.append({'session': session, 'allocation': jobid, 'pool': pool,
++                            'log': str(log), 'argv': argv, 'launched_at': time.time()})
++            manifest.write_text(json.dumps(records, indent=2) + '\n')
++            time.sleep(.15)
++    print(json.dumps({'launched': len(records), 'by_pool': {
++        pool: sum(x['pool'] == pool for x in records) for pool in ('4090', 'A100')},
++        'manifest': str(manifest)}, indent=2))
++
++
++if __name__ == '__main__':
++    main()

@@ -1,0 +1,363 @@
+--- a/analyze.py
++++ b/analyze.py
+@@ -88,8 +88,9 @@
+ 
+ 
+ def analyze(root,repo,source_root,out,allow_partial=False):
+-    root=Path(root);out=Path(out);out.mkdir(parents=True,exist_ok=False)
+-    plan=read(root/'plan.json');inventory=read(root/'inventory.json')
++    root=Path(root);out=Path(out);plan=read(root/'plan.json')
++    require(any(j.get('parity') for j in plan['jobs']),'analyze.py covers the V4.1 81-job plan only; S1 needs its own paired analysis')
++    out.mkdir(parents=True,exist_ok=False);inventory=read(root/'inventory.json')
+     require(plan['source_files']==source_files(),'materialized plan source differs')
+     state={x['job']:x for x in inventory}; reports={}; rawrows=[];ep=[];costs=[];g0=[];coverage_rows=[];cells={}
+     expected={j['id'] for j in plan['jobs']}
+--- a/audit_run.py
++++ b/audit_run.py
+@@ -190,19 +190,74 @@
+     return True
+ 
+ 
+-def audit_control(out,meta,ev_id,part,require_complete):
++def client_labels(part,ev_id,repo):
++    if ev_id['synthetic']:
++        from pcla_repair.testing import TinyDataset
++        return {s:int(y) for c,ids in part['clients'].items() for s,y in zip(ids,TinyDataset(100+int(c),len(ids)).y.tolist())}
++    flat=[s for ids in part['clients'].values() for s in ids]
++    return dict(zip(flat,labels_from_tsv(repo,{'all_clients':flat},ev_id['data_provenance'],'all_clients')))
++
++
++def audit_iid_round(record,seed,r,part,cfg,participants,labels):
++    from pcla_repair.core import keyed_seed
++    population=[(c,s) for c in sorted(map(int,part['clients'])) for s in part['clients'][str(c)]]
++    n=sum(len(part['clients'][str(c)]) for c in participants)
++    drawn=[population[i] for i in sorted(random.Random(keyed_seed(seed,'iid_round',r)).sample(range(len(population)),n))]
++    cohort=[s for c in participants for s in part['clients'][str(c)]]
++    orders=[torch.randperm(n,generator=torch.Generator().manual_seed(keyed_seed(seed,'central_order',r,e))).tolist()
++            for e in range(cfg['local_epochs'])]
++    require(record['cohort_sample_multiset_sha256']==fingerprint(cohort),'IID cohort reference differs')
++    require(record['sample_multiset_sha256']==fingerprint([s for _,s in drawn]) and record['iid_sample_count']==n,
++            'IID population draw differs')
++    require(record['pooled_order_sha256']==fingerprint(orders),'IID pooled order differs')
++    require(record['iid_positive_fraction']==sum(labels[s] for _,s in drawn)/n and
++            record['cohort_positive_fraction']==sum(labels[s] for s in cohort)/len(cohort),'IID label readout differs')
++    require(record['iid_samples_from_cohort']==sum(c in participants for c,_ in drawn) and
++            record['iid_clients_represented']==len({c for c,_ in drawn}),'IID client readout differs')
++
++
++def audit_ffa_bank(bank,record,part,reference_a,probe):
++    require(bank['factor']=='b' and [c['client'] for c in bank['clients']]==record['selected_clients'],'FFA bank treatment differs')
++    require(all(c['weight']==len(part['clients'][str(c['client'])]) for c in bank['clients']),'FFA client weight differs')
++    for state in [bank['parent_adapter']]+[c['adapter'] for c in bank['clients']]:
++        require(all(torch.equal(state[n],v) for n,v in reference_a.items()),'FFA bank A differs from shared initial A')
++    from pcla_repair.core import tensor_digest
++    base=bank['parent_adapter'];total=sum(c['weight'] for c in bank['clients'])
++    require(tensor_digest(base)==record['initial_round_adapter_sha256'],'FFA bank parent differs from round start')
++    mean={n:(v.double()+sum(c['weight']*(c['adapter'][n].double()-v.double()) for c in bank['clients'])/total).to(v.dtype)
++          for n,v in base.items()}
++    require(tensor_digest(mean)==record['post_round_adapter_sha256'],'FFA B/head aggregate differs from fixed-denominator FedAvg')
++    if probe is not None:require(all(torch.equal(mean[n],v) for n,v in probe.items()),'FFA probe differs from aggregate')
++
++
++def audit_control(out,meta,ev_id,part,require_complete,repo=None):
+     out=Path(out);cp=tensor_load(out/'checkpoint.pt');identity=cp['identity'];cfg=identity['config'];seed=identity['seed']
+     require(fingerprint(identity)==cp['identity_hash']==meta['identity_hash'],'control identity differs')
+     require(identity==meta['identity'] and identity['source_files']==source_files(),'control source differs')
+     verify_files(out,[row['evidence'] for row in cp['metrics']])
+     require([x['round'] for x in cp['metrics']]==list(range(1,cp['round']+1)),'control rounds incomplete')
+-    rows=[]
++    mode=identity['mode'];rows=[];labels=client_labels(part,ev_id,repo) if mode=='central_iid_both' else None
++    reference_a=None;previous=identity['initial_adapter_sha256']
++    if mode=='fed_ffa_b':
++        from pcla_repair.core import tensor_digest as digest
++        from run_lora_controls import FFA_FIDELITY
++        first=tensor_load(out/'rounds/001/local_bank.pt')['parent_adapter']
++        require(digest(first)==identity['initial_adapter_sha256'],'FFA initial adapter differs')
++        reference_a={n:v for n,v in first.items() if n.endswith('.lora_a')}
++        require(all(torch.equal(cp['adapter'][n],v) for n,v in reference_a.items()),'FFA final A differs from shared initial A')
+     for row in cp['metrics']:
+         r=row['round'];record=read(out/'rounds'/f'{r:03d}'/'record.json')
+         participants=selected(seed,r,part,cfg)
+-        require(record['mode']==identity['mode'] and record['selected_clients']==participants,'control treatment/participants differ')
+-        require(record['sample_multiset_sha256']==fingerprint([s for c in participants for s in part['clients'][str(c)]]),
+-                'control sample exposure differs')
++        require(record['mode']==mode and record['selected_clients']==participants,'control treatment/participants differ')
++        if mode=='central_iid_both':audit_iid_round(record,seed,r,part,cfg,participants,labels)
++        else:require(record['sample_multiset_sha256']==fingerprint([s for c in participants for s in part['clients'][str(c)]]),
++                     'control sample exposure differs')
++        if mode=='fed_ffa_b':
++            require(record['factor']=='b' and all(c['factor']=='b' for c in record['client_details']),'FFA trained factor differs')
++            require(record['lora_a_sha256']==digest(reference_a) and record['fidelity']==FFA_FIDELITY,'FFA record differs')
++            require(record['initial_round_adapter_sha256']==previous,'FFA round chain broken')
++            previous=record['post_round_adapter_sha256']
++            require(all(x['residual_norm']<1e-4*max(1.,x['target_norm']) for x in record['algebra']),'FFA factor mean is not exact')
+         expected_steps=sum(math.ceil(len(part['clients'][str(c)])/cfg['batch_size']) for c in participants)*cfg['local_epochs']
+         expected_samples=sum(len(part['clients'][str(c)]) for c in participants)*cfg['local_epochs']
+         require(record['steps']==expected_steps and record['examples']==expected_samples,'control budget differs')
+@@ -212,10 +267,15 @@
+             compare_evaluation(record['same_update_alternative']['evaluation'],ev_id['labels'])
+         bank=out/'rounds'/f'{r:03d}'/'local_bank.pt'
+         if bank.exists():audit_joint_bank(tensor_load(bank),identity['mode'],record)
++        if mode=='fed_ffa_b' and bank.exists():
++            probe=out/f'probe_round_{r:03d}.pt'
++            audit_ffa_bank(tensor_load(bank),record,part,reference_a,tensor_load(probe)['adapter'] if probe.exists() else None)
+         rows.append({'round':r,**{k:v for k,v in stats.items() if k!='predictions'},
+                      'train_and_server_seconds':record['training_and_server_seconds'],
+-                     'upload_bytes':record['upload_bytes'],'download_bytes':record['download_bytes']})
++                     'upload_bytes':record['upload_bytes'],'download_bytes':record['download_bytes'],
++                     **{k:record[k] for k in ('iid_positive_fraction','cohort_positive_fraction','download_bytes_b_head_only') if k in record}})
+     from pcla_repair.core import tensor_digest
++    if mode=='fed_ffa_b':require(previous==tensor_digest(cp['adapter']),'FFA final adapter differs from last round')
+     if identity['mode']!='fed_both_exact':
+         require(tensor_digest(cp['projections'])==identity['initial_projections_sha256'],'frozen base changed')
+     last=out/f"probe_round_{cp['round']:03d}.pt"
+@@ -311,7 +371,7 @@
+     out=Path(out);meta=read(out/'study.json')
+     ev_id,part=evaluation_identity(out,repo)
+     if meta['kind']=='aggregation':r=audit_aggregation(out,meta,ev_id,part,require_complete)
+-    elif meta['kind']=='lora_control':r=audit_control(out,meta,ev_id,part,require_complete)
++    elif meta['kind']=='lora_control':r=audit_control(out,meta,ev_id,part,require_complete,repo)
+     elif meta['kind']=='fixed_state':r=audit_fixed_state(out,meta,ev_id,part,require_complete,repo)
+     else:raise ValueError('unknown result kind')
+     r.update({'audited':True,'audit_scope':'stored evidence/identities/metrics/algebra; no GPU forward rerun',
+--- a/common.py
++++ b/common.py
+@@ -14,7 +14,7 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ VERSION = '4.1'
+-BATCH = 'pcla-aggregation-and-lora-mechanism-20260923-v4.1'
++BATCH = 'pcla-v41-supplement-s1-20260923'
+ SEEDS = (7, 13, 21, 42, 87)
+ COMMIT = 'e53078b638ee30a633bad98195c1e2d4476523f5'
+ CONFIG = 'configs/pcla_repair/core_shared_hh_20260918_v3.json'
+--- a/dispatch.py
++++ b/dispatch.py
+@@ -47,13 +47,9 @@
+     sources={}
+     if not testing:
+         from context import load_original
+-        for seed in (7,13,21,42,87):
+-            for policy in ('pcla','random','replay_random_rank','full_alt'):
+-                cp,path=load_original(site['source_root'],seed,policy,site['repo'])
+-                sources[str(path)]=sha256(path)
+-                if policy=='pcla':
+-                    for r in (5,15):
+-                        p=path.parent/f'probe_round_{r:03d}.pt';require(p.exists(),'G0 anchor missing');sources[str(p)]=sha256(p)
++        for seed in sorted({j['seed'] for j in jobs}):
++            cp,path=load_original(site['source_root'],seed,'full_alt',site['repo'])
++            sources[str(path)]=sha256(path)
+         for rel,expected in read(ROOT/'reference_assets/model_files_sha256.json').items():
+             require(sha256(Path(site['repo'])/rel)==expected,'BERT asset hash differs: '+rel)
+     runtime=runtime_identity(site['python_pcla'])
+--- a/job_plan.py
++++ b/job_plan.py
+@@ -1,4 +1,4 @@
+-"""Fixed V4 scientific cells; technical stages do not select favorable results."""
++"""S1 supplement cells, a queue separate from the V4.1 81-job plan; technical stages do not select favorable results."""
+ from __future__ import annotations
+ import argparse
+ from common import BATCH,SEEDS,atomic_json,require
+@@ -6,44 +6,20 @@
+ 
+ def build():
+     jobs=[]
+-    parity=[]
+-    for source in ('pcla','replay_random_rank'):
+-        name=f'parity_{source}_seed7';parity.append(name)
+-        jobs.append(dict(id=name,family='aggregation',kind='fixed',source=source,rule='fixed',
+-            seed=7,parity=True,stage='A',pool='4090',depends=[],priority=0))
++    for mode,pool in (('bridge_full_alt','4090'),('central_iid_both','technical'),('fed_ffa_b','technical')):
++        jobs.append(dict(id=f'smoke_{mode}_s7',family='lora_control',kind='control',mode=mode,seed=7,
++            stop_after=5,stage='S0',pool=pool,depends=[],priority=2))
++    depends={'central_iid_both':['smoke_central_iid_both_s7'],
++             'fed_ffa_b':['smoke_fed_ffa_b_s7','smoke_bridge_full_alt_s7']}
+     for seed in SEEDS:
+-        for anchor in (5,15):
+-            jobs.append(dict(id=f'fixed_state_s{seed}_a{anchor}',family='aggregation',kind='diagnostic',
+-                seed=seed,anchor=anchor,stage='A',pool='4090',depends=[],priority=1))
+-    for seed in SEEDS:
+-        stage='B' if seed in (7,13) else 'C'
+-        for source in ('pcla','replay_random_rank','random'):
+-            for rule in ('contributors','function_norm_matched'):
+-                jobs.append(dict(id=f'trace_{source}_{rule}_s{seed}',family='aggregation',kind='fixed',
+-                    source=source,rule=rule,seed=seed,stage=stage,pool='4090',depends=parity,priority=4))
+-        name=f'online_pcla_contributors_s{seed}'
+-        jobs.append(dict(id=name,family='aggregation',kind='online',source='pcla',rule='contributors',
+-            seed=seed,stage=stage,pool='4090',depends=parity,priority=3))
+-        jobs.append(dict(id=f'online_replay_contributors_s{seed}',family='aggregation',kind='online_replay',
+-            source='pcla',rule='contributors',seed=seed,stage=stage,pool='4090',depends=[name],donor=name,priority=3))
+-    modes=('central_pooled_both','central_serial_both','central_serial_alt','fed_both_mean','fed_both_exact')
+-    smokes=[]
+-    for mode in ('bridge_full_alt','central_pooled_both','fed_both_mean','fed_both_exact'):
+-        name=f'smoke_{mode}_s7';smokes.append(name)
+-        jobs.append(dict(id=name,family='lora_control',kind='control',mode=mode,seed=7,
+-            stop_after=5,stage='M0',pool='4090' if mode=='bridge_full_alt' else 'technical',depends=[],priority=2))
+-    for seed in SEEDS:
+-        for mode in modes:
++        for mode in ('central_iid_both','fed_ffa_b'):
+             jobs.append(dict(id=f'{mode}_s{seed}',family='lora_control',kind='control',mode=mode,seed=seed,
+-                stage='M1' if seed in (7,13) else 'M2',pool='4090',depends=smokes,priority=4))
+-    require(len(jobs)==81 and len({j['id'] for j in jobs})==81,'job inventory differs')
++                stage='S1',pool='4090',depends=depends[mode],priority=4))
++    require(len(jobs)==13 and len({j['id'] for j in jobs})==13,'job inventory differs')
+     return jobs
+ 
+ 
+-# Attempt 2 restores the V4 scheduling rule "do not enforce a global barrier that leaves cards
+-# idle": each job keeps only its task-level technical dependencies (parity, donor, smokes).
+-# Stage labels stay for reporting; no stage waits for a whole earlier stage.
+-STAGE_DEPENDENCIES={'A':[],'M0':[],'B':[],'C':[],'M1':[],'M2':[]}
++STAGE_DEPENDENCIES={'S0':[],'S1':[]}
+ 
+ 
+ def validate(jobs):
+--- a/run_lora_controls.py
++++ b/run_lora_controls.py
+@@ -17,7 +17,9 @@
+ from lora_matrix import exact_server_correction
+ 
+ MODES = ('central_pooled_both', 'central_serial_both', 'central_serial_alt',
+-         'fed_both_mean', 'fed_both_exact', 'bridge_full_alt')
++         'fed_both_mean', 'fed_both_exact', 'bridge_full_alt', 'central_iid_both', 'fed_ffa_b')
++FED = ('fed_both_mean', 'fed_both_exact', 'bridge_full_alt', 'fed_ffa_b')
++FFA_FIDELITY = 'FFA-LoRA mechanism (frozen shared A, train B); not the published recipe (no LR/scaling retuning)'
+ 
+ 
+ def projection_state(model):
+@@ -57,7 +59,28 @@
+     return steps, examples
+ 
+ 
+-def pooled_step(bundle, selected, r, optimizer):
++def iid_draw(bundle, selected, r):
++    from pcla_repair.core import keyed_seed
++    population = sorted(bundle.clients)
++    n = sum(len(bundle.clients[c]) for c in selected)
++    size = sum(len(bundle.clients[c]) for c in population)
++    return population, sorted(random.Random(keyed_seed(bundle.seed, 'iid_round', r)).sample(range(size), n))
++
++
++def iid_readout(bundle, selected, population, chosen):
++    from pcla_repair.optimization_dev import dataset_labels
++    owners = [(c, s, int(y)) for c in population for s, y in
++              zip(bundle.partition['clients'][str(c)], dataset_labels(bundle.clients[c]).tolist())]
++    drawn = [owners[i] for i in chosen]
++    cohort = [y for c in selected for y in dataset_labels(bundle.clients[c]).tolist()]
++    return {'sample_multiset_sha256': fingerprint([s for _, s, _ in drawn]), 'iid_sample_count': len(drawn),
++            'iid_positive_fraction': sum(y for *_, y in drawn)/len(drawn),
++            'cohort_positive_fraction': sum(cohort)/len(cohort),
++            'iid_samples_from_cohort': sum(c in selected for c, *_ in drawn),
++            'iid_clients_represented': len({c for c, *_ in drawn})}
++
++
++def pooled_step(bundle, selected, r, optimizer, iid=False):
+     from pcla_repair import core, runtime as rt
+     from pcla_repair.optimization_dev import make_optimizer
+     cfg, model = bundle.cfg, bundle.model
+@@ -66,7 +89,11 @@
+     if optimizer is None:
+         optimizer = make_optimizer(model, cfg)
+     params = [p for p in model.parameters() if p.requires_grad]
+-    ds = ConcatDataset([bundle.clients[c] for c in selected])
++    if iid:
++        population, chosen = iid_draw(bundle, selected, r)
++        ds = Subset(ConcatDataset([bundle.clients[c] for c in population]), chosen)
++    else:
++        ds = ConcatDataset([bundle.clients[c] for c in selected])
+     rt.seed_train(core.keyed_seed(bundle.seed, 'central_train', r))
+     model.train(); count = steps = 0; orders = []
+     for epoch in range(cfg['local_epochs']):
+@@ -84,12 +111,13 @@
+                 torch.nn.utils.clip_grad_norm_(params, cfg['clip_grad_norm'])
+             optimizer.step(); count += batch['labels'].numel(); steps += 1
+     model.zero_grad(set_to_none=True)
++    extra = iid_readout(bundle, selected, population, chosen) if iid else {}
+     return optimizer, {'steps': steps, 'examples': count,
+                        'pooled_order_sha256': fingerprint(orders),
+-                       'optimizer_tensor_parameters': sum(p.numel() for p in params)}
+-
+-
+-def train_round(bundle, mode, r, optimizer=None, save_bank=False):
++                       'optimizer_tensor_parameters': sum(p.numel() for p in params), **extra}
++
++
++def train_round(bundle, mode, r, optimizer=None, save_bank=False, frozen_a=None):
+     from pcla_repair import core, runtime as rt
+     cfg, model = bundle.cfg, bundle.model
+     selected = client_sequence(bundle, r)
+@@ -105,11 +133,16 @@
+             'download_bytes': 0, 'upload_bytes': 0, 'client_details': []}
+     rt.synchronize(bundle.device); started = time.perf_counter()
+     bank, alternative = None, None
+-    if mode == 'central_pooled_both':
+-        optimizer, extra = pooled_step(bundle, selected, r, optimizer); info.update(extra)
++    if mode == 'fed_ffa_b':
++        require(frozen_a is not None and all(torch.equal(before[n], v) for n, v in frozen_a.items()),
++                'FFA shared A differs from initial A before round')
++        info['fidelity'] = FFA_FIDELITY
++    if mode in ('central_pooled_both', 'central_iid_both'):
++        if mode == 'central_iid_both': info['cohort_sample_multiset_sha256'] = info['sample_multiset_sha256']
++        optimizer, extra = pooled_step(bundle, selected, r, optimizer, mode == 'central_iid_both'); info.update(extra)
+     else:
+-        fed = mode in ('fed_both_mean', 'fed_both_exact', 'bridge_full_alt')
+-        factor = ('b' if r % 2 else 'a') if mode in ('central_serial_alt','bridge_full_alt') else 'both'
++        fed = mode in FED
++        factor = ('b' if r % 2 else 'a') if mode in ('central_serial_alt','bridge_full_alt') else 'b' if mode == 'fed_ffa_b' else 'both'
+         total = sum(len(bundle.clients[c]) for c in selected)
+         accumulator = core.DeltaAccumulator(before, total, 'fixed') if fed else None
+         targets = {n: torch.zeros_like(m.base.weight, dtype=torch.float64, device='cpu') for n,m in mods.items()} if fed else None
+@@ -121,6 +154,9 @@
+             if mode == 'fed_both_exact': down['server_projection_weights'] = base
+             per_download = rt.payload_size(down)
+             info['download_bytes'] = per_download*len(selected)
++            if mode == 'fed_ffa_b':
++                info['download_bytes_b_head_only'] = rt.payload_size({'round': r, 'adapter': {
++                    n: v for n, v in before.items() if not n.endswith('.lora_a')}})*len(selected)
+         for cid in selected:
+             if fed: core.load_adapter(model, before)
+             local_start = core.adapter_state(model)
+@@ -149,12 +185,16 @@
+                 'local training modified frozen projection weights')
+         if fed:
+             mean = accumulator.finish()
++            if mode == 'fed_ffa_b':
++                require(all(torch.equal(mean[n], v) for n, v in frozen_a.items()), 'FFA shared A changed')
++                info['lora_a_sha256'] = core.tensor_digest({n: mean[n] for n in frozen_a})
++                info['post_round_adapter_sha256'] = core.tensor_digest(mean)
+             corrected, algebra = {}, []
+             for n,m in mods.items():
+                 target = targets[n]/total
+                 corrected[n], record = exact_server_correction(base[n],mean[n+'.lora_b'],mean[n+'.lora_a'],float(m.scaling),target)
+                 algebra.append({'module': n, **record})
+-            if mode == 'bridge_full_alt':
++            if mode in ('bridge_full_alt', 'fed_ffa_b'):
+                 # Common partner implies exactness up to averaging/cast arithmetic.
+                 require(all(x['residual_norm'] < 1e-4*max(1., x['target_norm']) for x in algebra),
+                         'alternating shared-factor algebra does not match')
+@@ -172,7 +212,7 @@
+         require(core.tensor_digest(projection_state(model)) == before_projection_digest, 'base unexpectedly changed')
+     rt.synchronize(bundle.device)
+     info['training_and_server_seconds'] = time.perf_counter()-started
+-    info['steps_measurement'] = 'observed_batches' if mode == 'central_pooled_both' else 'derived_from_fixed_full_local_epoch'
++    info['steps_measurement'] = 'observed_batches' if mode in ('central_pooled_both', 'central_iid_both') else 'derived_from_fixed_full_local_epoch'
+     return optimizer, info, bank, alternative
+ 
+ 
+@@ -184,6 +224,7 @@
+     out.mkdir(parents=True, exist_ok=True)
+     original_base = projection_state(bundle.model)
+     frozen_hash = frozen_other_digest(bundle.model)
++    frozen_a = {n: v for n, v in core.adapter_state(bundle.model).items() if n.endswith('.lora_a')} if mode == 'fed_ffa_b' else None
+     identity = {**base_study(bundle), 'kind': 'lora_control', 'mode': mode,
+                 'config': bundle.cfg, 'provenance': bundle.provenance,
+                 'initial_projections_sha256': core.tensor_digest(original_base),
+@@ -228,7 +269,7 @@
+             anchors=set(bundle.cfg['probe_rounds'])|{1,bundle.cfg['rounds']}
+             for r in range(start,bundle.cfg['rounds']+1):
+                 if bundle.device.type=='cuda': torch.cuda.reset_peak_memory_stats(bundle.device)
+-                optimizer,record,bank,alternative=train_round(bundle,mode,r,optimizer,save_bank=r in anchors)
++                optimizer,record,bank,alternative=train_round(bundle,mode,r,optimizer,save_bank=r in anchors,frozen_a=frozen_a)
+                 record['evaluation']=rt.evaluate(bundle.model,bundle.layout,bundle.evaluation,
+                     bundle.cfg['eval_batch_size'],bundle.device,record_logits=True)
+                 require(record['evaluation']['labels']==bundle.labels,'evaluation identity changed')
