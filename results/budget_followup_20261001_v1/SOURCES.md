@@ -1,6 +1,6 @@
 # 数据来源
 
-本目录的每个文件都由实际运行的导出文件复制而来，没有手工修改数字。[reproduce/PUBLIC_MANIFEST.json](reproduce/PUBLIC_MANIFEST.json) 逐个文件记录了来源路径、原文件 SHA-256、发布后内容的 SHA-256，以及是否压缩、是否替换了路径。
+原值归档由实际运行的导出文件复制而来。[reproduce/PUBLIC_MANIFEST.json](reproduce/PUBLIC_MANIFEST.json) 逐个文件记录来源、原文件SHA-256、发布后内容SHA-256、压缩与路径替换。新增的名称表、阅读页和图表由公开原值生成，输入与输出哈希分别记在 [阅读表清单](reader/BUILD_MANIFEST.json) 和 [图表数值核验](figures/figure_numeric_audit.json) 中。说明文档是本PR的交接文本，与原值文件分开管理。
 
 ## 发布时做的两种处理
 
@@ -21,11 +21,16 @@
 | `data/2_server_feedback/costs/` | 第二部分成本导出 | 每次计时尝试、计时分类、诊断成本、运行退出记录 |
 | `data/3_controller_switch_off/` | 第三部分分析与收尾 | 24 条续训的逐种子配对值、按轮汇总、正式与技术成本 |
 
-## 没有放进来的文件
+## 实际执行配置与完整原值
+
+第二组完整验证原值合集已以 [gzip文件](data/2_server_feedback/validation/accepted_originals.jsonl.gz) 纳入，原始未替换文本503MB，发布gzip约23MB。其原始SHA-256为 `254210610440b6b681a7e1d9a3ac0aea3ed385aee5f09030fd075c2240384322`，包含108条配置、结果、metrics、审计和接受记录。
+
+[428条实际配置索引](reproduce/actual_configs/INDEX.csv) 覆盖第一组192条验证，以及第二组128条开发和108条验证。第一组28份条件配置从归档找回，逐一匹配原值记录的配置哈希；第二组执行配置从已接受原值的`config_original`提取。提取文件的排版与路径替换会改变字节哈希，因此索引同时保留执行时原配置哈希与容器哈希，公开清单记录提取后文件哈希。选择前计划与实际参数由索引区分。
+
+## 大型输入与状态的取得
 
 | 文件 | 大小 | SHA-256 | 原因 |
 |---|---:|---|---|
-| 第二部分验证阶段每条运行的原始记录合集（`accepted_originals.jsonl`） | 503 MB | `254210610440b6b681a7e1d9a3ac0aea3ed385aee5f09030fd075c2240384322` | 体积过大；本目录的终点、曲线和成本表都由它导出，导出清单中有对应哈希 |
 | 模型检查点、客户端更新张量、预测 logits | — | 见各导出文件里的哈希字段 | 体积过大 |
 | SST-2 原始文本和分词缓存 | — | 见 `reproduce/data_manifest/*/train_tokens.json` | 用公开数据集和清单里的样本编号可以重建 |
 

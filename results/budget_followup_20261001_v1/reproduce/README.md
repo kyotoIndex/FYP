@@ -1,47 +1,66 @@
-# 复现材料
+# 复算、执行配置与训练复现
 
-## 复算与核对
+从这页可以沿“结果 → 实际参数 → 执行源码 → 数据输入”定位一条实验。阅读入口使用方法名称，归档保留执行时的字段和哈希以核对来源。
 
-在结果目录下运行：
+## 先复算已经完成的结果
+
+在结果目录运行：
 
 ```bash
 python3 reproduce/verify_tables.py
 python3 reproduce/verify_public.py
+python3 reproduce/verify_handoff.py
 ```
 
-- `verify_tables.py` 从 `data/` 里的文件重新计算 README 中引用的全部数字，包括各方法均值、配对差值、落后的种子数、诊断读数、成本和返回轮次，并逐一和 README 中的取值比较。
-- `verify_public.py` 按 `PUBLIC_MANIFEST.json` 核对每个发布文件的 SHA-256，并检查目录里没有清单之外的文件。
+三个脚本只用Python标准库，分别核对正文数字、发布文件哈希、完整矩阵与实际配置/名称表/链接。图表与新名称表的重建入口是：
 
-两个脚本只用 Python 标准库。
+```bash
+python3 reproduce/build_reader_tables.py
+python3 figures/gen_fig_budget_followup.py
+```
 
-## 实际运行的源码
+名称表生成只用标准库；绘图需要NumPy和matplotlib。[阅读表清单](../reader/BUILD_MANIFEST.json) 与 [图表核验记录](../figures/figure_numeric_audit.json) 保存输入哈希和样本数。表图由归档生成，重建属于结果整理。
 
-`executed_sources/` 按三部分保存每次冻结的源码快照，每个子目录是当时实际上传到服务器运行的完整代码。每个快照的 `SOURCE_MANIFEST.json` 记录逐文件哈希；第一部分里的 `*_vs_base.patch` 是相对仓库提交 `a3f72f4`（PR #3）的完整差分。
+## 查实际配置
 
-| 目录 | 用途 |
-|---|---|
-| `1_budget_selection/core01`、`core02` | 训练代码，开发阶段与固定方法的验证使用 |
-| `1_budget_selection/native03`、`native04` | Fed-SB、FedSVD、Fed-PLoRA 的移植；两版差别见 `native04_changes_from_native03.json` |
-| `1_budget_selection/validation01`、`validation02` | 固定方法验证的调度版本 |
-| `1_budget_selection/conditional01`、`conditional02` | 依赖开发结果的验证方法，以及同名额随机编号对照 |
-| `1_budget_selection/cost01`、`cost02` | 独立计时：`cost01` 是技术检查版本，正式计时用 `cost02` |
-| `1_budget_selection/diagnostic_preflight01` | 诊断的 CPU 预检 |
-| `1_budget_selection/diagnostic02`、`diagnostic03` | 诊断训练；`diagnostic03` 加入了配置生成 |
-| `1_budget_selection/scheduler_20260928` | GPU 调度与审计控制，不含训练代码 |
-| `1_budget_selection/analysis_scripts` | 导出、汇总和统计脚本 |
-| `2_server_feedback/technical01`、`technical02` | 正式运行前的技术检查 |
-| `2_server_feedback/core01`、`core02` | 训练与服务器控制代码 |
-| `2_server_feedback/native01`–`native03` | Fed-SB 等原生方法；后两版加入状态审计 |
-| `2_server_feedback/diagnostic_preflight01`、`diagnostic_preflight02` | 诊断 |
-| `2_server_feedback/workspace` | 服务器运行目录在收尾时的快照 |
-| `2_server_feedback/analysis_scripts` | 导出、汇总和统计脚本 |
-| `3_controller_switch_off/policy01`、`policy02` | 续训代码；正式结果来自 `policy02`，它只修改了断点恢复和计费汇总，训练代码与 `policy01` 相同 |
-| `3_controller_switch_off/analysis_scripts` | 配对分析 |
+[INDEX.csv](actual_configs/INDEX.csv) 以研究、方法名称、开发/验证阶段和seed索引428条执行配置：
 
-源码里的绝对路径已替换为 `$FYP_ROOT`、`$HPC_HOME` 等变量，原始字节的哈希保存在 `PUBLIC_MANIFEST.json`。
+- 组件选择：192条验证，配置原文件SHA与逐seed原值一致；条件方法的28份配置已经补齐。
+- 服务器控制：128条开发、108条验证，配置来自已接受原值内的`config_original`。完整参数的独立JSON保存在 [actual_configs/server_feedback/](actual_configs/server_feedback/)。
+- 关停：24条续训的配置与父模型绑定位于 [对应配置目录](configs/3_controller_switch_off/)，父状态/原轨迹/续训轨迹的哈希同时记录在 [逐seed配对原值](../data/3_controller_switch_off/paired_values.jsonl)。
 
-## 配置与数据清单
+第二组原来的108份选择前计划保存在历史配置目录。实际配方从上述索引进入；已接受配置中的历史描述字段按原样保留，最终接受状态由结果原值内的队列/审计记录闭合。
 
-- `configs/`：每条运行的完整配置文件（开发、验证、计时、诊断、续训）。
-- `data_manifest/1_budget_selection/`：第一部分的客户端划分与角色清单（`train_roles.json.gz`，只有样本编号）、分词设置、参与顺序和通信额度。
-- `data_manifest/2_server_feedback/`：第二部分追加新种子后的角色清单，原有种子的记录与第一部分相同。
+提取JSON做了排版和路径脱敏：执行时原配置SHA、来源容器SHA、公开文件内容SHA分别有记录。`expanded_sha256`等内嵌字段仍指向执行时原件，公开文件的核对依据是`PUBLIC_MANIFEST.json`。
+
+## 查实际执行源码
+
+[executed_sources/](executed_sources/) 保存三组研究使用过的冻结快照；每个快照有逐文件源码清单。实际配置的源码清单字段、逐seed结果的源码SHA及公开清单共同定位对应版本。
+
+| 研究 | 执行入口 | 分析与核验 |
+|---|---|---|
+| 组件选择 | [训练代码](executed_sources/1_budget_selection/validation02/scripts/run_pcla_v7.py)、[原生方法](executed_sources/1_budget_selection/native04/scripts/run_pcla_v7_native.py) | [导出/统计源码](executed_sources/1_budget_selection/analysis_scripts/) |
+| 服务器控制 | [完整LoRA与控制器](executed_sources/2_server_feedback/core02/scripts/run_pcla_v7.py)、[原生方法](executed_sources/2_server_feedback/native03/scripts/run_pcla_v7_native.py) | [导出/统计源码](executed_sources/2_server_feedback/analysis_scripts/) |
+| 关停续训 | [完整状态恢复与关停驱动](executed_sources/3_controller_switch_off/policy02/scripts/run_policy_switch.py) | [配对分析源码](executed_sources/3_controller_switch_off/analysis_scripts/) |
+
+组件选择条件方法与独立计时分别有对应冻结快照，实际配置/原值的SHA标出所用版本。旧版本用于解释恢复、初始化、封存与技术检查的变更；正式结果按逐项接受的版本定位。
+
+## 环境与大型输入
+
+[代表技术运行的环境原件](environment/reference_run_identity.json) 记录：Python3.11.15、PyTorch2.5.1+cu121、Transformers4.57.1，以及显卡、模型/分词缓存、数据清单和源码哈希。模型版本为BERT-base-uncased的 `86b5e0934494bd15c9632b12f734a8a67f723594`；模型使用FP32，训练每GPU固定4CPU线程，TF32关闭。依赖文件见仓库 [requirements.txt](../../../requirements.txt) 与 [补充测试依赖](../../../requirements_pcla_repair_extra.txt)。
+
+[data_manifest/](data_manifest/) 提供切分角色、样本编号、分词设置与缓存身份。角色包括50客户端训练/本地读数、公共512、诊断1024/2048及评价4096，划分先按规范化文本分组，再分角色；同seed的方法复用参与与初始化随机性。
+
+模型检查点和客户端更新张量保存在实验档案，体积与取得说明见 [SOURCES](../SOURCES.md)。完整训练复现准备公开SST-2原文本、固定模型版本、对应分词缓存及角色清单；关停和旧更新复用诊断另外需要所绑定的父检查点/更新张量。实际配置内的路径占位符映射到复现环境后保存为新配置，输出保存到新目录。
+
+普通训练驱动的调用形式是：
+
+```bash
+python "$TRAIN_SCRIPT" --config "$CONFIG" --out "$NEW_OUT" --device cuda
+```
+
+`TRAIN_SCRIPT`取上表相应入口，`CONFIG`取实际配置索引中的参数和本地输入路径。恢复与关停驱动的额外参数见相应脚本。新环境运行会产生自己的配置/源码/输入哈希，原实验档案与复现输出分别保存。
+
+## 数据字段怎样读
+
+主端点是实际通信返回模型的原参数准确率；固定100轮、半额度、EMA、末5/末20轮与NLL各自分列。第一组独立seed401计时与质量12seed并列，第二组固定三个seed用于主时间比较。逐seed配对差先在seed内相减再求t95，缺测字段保留空值。规则级费用中的支持级读数重复字段按支持去重。定义与完整参数见 [METHODS](../METHODS.md)。

@@ -1,0 +1,123 @@
+{
+  "fixed_budget": {
+    "study1_n_per_method": 12,
+    "study2_n_per_method": 12,
+    "study1_accuracy_means_percent": {
+      "Original-coordinate score": 85.9130859375,
+      "Original-coordinate cyclic": 84.814453125,
+      "Gradient-rotated score": 86.13688151041667,
+      "Gradient-rotated cyclic": 86.33015950520833,
+      "Shared-gradient selection": 85.43497721354167,
+      "Joint ten-client selection": 85.35563151041667,
+      "Full rank4": 89.18660481770833,
+      "Full rank8": 90.50089518229167,
+      "Full rank16": 87.35148111979167,
+      "Alternating full rank16": 88.24666341145833,
+      "Two-factor half-quota score": 87.19482421875,
+      "Whole-layer / energy selection": 84.97111002604167,
+      "Fed-SB": 88.77360026041667,
+      "FedSVD": 84.796142578125,
+      "Fed-PLoRA": 83.98234049479167,
+      "Quota-matched random replay": 85.52449544270833
+    },
+    "study2_accuracy_means_percent": {
+      "Full rank8": 89.77864583333333,
+      "Fixed head-update shrinkage": 89.84375,
+      "Scalar controller (4 levels)": 88.26904296875,
+      "Two-block controller (16 pairs)": 88.4765625,
+      "Separately selected two-block controller": 88.71663411458333,
+      "Server head fitting": 89.93123372395833,
+      "FedLAW": 87.12158203125,
+      "Full rank4": 89.94547526041667,
+      "Fed-SB": 87.08699544270833
+    },
+    "study1_time_n": {
+      "Original-coordinate score": 1,
+      "Original-coordinate cyclic": 1,
+      "Gradient-rotated score": 1,
+      "Gradient-rotated cyclic": 1,
+      "Shared-gradient selection": 1,
+      "Joint ten-client selection": 1,
+      "Full rank4": 1,
+      "Full rank8": 1,
+      "Full rank16": 1,
+      "Alternating full rank16": 1,
+      "Two-factor half-quota score": 1,
+      "Whole-layer / energy selection": 1,
+      "Fed-SB": 1,
+      "FedSVD": 1,
+      "Fed-PLoRA": 1,
+      "Quota-matched random replay": 0
+    },
+    "study2_time_n_per_method": 3
+  },
+  "curves": {
+    "methods": 9,
+    "seeds_per_method_round": 12,
+    "rounds": [
+      1,
+      100
+    ],
+    "rows_used": 10800,
+    "interval": "pointwise seed mean t95; df11"
+  },
+  "switch_off": {
+    "Scalar controller (4 levels)": {
+      "n_pairs": 12,
+      "round80_positive_accuracy_seeds": 7,
+      "accuracy_mean_pp": -1.6357421875,
+      "accuracy_t95_pp": [
+        -4.834044600808639,
+        1.5625602258086393
+      ],
+      "NLL_mean": 0.08566689644067083,
+      "NLL_t95": [
+        -0.03096612731079189,
+        0.20229992019213355
+      ],
+      "highlighted_seeds": [
+        613,
+        647
+      ],
+      "reported_checkpoints": [
+        61,
+        65,
+        70,
+        80
+      ]
+    },
+    "Two-block controller (16 pairs)": {
+      "n_pairs": 12,
+      "round80_positive_accuracy_seeds": 7,
+      "accuracy_mean_pp": -1.9775390625,
+      "accuracy_t95_pp": [
+        -5.460102569486487,
+        1.5050244444864869
+      ],
+      "NLL_mean": 0.10790012463500413,
+      "NLL_t95": [
+        -0.037887957688008414,
+        0.2536882069580167
+      ],
+      "highlighted_seeds": [
+        613,
+        647
+      ],
+      "reported_checkpoints": [
+        61,
+        65,
+        70,
+        80
+      ]
+    }
+  },
+  "input_sha256": {
+    "data/1_budget_selection/validation/v_endpoints.csv": "6c33f18aeaae602a0dfdb504d0ff9b2c18167f282bdef3db1e0fd2be70b706c5",
+    "data/1_budget_selection/costs/cost_endpoints.csv": "b560bbcdef9e85409f349b885f0817a51b4829c1dac4f5fe918a896142d7b55f",
+    "data/1_budget_selection/costs/quality_cost_join.csv": "9a0e442ff374c0db23ae9940823582a225deb929686c01b2c40278582695b799",
+    "data/2_server_feedback/validation/endpoints.csv": "f6080ed54332b6321735ab4f697fe2d7370aac8f7f2cdd813ed5ab2c3fe3fa35",
+    "data/2_server_feedback/validation/required_costs.csv": "a26e1b0bced53458bfa6f4be7415ddd1be27f9562450603a9f154eb8544f6d1d",
+    "data/2_server_feedback/validation/curves.csv.gz": "ca4756bb8cb36389e115a036e185390379e417d7959613c532414454737599d0",
+    "data/3_controller_switch_off/paired_values.jsonl": "24622b6ab5f57d27afaaeb4f617004c71793194ca500c3456e0dd0ad27cfefab"
+  }
+}

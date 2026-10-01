@@ -1,0 +1,62 @@
+{
+  "job": {
+    "budget_id": "B8",
+    "depends_on": "",
+    "eval_role": "recipe_dev",
+    "group": "full_reference",
+    "hardware_block": "D0_s401_lr2",
+    "job_id": "TECH_mean_s9003",
+    "lr": 0.001,
+    "max_rounds": 200,
+    "method": "full_both",
+    "min_rounds": 100,
+    "output_dir": "runs/pcla-global-budget-20260928-v7/D0/D066_s401",
+    "period": 0,
+    "phase": "TECH",
+    "preferred_pool": "PROFILE_ASSIGN_COMPLETE_BLOCK",
+    "priority": 20,
+    "protocol": "pcla-realized-update-feedback-20260929-v8",
+    "rank": 8,
+    "recipe_id": "D066",
+    "representation": "N",
+    "requires": "user_v7_execution_approval;data_ready;transport_ready;integration_core",
+    "seed": 9003,
+    "status": "planned_not_dispatched",
+    "xi": 0.0
+  },
+  "provenance": {
+    "evaluation_role": "recipe_dev",
+    "manifest_sha256": "d1d579da988dc1ceb36f4fd8bc3d39110a6855999999a0ec187bcfb9eecdc9ff",
+    "split_sha256": "4636c2b3c94ceaf0b1a855b71ecf2448f894d7f53bf99de34ea28733ca8afb26",
+    "source_sha256": "48eac26399f8456935f81dd9e3a745c1430adb6c62e233ccfe22db4a0d15d1d1",
+    "token_cache_sha256": "417c26378899c451bf0c1af086a887da1b6fca3e058df8c1059e211b11689d67",
+    "token_cache_identity_sha256": "c2ad0474f161915b2408a5a499cf8576c121e5c1e59075792a298f088e70bd41",
+    "pretrained_model_sha256": "b752483c45c65f2ee452b5d5e267c3101a5b1e4de2c0cfb88aa204dc7ed71699",
+    "config_sha256": "8a381b3733e137ed44031181aa5aca13b0399f80a12d29ae1d93970d680cae31",
+    "sources": {
+      "pcla_research_v7/runtime.py": "a3b6e1b1891aee34bd80aa2766232216853e850bc092efc40fdab8b6a2dc6217",
+      "pcla_research_v7/data.py": "48b6ddd2dfa8e40bce6405657417543c9e2ea7e10cb89ac5c829003e74df18b0",
+      "pcla_research_v7/transport.py": "da63fb4f2f673e22331a367c2063d17883eb07110ac165e34689a1dd7d8f5d50",
+      "pcla_research_v7/selectors.py": "b1864f16b22366eba625cbe9b62a028b74a49d04d34a0ae42cc1a3ed5ca9d51d",
+      "pcla_repair/core.py": "dde28d7b7a1838c7a9d113142ce9fffb60583ccbd41aa18599b63f153e73bcdd",
+      "scripts/run_pcla_v7.py": "823c4e209f67158fdfd7f10817476c21c79ec7d9690797547d861491dc570c12",
+      "pcla_research_v7/execution_timing.py": "00b1c6d77ccc16dfc5bf79f865b69bb0e90b50d3fae30a2892871601cd2adb2a",
+      "pcla_research_v7/cohort_runtime.py": "ec962532e97a508a1f260f4d12b772af492c3b2bad8c1e8c7c463388b9532db1",
+      "pcla_research_v7/coordinates.py": "fd67bea530df9f24a7e3ab00a7f339ac2bf75e1ea552d6a01c60d33067031c1d",
+      "pcla_research_v7/timing_hooks.py": "ef05decf5eeca151e4c865a86dde41db6699112aac205c0648ab74ee798a0680"
+    },
+    "source_manifest_sha256": "a6c570095a1b88a2ef65865fc1f041cf0ed17114072686cff89a946bf970dc4e",
+    "b8_wire_manifest_sha256": "b512753e1f54b5cde76674263833aabd9b84b26cdec1ddb3d150344effa8292b",
+    "hardware": {
+      "name": "NVIDIA GeForce RTX 4090 D",
+      "total_memory": 25252724736,
+      "uuid": "126f93bc-7c0c-7093-a334-f41a535b6953",
+      "cuda_visible_devices": "0"
+    },
+    "torch": "2.5.1+cu121",
+    "transformers": "4.57.1",
+    "python": "3.11.15",
+    "v8_source_manifest_sha256": "a6c570095a1b88a2ef65865fc1f041cf0ed17114072686cff89a946bf970dc4e",
+    "server_rule": "mean_r8"
+  }
+}
