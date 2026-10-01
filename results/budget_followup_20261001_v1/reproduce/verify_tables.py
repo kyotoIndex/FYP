@@ -209,6 +209,34 @@ for slot, q in {1: 128, 2: 95, 3: 95, 4: 92, 5: 91, 6: 91, 7: 198, 8: 100, 9: 50
                 12: 147, 13: 200, 14: 66, 15: 86, 16: 95}.items():
     check(f'p1_slot{slot}_return_round', float(join[slot]['V_mean_return_round']), q, 0)
 
+# ---------------------------------------------------------------- intervals quoted in README
+m, lo, hi, pos, neg, n = paired(acc1[3], acc1[8])
+check('p1_rotated_score_minus_rank8_low', lo, -6.42, 2)
+check('p1_rotated_score_minus_rank8_high', hi, -2.31, 2)
+m, lo, hi, pos, neg, n = paired(acc1[7], acc1[8])
+check('p1_rank4_minus_rank8', m, -1.31, 2)
+check('p1_rank4_minus_rank8_low', lo, -3.42, 2)
+check('p1_rank4_minus_rank8_high', hi, 0.79, 2)
+m, lo, hi, pos, neg, n = paired(acc2['U018'], acc2['U002'])
+check('p2_block_minus_rank8_low', lo, -2.49, 2)
+check('p2_block_minus_rank8_high', hi, -0.12, 2)
+m, lo, hi, pos, neg, n = paired(acc2['U023'], acc2['U002'])
+check('p2_headfit_minus_rank8_low', lo, -0.38, 2)
+check('p2_headfit_minus_rank8_high', hi, 0.68, 2)
+m, lo, hi, pos, neg, n = paired(nll2['U023'], nll2['U002'])
+check('p2_headfit_minus_rank8_nll_low', lo, -0.106, 3)
+check('p2_headfit_minus_rank8_nll_high', hi, -0.004, 3)
+for rid, qlo, qhi in (('U014', -0.031, 0.202), ('U018', -0.038, 0.254)):
+    nd = s['recipes'][rid]['80']['nll_difference']
+    check(f'p3_{rid}_r80_nll_low', nd['ci95'][0], qlo, 3)
+    check(f'p3_{rid}_r80_nll_high', nd['ci95'][1], qhi, 3)
+    ad = s['recipes'][rid]['80']['accuracy_difference_pp']
+    check(f'p3_{rid}_r80_improved_seeds', ad['positive'], 7, 0)
+pairs613 = [json.loads(l) for l in open(os.path.join(P3, 'paired_values.jsonl'), encoding='utf-8')]
+for rid, q in (('U014', -15.75), ('U018', -16.89)):
+    v = [p['rounds']['80']['accuracy_difference_pp'] for p in pairs613
+         if p['parent_recipe'] == rid and p['job_id'].endswith('_s613_r60_to80')]
+    check(f'p3_{rid}_seed613_r80_accuracy', v[0], q, 2)
 print(json.dumps(report, indent=1, ensure_ascii=False))
 if failures:
     print('FAILED:\n  ' + '\n  '.join(failures))
