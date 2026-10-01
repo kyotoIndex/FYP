@@ -1,0 +1,94 @@
+{
+  "complete": true,
+  "definitions": {
+    "comparison_scope": "same parent object, policy, prefix, and readout role",
+    "fixed_pairs": [
+      "D-N",
+      "S-N",
+      "T-N",
+      "S_random_nonzero-S",
+      "S_zero_removed-S"
+    ],
+    "inference": "descriptive only; no winner, correction A/B decision, threshold, confidence interval or hypothesis test",
+    "module_scope": "24 modules per representation per object are long-table observations, never independent seeds",
+    "normmatch_NA": "paired matched delta is null unless both readouts are matched; seed mean requires all four objects; overall requires all 12 complete seeds",
+    "original_protocol": "fixed comparisons only; weighting and NA aggregation are design candidates, not retroactive protocol changes",
+    "relative_error": "abs(full-h32)/abs(full), null when full is zero; seed mean requires all four defined objects",
+    "sample_sd": "sample standard deviation of 12 seed means, denominator 11",
+    "seed_estimator": "four configured direction objects equally weighted within each seed; 12 seeds equally weighted",
+    "zero_removed": "inactive_no_zero_direction raw readout retained; active-only within-seed means report explicit object denominators and are conditional descriptions"
+  },
+  "input_sha256": {
+    "EXPORT_MANIFEST.json": "1781a310e8b1239c38ddef0fbc3c54a2a91f28ca9e004a7d3657126b29f933f0",
+    "cohort_clients.jsonl": "ab602e548176cbf77524931a97be016ca645fc472593367c3e3ab9dbd17d56bd",
+    "cohort_evaluations.jsonl": "91ecf049f4916159780e999e1c130cd5f268e7b949f530e1dd8abe23118f5c13",
+    "cohort_locks.jsonl": "eab735bf975b37751c2ec6b9740a8ae67e18a2dc1b662ee7cb1b54511fd654a9",
+    "cohort_readouts.jsonl": "542cfd9c9cc572b87d813dff7f0ae43fa1b022f4778acf495d9d208eb4a58335",
+    "direction_geometry.jsonl": "b9e4ff2df3d20b760892e1eea6f8cb75dfd11e19b2669d36172c29775504455d",
+    "direction_projection_manifest.json": "d324a506789b87bb8863f9a95a22d8617403ea09c4d343090ee6e4e183cf598b",
+    "direction_readouts.jsonl": "709d4cae56a69fed8a3887f1ed2d186f8377ed4ca1a44f79487121fd84cfa229",
+    "objects.jsonl": "37ec347573d32cccd204517013e2f00703a3ac655c6f80c00107e3ec26ca9e1a"
+  },
+  "output_sha256": {
+    "direction_T_module_comparison.jsonl": {
+      "rows": 1152,
+      "sha256": "8a2f830c39eb4d6252afe2f08554eab74e3e38cdd3015d5aef10b86f945638c7"
+    },
+    "direction_T_prediction_overall.jsonl": {
+      "rows": 2,
+      "sha256": "d31d1e035c9cd7b87ab22222e8b48a1ed1a93a2db69be9613ccfbac03d13a531"
+    },
+    "direction_T_prediction_seed.jsonl": {
+      "rows": 24,
+      "sha256": "11d69b0b3b7cc4ac77ef17907b2a1c595f59b4be62f087e7ca2a581c0cbef0e9"
+    },
+    "direction_T_predictions.jsonl": {
+      "rows": 1056,
+      "sha256": "7ad91e63ecc4d8b8aca14f09f6bb86f9e15f84d06330932816469d6a4f157bbc"
+    },
+    "direction_geometry_module_seed.jsonl": {
+      "rows": 1728,
+      "sha256": "dbed41a56c62d680df69c69797e098c878ff375bb55e6ace535a828c7cec83a7"
+    },
+    "direction_geometry_modules.jsonl": {
+      "rows": 6912,
+      "sha256": "ba1204709f538ccd95583e7a39eaae19d166e5c337eb1fb826656dd091a7cc47"
+    },
+    "direction_object_contrasts.jsonl": {
+      "rows": 1440,
+      "sha256": "82ce504a14c2b4fb4a44a45b6cca357990824b1814ff7d44a644b8b398a6b153"
+    },
+    "direction_object_readouts.jsonl": {
+      "rows": 1728,
+      "sha256": "940df2db56b2ff168e5af9b5dd52cb2c9d689fdc50ad75fce59f435b225d835a"
+    },
+    "direction_overall_descriptive.jsonl": {
+      "rows": 30,
+      "sha256": "c64444d331fa79e0d183ba35e6085b5cb02c93cb873e076f9c1c398091d5213c"
+    },
+    "direction_overall_readouts.jsonl": {
+      "rows": 36,
+      "sha256": "cc7586bb1236f86cd368acb5649d3ed2d8352c0fbd43c7096b04b9d1ade45212"
+    },
+    "direction_seed_descriptive.jsonl": {
+      "rows": 360,
+      "sha256": "5b3a1090f0ae823980e3baf81df5e6423b5d5dc79172c75f229dbe8c20178966"
+    },
+    "direction_seed_readouts.jsonl": {
+      "rows": 432,
+      "sha256": "7fb222ff132968f2f6393936694eaf9603104228f06a53f3030efc071d299775"
+    }
+  },
+  "schema": "pcla-v7-direction-descriptive-summary-1",
+  "source_export_path": "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02",
+  "source_export_schema": "pcla-v7-diagnostic-json-export-1",
+  "source_roles": {
+    "T_full_h32": "one-step linear predictions from fixed T mask; no new full-T training",
+    "normmatched": "read-only uniform LoRA effective update rescale; trained head unchanged",
+    "original": "already trained direction readout2048 at original update scale"
+  },
+  "source_warnings_preserved": [
+    "direction raw bank has no explicit readout source/row hash; role is bound by frozen driver/model source and manifest"
+  ],
+  "summarizer_sha256": "752e389f25dfdc965b8b83e1018953fa37403be5a1e9c8c3bcbb0c7735de1eab"
+}

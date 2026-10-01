@@ -1,0 +1,69 @@
+{
+  "complete": true,
+  "descriptive_choices_not_protocol_thresholds": [
+    "equal weight for 8 objects within each seed",
+    "sample SD across 12 seed values",
+    "mean of object ratios and ratio of object sums both reported",
+    "three practical client supports for prefix ordering",
+    "average ranks for ties",
+    "constant rank vectors are NA; incomplete object metric does not silently change weights"
+  ],
+  "independent_unit": "12 fixed seeds; 8 cohort objects per seed; 10 clients nested per object",
+  "input_sha256": {
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/EXPORT_MANIFEST.json": "1781a310e8b1239c38ddef0fbc3c54a2a91f28ca9e004a7d3657126b29f933f0",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/cohort_clients.jsonl": "ab602e548176cbf77524931a97be016ca645fc472593367c3e3ab9dbd17d56bd",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/cohort_evaluations.jsonl": "91ecf049f4916159780e999e1c130cd5f268e7b949f530e1dd8abe23118f5c13",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/cohort_locks.jsonl": "eab735bf975b37751c2ec6b9740a8ae67e18a2dc1b662ee7cb1b54511fd654a9",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/cohort_readouts.jsonl": "542cfd9c9cc572b87d813dff7f0ae43fa1b022f4778acf495d9d208eb4a58335",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/direction_geometry.jsonl": "b9e4ff2df3d20b760892e1eea6f8cb75dfd11e19b2669d36172c29775504455d",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/direction_projection_manifest.json": "d324a506789b87bb8863f9a95a22d8617403ea09c4d343090ee6e4e183cf598b",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/direction_readouts.jsonl": "709d4cae56a69fed8a3887f1ed2d186f8377ed4ca1a44f79487121fd84cfa229",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02/objects.jsonl": "37ec347573d32cccd204517013e2f00703a3ac655c6f80c00107e3ec26ca9e1a"
+  },
+  "limits": "descriptive only; no A/B adjudication, winner, CI, or hypothesis test",
+  "outputs": {
+    "cohort_across_seed_descriptive.jsonl": {
+      "rows": 117,
+      "sha256": "c2e56c43de9b5856509bd107dcffe43363dc65d69c99a4515893b2e825ccccc5"
+    },
+    "cohort_client_gains.jsonl": {
+      "rows": 15360,
+      "sha256": "5e4e66021c0329451ccd4074c7d92d46f300e3053598cc39a0f1281f24fae8d9"
+    },
+    "cohort_client_ranks.jsonl": {
+      "rows": 5760,
+      "sha256": "d1967da8165a068e3a0a518a085c5d323cdd49b7f96e3d0a4d21cc4cbe1e8dad"
+    },
+    "cohort_object_rank_coverage.jsonl": {
+      "rows": 576,
+      "sha256": "c13522e6b75054ed18d65ccd398afdd8c3211791b5884c7ac1c2928b1e3b2382"
+    },
+    "cohort_object_values.jsonl": {
+      "rows": 1536,
+      "sha256": "1d63149a3bf56b3fbff5e2642cd12e18c2746641e15093e040fc6b93cf1f6ee6"
+    },
+    "cohort_seed_descriptive.jsonl": {
+      "rows": 1392,
+      "sha256": "ecf61afbc470f131817bc34ab00ed14c2a5e94f8952ebf3f6eb99c6da072f541"
+    },
+    "cohort_selection16.jsonl": {
+      "rows": 672,
+      "sha256": "7c79bc40f9d0b664e54993807cbb1bb802742d7995f79616c48bb517bc78bdd2"
+    },
+    "cohort_selection16_contrasts.jsonl": {
+      "rows": 768,
+      "sha256": "9a4af96affa5e0c0fae7ce3c3a757ccdbed922bf90bae7642d9e1fd42cf64459"
+    }
+  },
+  "protocol_defined": [
+    "three gain roles",
+    "nonadditivity joint minus scaled individuals",
+    "finite bank relative to local and parent-loss 0.5 percent with 8/12 sign",
+    "same-path prefixes 1/4/16",
+    "full vs h32 one-step fixed bank comparator"
+  ],
+  "schema": "pcla-v7-cohort-descriptive-summary-1",
+  "source_export_path": "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/diagnostic_export02",
+  "source_export_schema": "pcla-v7-diagnostic-json-export-1",
+  "summarizer_sha256": "3abbc4e5a57d004c4d28c76bffa71df5452ffced6e84a22061a92e6f8e8b86a4"
+}
