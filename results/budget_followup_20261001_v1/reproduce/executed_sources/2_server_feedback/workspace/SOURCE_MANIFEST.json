@@ -21,8 +21,8 @@
     "pcla_research_v7/native_fedplora.py": "dce0e196798153f22d7ae7764a0282af4c023f466616a7dae2b55190b366f62f",
     "pcla_research_v7/native_fedsb.py": "be4247a0c03451f6991287e0e10ce069dbdc52139999d6aac0abcdf50675beba",
     "pcla_research_v7/native_fedsvd.py": "f7fe96a4b735ab314e398244e8ba34f4487244602d1d9f61c1f7cd09d5ae76b4",
-    "pcla_research_v7/native_runtime.py": "86a71185a13620c90c35bd2aa12612fc1bb2496d9376b77913431c199e03dda7",
-    "pcla_research_v7/runtime.py": "23e6824fe67dc52e4fc1b2b9e80f93bd40cc23740b1d3fdd602941c0a668daff",
+    "pcla_research_v7/native_runtime.py": "bb4a80c6ac3c773a19fc48f442b70ed0985d1647e04c205dd3380d4ea8c423e3",
+    "pcla_research_v7/runtime.py": "a3b6e1b1891aee34bd80aa2766232216853e850bc092efc40fdab8b6a2dc6217",
     "pcla_research_v7/selectors.py": "b1864f16b22366eba625cbe9b62a028b74a49d04d34a0ae42cc1a3ed5ca9d51d",
     "pcla_research_v7/timing_hooks.py": "ef05decf5eeca151e4c865a86dde41db6699112aac205c0648ab74ee798a0680",
     "pcla_research_v7/transport.py": "da63fb4f2f673e22331a367c2063d17883eb07110ac165e34689a1dd7d8f5d50",
@@ -62,11 +62,11 @@
     "scripts/prepare_pcla_v7.py": "de7a7e98219906538042f2fdd9377a3369984b5d84930a44351fb0c848ebfb2d",
     "scripts/profile_pcla_v7_concurrency.py": "a10d20bf86d361a3f38c4c841d6e2a0b57fd062840324fca6387fe022871241f",
     "scripts/profile_pcla_v7_paths.py": "3f6a95fd0897c1f62fb68a04e0b4719dea8d7559f8ab0faaff4a04f20bd668ef",
-    "scripts/replace_pcla_v7_drained_pairs.py": "f635e4f2cfac050abcfe652238d95a3e72cfb87a863aa2249fa32ba4dc2d4c65",
+    "scripts/replace_pcla_v7_drained_pairs.py": "979a049a5075c78b0ca60c3b104674ec954a3021871b5fb8e65a081f7a9a1256",
     "scripts/run_formal_v2_matrix.py": "3975eecf0982539093cc0da05ba125d653e5fa4be00d8d17c52de1bd951c9991",
     "scripts/run_full_experiments.py": "07e4db30019f054923f5e39edb56c69acded202964f1ae6682ef7f40bc618d84",
     "scripts/run_pcla_repaired.py": "4dbca4ae63f778bc9aca2a472b66623f4f7014e7b4f775e548ae91551fc6d0a1",
-    "scripts/run_pcla_v7.py": "b245285be31aaabee6fb885222dfb5ca5829253366db205a8003585aff17ec2c",
+    "scripts/run_pcla_v7.py": "823c4e209f67158fdfd7f10817476c21c79ec7d9690797547d861491dc570c12",
     "scripts/run_pcla_v7_native.py": "1aa439f917de249f85a836b605a6102808e91967b5cafe60a4b791918cabff7d",
     "scripts/stage_pcla_v7_node.py": "e9a33f276ace4eefa2ef9aab87ad66ba2e18ccbac07fbd0c2ddd1f31f789df1f",
     "scripts/summarize_issue1_results.py": "e1d4f6008ca473d594679cb8736384b81eeefa8036c2ae420597ca237e9ab636",
@@ -91,7 +91,7 @@
     "tests_pcla_v7/test_d0_summary.py": "dbd3232b045495ce590c86dde8bb665944526da5a6b88ecbdceaac7d992c3527",
     "tests_pcla_v7/test_data_transport_configuration.py": "7db00a0734611e27819971ef438d57691887146d25b782de3e4636797340e2cc",
     "tests_pcla_v7/test_diagnostic_bank.py": "5e31c9dba8f76e3ed438aedd3028fd2737a55c3faf24e14c72393e1167d65503",
-    "tests_pcla_v7/test_diagnostic_configuration.py": "5e2289e1e5423e112480e5ab3235e4180d7ee894b7809e8dbfa0a7e844a54a65",
+    "tests_pcla_v7/test_diagnostic_configuration.py": "a9d9fdfb108c63a6727536a13bd880cdaae483ade1c5bafcf90e8f414573d92e",
     "tests_pcla_v7/test_native_cost_classification.py": "d50d75016744a10e577a88476d82876ec424c7f157428afd69bf8db28ea2ac2e",
     "tests_pcla_v7/test_native_cost_driver.py": "44cafa9f419cf56a7cf313f638f83cd7239a4f69ee2a9eb0622d240d85d501c1",
     "tests_pcla_v7/test_native_cost_timing.py": "4465d7a2a7acbaa09f1e5292c8f52323e7ba999771d5b0abc74581f8a4248f12",
@@ -107,6 +107,11 @@
     "tests_pcla_v7/test_validation_dispatch.py": "b31507b301c71d1446c664e0b6c3a599c97c82e4e4c35b7287eea8241f9fcb8f",
     "tests_pcla_v7/test_validation_launcher.py": "f2b19c4934abaae6a4e21eea69c3072eba1497d6a51ee6ff332aee66738034f2",
     "tests_pcla_v7/test_validation_queue_initializer.py": "e5262a5ad3a8d4752ab916df047ed1e3967381dc5e2a2ce181c26bc00c903065"
+  },
+  "publication": {
+    "original_manifest": "ORIGINAL_SOURCE_MANIFEST.json",
+    "original_manifest_sha256": "9537dda3b3566ca7428638fd975fbf87363bf1b834eccdfc5b986cd64e3df6cc",
+    "purpose": "Verify published sources; historical execution identities remain bound to the original manifest"
   },
   "purpose": "Cost02 technical qualification candidate; C1-C4 exclusions retained with unchanged computations"
 }

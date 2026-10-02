@@ -46,6 +46,8 @@ python3 figures/gen_fig_budget_followup.py
 
 [executed_sources/](executed_sources/) 保存三部分实验用过的每一版冻结源码，每版都有逐文件清单。配置里的源码清单字段，以及逐种子结果里的源码哈希，可以对应到具体版本。
 
+公开源码经过路径脱敏后，训练入口使用的 `SOURCE_MANIFEST.json` 核对的是公开文件。需要更新的清单旁保留了逐字节不变的 `ORIGINAL_SOURCE_MANIFEST.json`；公开清单的 `publication` 字段记录它的文件名和原始哈希。已有配置、结果和历史父版本字段中的源码哈希仍对应原始清单，不应替换为公开清单的哈希。工作区副本也按实际公开文件更新，不把它认作原始冻结训练版本。`verify_public.py` 同时核对公开文件、运行时清单和保留的原清单。
+
 | 研究 | 训练入口 | 分析脚本 |
 |---|---|---|
 | 组件选择 | [训练](executed_sources/1_budget_selection/validation02/scripts/run_pcla_v7.py)、[已发表方法](executed_sources/1_budget_selection/native04/scripts/run_pcla_v7_native.py) | [导出与统计](executed_sources/1_budget_selection/analysis_scripts/) |
@@ -87,6 +89,8 @@ python3 figures/gen_fig_budget_followup.py
 关停续训和复用更新的诊断还需要对应的起点检查点和更新张量。它们存放在实验归档里，哈希见 [SOURCES](../SOURCES.md)。
 
 把配置里的路径占位符换成本地路径，另存为新配置，再运行：
+
+新配置的 `source_manifest` 应指向对应的公开运行时清单。关停分支还需把新配置中的 `new_source_manifest_sha256` 设为该公开清单的实际 SHA-256；原配置和已有结果保留原值。
 
 ```bash
 python "$TRAIN_SCRIPT" --config "$CONFIG" --out "$NEW_OUT" --device cuda

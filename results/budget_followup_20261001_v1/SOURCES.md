@@ -17,6 +17,8 @@
 - **路径替换：** 本机和服务器的绝对路径换成 `$FYP_ROOT`、`$LOCAL_HOME`、`$HPC_HOME`，服务器账号换成 `<hpc_account>`，其余内容不变。替换过的文件，原文件哈希和发布哈希都在清单里。
 - **压缩：** 超过 1 MB 的数据文件用 gzip 压缩，文件名加 `.gz`。用 `gzip -dc` 或 Python 的 `gzip.open` 可以直接读取。
 
+源码清单另有一项公开处理：运行时 `SOURCE_MANIFEST.json` 的逐文件哈希按实际公开源码更新，原清单以 `ORIGINAL_SOURCE_MANIFEST.json` 原样保留。公开总清单中的 `source_sha256` 仍是原件身份，`content_sha256` 是更新后的公开文件身份；这类条目标记 `redacted: true` 并注明 `transformation`。实验配置、结果、原清单和历史父版本的哈希不变。
+
 ## 各目录对应的运行
 
 | 目录 | 内容 |
