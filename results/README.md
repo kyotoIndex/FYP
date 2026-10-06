@@ -6,6 +6,8 @@
 
 | 目录 | 角色 | 状态 |
 |---|---|---|
+| [budget_followup_20261001_v1](budget_followup_20261001_v1/README.md) | 固定通信量下的组件选择、服务器控制与关停检验 | 3 部分完成：开发 479 条、验证 300 条、独立计时 117 条、诊断 264 个、续训 24 条 |
+| [group_meeting_followup_20260924_v1](group_meeting_followup_20260924_v1/README.md) | 组会问题：聚合、单模型训练、百轮训练、SVD 与个性化 | 两批实验完成，含源码、曲线与成本 |
 | [core_shared_hh_20260918_v3](core_shared_hh_20260918_v3/README.md) | 层与 rank 选择的同预算比较 | 8 方法 × 5 seed × 30 轮完成；评分诊断已补齐 |
 | [rank_signal_20260918_v1](rank_signal_20260918_v1/README.md) | 当前评分与独立样本短期收益 | 15 份模型状态、270 个单元、4,320 次单步更新完成 |
 | expanded_sst2_bert_base_dirichlet_v1 | 经典 baseline 主表 | 3 seed，已审计 |

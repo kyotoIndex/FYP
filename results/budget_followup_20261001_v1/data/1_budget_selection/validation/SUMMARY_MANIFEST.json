@@ -1,0 +1,53 @@
+{
+  "complete": true,
+  "definitions": {
+    "accuracy_percent": "raw endpoint accuracy fraction multiplied by 100",
+    "hardware": "seeds 281 and 307 A100; the other 10 seeds 4090D; no time aggregation",
+    "inference": "descriptive only; no winner selection, A/B adjudication, intervals, or hypothesis tests",
+    "pair_mean_sd": "arithmetic mean and sample SD of 12 same-seed paired differences",
+    "paired_difference_pp": "same-seed target slot accuracy percent minus reference slot accuracy percent",
+    "reference_scope": "each of 16 target slots versus every one of 15 non-replay reference slots; self-pairs included",
+    "sample_sd": "sample standard deviation across 12 seeds, denominator n-1",
+    "slot16": "donor-dependent same-seed slot3 quota replay; not independent deployable method",
+    "slot_mean": "unweighted arithmetic mean across the 12 fixed seeds",
+    "wins_ties_losses": "counts by exact sign of the unrounded paired difference; ties equal zero"
+  },
+  "endpoints": [
+    "half",
+    "b8",
+    "r100"
+  ],
+  "input_sha256": {
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/validation_export02/EXPORT_MANIFEST.json": "3db5ae91c522475126a2ea3b0f5e91a599a10e5ad0abd497ac4f96f6cc33e1c2",
+    "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/validation_export02/v_endpoints.csv": "6c33f18aeaae602a0dfdb504d0ff9b2c18167f282bdef3db1e0fd2be70b706c5"
+  },
+  "output_sha256": {
+    "v_pair_descriptive.csv": "86b7aae9ec3d6d8834b71e85706fa39bb61959826fec7816c6c6fa131d307a21",
+    "v_seed_paired_differences.csv": "af9d1cd8900c6cf3b6fae1acbbc97ed9e49a1e4d8ed8f6c2071ee09e1593a30d",
+    "v_slot_descriptive.csv": "dd1a98cffb7395cb3c63208ab641a22f747be740e74ae27edeacf2ca9b4fcb09"
+  },
+  "reference_slots": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "schema": "pcla-v7-validation-descriptive-summary-1",
+  "seed_count": 12,
+  "slot_count": 16,
+  "source_export_complete": true,
+  "source_export_path": "$FYP_ROOT/10_projects/pcla/runs/pcla-global-budget-20260928-v7/checks/phase_closeout_20260929/validation_export02",
+  "source_export_schema": "pcla-v7-validation-export-1",
+  "summarizer_sha256": "2cb3769110a9f2785b55dfa50f5824a0c4acd4d42d2cd6f60d36ac85650ae69b"
+}
