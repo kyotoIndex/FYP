@@ -1,0 +1,109 @@
+10
+/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000002f/uni00000052/uni0000005a/uni00000003/uni00000026/uni00000052/uni00000050/uni00000053/uni00000011/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000030/uni00000048/uni00000047/uni0000004c/uni00000058/uni00000050/uni00000003/uni00000026/uni00000052/uni00000050/uni00000053/uni00000011/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000002b/uni0000004c/uni0000004a/uni0000004b/uni00000003/uni00000026/uni00000052/uni00000050/uni00000053/uni00000011/uni00000013
+/uni00000014/uni00000013/uni00000013
+/uni00000015/uni00000013/uni00000013
+/uni00000016/uni00000013/uni00000013
+/uni00000017/uni00000013/uni00000013
+/uni00000018/uni00000013/uni00000013/uni0000002a/uni00000033/uni00000038/uni00000003/uni00000030/uni00000048/uni00000050/uni00000052/uni00000055/uni0000005c/uni00000003/uni00000038/uni00000056/uni00000044/uni0000004a/uni00000048/uni00000003/uni0000000b/uni00000030/uni00000025/uni0000000c
+/uni00000014/uni0000001c/uni00000016/uni00000011/uni00000017/uni00000018
+/uni00000016/uni00000014/uni00000017/uni00000011/uni0000001a/uni00000019
+/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016
+Fig. 2: GPU memory usage for clients with different
+computing capabilities.
+Fig. 2 plots the GPU memory usage for clients with varying
+computational capabilities under our salience-driven adaptive
+LLM quantization algorithm. The GPT-2 model used in this
+experiment consists of 12 transformer blocks. For clients
+with low computational capabilities, all transformer blocks
+are quantized to 8 bits, resulting in the lowest GPU memory
+usage. For clients with medium computational capabilities, the
+algorithm ranks transformer blocks by salience, keeping 32-
+bit precision for the 6 most salient blocks while quantizing
+the remaining 6 blocks to 8 bits, achieving a balance between
+memory efficiency and model precision. For clients with high
+computational capabilities, all transformer blocks keep 32-
+bit precision, leading to the highest GPU memory usage.
+These results demonstrate the effectiveness of our proposed
+algorithm in dynamically adjusting the quantization strategy to
+optimize resource utilization while accommodating the varying
+computational capabilities of different clients.
+/uni00000013/uni00000015/uni00000013/uni00000017/uni00000013/uni00000019/uni00000013/uni0000001b/uni00000013/uni00000014/uni00000013/uni00000013
+/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000051/uni0000004c/uni00000046/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000035/uni00000052/uni00000058/uni00000051/uni00000047
+/uni00000013
+/uni00000015/uni00000013
+/uni00000017/uni00000013
+/uni00000019/uni00000013
+/uni0000001b/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c/uni0000002c/uni00000029/uni0000003d/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni0000002b/uni00000052/uni00000050/uni0000002f/uni00000052/uni00000035/uni00000024/uni00000003/uni00000055/uni00000003/uni00000020/uni00000003/uni0000001b
+/uni0000002b/uni00000052/uni00000050/uni0000002f/uni00000052/uni00000035/uni00000024/uni00000003/uni00000055/uni00000003/uni00000020/uni00000003/uni00000015
+/uni0000002c/uni00000037/uni00000024/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni0000002c/uni00000029/uni00000024/uni0000002f/uni00000052/uni00000035/uni00000024
+Fig. 3: Accuracy comparison on Banking77 classification.
+Fig. 3 presents the classification accuracy of the global
+model on the Banking77 classification test set as the number
+of communication rounds increases. In this experiment, we
+set the available bandwidth for each client to B0 = 100 MHz,
+ensuring that communication bandwidth is not a limiting factor
+for FL parameter uploads. Our methods, importance-based
+parameter freezing adaptive aggregation LoRA (IFALoRA)
+and importance-based parameter truncation adaptive aggre-
+gation LoRA (ITALoRA), yield fast convergence. We also
+compared with three other algorithms: (1) homogeneous LoRA
+(HomLoRA) r = 2 , where all clients and the cloud server
+use LoRA with a rank of 2; (2) HomLoRA r = 8 , where
+all clients and the cloud server use LoRA with a rank of
+8; and (3) IFZLoRA, which utilizes zero-padding aggregation
+compared to IFALoRA. The results indicate that HomLoRA
+r = 2 fails to converge, and IFZLoRA converges slowly
+with significantly lower accuracy than our ITALoRA and
+IFALoRA. Our methods achieve accuracies close to that of
+HomLoRA r = 8, where all clients use the highest rank.
+TABLE III: Evaluation results on Banking77 classification.
+Model Method Commu.
+Size
+Classification Accuracy
+50 100
+GPT2
+IFZLoRA 7.03M 71.34±2.4 82.06±1.2
+HomLoRA r=8 11.25M 87.48±0.0 89.94±0.2
+HomLoRA r=2 2.81M 21.26±14.0 45.79±16.0
+ITALoRA 7.03M 82.53±2.1 86.70±0.5
+IFALoRA 7.03M 87.36±0.2 89.13±0.2
+Table III presents the performance of five different methods
+on the Banking77 text classification task after 50 and 100
+communication rounds. The values are averaged over experi-
+ments with different random seeds, and the table also records
+the average total parameter size uploaded by 10 clients per
+communication round. Specifically, HomLoRA with rank 8
+achieves the highest accuracy but requires the largest commu-
+nication size. In contrast, IFALoRA and ITALoRA manage to
+achieve nearly comparable accuracy with significantly smaller
+communication sizes, demonstrating a good balance between
+performance and efficiency. HomLoRA with rank 2 shows
+poor performance, indicating a lack of convergence, while
+IFZLoRA improves over HomLoRA r = 2 but still lags behind
+ITALoRA and IFALoRA in terms of accuracy.
+Fig. 4 (a) plots the classification accuracy with the in-
+creasing of communication rounds under ITALoRA when the
+global model is truncated to smaller client ranks. As the
+level of truncation increases, the model’s accuracy decreases,
+indicating a loss of information. In contrast, our IFALoRA
+method in Fig. 4 (b) uses a freezing strategy, eliminating
+the need for truncation. This allows each client to maintain
+the same accuracy performance level as the global model.
+Additionally, both IFALoRA and ITALoRA have the same
+parameter size during training, ensuring communication effi-
+ciency while IFALoRA avoids the performance loss associated
+with truncation.
+Fig. 5 depicts the distribution of the maximum number of
+transmission bits and computational capability among different
+clients. The red bars represent the maximum number of
+transmission bits, while the purple bars indicate the compu-
+tational capability levels. With a fixed bandwidth allocation
+of B0 = 10 MHz for each client, the maximum number of
+transmission bits vary based on the distance to the base station.
+Client 0, being the closest to the base station, can support the
+highest number of transmission bits. As the distance increases,
+the maximum number of transmission bits gradually decreases,
+with client 9 having the lowest value. For computational
+capability, we assign different levels to clients: clients 0 to

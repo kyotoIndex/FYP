@@ -1,0 +1,38 @@
+Table 17: FedSAIL threshold sensitivity on DDDT. We report round-64 accuracy (%, mean ± sample std.)
+and total communication cost, including selector snapshots and mask delivery.
+FedSAIL variantτIMDb Amazon QQP QNLI Avg. Comm.
+Full –93.33 95.9383.2787.60 90.033 ±0.225 96.094
+Selection0.4 93.20 95.70 83.07 88.07 90.008 ±0.644 104.282
+Selection0.5 93.23 96.17 82.3788.3790.033 ±0.284 89.601
+Selection0.6 93.57 96.37 83.13 87.4790.133 ±0.038 77.589
+Selection0.793.77 96.4081.97 87.50 89.908 ±0.800 58.904
+percentage points, with a 95%t interval of [−0.530,0.730] ). This validates our core hypothesis: layers
+with divergent action subspaces should be left entirely local, freeing them from negative transfer (unhelpful
+cross-client penalties) while saving network bandwidth.
+Furthermore, this sweep serves as a comprehensive sensitivity analysis for our system. We observe a clear
+trade-off surface: while τ= 0.7 minimizes communication maximally, it begins to degrade mean accuracy
+(particularly on QQP) due to overly aggressive isolation. Conversely, a highly permissive threshold like
+τ= 0.4 retains so many layers that the overhead of the selector mechanism outpaces the communication
+saved.
+F.4 Communication Accounting
+Using the per-module payload convention in Appendix E, each active query/value module at s= 1 communi-
+cates 4(2049 + 1) bytes per client per guided round. For this DDDT protocol, eight clients, two modules per
+layer, and 32 guided rounds give 4,198,400L bytes for L active layers. The additional selector cost consists
+of three snapshots over all 24 layers and three token regimes, 3×8×24×2×3×1026×4 = 14,183,424
+bytes, plus24bytes to deliver a24-bit mask to each of the eight clients. Thus,
+Cfull = 4,198,400×24, C selection(L) = 4,198,400L+ 14,183,448bytes.(11)
+Full-layer FedSAIL requires no selector. At this training length, selection must retain at most 20 layers to
+offset its overhead. Table 17 reports the mean per-run cost over three seeds in MiB (220 bytes), charging the
+full selector cost to each threshold without amortization across the sweep.
+These are logical payloads counted for every client delivery, excluding initial model distribution, headers,
+serialization, checkpoints, optimizer states, and evaluation traffic. The reported deployment cost includes
+the three snapshots required by the selection rule. The research pilot recorded five additional diagnostic
+snapshots; charging all eight adds 22.544 MiB per selection run. Under this research-logging allocation,
+τ= 0.6 costs 100.133 MiB rather than 77.589 MiB and does not save communication relative to full-layer
+FedSAIL. The savings reported in the main text therefore refer to the three-snapshot selection protocol.
+G Code Availability and Computational Resources
+Computational resources.Table 18 summarizes the primary compute server and benchmark training
+environment. GLUE and DDDT runs simulate federated clients within single-GPU jobs; independent jobs
+are scheduled across the available GPUs. Both protocols use CUDA automatic mixed precision, with training
+settings given in Appendices C and F.
+25

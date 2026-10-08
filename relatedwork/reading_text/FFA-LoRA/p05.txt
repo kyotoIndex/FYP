@@ -1,0 +1,69 @@
+Published as a conference paper at ICLR 2024
+For an FL algorithm with 1000 communication rounds, 10 local update steps and a dataset such as
+SST-2, using batch-size B = 200, a DP guarantee with ϵ = 6, δ = 1e − 5 will require a noise factor
+of σ = 0.99. In this case, LoRA will produce approximately 3 times more noise compared to full
+model fine-tuning This could be an explanation to why LoRA does not significantly outperform full
+fine-tuning despite having less parameters, as reported in (Yu et al., 2021a; Li et al., 2022; Babakniya
+et al., 2023).
+0.0 0.2 0.4 0.6 0.8 1.0
+0
+500
+1000
+1500
+2000
+2500
+3000Noise Norm
+|| B A||F
+|| W||F
+Figure 1: Frobenius norm of noise terms
+within a single update.
+Discordance 3: LoRA requires careful tuning on α.
+In terms of the optimal scaling factor α, empirical re-
+sults (Kuang et al., 2023) have demonstrated that in
+many more complex tasks, a larger α shows higher per-
+formance after fine-tuning, yet as α increases, the al-
+gorithm becomes more and more unstable with much
+higher variance across different runs. According to Zhou
+& Cong (2017), the convergence speed for FedAvg-like
+algorithms is closely related to the objective function’s
+smoothness factor L. As the scaling factor α increases,
+the problem becomes less smooth by construction, slow-
+ing down convergence.
+Furthermore, with increase of the scaling factor α, the
+impact of noise on the model performance gets worse.
+This could be explained by the fact that as α increases,
+the update ∆A becomes less significant compared to
+A0. Since B is initialized at 0, the gradient informa-
+tion in ∆B becomes more important in comparison. Yet
+the gradient clipping and privacy engine sees the update on bothA and B equally. Due to the imbal-
+anced distribution of information in gradients, the algorithm suffers from either excessive informa-
+tion loss or excessive noise, a trade-off between increasing α for better performance and decreasing
+α to prevent noise-induced performance deterioration.
+While searching for a good hyper-parameter α is important, hyper-parameter optimization (HPO)
+is usually costly (Khodak et al., 2021). Adding in α for HPO means extra communication and
+computation costs proportional to the search space size of the α.
+4 A S IMPLE RECEIPT : FFA-L ORA
+In the previous section, we discussed the discordance between LoRA and privacy-preserved FL.
+Motivated by theory, we propose a simple modification to LoRA, Federated Freeze-A Low Rank
+Adapters, or FFA-LoRA for short. FFA-LoRA modifies the training process of LoRA by setting
+matrix A to fixed after initialization. That is, for a weight matrix W ∈ Rd×k, we consider the
+model update to be projected to a low-rank matrix such that
+W = W0 + ∆W = W0 + BA0, with B ∈ Rd×r, A0 ∈ Rr×k.
+W0 is initialized as the pre-trained weight, and A0 follows a random Gaussian initialization. Fol-
+lowing vanilla LoRA, we start with B0 = 0 so that the pre-trained model is recovered at the start of
+fine-tuning. The key difference is that we consider B trainable and keep both W0 and A0 frozen.
+We note that our approach is somewhat similar to the works regarding the intrinsic dimension of deep
+models by (Li et al., 2018; Aghajanyan et al., 2020), however these works emphasis on the existence
+of low intrinsic dimensions in deep models and the generalization properties. We summarize the
+advantages of FFA-LoRA as the following.
+FFA-LoRA has no extra interference with data heterogeneity and model-averaging. We re-
+consider the federated aggregation example in Section 3. In the heterogeneous setting, each client
+will generate a different ∆Wi. Since ∆Wi ≈ BiA0 in FFA-LoRA, the update is more compatible
+with FedAvg and DP-SGD than LoRA. Similar to Equation 3, we write the the aggregation step of
+a two-client system for FFA-LoRA:
+˜W + = W0 + 1
+2(B1 + B2) × A0 = W0 + 1
+2(B1A0 + B2A0) = W +. (4)
+Unlike LoRA in Equation 3, FFA-LoRA does not have the aggregation error term caused by low
+rank adaptation.
+5

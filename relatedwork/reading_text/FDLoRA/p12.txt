@@ -1,0 +1,127 @@
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+terms of both time and resources. Xu et al. [49] aims to address this
+challenge by adapting LLMs to new tasks through the updating of
+only a small number of parameters, potentially including new ones.
+Several significant PEFT approaches have emerged to achieve this
+goal.
+• Adapter-based methods[ 5, 26] allow efficient fine-tuning
+of parameters by adding a small Adapter layer within the
+Transformer block. Each Adapter layer contains a lower
+projection matrix, an activation function, and an upper pro-
+jection matrix. The lower projection matrix maps the input
+features to the bottleneck dimension, the activation func-
+tion is used for non-linear transformation, and the upper
+projection matrix maps the bottleneck features back to the
+original dimensions. In this way, the adapter can introduce
+additional parameters to adapt to downstream tasks, while
+keeping most parameters unchanged.
+• Soft promptare learnable tensors concatenated with the
+input embeddings, which can be optimized to a dataset. How-
+ever, one disadvantage is that they are not human-readable,
+as they do not correspond directly to embeddings of ac-
+tual words. The soft prompt methods encompass several ap-
+proaches, including prompt tuning [24], prefix tuning [43],
+P-tuning [29], and multi-task prompt tuning [2].
+• Reparameterized-based methodsadds learnable parame-
+ters during the training process by constructing a low-rank
+representation of the original model parameters to achieve
+efficient fine-tuning of parameters. Such methods include
+Low-Rank Adaptation (LoRA) [19], LoRA Derivatives [50],
+and Hybrid PEFT [35].
+Compared with the previous works:Our work belongs to
+the category of reparameterized-based methods, but can also be ex-
+tended to other PEFT methods. Most related to our work is the work
+of [47, 51], who combined the ideas of LoRA and iteratively trained
+the target model. However, FDLoRA is specifically designed for
+practical scenarios where there is a scarcity of labeled data on each
+client and aims to minimize the number of fine-tuned parameters.
+In contrast to vanilla LoRA, our method carefully combines per-
+sonalized LoRA and global LoRA, leveraging a fusion optimizer to
+integrate diverse knowledge from each client. We have developed a
+novel PFL framework that enables the training of both personalized
+and global LoRA, effectively harnessing the collaborative potential
+across clients. This strategy enhances the overall knowledge utiliza-
+tion and performance. Finally, FDLoRA offers a practical solution
+for federated learning scenarios with limited labeled data on each
+client, while efficiently incorporating both personalized and global
+knowledge.
+6 CONCLUSION
+In this paper, we have presented FDLoRA, a novel variant of per-
+sonalized federated learning framework based on LoRA tuning,
+which overcomes the lack of labeled data and the gap between
+the high cost and suboptimal of existing FL-based frameworks in
+the popular LLM scenario. FDLoRA utilized dual LoRA modules
+to capture personalized and global knowledge, effectively lever-
+aging collaboration across all clients and reducing the number of
+trainable parameters. Moreover, it employed an adaptive fusion
+algorithm to combine the parameters of two LoRAs to improve the
+performance. It achieves state-of-the-art in both log analysis and
+medical diagnosis scenarios demonstrating stability and robustness
+with respect tonon-IIDdegree, the number of clients, and commu-
+nication rounds and frequency. Finally,FDLoRA outperforms other
+increase batch size strategies with respect to communication cost,
+time spent training and the amount of compute & data used.
+In our future work, we will explore the application of FDLoRA
+to more real-world scenarios and evaluate its effectiveness and
+practicality in industrial environments, such as natural language
+understanding, sentiment analysis, and recommendation systems.
+Moreover, we will continue to enhance the robustness and effi-
+ciency of FDLoRA by exploring advanced techniques for model
+optimization and communication compression.
+REFERENCES
+[1] Durmus Alp Emre Acar, Yue Zhao, Ramon Matas Navarro, Matthew Mattina,
+Paul N Whatmough, and Venkatesh Saligrama. 2021. Federated learning based
+on dynamic regularization.arXiv preprint arXiv:2111.04263(2021).
+[2] Akari Asai, Mohammadreza Salehi, Matthew E Peters, and Hannaneh Hajishirzi.
+2022. ATTEMPT: Parameter-efficient multi-task tuning via attentional mixtures
+of soft prompts.arXiv preprint arXiv:2205.11961(2022).
+[3] Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao, and Yaliang Li. 2024. Fed-
+erated Fine-tuning of Large Language Models under Heterogeneous Language
+Tasks and Client Resources.arXiv preprint arXiv:2402.11505(2024).
+[4] Christopher Briggs, Zhong Fan, and Peter Andras. 2020. Federated learning with
+hierarchical clustering of local updates to improve training on non-IID data. In
+2020 International Joint Conference on Neural Networks (IJCNN). IEEE, 1–9.
+[5] Dongqi Cai, Yaozong Wu, Shangguang Wang, Felix Xiaozhu Lin, and Mengwei
+Xu. 2022. Fedadapter: Efficient federated learning for modern nlp.arXiv preprint
+arXiv:2205.10162(2022).
+[6] Hong-You Chen and Wei-Lun Chao. 2021. On bridging generic and personalized
+federated learning for image classification.arXiv preprint arXiv:2107.00778(2021).
+[7] Minghui Chen, Meirui Jiang, Qi Dou, Zehua Wang, and Xiaoxiao Li. 2023. Fed-
+Soup: Improving Generalization and Personalization in Federated Learning via
+Selective Model Interpolation. InInternational Conference on Medical Image Com-
+puting and Computer-Assisted Intervention. Springer, 318–328.
+[8] Yiqiang Chen, Xin Qin, Jindong Wang, Chaohui Yu, and Wen Gao. 2020. Fedhealth:
+A federated transfer learning framework for wearable healthcare.IEEE Intelligent
+Systems35, 4 (2020), 83–93.
+[9] Daixuan Cheng, Shaohan Huang, and Furu Wei. 2024. Adapting Large Language
+Models via Reading Comprehension. InThe Twelfth International Conference on
+Learning Representations. https://openreview.net/forum?id=y886UXPEZ0
+[10] Liam Collins, Hamed Hassani, Aryan Mokhtari, and Sanjay Shakkottai. 2021.
+Exploiting shared representations for personalized federated learning. InInter-
+national conference on machine learning. PMLR, 2089–2099.
+[11] Enmao Diao, Jie Ding, and Vahid Tarokh. 2020. Heterofl: Computation and
+communication efficient federated learning for heterogeneous clients.arXiv
+preprint arXiv:2010.01264(2020).
+[12] Arthur Douillard, Qixuan Feng, Andrei A Rusu, Rachita Chhaparia, Yani Donchev,
+Adhiguna Kuncoro, Marc’Aurelio Ranzato, Arthur Szlam, and Jiajun Shen. 2023.
+DiLoCo: Distributed Low-Communication Training of Language Models.arXiv
+preprint arXiv:2311.08105(2023).
+[13] Zhengxiao Du, Yujie Qian, Xiao Liu, Ming Ding, Jiezhong Qiu, Zhilin Yang, and
+Jie Tang. 2022. GLM: General Language Model Pretraining with Autoregressive
+Blank Infilling. InProceedings of the 60th Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers). 320–335.
+[14] Moming Duan, Duo Liu, Xinyuan Ji, Renping Liu, Liang Liang, Xianzhang Chen,
+and Yujuan Tan. 2020. FedGroup: Efficient clustered federated learning via
+decomposed data-driven measure.arXiv preprint arXiv:2010.06870(2020).
+[15] Alireza Fallah, Aryan Mokhtari, and Asuman Ozdaglar. 2020. Personalized fed-
+erated learning with theoretical guarantees: A model-agnostic meta-learning
+approach.Advances in Neural Information Processing Systems33 (2020), 3557–
+3568.
+[16] Luciano Floridi and Massimo Chiriatti. 2020. GPT-3: Its nature, scope, limits, and
+consequences.Minds and Machines30 (2020), 681–694.
+[17] Weituo Hao, Mostafa El-Khamy, Jungwon Lee, Jianyi Zhang, Kevin J Liang,
+Changyou Chen, and Lawrence Carin Duke. 2021. Towards fair federated learning
+with zero-shot data augmentation. InProceedings of the IEEE/CVF conference on
+computer vision and pattern recognition. 3310–3319.
+[18] Chaoyang He, Murali Annavaram, and Salman Avestimehr. 2020. Group knowl-
+edge transfer: Federated learning of large cnns at the edge.Advances in Neural

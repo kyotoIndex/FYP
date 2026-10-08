@@ -1,0 +1,105 @@
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+0 5 10 15 20 25 30
+T
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8Average Accuracy
+N = 5, K = 3, Scenario-1
+Synchronous (H = 1)
+Asynchronous (H = 3)
+Asynchronous (H = 5)
+Asynchronous (H = 10)
+Asynchronous (H = T)
+Asynchronous (H = )
+Figure 7: Impact of different synchronous update frequency
+with 𝛼= 0.5. Note that when 𝐻= 1the asynchronous equiva-
+lent to synchronous, and when 𝐻=∞ the personalized LoRA
+module is frozen after local learning (Stage 1).
+choose whether to synchronize the parameters with the person-
+alized LoRA. To investigate the impact of different rounds of pa-
+rameter synchronization on performance, we conducted experi-
+ments by varying the synchronous update frequency, where 𝐻=
+{1, 3, 5, 10, 𝑇 ,∞}, and observed the resulting performance changes.
+The experimental results are shown in Figure 7.
+The experimental results provide insights into the impact of dif-
+ferent parameter synchronization frequencies on performance. First,
+in the synchronous (in blue) scenario, where parameters are syn-
+chronized between the personalized LoRA and the global LoRA after
+each InnerOpt step, we observe a stable and gradual improvement
+in accuracy with increasing communication round. This indicates
+that frequent parameter synchronization helps to maintain LLM
+alignment across clients, contributing to consistent performance im-
+provements. In contrast, asynchronous synchronization scenarios
+(𝐻> 1) show different performance trends. Asynchronous updates
+with H=3 and 𝐻= 5show fluctuating accuracy, suggesting that
+moderate synchronization frequencies may not always result in
+significant performance gains. However, asynchronous synchro-
+nization with 𝐻= 10(in red) and 𝐻=𝑇 (in purple) shows more
+consistent improvements in accuracy over time, suggesting that
+less frequent but more substantial parameter synchronization may
+be beneficial. Notably, in the asynchronous update scenario with
+𝐻=∞ (in teal), where parameters are not synchronized, we observe
+a decrease in accuracy compared to other synchronization frequen-
+cies, highlighting the importance of parameter synchronization in
+maintaining LLM performance.
+In summary, these results suggest that striking a balance be-
+tween synchronization frequency and performance gains is essen-
+tial for optimizingFDLoRA performance. Furthermore, the decrease
+in accuracy observed in the absence of parameter synchroniza-
+tion (𝐻=∞ ) underscores the need for parameter synchronization
+to maintain model alignment and performance across distributed
+clients.
+Table 4: The effect of both Personalized and Global LoRA
+module with𝛼=0.5.
+MethodsScenario-1 Scenario-2
+LLaMA2-7B (0-shot) 16.13 31.36
+LLaMA2-7B (5-shot) 23.51 32.69
+Personalized (standalone) 58.26 47.61
+Global (standalone) 61.30 56.30
+FDLoRA(Ours) 78.17 56.20
+4.6 RQ5: Effectiveness of combining
+personalized LoRA and global LoRA
+Experiment Settings.To validate the effectiveness of combining
+the personalized LoRA module with the global LoRA module, we
+conducted ablation experiments comparing it with the standalone
+personalized LoRA module and the standalone global LoRA module.
+We set the number of clients to𝑁=5, the number of communica-
+tion rounds to 𝑇= 30, and the synchronization frequency to 𝐻=𝑇 .
+Additionally, comparisons were made with standard LLMs under
+0-shotand5-shotsettings. The results are shown in Table 4
+We can see that the standalone personalized and global LoRA
+modules show significant improvements over the off-the-shelf model
+with both 0-shot and 5-shot settings. In particular, the personalized
+module achieves significantly higher accuracy than the off-the-shelf
+model in bothScenario-1andScenario-2, indicating its effectiveness
+in adapting to non-IDD data. Similarly, the global module also
+shows notable improvements over the off-the-shelf model, suggest-
+ing its ability to capture overarching patterns or preferences across
+the dataset. Notably, the global module outperforms the personal-
+ized module inScenario-1, while the personalized module performs
+slightly better inScenario-2. This discrepancy may indicate that the
+nature of the data or the characteristics of the users in each scenario
+affects the effectiveness of the modules differently. Furthermore,
+the combination of both personalized and global modules in the
+proposed approach yields the highest scores in both scenarios, sug-
+gesting that leveraging both individualized and general patterns
+leads to improved performance.
+In summary, the experimental results suggest that both personal-
+ized and global LoRA modules contribute significantly to improving
+performance compared to the off-the-shelf model. The personal-
+ized module excels in capturing personalized knowledge in each
+client, while the global module effectively captures general patterns
+across clients. The combination of both modules in the proposed
+approach leads to superior performance, indicating the importance
+of leveraging both personalized and general patterns in practice.
+This highlights the potential of hybrid approaches that integrate
+personalized and global perspectives to achieve better results in
+different scenarios.
+4.7 RQ6: Trade-off between communication cost
+and computational cost
+Experiment Settings.The baseline methods involve variations
+in communication, time, and compute/data usage. Specifically, the
+first baseline utilizes standard settings with a single GPU for both

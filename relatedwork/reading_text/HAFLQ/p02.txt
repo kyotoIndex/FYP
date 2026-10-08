@@ -1,0 +1,116 @@
+2
+which significantly lowers the demands on communication and
+client computational capabilities. However, the study assumed
+a uniform LoRA rank across all clients and does not consider
+the potential impact of client resource heterogeneity.
+To accommodate heterogeneous computational capabilities,
+the authors in [18] proposed HETLoRA that assigned different
+LoRA ranks to different clients. To facilitate the aggregation
+and distribution of LoRA matrices with different ranks, this
+work introduced a zero-padding aggregation method and a
+global model truncation distribution method. However, the
+zero-padding aggregation method can dilute the information
+learned by high-rank clients, and the truncation approach may
+lead to performance loss in the models distributed to clients.
+To address the challenges posed by different LoRA ranks,
+the authors in [19] synthesized a full-size LoRA through the
+direct multiplication of the LoRA A and B matrices, ensuring
+consistent dimensions of the full-size LoRA across clients.
+This full-size LoRA is then aggregated to form an updated
+global model, which is then decomposed using Singular Value
+Decomposition (SVD). The SVD components are further pro-
+cessed using a low-rank approximation to fit different client
+ranks before being distributed to the clients. However, the
+reconstruction method in [19] may lose information regarding
+the cross-relation across clients during aggregation, and the
+low-rank approximation distribution method still inevitably
+leads to performance loss.
+On the other hand, to further reduce communication costs in
+federated LoRA fine-tuned LLMs, the authors in [20] proposed
+integrating a quantization strategy for LoRA parameters to
+adapt to bandwidth-limited scenarios. However, this approach
+utilized fixed quantization precision across all clients, and
+failed to account for clients’ communication heterogeneity.
+For instance, clients with good channel conditions could
+support higher precision to accelerate convergence, whereas
+clients with poor channel conditions might require lower
+precision quantization to alleviate communication bottlenecks.
+Moreover, their methods did not consider the importance of
+individual rows and columns in the LoRA A and B matrices,
+treating all parameters equally during transmission. This lack
+of prioritization can lead to inefficient communication, as im-
+portant components may be lost due to bandwidth constraints,
+potentially slowing down convergence and degrading global
+model performance.
+To address the limitations of previous work [12], [17]–[20],
+we propose a novel Heterogeneous Adaptive Federated LoRA
+Fine-tuned LLM with Quantization (HAFLQ) framework to
+handle the challenges posed by heterogeneous client compu-
+tational and communication resources. Our contributions can
+be summarized as follows:
+• Salience-Driven Adaptive Quantization for Efficient
+LLM Deployment. To enable efficient deployment of
+LLMs on heterogeneous devices, we propose a salience-
+driven and resource-aware adaptive quantization scheme.
+By ranking transformer blocks based on their contribu-
+tion to model performance, our method applies higher
+precision to more important blocks while quantizing less
+important ones. Additionally, the quantization strategy is
+dynamically adapted to the computational capabilities and
+memory constraints of each client device. Clients with
+more computational resources retain more blocks in full
+precision, while resource-constrained clients apply lower-
+precision quantization to a larger proportion of blocks.
+• Importance-Aware LoRA Fine-Tuning with Trunca-
+tion and Freezing. To accommodate client resource
+heterogeneity, we propose an importance-based param-
+eter truncation scheme, which allows clients to fine-tune
+LoRA layers with different ranks based on their compu-
+tational capabilities. To avoid performance degradation
+caused by truncation, we further develop an importance-
+based parameter freezing scheme. In this approach, both
+the cloud server and the clients maintain the same high
+LoRA rank, while clients selectively update only the most
+important LoRA rank-1 matrices while keeping others
+frozen.
+• Importance-Aware Bandwidth-Adaptive Communi-
+cation Quantization. To address communication het-
+erogeneity in wireless FL systems, we propose an
+Importance-Aware Bandwidth-Adaptive Communication
+Quantization scheme. This method dynamically adjusts
+the precision of the transmitted parameters based on
+their importance and each client’s bandwidth budget.
+By prioritizing the transmission of the most important
+LoRA rank-1 matrices with higher precision, the scheme
+optimizes bandwidth utilization and improves FL perfor-
+mance under constrained communication conditions.
+• Adaptive Rank-1 Matrix-Level Model Aggregation.
+To improve global model aggregation, we propose an
+adaptive aggregation method at the rank-1 matrix level.
+Instead of aggregating entire LoRA matrices, only the
+clients that update and upload specific rank-1 matrices
+participate in the aggregation process. This prevents in-
+formation dilution and accelerates convergence compared
+to traditional zero-padding methods.
+• We evaluate our methods on the Banking 77 text classi-
+fication task. The salience-driven adaptive LLM quanti-
+zation method reduces memory usage by 31% and com-
+putational costs, enabling efficient deployment on het-
+erogeneous clients without sacrificing performance. Ad-
+ditionally, our importance-based partial freezing scheme
+preserves client model accuracy better than truncation-
+based methods, while the adaptive aggregation method
+achieves faster convergence compared to the zero-
+padding approach in [18]. Finally, our Importance-Aware
+Bandwidth-Adaptive Quantization optimizes bandwidth
+usage, reducing communication cost by 49%, while main-
+taining high accuracy under bandwidth constraints.
+The rest of the paper is organized as follows: Section II
+introduces the system model. Sections III and IV describe
+the salience-driven adaptive LLM quantization scheme and the
+importance-based parameter truncation and freezing schemes,
+respectively. Section V proposes an importance-aware and
+bandwidth-adaptive communication quantization scheme, fol-
+lowed by Section VI, which presents the adaptive global ag-
+gregation scheme. Numerical results are discussed in Section
+VII, and conclusions are summarized in Section VIII.

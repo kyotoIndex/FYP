@@ -1,0 +1,49 @@
+Batch Size 32 16 1
+Sequence Length 512 256 128
+|Θ| 0.5M 11M 11M
+Fine-Tune/LoRA 1449.4±0.8 338.0 ±0.6 19.8 ±2.7
+AdapterL 1482.0±1.0 (+2.2%) 354.8 ±0.5 (+5.0%) 23.9 ±2.1 (+20.7%)
+AdapterH 1492.2±1.0 (+3.0%) 366.3 ±0.5 (+8.4%) 25.8 ±2.2 (+30.3%)
+Table 1: Infernece latency of a single forward pass in GPT-2 medium measured in milliseconds, av-
+eraged over 100 trials. We use an NVIDIA Quadro RTX8000. “|Θ|” denotes the number of trainable
+parameters in adapter layers. Adapter L and AdapterH are two variants of adapter tuning, which we
+describe in Section 5.1. The inference latency introduced by adapter layers can be signiﬁcant in an
+online, short-sequence-length scenario. See the full study in Appendix B.
+4 O UR METHOD
+We describe the simple design of LoRA and its practical beneﬁts. The principles outlined here apply
+to any dense layers in deep learning models, though we only focus on certain weights in Transformer
+language models in our experiments as the motivating use case.
+4.1 L OW-R ANK -PARAMETRIZED UPDATE MATRICES
+A neural network contains many dense layers which perform matrix multiplication. The weight
+matrices in these layers typically have full-rank. When adapting to a speciﬁc task, Aghajanyan et al.
+(2020) shows that the pre-trained language models have a low “instrisic dimension” and can still
+learn efﬁciently despite a random projection to a smaller subspace. Inspired by this, we hypothe-
+size the updates to the weights also have a low “intrinsic rank” during adaptation. For a pre-trained
+weight matrix W0∈ Rd×k, we constrain its update by representing the latter with a low-rank de-
+composition W0 + ∆W = W0 + BA, where B∈ Rd×r, A∈ Rr×k, and the rank r≪ min(d, k).
+During training, W0 is frozen and does not receive gradient updates, whileA and B contain trainable
+parameters. Note both W0 and ∆W = BA are multiplied with the same input, and their respective
+output vectors are summed coordinate-wise. For h = W0x, our modiﬁed forward pass yields:
+h = W0x + ∆W x = W0x + BAx (3)
+We illustrate our reparametrization in Figure 1. We use a random Gaussian initialization for A and
+zero for B, so ∆W = BA is zero at the beginning of training. We then scale ∆W x by α
+r , where α
+is a constant in r. When optimizing with Adam, tuning α is roughly the same as tuning the learning
+rate if we scale the initialization appropriately. As a result, we simply set α to the ﬁrst r we try
+and do not tune it. This scaling helps to reduce the need to retune hyperparameters when we vary
+r (Yang & Hu, 2021).
+A Generalization of Full Fine-tuning. A more general form of ﬁne-tuning allows the training of
+a subset of the pre-trained parameters. LoRA takes a step further and does not require the accumu-
+lated gradient update to weight matrices to have full-rank during adaptation. This means that when
+applying LoRA to all weight matrices and training all biases 2, we roughly recover the expressive-
+ness of full ﬁne-tuning by setting the LoRA rankr to the rank of the pre-trained weight matrices. In
+other words, as we increase the number of trainable parameters 3, training LoRA roughly converges
+to training the original model, while adapter-based methods converges to an MLP and preﬁx-based
+methods to a model that cannot take long input sequences.
+No Additional Inference Latency. When deployed in production, we can explicitly compute and
+store W = W0 + BA and perform inference as usual. Note that both W0 and BA are in Rd×k.
+When we need to switch to another downstream task, we can recover W0 by subtracting BA and
+then adding a different B′A′, a quick operation with very little memory overhead. Critically, this
+2They represent a negligible number of parameters compared to weights.
+3An inevitability when adapting to hard tasks.
+4

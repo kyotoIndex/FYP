@@ -1,0 +1,1842 @@
+
+
+===== PDF PAGE 1 =====
+
+arXiv:2506.12213v1  [cs.LG]  13 Jun 2025
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 1
+Fed-HeLLo: Efficient Federated Foundation Model
+Fine-Tuning with Heterogeneous LoRA Allocation
+Zikai Zhang , Ping Liu , Jiahao Xu , Rui Hu*
+Abstract—Federated Learning (FL) has recently been utilized
+to collaboratively fine-tune foundation models (FMs) across
+multiple clients. Notably, federated low-rank adaptation (LoRA)-
+based fine-tuning methods have recently gained attention, which
+allows clients to fine-tune FMs with a small portion of train-
+able parameters locally. However, most existing methods do
+not account for the heterogeneous resources of clients or lack
+an effective local training strategy to maximize global fine-
+tuning performance under limited resources. In this work, we
+propose Fed-HeLLo, a novel federated LoRA-based fine-tuning
+framework that enables clients to collaboratively fine-tune an FM
+with different local trainable LoRA layers. To ensure its effective-
+ness, we develop several heterogeneous LoRA allocation (HLA)
+strategies that adaptively allocate local trainable LoRA layers
+based on clients’ resource capabilities and the layer importance.
+Specifically, based on the dynamic layer importance, we design
+a Fisher Information Matrix score-based HLA (FIM-HLA) that
+leverages dynamic gradient norm information. To better stabilize
+the training process, we consider the intrinsic importance of
+LoRA layers and design a Geometrically-Defined HLA (GD-
+HLA) strategy. It shapes the collective distribution of trainable
+LoRA layers into specific geometric patterns, such as Triangle,
+Inverted Triangle , Bottleneck, and Uniform. Moreover, we ex-
+tend GD-HLA into a randomized version, named Randomized
+Geometrically-Defined HLA (RGD-HLA), for enhanced model
+accuracy with randomness. By co-designing the proposed HLA
+strategies, we incorporate both the dynamic and intrinsic layer
+importance into the design of our HLA strategy. To thoroughly
+evaluate our approach, we simulate various complex federated
+LoRA-based fine-tuning settings using five datasets and three
+levels of data distributions ranging from IID to extreme Non-IID.
+The experimental results demonstrate the effectiveness and effi-
+ciency of Fed-HeLLo with the proposed HLA strategies. The code
+is available at https://github.com/TNI-playground/Fed HeLLo.
+Index Terms —Foundation Model Fine-Tuning, Federated
+Learning, Low-Rank Adaptation, Resource Heterogeneity
+I. I NTRODUCTION
+F
+OUNDATION models (FMs) [13], [16], [36], [37], [68],
+characterized by their extensive parameter counts ranging
+into millions or billions, serve as robust initial weights for a va-
+riety of downstream tasks [47], [52] via fine-tuning. However,
+employing FMs presents substantial challenges, especially the
+high computational costs of fine-tuning the model.
+To mitigate the high computational requirement of fine-
+tuning FMs, researchers have developed a variety of
+parameter-efficient fine-tuning (PEFT) methods. These meth-
+ods either selectively update a subset of model parameters or
+Zikai Zhang, Ping Liu, Jiahao Xu, Rui Hu are with the Department
+of Computer Science and Engineering, University of Nevada, Reno, Reno,
+NV , 89557, USA (e-mail: zikaiz@unr.edu; pingl@unr.edu; jiahaox@unr.edu;
+ruihu@unr.edu).
+*Rui Hu is the Corresponding Author: ruihu@unr.edu
+incorporate a small set of trainable layers, such as in prompt
+tuning [29], low-rank adaptation (LoRA) [25], and BitFit [59].
+Recent works [2], [21], [46], [62], [67] have started to
+explore the combination of FL and various PEFT methods
+due to their lightweight training structures. Federated Learning
+(FL) [27], [60] is a distributed machine learning framework
+that enables multiple clients to collaboratively update a global
+model. In the FL process, each client trains a local model on
+its private dataset and sends model updates to a central server
+for aggregation. Incorporating PEFT techniques in this process
+improves parameter efficiency, reducing both computational
+and communication overhead. In the literature, FedPrompt [67]
+and PromptFL [21] combine FL with prompt tuning, updating
+only the soft prompts to improve parameter and communica-
+tion efficiency. Due to the advantages of LoRA in handling
+complex downstream tasks with mid-size dataset [65], partic-
+ularly those involving significant domain shifts, several studies
+have explored federated LoRA-based fine-tuning methods [2],
+[62]. For instance, FedIT [62] combines FL with LoRA for
+federated instruction-tuning. SLoRA [2] introduces a novel ini-
+tialization method for LoRA layers to improve the convergence
+speed of LoRA in FL.
+Despite advancements in federated LoRA-based fine-tuning,
+the persistent challenges are the memory bottlenecks expe-
+rienced by clients with limited resources. While LoRA is
+designed to be parameter-efficient, it still requires substantial
+memory usage during training, similar to full-model fine-
+tuning [31]. As shown in Figure 1 (a), the memory usage
+for training a ViT-base [28] model including the memory for
+model parameters, optimizer states, and activations. The model
+parameters include the weights and biases of the frozen pre-
+trained model as well as trainable parameters. The optimizer
+states store gradients and necessary momentum estimates for
+trainable parameters. Activations are intermediate results in
+forward process that are stored for computing gradients in
+backpropagation. In this LoRA-based fine-tuning case, model
+parameters take only 3% of the memory, while optimizer states
+and activations together take 97% of the memory.
+Furthermore, as shown in Figure 1 (b), clients in real-
+world FL have heterogeneous memory capabilities, and the
+majority of them have low-resource devices with limited mem-
+ory capabilities. This presents substantial challenges to the
+deployment of federated LoRA-based fine-tuning, as clients
+with limited memory resources are not capable of completing
+the local training task effectively and efficiently. In this case,
+FL usually assigns local training tasks only to high-capability
+clients (known as exclusive learning [26]), which results in a
+significant loss of data from low-capability clients. Otherwise,
+
+===== PDF PAGE 2 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 2
+FL conducts local training based on the resources of the least
+powerful client (known as straggler learning [39]). This is
+sub-optimal because it wastes the resources of high-capability
+clients that could perform more computation.
+To address the memory constraint issue in heterogeneous
+resource settings, existing works [3], [10], [45], [50] employ
+training strategies where resource-limited clients use LoRA
+with smaller ranks [3], [10], [50] or update only partial LoRA
+layers [45]. Specifically, methods that use smaller LoRA ranks
+primarily reduce the memory cost for optimizer states, thus the
+reduction is not significant. Other approaches that train only
+partial LoRA layers can lower both activation and optimizer
+memory costs. However, they allocate trainable LoRA layers
+randomly without considering layer importance.
+In this work, we strategically allocate partial LoRA
+layers to reduce memory requirements for local training
+in resource-constrained clients. Specifically, we propose a
+novel Federated LoRA-based fine-tuning framework with
+Heterogeneous LoRA al Location, called Fed-HeLLo. This
+framework allows clients with different local trainable LoRA
+layers to collaboratively fine-tune an FM. However, it remains
+challenging to ensure that their local model updates can
+effectively contribute to obtain a well-trained global model. To
+address this, we design heterogeneous LoRA allocation (HLA)
+strategies that consider the varying importance of different
+LoRA layers. Our contributions are summarized as follows:
+• To address the memory constraint in heterogeneous
+clients, we propose a novel federated LoRA-based fine-
+tuning framework called Fed-HeLLo. This method en-
+ables clients to collaboratively fine-tune an FM by updat-
+ing different local LoRA layers in each training round.
+To the best of our knowledge, this is the first work to
+design a federated LoRA-based fine-tuning framework
+with heterogeneous LoRA allocation.
+• We design a Fisher Information Matrix score-based HLA
+(FIM-HLA) that leverages dynamic gradient norm infor-
+mation to allocate trainable LoRA layers on the server.
+• To better stabilize the training process, we design a
+Geometrically-Defined HLA (GD-HLA) strategy by con-
+sidering the intrinsic importance of different layers, such
+as the relationships among shallow, middle, and deep
+feature extraction. This strategy allocates trainable LoRA
+layers to different clients so that the collective distribution
+of LoRA layers forms a specific geometrical pattern, such
+as Triangle (▷), Inverted Triangle (◁), Bottleneck (▷ ◁)
+and Uniform (≈). We also extend GD-HLA to a random-
+ized version, Randomized Geometrically-Defined HLA
+(RGD-HLA) for enhanced robustness. By co-designing
+these HLA strategies, we incorporate both the dynamic
+and intrinsic layer importance into our framework.
+• To thoroughly evaluate our approach, we simulate various
+federated LoRA-based fine-tuning settings using diverse
+datasets and varying data distributions for both visual and
+language tasks. The experimental results demonstrate the
+effectiveness and efficiency of our framework.
+Activation
+10740.80 MB
+Optimizer
+345.56 MB
+Parameter
+904.96 MB
+…
+(a) GPU Memory Consumption (b) Num of Heterogeneous Devices
+High-Resource Devices
+with Large GPU Memory
+Medium-Resource Devices
+with Medium GPU Memory
+Low-Resource Devices 
+with Small GPU Memory
+Fig. 1. (a) GPU memory usage for the ViT-base model, which includes a
+12-layer encoder with LoRA applied to each layer. Batch size is 128. (b) The
+distribution of heterogeneous devices in a practical scenario.
+II. R ELATED WORKS
+Parameter-efficient fine-tuning. Resource-constrained de-
+vices cannot train an FM from scratch or fully fine-tune an
+FM due to the numerous trainable parameters. Consequently,
+researchers have turned to PEFT techniques [15], [25], [29],
+[59], which involve updating only a small subset of the model’s
+parameters. It can be mainly categorized into two types:
+additive and selective PEFT methods. Additive PEFT methods
+introduce new trainable layers to the model while keeping
+the pre-trained model weights frozen, enabling efficient task-
+specific fine-tuning. For example, prompt tuning [29] adds
+task-specific soft prompts, which are then fine-tuned to adapt
+the model to new tasks. LoRA [25] introduces trainable low-
+rank matrices that are added to the existing weights of the
+pre-trained model for fine-tuning. Selective PEFT methods
+update only a subset of the pre-trained model’s parameters. For
+instance, BitFit [59] updates only the bias parameters, while
+LN-Norm [4] updates the layer normalization parameters in
+ViT models. Further advancements have been made with
+hybrid approaches that combine multiple PEFT techniques to
+enhance fine-tuning efficiency [23], [69]. Among these PEFT
+methods, LoRA has demonstrated more stable and effective
+performance for complex downstream tasks with mid-size
+datasets [15], [65]. Without loss of generality, we focus on
+LoRA in this work.
+Federated LoRA-based fine-tuning. Given the resource
+challenges posed by full-model fine-tuning [31] in FL, fed-
+erated LoRA-based fine-tuning has gained increasing atten-
+tion [2], [20], [34], [46], [53], [56], [62]. These approaches
+improve the parameter efficiency and reduce computational
+and communication costs [58], [72]. For example, FedIT [62]
+proposes a vanilla federated fine-tuning method with LoRA
+and establishes benchmarks for PEFT in FL. SLoRA [2]
+designs a two-stage fine-tuning method that combines full
+model and LoRA-based fine-tuning to establish a better ini-
+tialization for LoRA weights and improve the global model
+accuracy. FedFMSL [56] proposes a two-stage LoRA fine-
+tuning framework. In the first stage, all LoRA layers are
+trainable to quickly adapt to the current task. In the second
+stage, the model is initialized with the weights obtained
+from the first stage, and a Sparsely Activated LoRA (SAL)
+algorithm is introduced to progressively activate LoRA layers
+
+===== PDF PAGE 3 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 3
+for saving computational costs. FedBiOT [53] proposes a fed-
+erated LoRA-based fine-tuning algorithm that uses compressed
+pre-trained weights (named as emulator) on each client. By
+using an emulator that simulates the behavior of the original
+FMs on client, the computational cost for local training can be
+reduced. DP-LoRA [34] is a vanilla approach that incorporates
+a Gaussian-based differential privacy (DP) mechanism into
+federated LoRA-based fine-tuning. By adding noise to model
+updates, it protects clients’ privacy during the FL process.
+FFA-LoRA [46] introduces a LoRA layer initialization strategy
+to improve model accuracy and communication efficiency.
+By default, the LoRA weight matrix A (input projection) is
+initialized with small random values, and matrix B (output
+projection) is initialized as zero. They prove that fine-tuning
+only matrix B is sufficient for efficient model fine-tuning.
+However, these approaches often fail to account for the het-
+erogeneity in clients’ resources.
+FL with heterogeneous clients. To address the heteroge-
+neous resource capabilities of clients in FL, existing meth-
+ods [14], [24], [26], [33] can be broadly categorized into
+two types: width-wise scaling and depth-wise scaling. Width-
+wise scaling approaches [14], [24] prune model channels
+to create a smaller and more streamlined local model for
+clients with limited resources to update. Depth-wise scaling
+approaches [26], [33] assign only the first few layers of the
+model for resource-limited clients to update, thus reducing
+resource requirements for clients. However, these approaches
+focus on full-model training and cannot be directly applied to
+LoRA-based fine-tuning. There are several existing works [3],
+[10], [45], [50], [66] in federated LoRA-based fine-tuning
+consider clients with heterogeneous resources. HETLoRA [10]
+employs a heterogeneous LoRA rank strategy, allowing clients
+to train different numbers of LoRA ranks based on their mem-
+ory capacity, with a hierarchical aggregation rule where shared
+ranks are averaged across multiple clients, while higher ranks
+are aggregated among fewer clients. FLoRA [50] is designed
+to mitigate aggregation noise during federated LoRA-based
+fine-tuning. It introduces a stacking strategy for aggregation,
+where LoRA layer updates from clients are stacked along the
+rank dimension respectively, and then used to reconstruct the
+full weight matrices. For each next round, the LoRA layers are
+initialized on each clients and only the full weight matrices
+are updated. FlexLoRA [3] introduces a novel aggregation
+strategy that first aggregates LoRA weight matrices A and
+B separately. Then those aggregated LoRA weights are used
+to reconstruct the full weight matrices for each LoRA layer.
+Finally, they apply singular value decomposition (SVD) to
+redistribute the LoRA weight matrices among clients with
+varying ranks. However, reducing LoRA ranks in these rank-
+based methods can only reduce the memory cost of optimizer
+states, making them less effective in memory-constrained
+environments. FedRA [45] introduces a layer-wise LoRA
+allocation strategy that randomly selects partial LoRA layers
+in each round to address resource constraints among clients.
+However, this method overlooks the varying importance of
+different layers in the global model’s accuracy.
+In Table I, we provide an overall comparison of our ap-
+proach with the state-of-the-art (SOTA) methods discussed
+above. By evaluating four key aspects: whether to use PEFT
+techniques, whether to consider resource and model hetero-
+geneity, and whether incorporating a dynamic training strat-
+egy based on training-time model performance. Overall, our
+method demonstrates clear advantages over existing works.
+TABLE I
+COMPARED WITH SOTA W ORKS .
+Method PEFT Resource Hete. Model Hete. Dynamic Training
+FedTP [31] ✗ ✗ ✗ ✓
+FedIT [62] ✓ ✗ ✗ ✗
+SLoRA [2] ✓ ✗ ✗ ✗
+FedFMSL [56] ✓ ✗ ✗ ✓
+FedBiOT [53] ✓ ✗ ✗ ✓
+DP-LoRA [34] ✓ ✗ ✗ ✗
+FFA-LoRA [46] ✓ ✗ ✗ ✗
+FLoRA [50] ✓ ✓ ✓ ✗
+FlexLoRA [3] ✓ ✓ ✓ ✗
+HETLoRA [10] ✓ ✓ ✓ ✗
+FedRA [45] ✓ ✓ ✓ ✗
+Ours ✓ ✓ ✓ ✓
+III. O UR PROPOSED APPROACH : F ED-H ELLO
+In this section, we present Fed-HeLLo, a novel frame-
+work of federated LoRA-based fine-tuning. Fed-HeLLo is de-
+signed for training heterogeneous LoRA layers across different
+clients. To improve the global model’s performance in Fed-
+HeLLo, we design the HLA strategy that adaptively allocates
+trainable LoRA layers according to both the dynamic and
+intrinsic importance.
+A. FedHeLLo: Federated LoRA-based Fine-Tuning with Het-
+erogeneous LoRA Allocation
+The idea behind LoRA is to constrain the update of a pre-
+trained weight matrix W 0 ∈ Rd×k by a low-rank decom-
+position W 0 + ∆W = W 0 + BA, where B ∈ Rd×r,
+A ∈ Rr×k, and the rank r ≪ min(d, k). During training,
+W 0 remains frozen, and only A and B are updated. We
+consider a pre-trained model Φ0 = {W 0
+(1), · · · , W 0
+(l), W 0
+rest}
+with l transformer layers, where each transformer layer is
+W 0
+(j) with j ∈ [1, l], and W 0
+rest represents the remaining
+layers. LoRA is typically applied to specific modules within
+transformer layers, such as the attention weights [25]. We
+denote the LoRA layer added to the j-th transformer layer as
+θ(j) = {A(j), B(j)} and any additional trainable parameters in
+the embedding or classifier layers as ∆Wrest. Here, we define
+the set of trainable parameters as θ := {θ(1), · · · , A(l), B(l)},
+simplifying the representation by omitting ∆Wrest.
+We consider a federated LoRA-based fine-tuning system
+where n clients collaboratively fine-tune a global model Φ,
+consisting of frozen weights Φ0 and trainable parameters θ,
+under the coordination of a central server. Each client i ∈ [n]
+holds a local dataset Di ∼ P i, where Pi represents the data
+distribution specific to client i. The problem of federated
+LoRA-based fine-tuning can be formulated as follows:
+min
+θ
+L(θ) := 1
+n
+nX
+i=1
+Li(θ; Φ0), (1)
+where Li(θ; Φ0) := Ex∈Di[ℓ(θ; Φ0, x)] denotes the local loss
+of client i, and ℓ(θ; Φ0, x) is the loss function of the model
+
+===== PDF PAGE 4 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 4
+Encoder 0
+Encoder 1
+Encoder 2
+LoRA
+LoRA
+LoRA
+Encoder 0
+Encoder 1
+Encoder 2
+LoRA
+LoRA
+LoRA
+Encoder 0
+Encoder 1
+Encoder 2
+LoRA
+LoRA
+LoRA
+Server
+Round 𝑡
+Clients
+…
+Trainable Frozen Pre-trained Weights
+…
+𝐶1 𝐶2 𝐶𝑛
+Fig. 2. Overview of the Fed-HeLLo framework.
+Φ = {θ, Φ0} for a data point x sampled from Di. To solve this
+problem, one can follow the classic FL algorithm FedAvg [38].
+Specifically, before training, the server broadcasts the initial
+global model Φ0
+g = {θ0
+g, Φ0} to all clients, where θ0
+g repre-
+sents the initialized global trainable parameters. Clients then
+save this model as their initial local models Φ0
+i , i ∈ [n]. In
+each training round t ∈ [T ], the server sends its current global
+trainable parameters θt
+g to a subset of s clients, denoted by S t.
+Each selected client initializes its local trainable parameters θt
+i
+with θt
+g and obtains the local model Φt
+i = {θt
+i, Φ0}. Based on
+Φt
+i, the client updates θt
+i individually using Di to obtain θt+1
+i
+and sends its local update δt+1
+i := θt+1
+i − θt
+i to the server.
+The global trainable parameters are then updated as follows:
+θt+1
+g := θt
+g + (1/|S t|) P
+i∈S t δt+1
+i , resulting in the global
+model Φt+1
+g = {θt+1
+g , Φ0} for the next round of training.
+In the naive FedAvg process described above, clients should
+update all the trainable parameters in θg locally, which in-
+cludes l LoRA layers. This requires substantial on-device GPU
+memory for optimizer states and intermediate activations (as
+shown in Figure 1). For the optimizer state, it increases linearly
+with the size of the trainable parameters. When applying
+LoRA to each transformer layer, all the activation of these lay-
+ers need to be stored for backpropagation, akin to full-model
+fine-tuning. This high memory requirement makes the local
+training task infeasible for clients with limited resources [63].
+Inspired by the recent model freezing methods proposed
+in [1], [41], [45], freezing a model layer can eliminate
+the storage of its dynamic activations, significantly reducing
+memory requirements for local training in federated fine-
+tuning. Moreover, training partial layers reduces the storage
+of optimizer states. With model freezing, resource-constrained
+clients can train only partial LoRA layers based on their
+memory capability, as shown in Figure 2.
+In this case, we consider a heterogeneous local LoRA
+allocation, where the server assigns ci trainable LoRA layers
+for local training based on the client’s capability. Specifically,
+we use an allocation map mi := {mi,(1), mi,(2), · · · , mi,(l)}
+to represent the active status of the local LoRA layers for a
+client, where the element mi,(j) = 1 if the j-th LoRA layer
+∆θi,(j) is set to be locally trainable on client i and mi,(j) = 0
+if the j-th LoRA layer is frozen, and P(mi) = ci. At each
+round t, with global parameters θt
+g, the local model of client
+i is initialized as Φt,0
+i = {θt
+g, Φ0}. Given the allocation map
+mi, client i freezes its j-th LoRA layer if mi,(j) = 0 and
+Algorithm 1 Fed-HeLLo
+Require: resource capability ci, number of model layers l,
+heterogeneous layer allocation strategy HLA, number of
+communication rounds T .
+1: Initial global model Φ0
+g = {θ0
+g, Φ0}
+2: for each clients i ∈ [n] in parallel do
+3: Server broadcasts the initial global model Φ0
+g
+4: Client saves this model as their initial local models Φ0
+i
+5: end for
+6: for t = 0 to T − 1 do
+7: Server randomly samples a set of s clients (denoted by
+S t), and obtain ci
+8: Generate allocation maps mt
+i = HLA(θt
+g, Φ0, ci) for
+each client i ∈ S t
+9: Server broadcasts θt
+g and mt
+i to them
+10: for each clients i ∈ S t in parallel do
+11: Initialize local trainable parameters θt
+i as in Equa-
+tion (2)
+12: δt
+i ← LocalUpdate(θt
+i, Φ0
+i , Di)
+13: end for
+14: δt+1
+g ← Agg(θt
+g, δt, mt) as in Equation (3)
+15: θt+1
+g = θt
+g + δt+1
+g
+16: end for
+17: return ΦT
+g = {θT
+g , Φ0}
+obtains its local trainable parameters, initialized as
+θt
+i := {θt
+g,(j) | j ∈ {1, · · · , l} and mi,(j) = 1}. (2)
+After local training, each selected client uploads its local
+update δt+1
+i := {δt+1
+i,(j)}l
+j=1 to the server. These updates are
+then aggregated to update the global trainable parameters as,
+δt+1
+g =
+(
+1P
+i∈S t mi,(j)
+X
+i∈S t
+mi,(j)δt+1
+i,(j)
+)l
+j=1
+. (3)
+Algorithm 1 outlines the overall framework of Fed-HeLLo.
+In each round, the server uses a HLA strategy to determine
+the allocation maps mt
+i, i ∈ St for every selected client. In the
+following, we present the details of our HLA strategy.
+B. Heterogeneous LoRA Allocation Methods
+Prior research [1], [9], [19], [35], [41], [48] has shown that
+different layers contribute unequally to model performance.
+As shown in Figure 3, training a different single LoRA layer
+results in different convergence speed, and this pattern varies
+for different tasks. In our method, we leverage the varying
+importance of LoRA layers to design HLA for clients with
+various memory capacities.
+1) Fisher Information Matrix Score-based HLA for the
+Dynamic Layer Importance: To assess the importance of
+different layers, we adopt the Fisher Information Matrix
+(FIM) score [51]. Specifically, the FIM score measures how
+adjustments in model parameters affect the model’s output. In
+practice, it is defined by calculating the average norm of the
+gradients,
+FIM(Φl, Φ; DFIM) = 1
+|DFIM|
+X
+d∈DFIM
+∥∇Φl ℓ(Φ, d)∥2
+2 , (4)
+
+===== PDF PAGE 5 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 5
+Fig. 3. The convergence of fine-tuning different LoRA layers on ViT-base
+model in centralized settings across CIFAR100 and DomainNet-121 dataset.
+where Φ denotes the model’s parameters, l represents one
+layer of the model, d denotes a data sample from a proxy
+dataset DFIM, ∇ℓ(·) represents the model gradients, and ∥ · ∥2
+denotes the L2 norm. Here, a higher FIM score indicates a
+more important layer.
+In our case, we calculate the FIM score on the server
+to assess the layer importance, and propose the FIM-HLA
+strategy. Specifically, the server has a global model Φg =
+{θ, Φ0} and a proxy dataset DFIM sampled from server’s test
+dataset without prior knowledge of the data distribution of
+clients [6], [42]. The FIM score for each LoRA layer j is
+obtained by Γ(j) = FIM(θ(j), Φg, DFIM). Intuitively, client i
+with resource capability ci should select the top ci important
+layers according to the FIM scores.
+Instead of directly using the ranking of LoRA layers, we
+convert FIM scores into a smoother allocation probability
+distribution. Specifically, we divide clients’ resource capacities
+{ci}n
+i=1 into k levels, {c1, c2, . . . , ck} in an ascending order.
+Each level ch, h ∈ [k] indicates the number of LoRA layers a
+client can train. If a client always pick the first ch′ layers to
+train, for the first ch LoRA layers, the corresponding allocation
+probability is,
+ah =
+Pk
+h′=1 1(ch′ ≥ ch)
+Pk
+h′=1 ch′rh′
+, h ∈ [k], (5)
+where rh represents the ratio of clients which has the capabil-
+ity of ch. This gives us a base probability {a1, a2, . . . , ak} for
+different resource levels. Next, we cluster [22] the FIM scores
+{Γ(j)}l
+j=1 of LoRA layers into k groups {g1, g2, . . . gk} in a
+descending order. For the layer with a higher FIM score, it
+should has a larger allocation probability. Therefore, for each
+layer j ∈ gh, h ∈ [k], its allocation probability is set by aj. The
+allocation probabilities across all layers are then normalized so
+that their sum equals one. Finally, the allocation map mi for
+client i can be determined individually by randomly sampling
+ci LoRA layers without replacement based on the allocation
+probability distribution.
+2) Randomized Geometrically-Defined Heterogeneous
+LoRA Allocation for the Intrinsic Layer Importance: In
+Fed-HeLLo, FIM-HLA is conducted every round to generate
+allocation maps for clients. However, during the early training
+rounds, FIM scores do not provide an accurate estimation
+about the training state of the global model. To explore this,
+we conduct an experiment on LEDGAR dataset, comparing
+the convergence speed of our proposed FIM-HLA with
+a random allocation baseline, FedRA [45]. As shown in
+Figure 4, FIM-HLA achieves faster overall convergence
+compared to FedRA, but FedRA initially converges faster
+during the first 10 rounds. This discrepancy may result
+from FIM-HLA’s difficulty in capturing meaningful layer
+importance information early in training. To address this issue,
+we introduce a HLA method that provides an effective initial
+LoRA allocation by considering intrinsic layer importance.
+The intrinsic layer importance represents the natural role
+of each layer in feature extraction [19], [41]. For exam-
+ple, different tasks and datasets often require models to
+focus on specific feature hierarchies, where shallow layers
+capture edges, textures, and spatial structures, deep layers
+extract semantic meaning, object relationships, and contex-
+tual understanding. Object-centric datasets such as CIFAR-
+100 [28] and ImageNet [12] emphasize deep-layer seman-
+tic features, whereas datasets like the Describable Textures
+Dataset (DTD) [11] prioritize shallow-layer textural details.
+Inspired by these, we propose a Geometrically-Defined HLA
+(GD-HLA) strategy. This strategy allocates trainable LoRA
+layers to clients according to specific patterns that are effective
+at the global level, where the patterns are designed to consider
+the intrinsic LoRA layers importance. Specifically, we define
+four GD-HLAs, each resulting in a distinct global allocation
+pattern: Triangle (▷), Inverted Triangle (◁), Bottleneck (▷ ◁),
+and Uniform (≈). In the Triangle pattern (▷), clients prioritize
+training on shallower LoRA layers, allocating more resources
+to these layers due to their significant impact on coarse-
+grained feature modeling. In contrast, the Inverted Triangle
+pattern ( ◁) focuses on deeper LoRA layers, emphasizing the
+development of the ability to handle more semantic features.
+The Bottleneck pattern ( ▷ ◁) represents a trade-off between
+these two allocations, acknowledging the significance of both
+shallow and deep LoRA layers in feature modeling [61].
+Finally, the Uniform pattern ( ≈) assigns uniform significance
+to features across all layers, resulting in a uniform allocation
+by randomly selecting ci layers.
+Each strategy corresponds to a specific allocation mask for
+clients i, formalized as follows:
+m▷
+i =
+
+
+
+1, · · · , 1| {z }
+ci
+, 0, · · · , 0| {z }
+l−ci
+
+
+
+,
+m◁
+i =
+
+
+
+0, · · · , 0| {z }
+l−ci
+, 1, · · · , 1| {z }
+ci
+
+
+
+, (6)
+m▷ ◁
+i =
+
+
+
+1, · · · , 1| {z }
+⌈ci/2⌉
+, 0, · · · , 0| {z }
+l−ci
+, 1, · · · , 1| {z }
+⌊ci/2⌋
+
+
+
+,
+m≈
+i = {0, 1}l ∼ Uniform (ci/l) .
+Here, we extend the fixed GD-HLA to a randomized ver-
+sion, named Randomized Geometrically-Defined HLA (RGD-
+HLA). Specifically, using the allocation maps {m⋆
+i }n
+i=1 gen-
+erated by a pre-defined GD-HLA strategy ⋆, a prior allocation
+
+===== PDF PAGE 6 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 6
+TABLE II
+MAIN RESULTS OF FED-HELL O COMPARED WITH BASELINES ON CIFAR-100 DATASET.
+Methods
+Model Performance (Accuracy) Avg Back. Comp.
+Cost (TFLOPs)
+Avg Memory
+Cost (GB)
+Avg Comm.
+Cost (MB/R)
+Avg Training
+Time (Sec/R)IID 20/1.0 10/1.0 Avg
+Straggler - 68.15 60.48 55.88 61.50 1.62 10.52 3.53 6.38
+Exclusive
+RoC
+6:3:1
+78.33 4.49 7.13 29.98 3.25 12.29 4.71 12.99
+HETLoRA 80.10 64.36 53.20 65.88 3.22 12.25 2.85 9.07
+FlexLoRA 44.77 44.36 38.40 42.51 3.22 12.25 57.12 14.91
+FLoRA 3.56 2.39 2.88 2.94 3.22 12.25 5.47 11.62
+FedRA 86.19 81.08 74.77 80.68 2.03 10.47 3.83 10.17
+Fed-HeLLo 86.50 82.57 78.49 82.52 2.03 10.74 3.83 9.83
+Exclusive
+RoC
+1:1:1
+85.20 81.14 70.26 78.86 3.25 12.19 4.71 11.87
+HETLoRA 85.56 81.06 69.69 78.77 3.23 12.26 3.41 7.83
+FlexLoRA 42.35 40.47 36.32 39.71 3.23 12.26 57.67 21.23
+FLoRA 4.04 3.58 2.29 3.30 3.23 12.26 11.53 12.92
+FedRA 87.06 84.05 78.51 83.20 2.45 11.08 4.14 9.52
+Fed-HeLLo 87.11 84.64 79.76 83.84 2.45 11.19 4.14 5.01
+0 20 40 60 80 100
+Training Rounds (LEDGAR)
+3.5
+4.0
+4.5Training Loss (Non-IID 20)
+FedRA
+FIM-HLA
+Fig. 4. The convergence of FedRA and FIM-HLA on LEDGAR dataset.
+probability for each layer j is calculated as
+g⋆
+(j) =
+Pn
+i=1 m⋆
+i,(j)
+Pl
+j=1
+Pn
+i=1 m⋆
+i,(j)
+, (7)
+where Pl
+j=1 g⋆
+(j) = 1 . Based on the allocation probability
+distribution {g1, g2, . . . , g⋆
+l }, the server conducts a random
+sampling by selecting ci LoRA layers without replacement to
+obtain the allocation map for each client i. This approach intro-
+duces randomness into the allocation of trainable LoRA layers
+based on a geometrically-defined prior probability, allowing
+resource-constrained clients the chance to train different lay-
+ers, which can potentially improve fine-tuning performance.
+Note that despite the randomness at the individual client level,
+the overall distribution of layer allocations across all clients
+adheres to a stable and predictable pattern predefined by ⋆.
+3) Co-design of FIM-HLA and RGD-HLA: To consider
+both the dynamic and intrinsic importance of different LoRA
+layers, we co-design FIM-HLA and RGD-HLA to finalize our
+HLA strategy. Specifically, our framework conducts RGD-
+HLA during the first TRGD rounds, which helps the model
+training to “warm-start”. Then, at every TFIM rounds, FIM-
+HLA is used to update the allocation probability distribution
+for each LoRA layer.
+C. Computational Complexity and Communicational Cost
+Computational Complexity. During the FL process, the
+computational complexity can be analyzed in terms of local
+training, model aggregation, and other operations [55], [70].
+Here, we compare our method with FedAvg [38].
+During local training, the computational complexity is de-
+termined by forward and backward computations. For Fe-
+dAvg, these operations have a computational complexity of
+O(τ l(d + R)2N s), where τ represents the number of local
+epochs per round, l represents the number of layers, d rep-
+resents the number of parameters for pre-trained model in
+each layer, R denotes the number of parameters for the LoRA
+layer, N represents the number of training samples, and s
+is the number of clients. The term (d + R)2 represents the
+number of operations needed for matrix multiplications. For
+Fed-HeLLo, only c LoRA layers are trainable, which results
+in a computational complexity of O( τ c(d+R)2N s
+l ).
+During model aggregation, the summing and averaging
+operations for Fed-HeLLo accounts for a computational com-
+plexity of O(slR), which is the same for FedAvg.
+For Fed-HeLLo, there is an extra FIM score calculation
+cost every TFIM rounds on the server. The computational
+complexity is O( l(d+R)2NFIMTFIM
+T + R2TFIM
+T ), where NFIM rep-
+resents the number of samples used for calculating the FIM
+score, and T represents the total training round. The first term
+is the computational complexity for obtaining the gradients.
+The second term represents the computational complexity of
+calculating the gradient norms.
+Overall, the computational complexity of FedAvg is
+given by O(τ l(d + R)2N s + slR). For Fed-HeLLo, it is
+O( τ c(d+R)2N s
+l + slR + l(d+R)2NFIMTFIM
+T + R2TFIM
+T ). Since TFIM
+T
+is small, the last two terms can be neglected. Additionally,
+as aggregation operations are less computationally expensive
+than training, the second term is also omitted. As a result, Fed-
+HeLLo achieves reduced computational complexity by training
+fewer layers.
+Communication Cost In FedAvg, the full trainable LoRA
+layers are transmitted from clients to the server and then
+
+===== PDF PAGE 7 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 7
+TABLE III
+MAIN RESULTS OF FED-HELL O COMPARED WITH BASELINES ON LEDGAR DATASET.
+Methods
+Model Performance (Macro-F1) Avg Back. Comp.
+Cost (TFLOPs)
+Avg Memory
+Cost (GB)
+Avg Comm.
+Cost (MB/R)
+Avg Training
+Time (Sec/R)IID 20/1.0 10/1.0 Avg
+Straggler - 56.82 51.05 44.05 50.64 1.62 10.61 3.53 6.58
+Exclusive
+RoC
+6:3:1
+61.25 44.72 28.48 44.81 3.25 12.38 4.71 12.99
+HETLoRA 53.00 39.09 26.90 39.66 3.22 12.35 2.87 9.07
+FlexLoRA 29.08 4.08 5.01 12.72 3.22 12.35 57.13 14.91
+FLoRA 0.06 0.04 0.08 0.06 3.22 12.35 5.65 11.62
+FedRA 66.74 61.73 55.71 61.39 2.04 10.57 3.83 10.17
+Fed-HeLLo 67.00 65.58 61.04 64.54 2.04 10.74 3.83 9.83
+Exclusive
+RoC
+1:1:1
+66.17 57.41 13.20 45.59 3.25 12.38 4.71 8.45
+HETLoRA 62.88 54.50 45.78 54.38 3.23 12.36 3.40 7.09
+FlexLoRA 30.95 1.19 1.83 11.32 3.23 12.36 57.66 13.33
+FLoRA 0.08 0.04 0.01 0.04 3.23 12.36 11.53 12.18
+FedRA 66.63 62.61 56.39 61.87 2.45 11.16 4.13 6.54
+Fed-HeLLo 66.75 67.10 64.27 66.04 2.45 11.28 4.13 5.75
+broadcast to all selected clients, resulting in a communication
+cost per round of O(2lRs). In Fed-HeLLo, allocation maps are
+transmitted every TFIM rounds, leading to a total communica-
+tion cost of O(2cRs + lsTFIM
+T ). Since the communication cost
+for FIM scores is negligible, reducing the number of trainable
+LoRA layers decreases the communication cost, demonstrating
+the efficiency and practicality of our method in FL scenarios.
+IV. E XPERIMENTS
+In this section, we evaluate and compare the performance
+of our proposed method, Fed-HeLLo, with other baseline
+methods across various datasets and data distribution settings.
+A. Experimental Settings
+We conduct experiments on both visual and language
+modalities. For visual tasks, we use CIFAR-100 dataset [28]
+and a crafted version of DomainNet dataset [43], referred to as
+DomainNet-121. For language tasks, we use LEDGAR dataset
+from LexGLUE [7] for paragraph classification, as well as
+two instruction fine-tuning datasets: Natural Instruction [49]
+and Dolly-15K [40]. We simulate three levels of data hetero-
+geneity ranging from IID to extreme Non-IID by varying the
+data quantities, labels, or domains of clients. For example, a
+“20/1.0” Non-IID setting means that each client has samples
+from 20 categories, with quantities skewed by a Dirichlet
+distribution with α = 1.0; a “25/D1” Non-IID setting indicates
+that each client has 25 categories and one domain per category.
+For visual tasks, we employ ViT-base [16], a 12-layer
+transformer encoder model designed for image processing.
+For language tasks, we conduct experiments on three mod-
+els. For LEDGAR dataset, we utilize BERT-base [13], a
+12-layer transformer model pre-trained on a comprehensive
+English corpus in a self-supervised manner. For the Natural
+Instruction and Dolly-15K dataset, we use the Llama-like
+model DataJuicer-1B [8] and OPT-1.3B [64] as the pre-trained
+models, respectively. For all these models, LoRA layers are
+applied to both the “query” and “value” modules in each
+transformer layer. The LoRA rank is set to 16 for ViT-base
+and BERT-base, and 8 for DataJuicer-1B and OPT-1.3B. The
+scaling parameter and dropout probability are set to 16 and
+0.1, respectively.
+For evaluation, we use top-1 accuracy for CIFAR-100
+and DomainNet-121, Macro F1 score for LEDGAR [7], and
+Rouge-L score [32] for Natural Instruction and Dolly-15K.
+The batch sizes for local training on CIFAR100, LEDGAR,
+DomainNet-121, Natural Instruction, and Dolly-15K are 128,
+128, 32, 1, and 1, respectively.
+For the FL settings, we consider n = 100 clients for
+classification tasks (CIFAR-100, LEDGAR, and DomainNet-
+121) and n = 50 for instruction fine-tuning tasks (Natural
+Instruction and Dolly-15k) unless otherwise specified. The
+local epoch τ and the number of training rounds T are
+set to 1 and 500 for classification tasks, and 1 and 25 for
+instruction fine-tuning tasks, respectively. At each round, the
+server randomly selects s = 10 clients to perform local fine-
+tuning, using the AdamW optimizer as the local solver.
+We consider two settings for the number of clients. In a
+practical scenario with more low-resource devices, the ratio
+of clients is set to 6:3:1, with each group capable of training
+1
+2, 3
+4, or all LoRA layers, corresponding to three levels of
+resource capabilities. We also consider an evenly distributed
+case (1:1:1 ratio of clients), where clients are divided into
+three resource levels, each capable of training 1
+2, 3
+4, or all
+LoRA layers. For the proxy dataset used in FIM-HLA, we
+randomly sample 100, 50, 1000, 50, and 50 samples from the
+test dataset of CIFAR100, LEDGAR, DomainNet-121, Natural
+Instruction, and Dolly-15K datasets, respectively, and exclude
+these samples throughout the entire process to ensure fairness.
+In classification experiments, we set both TRGD and TFIM to
+50 for Fed-HeLLo, and TRGD=0 and TFIM=1 for FIM-HLA.
+In instruction fine-tuning experiments, we set TRGD=1 and
+TFIM=2 for Fed-HeLLo, and same as before for FIM-HLA.
+B. Baselines
+To demonstrate the effectiveness of Fed-HeLLo, we com-
+pare it with several baselines as follows: Straggler Learning
+
+===== PDF PAGE 8 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 8
+TABLE IV
+MAIN RESULTS OF FED-H ELL O COMPARED WITH BASELINES ON NATURAL INSTRUCTION DATASET .
+Methods
+Model Performance (Rouge-L) Avg Back. Comp.
+Cost (TFLOPs)
+Avg Memory
+Cost (GB)
+Avg Comm.
+Cost (MB/R)
+Avg Training
+Time (Sec/R)IID 20/1.0 15/1.0 Avg
+Straggler - 59.71 59.37 59.11 59.39 1.83 11.16 9.43 99.07
+Exclusive
+RoC
+6:3:1
+59.58 59.34 59.42 59.44 3.67 12.40 12.58 200.20
+HETLoRA 60.65 60.00 60.21 60.28 3.67 12.37 7.43 153.40
+FlexLoRA 61.93 60.10 60.86 60.96 3.67 12.37 806.44 205.40
+FLoRA 48.15 48.69 47.84 48.22 3.67 12.37 7.36 165.11
+FedRA 60.91 60.84 60.50 60.75 2.26 11.25 10.16 101.46
+Fed-HeLLo 66.18 61.33 59.94 62.48 2.26 11.28 10.16 100.59
+Exclusive
+RoC
+1:1:1
+63.03 59.96 59.58 60.85 3.67 12.40 12.58 160.50
+HETLoRA 62.47 60.39 60.24 61.03 3.67 12.38 8.92 159.20
+FlexLoRA 61.63 60.67 60.49 60.93 3.67 12.38 807.94 191.79
+FLoRA 48.05 46.38 48.88 47.77 3.67 12.38 16.82 143.36
+FedRA 61.84 61.41 60.49 61.24 2.76 11.64 11.02 98.55
+Fed-HeLLo 68.22 62.03 60.89 63.71 2.76 11.64 11.02 109.79
+TABLE V
+MAIN RESULTS OF FED-H ELLO COMPARED WITH BASELINES ON DOLLY-15K DATASET.
+Methods
+Model Performance (Rouge-L) Avg Back. Comp.
+Cost (TFLOPs)
+Avg Memory
+Cost (GB)
+Avg Comm.
+Cost (MB/R)
+Avg Training
+Time (Sec/R)IID 3/1.0 1/1.0 Avg
+Straggler - 57.89 57.76 57.83 57.82 0.86 10.49 9.43 51.69
+Exclusive
+RoC
+6:3:1
+57.98 58.80 57.92 58.23 1.73 11.72 12.58 108.41
+HETLoRA 58.44 58.92 53.03 56.79 1.73 11.70 7.60 86.48
+FlexLoRA 58.86 58.84 59.14 58.94 1.73 11.70 806.62 138.89
+FLoRA 40.69 41.47 44.68 42.28 1.73 11.70 7.58 114.42
+FedRA 59.32 59.28 58.76 59.12 1.06 10.57 10.14 103.46
+Fed-HeLLo 59.80 59.90 59.45 59.71 1.06 10.61 10.14 94.25
+Exclusive
+RoC
+1:1:1
+59.38 59.37 58.58 59.11 1.73 11.72 12.58 131.39
+HETLoRA 59.36 59.34 59.08 59.26 1.73 11.71 9.45 90.14
+FlexLoRA 58.82 58.98 58.68 58.82 1.73 11.71 808.47 133.51
+FLoRA 42.19 44.72 44.70 43.87 1.73 11.71 19.03 112.37
+FedRA 59.38 59.38 59.07 59.27 1.39 11.11 11.33 104.44
+Fed-HeLLo 59.41 59.40 59.20 59.33 1.39 11.14 11.33 104.48
+allocates min{ci}n
+i=1 trainable layers for all clients based on
+the straggler’s resource capability, i.e., in our case ci = l
+2,
+∀i ∈ [n]. Exclusive Learning excludes clients that are
+unable to train all LoRA layers. HETLoRA [10] is a fed-
+erated LoRA-based fine-tuning framework that supports het-
+erogeneous LoRA ranks across clients. For HETLoRA, we
+align the number of clients across three levels of resource
+capabilities with our method’s settings, with each group of
+clients capable of training LoRA layers at ranks 1, 4, or 16
+for classification tasks and 1, 1, or 8 for instruction fine-
+tuning tasks. FLoRA [50] assigns lower ranks to resource-
+constrainted clients and shares stacked LoRA modules for
+updates. FlexLoRA [3] improves aggregation in rank-based
+methods using SVD. FedRA [45] is a federated LoRA-based
+fine-tuning framework that generates a random allocation map
+to allocate trainable LoRA layers to clients for each round.
+C. Experimental Results
+We evaluate the effectiveness of our Fed-HeLLo framework
+on five datasets under three levels of data heterogeneity,
+comparing it with baseline methods. The main experimental
+results are summarized in Tables II, III, IV, V and VI,
+where the best results among all methods are highlighted in
+grey , and the average performance across all data settings
+is also reported. Additionally, we provide a comparison of
+several resource indicators, including the average backward
+computational cost per step across all clients, average memory
+usage per step, average communication cost per round, and
+average wall-clock training time per round. RoC represents
+the ratio of heterogeneous resource clients.
+Quantitative Results on CIFAR-100: We compare our
+method Fed-HeLLo with two baseline methods (i.e., Strag-
+gler and Exclusive Learning) and four SOTA heterogeneous
+federated LoRA-based fine-tuning methods (i.e., HETLoRA,
+FlexLoRA, FLoRA, and FedRA). Table II reports the compar-
+ison results. In CIFAR-100 experiments, Fed-HeLLo demon-
+strates substantial improvements across various settings. Under
+the 6:3:1 RoC distribution, Fed-HeLLo achieves an aver-
+age accuracy of 82.52%, surpassing Straggler Learning by
++21.02% and Exclusive Learning by +52.54%. Compared to
+
+===== PDF PAGE 9 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 9
+TABLE VI
+MAIN RESULTS OF FED-HELL O COMPARED WITH BASELINES ON
+DOMAIN NET-121 DATASET.
+Methods
+Model Performance (Accuracy)
+IID 25/D1 15/D1 Avg
+Straggler - 49.03 34.87 29.20 37.70
+Exclusive
+RoC
+6:3:1
+54.04 29.69 21.43 35.05
+HETLoRA 54.43 27.98 13.52 31.97
+FlexLoRA 31.12 3.41 0.99 11.84
+FLoRA 1.51 1.15 1.01 1.22
+FedRA 65.39 52.39 48.26 55.34
+Fed-HeLLo 67.25 54.44 50.22 57.30
+Exclusive
+RoC
+1:1:1
+65.23 51.70 46.58 54.50
+HETLoRA 64.26 48.92 35.34 49.50
+FlexLoRA 23.05 1.21 1.21 8.44
+FLoRA 1.79 1.01 1.07 1.29
+FedRA 68.53 55.64 51.07 58.41
+Fed-HeLLo 68.98 58.01 53.74 60.24
+the rank-based method HETLoRA, the performance gains are
+even more significant (+6.40%, +18.21%, +25.29%) as the
+data heterogeneity becomes more extreme. FlexLoRA and
+FLoRA result in lower overall performance, indicating that
+their SVD and stacking techniques hinder the global model’s
+convergence. This is likely due to their noise-alleviation ag-
+gregation being ineffective when not all LoRA layers are
+trainable. Additionally, our method achieves substantial im-
+provements over the SOTA method FedRA, demonstrating the
+effectiveness of leveraging both dynamic and intrinsic layer
+importance in our framework. Similarly, under the 1:1:1 RoC
+setting, our method continues to outperform other methods,
+achieving +1.25% and +10.07% improvements over FedRA
+and HETLoRA, respectively, in the “10/1.0” Non-IID setting.
+Notably, Exclusive Learning outperforms HETLoRA in this
+setting, indicating that rank-based method can be detrimental
+during training. These results underscore the robustness of
+Fed-HeLLo in effectively managing resource heterogeneity
+in CIFAR-100 dataset. Regarding resource efficiency, under
+the 6:3:1 RoC distribution, rank-based methods such as HET-
+LoRA, FlexLoRA, and FLoRA achieve minimal computa-
+tional and memory savings compared to full LoRA layer fine-
+tuning. In contrast, our method reduces computational cost by
+38.41% and saves an average of 1.55 GB of memory. Addition-
+ally, our approach requires only 3.83 MB of communication
+per round, significantly lower than FlexLoRA, which needs to
+transmit full-rank matrices for each client.
+Quantitative Results on LEDGAR: On LEDGAR
+dataset III, our method consistently demonstrates strong per-
+formance. Under the 6:3:1 RoC distribution, Fed-HeLLo im-
+proves the macro F1 score by +13.90% compared to Strag-
+gler Learning and +19.73% compared to Exclusive Learning.
+Notably, in the most extreme Non-IID scenario (10/1.0), Fed-
+HeLLo continues to outperform other methods, with a +5.33%
+improvement over FedRA and a +34.14% improvement over
+HETLoRA. FlexLoRA and FLoRA also perform poorly in
+this scenario. It also indicates that these rank-based methods
+are not scalable to mid-sized FMs due to the limited prior
+information in the pre-trained weights. In the 1:1:1 RoC
+scenario, our method maintains all macro F1 scores above
+60%, and outperforms the SOTA methods HETLoRA and
+FedRA by +11.66%, and +4.17% on average, respectively.
+These observations highlight Fed-HeLLo’s ability to adapt
+to severe data distribution challenges. The results indicate
+that Fed-HeLLo excels in more balanced scenarios while
+remaining effective in environments with significant resource
+and data heterogeneity, making it a robust solution for complex
+datasets like LEDGAR. Regarding resource efficiency, our
+method reduces the average backward computational cost by
+1.18 TFLOPs compared to rank-based methods under the
+6:3:1 RoC scenario and by 0.78 TFLOPs under the 1:1:1
+RoC scenario. It increases average memory usage by only
+0.13 GB compared to Straggler Learning under the 6:3:1
+RoC distribution. However, as the number of low-resource
+devices increases, this gap becomes negligible. Additionally,
+our method decreases training time by 0.34 seconds and 0.79
+seconds compared to the random allocation method FedRA
+under the 6:3:1 and 1:1:1 RoC distributions, respectively,
+benefiting from the designed HLA strategy.
+Quantitative Results on Natural Instruction: We further
+evaluate performance on larger language models for instruc-
+tion fine-tuning tasks, as presented in Table IV. On Natural
+Instruction dataset with the 6:3:1 RoC distribution, our method
+achieves exceptionally high performance on IID scenario, out-
+performing FLoRA, Exclusive Learning, Straggler Learning,
+and HETLoRA by +18.03%, +6.60%, +6.47%, and +5.27%,
+respectively. However, our method outperforms FedRA by
++5.27% with our HLA design. While FlexLoRA performs
+reasonably well, our method still surpasses it by a consid-
+erable margin of +4.25%. In the Non-IID scenario (15/1.0),
+our method shows a slight performance drop compared to
+FlexLoRA, as it may requires more training rounds to optimize
+LoRA layer allocation under Non-IID data distributions (see
+Section IV-D for further discussion). Regarding computa-
+tional efficiency, our method reduces the average backward
+computational cost by 1.41 TFLOPs compared to rank-based
+methods, with the reduction scaling linearly as batch size
+increases (set to 1 in our case). It also lowers average memory
+usage by 1.09 GB compared to rank-based methods and only
+increases it by 0.12 GB relative to Straggler Learning. In
+terms of communication cost, our method remains efficient
+since only the trainable LoRA layer’s parameters need to be
+uploaded, whereas FlexLoRA requires downloading the full-
+rank matrix of LoRA layers, resulting in significantly higher
+communication overhead. Additionally, our method strikes
+a balance between training time and model performance,
+increasing training time by only 1.52 seconds compared to
+Straggler Learning under the 6:3:1 distribution.
+Quantitative Results on Dolly-15K: Dolly-15K presents
+a real-world scenario with human-generated prompt-response
+pairs. As shown in Table V, our method outperforms all
+compared approaches across all RoC distributions, consis-
+tently maintaining stable performance in both IID and Non-
+IID settings. Under the 6:3:1 RoC distribution, our method
+improves the average Rouge-L score by +1.89%, +2.92%,
+and +17.43% compared to Straggler Learning, HETLoRA, and
+FLoRA, respectively. Despite using SVD to obtain LoRA layer
+
+===== PDF PAGE 10 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 10
+Fig. 5. The accuracy and training loss with respect to training rounds on CIFAR-100 dataset, across different data and device settings.
+parameters, FlexLoRA still falls behind, our method surpasses
+it by +0.77% in performance. Our method achieves a +0.59%
+improvement compared to FedRA. The resource efficiency
+trends remain consistent under Dolly-15K dataset. Our method
+reduces the average backward computational cost by 0.67
+TFLOPs and 0.34 TFLOPs compared to rank-based methods
+under the 6:3:1 RoC and 1:1:1 RoC distributions, respectively.
+It also lowers average memory usage by 1.09 GB and 0.57 GB
+for the two distributions. Additionally, our method maintains
+a low average communication cost compared to Exclusive
+Learning and FlexLoRA, while achieving a balanced trade-
+off in training time, requiring only 94.25 and 104.48 seconds
+per training round.
+Quantitative Results on DomainNet-121: In DomainNet-
+121 experiments, as shown in Table VI, Fed-HeLLo fur-
+ther demonstrates its effectiveness, particularly in handling
+Non-IID data. Under the 6:3:1 RoC distribution, Fed-HeLLo
+achieves an average accuracy of 57.30%, outperforming
+Straggler Learning by +19.60% and Exclusive Learning by
++22.25%. In the 1:1:1 RoC setting, Fed-HeLLo continures
+to outperform baseline methods, with a +9.09% improve-
+ment over HETLoRA in the “25/1” Non-IID scenario and a
++6.31% increase over Exclusive Learning. Even in the most
+challenging “15/1” Non-IID setting, Fed-HeLLo maintains its
+advantage, outperforming HETLoRA by +18.40%. On aver-
+age, Fed-HeLLo outperforms FedRA by +1.96% and +1.83%
+in the 6:3:1 and 1:1:1 RoC settings, respectively. FlexLoRA
+and FLoRA perform poorly on mid-sized model, showing
+significant performance drops across both RoC distributions.
+These results on the DomainNet-121 dataset reinforce Fed-
+HeLLo’s capability to handle diverse and challenging FL
+environments, ensuring high performance even under extreme
+conditions.
+D. Visualization of the Training Process
+We visualize the accuracy and loss curves during train-
+ing with four methods (i.e., Exclusive Learning, HETLoRA,
+FlexLoRA, and FedRA) and our approach on CIFAR-100
+dataset. As shown in Figure 5, the first row presents re-
+sults under the 6:3:1 RoC distribution, while the second
+row corresponds to the 1:1:1 RoC distribution. For each
+row, the first two plots illustrate accuracy and training loss
+under an IID data distribution, whereas the latter two depict
+results under a Non-IID setting. Taking the accuracy and
+training loss curves under the 6:3:1 RoC distribution in an
+IID setting as an example, the plots show that our method
+(green solid line) achieves the highest accuracy and converges
+faster than other approaches. Notably, FlexLoRA (blue dashed
+line) exhibits significantly lower accuracy, indicating poor
+performance in this setting. FedRA (pink dashed line) and
+HETLoRA (orange dashed line) converge more slowly than
+our method, with HETLoRA stabilizing at a lower accuracy.
+The right plot illustrates training loss, where our method
+consistently reduces loss faster and reaches a lower loss,
+demonstrating better convergence. Exclusive Learning (deep
+green dashed line) shows instability with sudden fluctuations
+at the beginning of the training rounds, suggesting instability
+under this distribution. These results highlight the effectiveness
+of our approach in achieving both superior accuracy and stable
+training convergence compared to existing methods. In the
+Non-IID setting of the 6:3:1 RoC distribution, our method
+converges slightly slower than FlexLoRA at the beginning,
+which aligns with the issue observed in the main results on the
+Natural Instruction dataset. Under the 1:1:1 RoC distribution,
+the performance gaps narrow slightly, but our method still
+outperforms other approaches, maintaining higher accuracy
+and better convergence stability.
+E. Ablation Study
+1) Cross-silo Setting Evaluation: Here, we conduct an
+ablation study to evaluate the stability of our proposed method
+under cross-silo client settings. Table VII presents the cross-
+silo evaluation results on CIFAR-100 dataset using the ViT-
+base model, with 20 clients under two different RoC settings:
+6:3:1 and 1:1:1. The table compares the performance of differ-
+ent methods across IID and two Non-IID scenarios (20/1.0 and
+10/1.0). Under the 6:3:1 RoC setting, Fed-HeLLo significantly
+outperforms the other methods, achieving the highest average
+accuracy of 54.14%. Specifically, Fed-HeLLo reaches 86.63%
+accuracy in the IID case, outperform FedRA by +0.44% and
+
+===== PDF PAGE 11 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 11
+TABLE VII
+CROSS -SILO EVALUATION ON CIFAR-100 WITH 20 CLIENTS AND TWO
+ROC SETTINGS .
+Dataset/Model CIFAR-100/ViT-base
+Metric Accuracy (%) ↑
+(Methods/Client Settings)/DH IID 20/1.0 10/1.0 Avg
+Straggler - 72.73 56.92 46.01 58.55
+Exclusive
+RoC
+6:3:1
+79.26 31.70 14.31 41.75
+HETLoRA 81.92 32.63 17.50 44.01
+FlexLoRA 38.57 15.06 10.22 21.27
+FLoRA 2.12 1.28 1.62 1.67
+FedRA 86.19 68.03 3.00 52.40
+Fed-HeLLo 86.63 69.29 6.49 54.14
+Exclusive
+RoC
+1:1:1
+84.98 54.70 4.98 48.22
+HETLoRA 86.60 60.89 41.92 63.13
+FlexLoRA 45.51 16.69 2.44 21.54
+FLoRA 2.99 1.68 1.86 2.17
+FedRA 87.64 74.68 53.28 71.86
+Fed-HeLLo 88.22 75.09 56.27 73.19
+TABLE VIII
+GD-HLA EVALUATION ON CIFAR-100 DATASET WITH TWO CLIENT
+SETTINGS : 100 CLIENTS WITH A ROC OF 6:3:1, AND 20 CLIENTS WITH A
+ROC OF 1:1:1.
+Dataset/Model CiFAR-100/ViT-base
+Metric Accuracy (%)↑
+(Methods/Client Settings)/DH IID 20/1.0 10/1.0 Avg
+Triangle (▷)
+10/100
+Clients
+RoC
+6:3:1
+84.02 53.51 54.18 63.90
+In-Triangle (◁) 78.50 69.03 58.47 68.66
+Uniform (≈) 84.12 70.85 55.83 70.26
+Bottleneck (▷ ◁) 84.16 78.19 71.02 77.79
+Triangle (▷)
+4/20
+Clients
+RoC
+1:1:1
+87.29 64.75 6.30 52.78
+In-Triangle (◁) 85.76 66.64 2.34 51.58
+Uniform (≈) 87.15 62.18 2.00 50.44
+Bottleneck (▷ ◁) 87.50 70.54 38.18 65.41
+HETLoRA by +4.71%. In the 20/1.0 Non-IID scenario, Fed-
+HeLLo achieves an accuracy of 69.29%, which is +37.59%
+higher than Exclusive Learning. However, all fix methods
+diverge in the “10/1.0” Non-IID case, showing low accuracies
+under 20%, which may be a result from the imbalance of data
+among clients and heterogeneous client’s model updates in
+this extreme Non-IID scenario. Under the 1:1:1 RoC setting,
+Fed-HeLLo continues to lead, achieving the highest average
+accuracy of 73.19%. In the IID scenario, Fed-HeLLo reaches
+88.22% accuracy, which is +0.58% better than FedRA and
++3.24% better than Exclusive Learning. In the 20/1.0 Non-
+IID case, Fed-HeLLo achieves an accuracy of 75.09%, which
+is +0.41% higher than FedRA and +14.20% higher than HET-
+LoRA. For the 10/1.0 Non-IID case, Fed-HeLLo’s accuracy
+drops to 56.27%, yet it outperforms FedRA by +2.99% and
+HETLoRA by +14.35%. FlexLoRA and FLoRA perform even
+worse in cross-silo settings, demonstrating poor generalization
+to both the number of clients and mid-size FMs.
+2) GD-HLA Evaluation: Table VIII illustrates the perfor-
+mance evaluation of GD-HLA on CIFAR-100 dataset, compar-
+ing four HLA patterns: Triangle, Inverted-Triangle, Uniform,
+and Bottleneck, under two client settings: 100 clients with a
+6:3:1 RoC and 20 clients with a 1:1:1 RoC. In the 100 client,
+6:3:1 RoC scenario, the Bottleneck HLA pattern consistently
+outperforms the others, achieving the highest average accuracy
+72.68
+71.22
+71.08
+59.61
+58.22
+52.91
+74.17
+73.01
+71.17
+84.64
+84.31
+83.69
+79.76
+79.16
+78.45
+53.89
+52.94
+45.97
+64.27
+61.84
+57.79
+20.73
+17.29
+11.65
+50.64
+47.93
+46.52
+67.10
+65.78
+62.74
+Straggler
+Exclusive
+GD-HLA
+RGD-HLA
+FIM-HLA
+Fed-HeLLo
+Fig. 6. The radar chart presents the results of the ablation study focused on
+evaluating the dynamic and intrinsic layer importance, specifically comparing
+our method with GD-HLA, RGD-HLA, FIM-HLA, and other baseline meth-
+ods. The studies are conducted on both the CIFAR-100 and LEDGAR datasets,
+using 100 clients with a RoC distribution of 1:1:1. The Top-3 results for each
+spoke are listed near the vertices from top to bottom, with corresponding
+colors.
+of 77.79%. Specifically, Bottleneck records an accuracy of
+84.16% in the IID setting, slightly surpassing Triangle and
+Uniform, which achieve 84.02% and 84.12% accuracy, respec-
+tively. In the Non-IID case (20/1.0), Bottleneck again leads
+with 78.19% accuracy, outperforming Uniform by +7.34%, In-
+Triangle by +9.16%, and Triangle by +24.68%. This trend con-
+tinues in the 10/1.0 Non-IID case, where Bottleneck achieves
+71.02% accuracy, outperforming Uniform by +15.19%, In-
+Triangle by +12.55%, and Triangle by +16.84%. In the 20
+client, 1:1:1 RoC scenario, Bottleneck HLA continues to out-
+performs other GD-HLA strategies, achieving an average accu-
+racy of 65.41%. Specifically, Bottleneck achieves an accuracy
+of 87.50% in the IID scenario, slightly higher than Triangle
+and Uniform, which recorded 87.29% and 87.15%, respec-
+tively. However, in the Non-IID (20/1.0) scenario, Bottleneck’s
+accuracy drops to 70.54%, yet it remains higher than Uniform
+by +8.36%, In-Triangle by +3.90%, and Triangle by +5.79%.
+For the extreme Non-IID (10/1.0) case, Bottleneck records an
+accuracy of 38.18%, outperforming the other patterns by a
+significant margin, indicating its effectiveness in handling high
+degrees of Non-IID data.
+3) The Dynamic and Intrinsic Layer Importance Evalua-
+tion: In designing the Fed-HeLLo framework, we demonstrate
+that incorporating both dynamic and intrinsic layer importance
+can enhance model performance. Figure 6 presents two radar
+charts comparing the performance of GD-HLA, RGD-HLA,
+FIM-HLA, two baseline methods (i.e., Straggler and Exclusive
+Learning), and our method, with each method represented
+by different colored lines. The evaluation is conducted on
+two datasets, CIFAR-100 and LEDGAR. The radial axes
+display various data distribution settings and overall average
+performance, with each point representing a specific data
+distribution scenario or an aggregated result.
+In the chart on the left, Fed-HeLLo (represented by the
+red line) consistently achieves high accuracy across all Non-
+IID settings, particularly excelling in the “5/1.0” and “10/1.0”
+settings, where it reaches 72.68% and 79.76%, respectively. It
+also leads in the “20/1.0” setting, achieving 84.64% in accu-
+racy. Compared to other methods, Straggler Learning (yellow)
+performs the worst, especially in the “20/1.0” setting, where
+its accuracy falls below 50%. Exclusive Learning (purple)
+and GD-HLA (blue) demonstrate moderate performance, with
+
+===== PDF PAGE 12 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 12
+TABLE IX
+JUSTIFICATION OF FIM-HLA WITH DIFFERENT TRAINING STRATEGIES .
+Dataset/Model CIFAR-100/ViT-base
+Metric Accuracy (%) ↑
+Methods/DH IID 20/1.0 10/1.0 Avg
+Proxy Data-1 84.02 77.27 69.95 77.08
+Proxy Data-2 3.24 3.14 3.32 3.23
+Fed-HeLLo 87.11 84.64 79.76 79.03
+TABLE X
+JUSTIFICATION OF FIM-HLA WITH WIKIPEDIA PROXY DATASET .
+Dataset/Model DomainNet121/ViT-base
+Metric Accuracy (%) ↑
+Methods/DH IID 25/1 15/1 Avg
+HETLoRA 64.26 48.92 35.34 49.50
+FedRA 68.53 55.64 51.07 58.41
+Fed-HeLLo-Wikipedia 68.65 57.74 52.94 59.78
+Fed-HeLLo 68.98 58.01 53.74 60.24
+GD-HLA slightly outperforming Exclusive Learning in most
+settings. RGD-HLA (black) and FIM-HLA (green) perform
+well but lag behind Fed-HeLLo in the more extreme Non-IID
+scenarios. The overall average accuracy further underscores
+the superiority of Fed-HeLLo, as it consistently surpasses other
+methods across different data heterogeneity levels.
+In the chart on the right, Fed-HeLLo again demonstrates
+strong performance across Non-IID settings, especially in the
+“10/1.0” and “20/1.0” scenarios, where it achieves 64.27% and
+67.10%, respectively. Straggler Learning continues to perform
+poorly, particularly in the “2/1.0” setting, where it falls to
+11.65%. Exclusive Learning and GD-HLA show moderate
+improvements over Straggler Learning, but they still fall short
+of Fed-HeLLo’s performance. RGD-HLA exhibits competitive
+performance, especially in the “10/1.0” setting, which indi-
+cates the stable training is important for the extreme Non-IID
+cases. The average F1 scores indicate that Fed-HeLLo is not
+only robust but also adaptable to varying degrees of client
+and data heterogeneity, maintaining high F1 scores across the
+board. Across both datasets, Fed-HeLLo consistently outper-
+forms the other methods in nearly every Non-IID setting,
+as well as in the overall average metrics, demonstrating its
+effectiveness in FL with heterogeneous clients.
+4) Justification of FIM-HLA: Training Strategy: In FIM-
+HLA, we assume that the server holds a small proxy dataset.
+Ideally, the server could directly use this proxy dataset to
+improve the global model performance, making FIM-HLA
+unnecessary. To demonstrate that a small proxy dataset alone
+cannot significantly enhance fine-tuning performance and to
+justify the need for FIM-HLA, we conduct two additional
+experiments on CIFAR-100 dataset, named Proxy Data-1 and
+Proxy Data-2. All experiments sample 10 out of 100 clients
+with a RoC of 1:1:1. In the first experiment, we implement
+Fed-HeLLo but with the server acting as an additional client
+with sufficient computational capability to fine-tune all LoRA
+layers using the proxy dataset. In the second experiment, we
+implement Fed-HeLLo but with the server using the proxy
+data to fine-tune the global model after aggregation at each
+round. The accuracy results for both experiments are reported
+in Table IX. We observe that both proxy data-based global
+model fine-tuning methods result in unfavorable performance
+compared to FIM-HLA. For Proxy Data-1, there are consistent
+performance drops compared to Fed-HeLLo. This may be due
+to the server updates trained on proxy data being included in
+the model updates each round, causing the model to overfit
+to the proxy data and leading to suboptimal performance. For
+Proxy Data-2 , where the server fine-tunes the global model
+using proxy data after each aggregation round, the overfitting
+issue becomes even more severe, resulting in poor performance
+across all data distributions. Proxy Dataset from Wikipedia:
+To further assess the sensitivity of the proxy data, we manually
+collect a dataset from Wikipedia 1 for DomainNet-121 dataset.
+Specifically, we use each category name as a keyword, search
+for it on Wikipedia, and download the first image that appears,
+resulting in a small proxy dataset of 121 images (one per
+category). In Table X, we present the experimental results
+using a 10/100 clients setting with a RoC of 1:1:1. For
+Fed-HeLLo, we use 1,000 random test data samples from
+DomainNet-121, which are excluded from all other training
+and evaluation. For Fed-HeLLo-Wikipedia, we utilize the
+proxy dataset collected from Wikipedia, following the same
+training conditions as Fed-HeLLo. In terms of results, Fed-
+HeLLo consistently outperforms all other methods across all
+scenarios, achieving the highest accuracy in the IID (68.98%),
+25/1 Non-IID (58.01%), and 15/1 Non-IID (53.74%) settings,
+with an overall average accuracy of 60.24%. Fed-HeLLo-
+Wikipedia closely follows, particularly in the IID (68.65%)
+and 25/1 Non-IID (57.74%) settings, but with a slightly
+lower average accuracy of 59.78%. This drop is possibly due
+to the proxy data from Wikipedia lacking domain diversity
+like DomainNet-121 and having fewer samples. FedRA falls
+behind in all scenarios, with an average accuracy of 58.41%,
+while HETLoRA performs the worst, particularly in Non-IID
+scenarios, leading to the lowest overall average accuracy of
+49.50%.
+V. L IMITATIONS AND POTENTIAL FUTURE WORKS
+Privacy Preserving. While our work leverages the inherent
+privacy-preserving nature of FL by ensuring that client data
+remains local and is not shared with the server or other clients,
+potential vulnerabilities still exist. For example, FL remains
+susceptible to privacy attacks such as model inversion [18],
+where adversaries attempt to reconstruct client data from
+model updates. Techniques like differential privacy [17] and
+secure aggregation [5] can be integrated into our framework
+to mitigate the vulnerability.
+Memory Constraint. Additionally, the storage of interme-
+diate activations is still challenging to resource-constrained
+clients. Activation saving techniques, such as sparsifica-
+tion [44] and pruning [71], can be integrated to reduce
+storage overhead while maintaining training stability. Future
+work can explore adaptive activation compression strategies
+to dynamically adjust compression levels based on available
+1https://www.wikipedia.org/
+
+===== PDF PAGE 13 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 13
+client resources, minimizing memory consumption without
+significantly impacting model performance.
+Training Process Improvement. Furthermore, while Fed-
+HeLLo introduces HLA to reduce memory overhead, a better
+training process can be designed to improve the FL process.
+For example, model distillation [30] can be used to obtain a
+smaller FM for clients to reduce the storage burden.
+Data Heterogeneity. While Fed-HeLLo effectively opti-
+mizes resource allocation through HLA, it does not directly
+address the challenge of data heterogeneity. A potential future
+direction to mitigate the effects of data heterogeneity is to in-
+corporate techniques such as federated feature alignment [57],
+and adaptive weighting strategies [54].
+By addressing these challenges, Fed-HeLLo can be further
+improved to enhance scalability, efficiency, and applicability
+in real-world FL scenarios.
+VI. C ONCLUSION
+In this paper, we introduce Fed-HeLLo, a novel federated
+LoRA-based fine-tuning framework that integrates various
+HLA strategies. These strategies allocate trainable LoRA lay-
+ers based on clients’ resource capabilities while considering
+both dynamic and intrinsic layer importance. To capture dy-
+namic layer importance, we leverage FIM scores and design
+the FIM-HLA strategy. Additionally, to stabilize training in the
+early stages, we propose GD-HLA and RGD-HLA strategies
+that account for intrinsic layer importance. By co-designing
+these strategies, Fed-HeLLo incorporates a comprehensive
+HLA design. Extensive experiments on five LoRA-based fine-
+tuning datasets validate the effectiveness and efficiency of Fed-
+HeLLo, offering valuable insights for designing the HLA in
+FL with heterogeneous resource clients.
+REFERENCES
+[1] Arash Ardakani, Altan Haan, Shangyin Tan, Doru Thom Popovici, Alvin
+Cheung, Costin Iancu, and Koushik Sen. Slimfit: Memory-efficient
+fine-tuning of transformer-based models using training dynamics. In
+Proceedings of the 2024 Conference of the North American Chapter
+of the Association for Computational Linguistics: Human Language
+Technologies (Volume 1: Long Papers), pages 6218–6236, 2024.
+[2] Sara Babakniya, Ahmed Roushdy Elkordy, Yahya H Ezzeldin, Qingfeng
+Liu, Kee-Bong Song, Mostafa El-Khamy, and Salman Avestimehr. Slora:
+Federated parameter efficient fine-tuning of language models. arXiv
+preprint arXiv:2308.06522, 2023.
+[3] Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao, and Yaliang Li.
+Federated fine-tuning of large language models under heterogeneous
+tasks and client resources. In The Thirty-eighth Annual Conference on
+Neural Information Processing Systems , 2024.
+[4] Samyadeep Basu, Shell Hu, Daniela Massiceti, and Soheil Feizi. Strong
+baselines for parameter-efficient few-shot fine-tuning. In Proceedings
+of the AAAI Conference on Artificial Intelligence , volume 38, pages
+11024–11031, 2024.
+[5] Keith Bonawitz, Vladimir Ivanov, Ben Kreuter, Antonio Marcedone,
+H Brendan McMahan, Sarvar Patel, Daniel Ramage, Aaron Segal, and
+Karn Seth. Practical secure aggregation for federated learning on user-
+held data. arXiv preprint arXiv:1611.04482 , 2016.
+[6] Xiaoyu Cao, Minghong Fang, Jia Liu, and Neil Gong. Fltrust: Byzantine-
+robust federated learning via trust bootstrapping. In Proceedings of
+NDSS, 2021.
+[7] Ilias Chalkidis, Abhik Jana, Dirk Hartung, Michael Bommarito, Ion
+Androutsopoulos, Daniel Martin Katz, and Nikolaos Aletras. Lexglue:
+A benchmark dataset for legal language understanding in english.
+In Proceedings of the 60th Annual Meeting of the Association for
+Computational Linguistics, Dubln, Ireland, 2022.
+[8] Daoyuan Chen, Yilun Huang, Zhijian Ma, Hesen Chen, Xuchen Pan,
+Ce Ge, Dawei Gao, Yuexiang Xie, Zhaoyang Liu, Jinyang Gao, et al.
+Data-juicer: A one-stop data processing system for large language mod-
+els. In Companion of the 2024 International Conference on Management
+of Data, pages 120–134, 2024.
+[9] Yixiong Chen, Alan Yuille, and Zongwei Zhou. Which layer is learning
+faster? a systematic exploration of layer-wise convergence rate for deep
+neural networks. In The Eleventh International Conference on Learning
+Representations, 2022.
+[10] Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, and Gauri Joshi.
+Heterogeneous lora for federated fine-tuning of on-device foundation
+models. In Proceedings of the 2024 Conference on Empirical Methods
+in Natural Language Processing , pages 12903–12913, 2024.
+[11] Mircea Cimpoi, Subhransu Maji, Iasonas Kokkinos, Sammy Mohamed,
+and Andrea Vedaldi. Describing textures in the wild. In Proceedings of
+the IEEE conference on computer vision and pattern recognition , pages
+3606–3613, 2014.
+[12] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-
+Fei. Imagenet: A large-scale hierarchical image database. In 2009 IEEE
+conference on computer vision and pattern recognition , pages 248–255.
+Ieee, 2009.
+[13] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+Bert: Pre-training of deep bidirectional transformers for language un-
+derstanding. In Proceedings of the 2019 Conference of the North
+American Chapter of the Association for Computational Linguistics:
+Human Language Technologies, Volume 1 (Long and Short Papers) ,
+pages 4171–4186, 2019.
+[14] Enmao Diao, Jie Ding, and Vahid Tarokh. Heterofl: Computation and
+communication efficient federated learning for heterogeneous clients. In
+International Conference on Learning Representations , 2020.
+[15] Ning Ding, Yujia Qin, Guang Yang, Fuchao Wei, Zonghan Yang,
+Yusheng Su, Shengding Hu, Yulin Chen, Chi-Min Chan, Weize Chen,
+et al. Delta tuning: A comprehensive study of parameter efficient meth-
+ods for pre-trained language models. arXiv preprint arXiv:2203.06904 ,
+2022.
+[16] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weis-
+senborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani,
+Matthias Minderer, Georg Heigold, Sylvain Gelly, et al. An image is
+worth 16x16 words: Transformers for image recognition at scale. In
+International Conference on Learning Representations , 2020.
+[17] Cynthia Dwork. Differential privacy. In International colloquium on
+automata, languages, and programming , pages 1–12. Springer, 2006.
+[18] Matt Fredrikson, Somesh Jha, and Thomas Ristenpart. Model inversion
+attacks that exploit confidence information and basic countermeasures.
+In Proceedings of the 22nd ACM SIGSAC conference on computer and
+communications security, pages 1322–1333, 2015.
+[19] Chongyang Gao, Kezhen Chen, Jinmeng Rao, Baochen Sun, Ruibo Liu,
+Daiyi Peng, Yawen Zhang, Xiaoyuan Guo, Jie Yang, and VS Sub-
+rahmanian. Higher layers need more lora experts. arXiv preprint
+arXiv:2402.08562, 2024.
+[20] Yan Gao, Massimo Roberto Scamarcia, Javier Fernandez-Marques,
+Mohammad Naseri, Chong Shen Ng, Dimitris Stripelis, Zexi Li, Tao
+Shen, Jiamu Bai, Daoyuan Chen, Zikai Zhang, et al. Flowertune: A
+cross-domain benchmark for federated fine-tuning of large language
+models. arXiv preprint arXiv:2506.02961 , 2025.
+[21] Tao Guo, Song Guo, Junxiao Wang, Xueyang Tang, and Wenchao
+Xu. Promptfl: Let federated participants cooperatively learn prompts
+instead of models-federated learning in age of foundation model. IEEE
+Transactions on Mobile Computing , 2023.
+[22] John A Hartigan and Manchek A Wong. Algorithm as 136: A k-means
+clustering algorithm. Journal of the royal statistical society. series c
+(applied statistics), 28(1):100–108, 1979.
+[23] Junxian He, Chunting Zhou, Xuezhe Ma, Taylor Berg-Kirkpatrick, and
+Graham Neubig. Towards a unified view of parameter-efficient transfer
+learning. In International Conference on Learning Representations ,
+2021.
+[24] Samuel Horvath, Stefanos Laskaridis, Mario Almeida, Ilias Leontiadis,
+Stylianos Venieris, and Nicholas Lane. Fjord: Fair and accurate federated
+learning under heterogeneous targets with ordered dropout. Advances in
+Neural Information Processing Systems , 34:12876–12889, 2021.
+[25] Edward J Hu, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+Wang, Lu Wang, Weizhu Chen, et al. Lora: Low-rank adaptation
+of large language models. In International Conference on Learning
+Representations, 2021.
+[26] Minjae Kim, Sangyoon Yu, Suhyun Kim, and Soo-Mook Moon. Depthfl:
+Depthwise federated learning for heterogeneous clients. In The Eleventh
+International Conference on Learning Representations , 2022.
+
+===== PDF PAGE 14 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 14
+[27] Jakub Konecn `y, H Brendan McMahan, Felix X Yu, Peter Richt ´arik,
+Ananda Theertha Suresh, and Dave Bacon. Federated learning:
+Strategies for improving communication efficiency. arXiv preprint
+arXiv:1610.05492, 8, 2016.
+[28] Alex Krizhevsky, Geoffrey Hinton, et al. Learning multiple layers of
+features from tiny images. In Toronto, ON, Canada, 2009.
+[29] Brian Lester, Rami Al-Rfou, and Noah Constant. The power of scale
+for parameter-efficient prompt tuning. In Proceedings of the 2021
+Conference on Empirical Methods in Natural Language Processing ,
+pages 3045–3059, 2021.
+[30] Daliang Li and Junpu Wang. Fedmd: Heterogenous federated learning
+via model distillation. arXiv preprint arXiv:1910.03581 , 2019.
+[31] Hongxia Li, Zhongyi Cai, Jingya Wang, Jiangnan Tang, Weiping Ding,
+Chin-Teng Lin, and Ye Shi. Fedtp: Federated learning by transformer
+personalization. IEEE Transactions on neural networks and learning
+systems, 2023.
+[32] Chin-Yew Lin. Rouge: A package for automatic evaluation of sum-
+maries. In Text summarization branches out , pages 74–81, 2004.
+[33] Ruixuan Liu, Fangzhao Wu, Chuhan Wu, Yanlin Wang, Lingjuan Lyu,
+Hong Chen, and Xing Xie. No one left behind: Inclusive federated
+learning over heterogeneous devices. In Proceedings of the 28th ACM
+SIGKDD Conference on Knowledge Discovery and Data Mining , pages
+3398–3406, 2022.
+[34] Xiao-Yang Liu, Rongyi Zhu, Daochen Zha, Jiechao Gao, Shan Zhong,
+Matt White, and Meikang Qiu. Differentially private low-rank adaptation
+of large language model using federated learning. ACM Transactions
+on Management Information Systems , 2023.
+[35] Abhilasha Lodha, Gayatri Belapurkar, Saloni Chalkapurkar, Yuanming
+Tao, Reshmi Ghosh, Samyadeep Basu, Dmitrii Petrov, and Soundarara-
+jan Srinivasan. On surgical fine-tuning for language encoders. In
+Findings of the Association for Computational Linguistics: EMNLP
+2023, pages 3105–3113, 2023.
+[36] Weimin Lyu, Songzhu Zheng, Tengfei Ma, and Chao Chen. A study
+of the attention abnormality in trojaned berts. In Proceedings of the
+2022 Conference of the North American Chapter of the Association
+for Computational Linguistics: Human Language Technologies , pages
+4727–4741, 2022.
+[37] Weimin Lyu, Songzhu Zheng, Lu Pang, Haibin Ling, and Chao Chen.
+Attention-enhancing backdoor attacks against bert-based models. In
+Findings of the Association for Computational Linguistics: EMNLP
+2023, pages 10672–10690, 2023.
+[38] Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, and
+Blaise Aguera y Arcas. Communication-efficient learning of deep
+networks from decentralized data. In Artificial intelligence and statistics,
+pages 1273–1282. PMLR, 2017.
+[39] Ioannis Mitliagkas, Ce Zhang, Stefan Hadjis, and Christopher R ´e.
+Asynchrony begets momentum, with an application to deep learning.
+In 2016 54th Annual Allerton Conference on Communication, Control,
+and Computing (Allerton) , pages 997–1004. IEEE, 2016.
+[40] Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wain-
+wright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina
+Slama, Alex Ray, et al. Training language models to follow instructions
+with human feedback. Advances in neural information processing
+systems, 35:27730–27744, 2022.
+[41] Rui Pan, Xiang Liu, Shizhe Diao, Renjie Pi, Jipeng Zhang, Chi Han, and
+Tong Zhang. Lisa: Layerwise importance sampling for memory-efficient
+large language model fine-tuning. arXiv preprint arXiv:2403.17919 ,
+2024.
+[42] Jungwuk Park, Dong-Jun Han, Minseok Choi, and Jaekyun Moon. Sage-
+flow: Robust federated learning against both stragglers and adversaries.
+Advances in neural information processing systems , 34:840–851, 2021.
+[43] Xingchao Peng, Qinxun Bai, Xide Xia, Zijun Huang, Kate Saenko, and
+Bo Wang. Moment matching for multi-source domain adaptation. In
+Proceedings of the IEEE International Conference on Computer Vision ,
+pages 1406–1415, 2019.
+[44] Yongming Rao, Wenliang Zhao, Benlin Liu, Jiwen Lu, Jie Zhou, and
+Cho-Jui Hsieh. Dynamicvit: Efficient vision transformers with dynamic
+token sparsification. Advances in neural information processing systems,
+34:13937–13949, 2021.
+[45] Shangchao Su, Bin Li, and Xiangyang Xue. Fedra: A random allocation
+strategy for federated tuning to unleash the power of heterogeneous
+clients. In European Conference on Computer Vision , pages 342–358.
+Springer, 2025.
+[46] Youbang Sun, Zitao Li, Yaliang Li, and Bolin Ding. Improving loRA
+in privacy-preserving federated learning. In The Twelfth International
+Conference on Learning Representations , 2024.
+[47] Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy,
+and Samuel Bowman. Glue: A multi-task benchmark and analysis
+platform for natural language understanding. In Proceedings of the 2018
+EMNLP Workshop BlackboxNLP: Analyzing and Interpreting Neural
+Networks for NLP , pages 353–355, 2018.
+[48] Ao Wang, Jingyuan Zhang, Xiaolong Ma, Ali Anwar, Lukas Rup-
+precht, Dimitrios Skourtis, Vasily Tarasov, Feng Yan, and Yue Cheng.
+{InfiniCache}: exploiting ephemeral serverless functions to build a
+{cost-effective} memory cache. In 18th USENIX conference on file
+and storage technologies (FAST 20) , pages 267–281, 2020.
+[49] Yizhong Wang, Swaroop Mishra, Pegah Alipoormolabashi, Yeganeh
+Kordi, Amirreza Mirzaei, Atharva Naik, Arjun Ashok, Arut Sel-
+van Dhanasekaran, Anjana Arunkumar, David Stap, et al. Super-
+naturalinstructions: Generalization via declarative instructions on 1600+
+nlp tasks. In Proceedings of the 2022 Conference on Empirical Methods
+in Natural Language Processing , pages 5085–5109, 2022.
+[50] Ziyao Wang, Zheyu Shen, Yexiao He, Guoheng Sun, Hongyi Wang,
+Lingjuan Lyu, and Ang Li. Flora: Federated fine-tuning large lan-
+guage models with heterogeneous low-rank adaptations. arXiv preprint
+arXiv:2409.05976, 2024.
+[51] David J Weiss and G Gage Kingsbury. Application of computerized
+adaptive testing to educational problems. Journal of educational mea-
+surement, 21(4):361–375, 1984.
+[52] Chenfei Wu, Shengming Yin, Weizhen Qi, Xiaodong Wang, Zecheng
+Tang, and Nan Duan. Visual chatgpt: Talking, drawing and editing with
+visual foundation models. arXiv preprint arXiv:2303.04671 , 2023.
+[53] Feijie Wu, Zitao Li, Yaliang Li, Bolin Ding, and Jing Gao. Fedbiot: Llm
+local fine-tuning in federated learning without full model. InProceedings
+of the 30th ACM SIGKDD Conference on Knowledge Discovery and
+Data Mining, pages 3345–3355, 2024.
+[54] Hongda Wu and Ping Wang. Fast-convergent federated learning with
+adaptive weighting. IEEE Transactions on Cognitive Communications
+and Networking, 7(4):1078–1088, 2021.
+[55] Hongda Wu and Ping Wang. Node selection toward faster convergence
+for federated learning on non-iid data. IEEE Transactions on Network
+Science and Engineering , 9(5):3099–3111, 2022.
+[56] Panlong Wu, Kangshuo Li, Ting Wang, Yanjie Dong, Victor CM Leung,
+and Fangxin Wang. Fedfmsl: Federated learning of foundations models
+with sparsely activated lora. IEEE Transactions on Mobile Computing ,
+2024.
+[57] Fuxun Yu, Weishan Zhang, Zhuwei Qin, Zirui Xu, Di Wang, Chenchen
+Liu, Zhi Tian, and Xiang Chen. Fed2: Feature-aligned federated
+learning. In Proceedings of the 27th ACM SIGKDD conference on
+knowledge discovery & data mining , pages 2066–2074, 2021.
+[58] Sixing Yu, J Pablo Mu ˜noz, and Ali Jannesari. Federated foundation
+models: Privacy-preserving and collaborative learning for large models.
+arXiv preprint arXiv:2305.11414 , 2023.
+[59] Elad Ben Zaken, Yoav Goldberg, and Shauli Ravfogel. Bitfit: Simple
+parameter-efficient fine-tuning for transformer-based masked language-
+models. In Proceedings of the 60th Annual Meeting of the Association
+for Computational Linguistics (Volume 2: Short Papers) , pages 1–9,
+2022.
+[60] Syed Zawad, Xiaolong Ma, Jun Yi, Cheng Li, Minjia Zhang, Lei Yang,
+Feng Yan, and Yuxiong He. Fedcust: Offloading hyperparameter cus-
+tomization for federated learning. Performance Evaluation, 167:102450,
+2025.
+[61] Matthew D Zeiler and Rob Fergus. Visualizing and understanding con-
+volutional networks. In Computer Vision–ECCV 2014: 13th European
+Conference, Zurich, Switzerland, September 6-12, 2014, Proceedings,
+Part I 13, pages 818–833. Springer, 2014.
+[62] Jianyi Zhang, Saeed Vahidian, Martin Kuo, Chunyuan Li, Ruiyi Zhang,
+Tong Yu, Guoyin Wang, and Yiran Chen. Towards building the
+federatedgpt: Federated instruction tuning. In International Workshop
+on Federated Learning in the Age of Foundation Models in Conjunction
+with NeurIPS 2023 , 2023.
+[63] Kai Zhang, Yutong Dai, Hongyi Wang, Eric Xing, Xun Chen, and Lichao
+Sun. Memory-adaptive depth-wise heterogenous federated learning. In
+Federated Learning Systems (FLSys) Workshop @ MLSys 2023 , 2023.
+[64] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe, Moya Chen,
+Shuohui Chen, Christopher Dewan, Mona Diab, Xian Li, Xi Victoria
+Lin, et al. Opt: Open pre-trained transformer language models. arXiv
+preprint arXiv:2205.01068, 2022.
+[65] Zhuo Zhang, Yuanhang Yang, Yong Dai, Qifan Wang, Yue Yu, Lizhen
+Qu, and Zenglin Xu. Fedpetuning: When federated learning meets the
+parameter-efficient tuning methods of pre-trained language models. In
+Annual Meeting of the Association of Computational Linguistics 2023 ,
+
+===== PDF PAGE 15 =====
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 15
+pages 9963–9977. Association for Computational Linguistics (ACL),
+2023.
+[66] Zikai Zhang, Jiahao Xu, Ping Liu, and Rui Hu. Fed-pilot: Optimizing
+lora assignment for efficient federated foundation model fine-tuning.
+arXiv preprint arXiv:2410.10200 , 2024.
+[67] Haodong Zhao, Wei Du, Fangqi Li, Peixuan Li, and Gongshen Liu.
+Fedprompt: Communication-efficient and privacy-preserving prompt
+tuning in federated learning. In ICASSP 2023-2023 IEEE International
+Conference on Acoustics, Speech and Signal Processing (ICASSP), pages
+1–5. IEEE, 2023.
+[68] Ce Zhou, Qian Li, Chen Li, Jun Yu, Yixin Liu, Guangjing Wang, Kai
+Zhang, Cheng Ji, Qiben Yan, Lifang He, et al. A comprehensive survey
+on pretrained foundation models: A history from bert to chatgpt. arXiv
+preprint arXiv:2302.09419, 2023.
+[69] Han Zhou, Xingchen Wan, Ivan Vuli ´c, and Anna Korhonen. Autopeft:
+Automatic configuration search for parameter-efficient fine-tuning.arXiv
+preprint arXiv:2301.12132, 2023.
+[70] Shenglong Zhou et al. Exact penalty method for federated learning.
+arXiv preprint arXiv:2208.11231 , 2022.
+[71] Michael Zhu and Suyog Gupta. To prune, or not to prune: explor-
+ing the efficacy of pruning for model compression. arXiv preprint
+arXiv:1710.01878, 2017.
+[72] Weiming Zhuang, Chen Chen, and Lingjuan Lyu. When foundation
+model meets federated learning: Motivations, challenges, and future
+directions. arXiv preprint arXiv:2306.15546 , 2023.

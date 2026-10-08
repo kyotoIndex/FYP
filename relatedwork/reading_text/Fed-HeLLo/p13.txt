@@ -1,0 +1,140 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 13
+client resources, minimizing memory consumption without
+significantly impacting model performance.
+Training Process Improvement. Furthermore, while Fed-
+HeLLo introduces HLA to reduce memory overhead, a better
+training process can be designed to improve the FL process.
+For example, model distillation [30] can be used to obtain a
+smaller FM for clients to reduce the storage burden.
+Data Heterogeneity. While Fed-HeLLo effectively opti-
+mizes resource allocation through HLA, it does not directly
+address the challenge of data heterogeneity. A potential future
+direction to mitigate the effects of data heterogeneity is to in-
+corporate techniques such as federated feature alignment [57],
+and adaptive weighting strategies [54].
+By addressing these challenges, Fed-HeLLo can be further
+improved to enhance scalability, efficiency, and applicability
+in real-world FL scenarios.
+VI. C ONCLUSION
+In this paper, we introduce Fed-HeLLo, a novel federated
+LoRA-based fine-tuning framework that integrates various
+HLA strategies. These strategies allocate trainable LoRA lay-
+ers based on clients’ resource capabilities while considering
+both dynamic and intrinsic layer importance. To capture dy-
+namic layer importance, we leverage FIM scores and design
+the FIM-HLA strategy. Additionally, to stabilize training in the
+early stages, we propose GD-HLA and RGD-HLA strategies
+that account for intrinsic layer importance. By co-designing
+these strategies, Fed-HeLLo incorporates a comprehensive
+HLA design. Extensive experiments on five LoRA-based fine-
+tuning datasets validate the effectiveness and efficiency of Fed-
+HeLLo, offering valuable insights for designing the HLA in
+FL with heterogeneous resource clients.
+REFERENCES
+[1] Arash Ardakani, Altan Haan, Shangyin Tan, Doru Thom Popovici, Alvin
+Cheung, Costin Iancu, and Koushik Sen. Slimfit: Memory-efficient
+fine-tuning of transformer-based models using training dynamics. In
+Proceedings of the 2024 Conference of the North American Chapter
+of the Association for Computational Linguistics: Human Language
+Technologies (Volume 1: Long Papers), pages 6218–6236, 2024.
+[2] Sara Babakniya, Ahmed Roushdy Elkordy, Yahya H Ezzeldin, Qingfeng
+Liu, Kee-Bong Song, Mostafa El-Khamy, and Salman Avestimehr. Slora:
+Federated parameter efficient fine-tuning of language models. arXiv
+preprint arXiv:2308.06522, 2023.
+[3] Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao, and Yaliang Li.
+Federated fine-tuning of large language models under heterogeneous
+tasks and client resources. In The Thirty-eighth Annual Conference on
+Neural Information Processing Systems , 2024.
+[4] Samyadeep Basu, Shell Hu, Daniela Massiceti, and Soheil Feizi. Strong
+baselines for parameter-efficient few-shot fine-tuning. In Proceedings
+of the AAAI Conference on Artificial Intelligence , volume 38, pages
+11024–11031, 2024.
+[5] Keith Bonawitz, Vladimir Ivanov, Ben Kreuter, Antonio Marcedone,
+H Brendan McMahan, Sarvar Patel, Daniel Ramage, Aaron Segal, and
+Karn Seth. Practical secure aggregation for federated learning on user-
+held data. arXiv preprint arXiv:1611.04482 , 2016.
+[6] Xiaoyu Cao, Minghong Fang, Jia Liu, and Neil Gong. Fltrust: Byzantine-
+robust federated learning via trust bootstrapping. In Proceedings of
+NDSS, 2021.
+[7] Ilias Chalkidis, Abhik Jana, Dirk Hartung, Michael Bommarito, Ion
+Androutsopoulos, Daniel Martin Katz, and Nikolaos Aletras. Lexglue:
+A benchmark dataset for legal language understanding in english.
+In Proceedings of the 60th Annual Meeting of the Association for
+Computational Linguistics, Dubln, Ireland, 2022.
+[8] Daoyuan Chen, Yilun Huang, Zhijian Ma, Hesen Chen, Xuchen Pan,
+Ce Ge, Dawei Gao, Yuexiang Xie, Zhaoyang Liu, Jinyang Gao, et al.
+Data-juicer: A one-stop data processing system for large language mod-
+els. In Companion of the 2024 International Conference on Management
+of Data, pages 120–134, 2024.
+[9] Yixiong Chen, Alan Yuille, and Zongwei Zhou. Which layer is learning
+faster? a systematic exploration of layer-wise convergence rate for deep
+neural networks. In The Eleventh International Conference on Learning
+Representations, 2022.
+[10] Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, and Gauri Joshi.
+Heterogeneous lora for federated fine-tuning of on-device foundation
+models. In Proceedings of the 2024 Conference on Empirical Methods
+in Natural Language Processing , pages 12903–12913, 2024.
+[11] Mircea Cimpoi, Subhransu Maji, Iasonas Kokkinos, Sammy Mohamed,
+and Andrea Vedaldi. Describing textures in the wild. In Proceedings of
+the IEEE conference on computer vision and pattern recognition , pages
+3606–3613, 2014.
+[12] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-
+Fei. Imagenet: A large-scale hierarchical image database. In 2009 IEEE
+conference on computer vision and pattern recognition , pages 248–255.
+Ieee, 2009.
+[13] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+Bert: Pre-training of deep bidirectional transformers for language un-
+derstanding. In Proceedings of the 2019 Conference of the North
+American Chapter of the Association for Computational Linguistics:
+Human Language Technologies, Volume 1 (Long and Short Papers) ,
+pages 4171–4186, 2019.
+[14] Enmao Diao, Jie Ding, and Vahid Tarokh. Heterofl: Computation and
+communication efficient federated learning for heterogeneous clients. In
+International Conference on Learning Representations , 2020.
+[15] Ning Ding, Yujia Qin, Guang Yang, Fuchao Wei, Zonghan Yang,
+Yusheng Su, Shengding Hu, Yulin Chen, Chi-Min Chan, Weize Chen,
+et al. Delta tuning: A comprehensive study of parameter efficient meth-
+ods for pre-trained language models. arXiv preprint arXiv:2203.06904 ,
+2022.
+[16] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weis-
+senborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani,
+Matthias Minderer, Georg Heigold, Sylvain Gelly, et al. An image is
+worth 16x16 words: Transformers for image recognition at scale. In
+International Conference on Learning Representations , 2020.
+[17] Cynthia Dwork. Differential privacy. In International colloquium on
+automata, languages, and programming , pages 1–12. Springer, 2006.
+[18] Matt Fredrikson, Somesh Jha, and Thomas Ristenpart. Model inversion
+attacks that exploit confidence information and basic countermeasures.
+In Proceedings of the 22nd ACM SIGSAC conference on computer and
+communications security, pages 1322–1333, 2015.
+[19] Chongyang Gao, Kezhen Chen, Jinmeng Rao, Baochen Sun, Ruibo Liu,
+Daiyi Peng, Yawen Zhang, Xiaoyuan Guo, Jie Yang, and VS Sub-
+rahmanian. Higher layers need more lora experts. arXiv preprint
+arXiv:2402.08562, 2024.
+[20] Yan Gao, Massimo Roberto Scamarcia, Javier Fernandez-Marques,
+Mohammad Naseri, Chong Shen Ng, Dimitris Stripelis, Zexi Li, Tao
+Shen, Jiamu Bai, Daoyuan Chen, Zikai Zhang, et al. Flowertune: A
+cross-domain benchmark for federated fine-tuning of large language
+models. arXiv preprint arXiv:2506.02961 , 2025.
+[21] Tao Guo, Song Guo, Junxiao Wang, Xueyang Tang, and Wenchao
+Xu. Promptfl: Let federated participants cooperatively learn prompts
+instead of models-federated learning in age of foundation model. IEEE
+Transactions on Mobile Computing , 2023.
+[22] John A Hartigan and Manchek A Wong. Algorithm as 136: A k-means
+clustering algorithm. Journal of the royal statistical society. series c
+(applied statistics), 28(1):100–108, 1979.
+[23] Junxian He, Chunting Zhou, Xuezhe Ma, Taylor Berg-Kirkpatrick, and
+Graham Neubig. Towards a unified view of parameter-efficient transfer
+learning. In International Conference on Learning Representations ,
+2021.
+[24] Samuel Horvath, Stefanos Laskaridis, Mario Almeida, Ilias Leontiadis,
+Stylianos Venieris, and Nicholas Lane. Fjord: Fair and accurate federated
+learning under heterogeneous targets with ordered dropout. Advances in
+Neural Information Processing Systems , 34:12876–12889, 2021.
+[25] Edward J Hu, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+Wang, Lu Wang, Weizhu Chen, et al. Lora: Low-rank adaptation
+of large language models. In International Conference on Learning
+Representations, 2021.
+[26] Minjae Kim, Sangyoon Yu, Suhyun Kim, and Soo-Mook Moon. Depthfl:
+Depthwise federated learning for heterogeneous clients. In The Eleventh
+International Conference on Learning Representations , 2022.

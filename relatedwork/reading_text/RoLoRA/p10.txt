@@ -1,0 +1,53 @@
+5.3 Ablation Study
+Learning vs. Freezing Awe conducted an experiment comparing performance of FFA-LoRA,
+RoLoRA, and different mixing strategies under the setting with 50 clients. In these strategies, for
+example, 20%RoLoRA+80%FFA-LoRA means we finetune with RoLoRA (where A is learned) for
+the first 20% of communication rounds, followed by FFA-LoRA (where A is frozen) for the remaining
+80%. The results are shown in the Figure 5. We observe that finetuning with RoLoRA generally leads
+to faster convergence and higher final accuracy. This highlights the benefits of learning A, especially
+in early training.
+Figure 6: Asymmetry vs. Symmetry in
+LoRA updates. Accuracy vs. round.
+Symmetry vs. Asymmetry UpdateIn standard LoRA
+implementations, LoRA-A is randomly initialized while
+LoRA-B is set to zero, which implicitly assigns asymmet-
+ric roles. In our study, we view LoRA- A as a learnable
+basis and LoRA-B as coefficients on that basis. Motivated
+by this, we investigated whether an asymmetric update
+policy might be preferred. We systematically compare
+four strategies: (i) the symmetric alternation used in stan-
+dard RoLoRA, (ii) B-prioritized multi-step updates (B,
+B, B, A, . . .), (iii) A-prioritized multi-step updates (B,
+A, A, A, . . .), and (iv) unequal learning rates (e.g., set-
+ting lrB = 2lr A or lrB = 4lr A). As shown in Figure 6,
+balanced AB alternation yields the highest accuracy and
+the most stable trajectory, while aggressively prioritizing
+either A or B degrades performance.
+Effect of Local Steps on RoLoRA and FFA-LoRATo evaluate the effect of local steps, we have
+conducted an ablation study on the number of local steps in a 50-client setting with rank-4 adapters,
+as shown in Table 4. For a fair comparison, we kept the total computational budget (#Local Steps ×
+#Total Rounds) constant across all settings. FFA-LoRA’s performance consistently degrades on both
+datasets as the number of local steps increases. This indicates that with more local work per round,
+FFA-LoRA suffers severely from client drift, where local models overfit to their own data. RoLoRA
+maintains high performance across all settings.
+(Local Steps, Total Rounds) (1,600) (5,120) (10,60) (20,30)
+MNLI FFA-LoRA 72.52±0.6871.73±1.1769.64±4.3169.97±5.57
+RoLoRA 84.39±0.34 84.96±0.18 84.79±0.23 82.98±3.36
+QQP FFA-LoRA 80.51±1.3880.2±1.6579.07±1.2178.44±0.41
+RoLoRA 85.24±0.56 85.44±0.8 84.77±0.77 85.71±0.18
+Table 4: Results on RoBERTa-Large on MNLI and QQP with different local steps while keeping total
+computational budget constant.
+5.4 More Results
+We provide additional experimental results in the Appendix, including: (1) evaluations of Llama-2-7B
+on HumanEval and MMLU tasks (Appendix A5.8); (2) comparisons of communication and time
+costs in Table 19; and (3) evaluations under a fixed communication budget in Figure 12.
+6 Conclusion
+In this work, we introduced RoLoRA, a federated finetuning framework based on alternating opti-
+mization for LoRA adapters. Our approach addresses key limitations of prior methods by jointly
+learning both the down-projection and up-projection matrices, thereby enhancing the expressiveness
+and robustness of the adapted models. Through a combination of theoretical analysis on linear models
+and validation on nonlinear models, we established the importance of optimizing both components
+in LoRA. Extensive experimental evaluations across various language models tasks, and diverse
+federated learning settings confirmed that RoLoRA consistently outperforms existing baselines,
+particularly in large-scale scenarios under constrained communication and resource conditions.
+10

@@ -1,0 +1,95 @@
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+A1 CONVERSATION TEMPLATE
+As shown in Figure A1, we show two conversation templates (prompts)
+integrated with specific input parts (in red). These templates serve
+as structured input frameworks for guiding LLMs to generate de-
+sired outputs. By providing context and constraints through these
+prompts, LLMs can effectively process and respond to inputs in a
+targeted manner, enhancing the quality and relevance of generated
+outputs. This integration of prompts with input segments facilitates
+more precise and contextually appropriate responses from LLMs,
+contributing to improved performance and usability in various
+natural language processing tasks.
+Scenario-1:
+Below is a system log question and
+relevant logs are provided. Write a
+response that appropriately answer the
+question. Let us think step by step, just
+output the final answer. \n\n '###
+{input}\n\n''### Response:
+Scenario-2:
+<s>[INST] <<SYS>> \nYou are a helpful,
+respectful and honest assistant . Always
+answer as helpfully as possible, while
+being safe . Your answers should not
+include any harmful, unethical, racist,
+sexist, toxic, dangerous, or illegal content.
+Please ensure that your responses are
+socially unbiased and positive in
+nature.\n\nIf a question does not make any
+sense, or is not factually coherent, explain
+why instead of answering something not
+correct. If you don't know the answer to a
+question, please don't share false
+information.\n <</SYS>>\n\n{user_input}
+[/INST]
+Figure A1: Conversation template with both log-based anom-
+aly detection and medical diagnosis.
+A2 DATASET EXAMPLE
+Figure A2 shows the format of the training data in both scenarios.
+The format is important for the training process. All training data
+is stored in JSON format, a popular data format.
+A3 DATA PREPOSSESSING
+Figure A3 is the illustration of preprocessing raw log messages. Log
+messages typically exhibit a semi-structured format, comprising
+Scenario-1:
+{
+"conversation": [
+{
+“input”: “Question:\nPlease determine if the 
+given log messages are an anomaly or not. 
+If is an anomaly, output ‘yes’, otherwise, 
+output ‘no’. Do not output addition 
+words.\n###Logs:{log sequence}
+"output": "no"
+}
+]
+},
+Scenario-2:
+“user_input”: Crocin (25 and 50mg/kg) or vitamin E 
+improved histopathological damages, decreased MDA 
+and CK-MB, increased GSH content and attenuated the 
+increase of Bax/<< Bcl2 >> ratio, activation of caspase 
+3 and release of cytochrome c to the cytosol induced by 
+[[ DZN ]]. Please explain the relation. …
+Options: [ "product-of", "substrate_product-of", 
+"indirect-downregulator", "activator", "indirect-
+upregulator", "substrate", "upregulator", "inhibitor", 
+"agonist-activator", "downregulator", "agonist", 
+"antagonist", "agonist-inhibitor" ]
+“Answer”: indirect-downregulator
+Figure A2: Data example with both log-based anomaly detec-
+tion and medical diagnosis.
+Raw 
+Log
+1107192438 2005.01.31 sadmin1 Jan 31 09:27:18 
+sadmin1/sadmin1 DHCPDISCOVER from  
+00:11:85:c1:ef:0f via eth0: network 
+172.30.0/16: no free leases
+Content dhcpd DHCPDISCOVER from 00:11:85:c1:ef:0f via 
+eth0: network 172.30.0/16: no free leases :
+Event dhcpd: DHCPDISCOVER from <*> via <*>  network 
+<*> no free leases
+Params [00:11:85:c1:ef:0f, eth0:, 172.30.0/16: ]
+Parsing
+C5 C2 C2 C9 C1… …
+Sliding window
+Timeline
+Log Sequence
+Figure A3: The illustration of log preprocessing.
+two main components: a consistent part of the log event, and a vari-
+able part containing parameters. To prepare log data for anomaly
+detection model training, several preprocessing steps are necessary.
+Initially, both prefix and noise are eliminated through log filtering
+procedures to obtain the content part. Subsequently, automated log
+parsing techniques, such as Drain, are applied to extract both log

@@ -1,0 +1,22 @@
+Published as a conference paper at ICLR 2025
+A.7 F URTHER RESULTS ON COMPRESSING A MATRICES
+Based on the reviewers’ comments during the review stage, we further conduct experiments on
+compressing the A matrices. Specifically, we chose FetchSGD (Rothchild et al., 2020) to compress
+around 50% of the A matrices, given that the updates across theA matrices are trivial but necessary.
+The experimental results are shown in Table 10, which indicates that FedSA-LoRA with a compres-
+sion method achieves performance comparable to the original FedSA-LoRA. This confirms that the
+A matrices can indeed be further compressed to reduce communication overhead while maintaining
+satisfactory performance, validating the reviewer’s hypothesis that “there must exist a compression
+method or a sparse structure to significantly reduce the number of parameters in the A matrices that
+need to be updated”.
+Table 10: Time and space costs for each method on the RTE and QNLI tasks. # Communication
+round denotes the number of communication rounds to reach the predefined target performance. ‡
+denotes equipped with the compressing method FetchSGD.
+# Trainable Parm. # Per-round Communicated Parm.# Per-round Computation Cost # Communication Round Accuracy
+RTE QNLI RTE QNLI RTE QNLI
+LoRA 1.83M 0.78M 22s 35s 167 397 87.49±0.15 91.16±0.72
+FFA-LoRA 1.44M 0.39M 20s 33s 229 374 86.08±1.16 91.52±0.59
+FedDPA-LoRA 2.62M 0.78M 23s 37s 128 325 87.44±0.13 90.74±1.38
+FedSA-LoRA 1.83M 0.39M 22s 34s 91 224 87.93±0.11 92.13±0.24
+FedSA-LoRA‡ 1.83M 0.20M 22s 34s 79 155 87.88±0.13 92.16±0.20
+25

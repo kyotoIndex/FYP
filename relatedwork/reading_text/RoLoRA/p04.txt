@@ -1,0 +1,80 @@
+However, this method introduces computational overhead due to the matrix multiplication and SVD
+operations.
+Freezing A (B) during finetuning.Another method is to make clients freeze B or A as in Sun et
+al. [32], leading to precise computation of ∆W. However, this method limits the expressiveness of
+the adapter.
+With these considerations, we propose a federated finetuning framework, named RoLoRA, based on
+alternating optimization of LoRA.
+3 RoLoRA Framework
+In this section, we describe the framework design of RoLoRA and discuss its practical advantages.
+Alternating Optimization and Corresponding AggregationMotivated by the observations dis-
+cussed in Section 2.3, we propose applying alternating optimization to the local LoRA adapters of
+each client in a setting with N clients. Unlike the approach in FFA-LoRA, where A is consistently
+frozen, we suggest an alternating update strategy. There are alternating odd and even communication
+rounds designated for updating, aggregatingAandB, respectively.
+In the odd-numbered comm. round:
+1
+N
+NX
+i=1
+∆W2t+1
+i = 1
+N (At
+1Bt+1
+1 +...+A t
+NBt+1
+N ) = 1
+N At(Bt+1
+1 +...+B t+1
+N )(3)
+In the even-numbered comm. round:
+1
+N
+NX
+i=1
+∆W2t+2
+i = 1
+N (At+1
+1 Bt+1
+1 +...+A t+1
+N Bt+1
+N ) = 1
+N (At+1
+1 +...+A t+1
+N )Bt+1 (4)
+As in Algorithm 1 in Appendix, all clients freeze At and update Bt in the odd communication round.
+The central server then aggregates these updates to compute Bt+1 = 1
+N
+PN
+i=1 Bt+1
+i and distributes
+Bt+1 back to the clients. In the subsequent communication round, clients freeze Bt+1 and update
+At. The server aggregates these to obtain At+1 = 1
+N
+PN
+i=1 At+1
+i and returns At+1 to the clients. It
+is important to note that in round 2t+ 1 , the frozen At
+i are identical across all clients, as they are
+synchronized with At from the central server at the beginning of the round. This strategy ensures
+that the update and aggregation method introduces no interference, as demonstrated in (3) and (4).
+Computation and Communication Cost.The parameter-freezing nature of RoLoRA enhances
+computational and communication efficiency. In each communication round, the number of trainable
+parameters in the model is effectively halved compared to FedA VG of LoRA. The only additional
+cost for RoLoRA compared to FFA-LoRA is the alternating freezing of the corresponding parameters.
+We remark this additional cost is negligible because it is applied to the clients’ models and can be
+executed concurrently during the server’s aggregation.
+4 Analysis
+In this section, we provide an intuitive analysis of why training the down-projection in the LoRA
+module is essential in a federated setting. We first present a theoretical comparison between RoLoRA
+and FFA-LoRA on a linear model. While simplified, this comparison offers a direct and rigorous
+examination of their solutions, clearly highlighting the limitations of FFA-LoRA in this fundamental
+case. We then empirically validate the theoretical findings using a two-layer non-linear neural network.
+Finally, we provide a convergence analysis for RoLoRA in non-convex loss landscapes, establishing
+standard federated learning guarantees.
+4.1 Theoretical Insights into Down-Projection Learning: Linear Model Analysis
+We start by analyzing RoLoRA and FFA-LoRA within a simplified linear model, offering a clear
+and rigorous comparison that reveals the inherent limitations of FFA-LoRA’s approach. Consider a
+federated setting with N clients, each with the following local linear model fi(Xi) =X iab⊤ where
+Yi ∈R m×d, Xi ∈R m×d with the sample size m, a∈R d (a unit vector) and b∈R d are the LoRA
+4

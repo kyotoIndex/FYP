@@ -1,0 +1,52 @@
+but do not perform the aggregation steps for the local heads. Furthermore, there are fundamental
+differences in model structure: in FedRep, the local head acts as a down-projection, whereas in
+RoLoRA, the corresponding component B serves as an up-projection. This distinction stems from
+RoLoRA’s foundation in the LoRA framework, where adaptation uses a down-projection followed by
+an up-projection, withBmapping back to the original feature space.
+Connection to Personalized FL.While RoLoRA is positioned within the global model paradigm,
+it is worth noting that certain algorithmic structures share interesting similarities. For instance,
+Mishchenko et al. [ 29] and Pillutla et al. [ 30] fall under the category of personalized federated
+learning, but their update mechanism bears resemblance to RoLoRA’s alternating optimization. In
+[29], clients compute the gradient of their local loss with respect to the global parameters, holding
+the personalized parameters fixed, and send only this gradient to the server for aggregation. Pillutla
+et al. [ 30] adopt an alternating update strategy in the proposed FedAlt algorithm, where clients
+update personal parameters while holding global parameters fixed, followed by updating the global
+parameters. Both resemble the alternating structure in RoLoRA. However, RoLoRA operates entirely
+under a global model setting without personalized components. Furthermore, our alternating scheme
+is motivated by the decomposition of low-rank adaptation matrices, separating the optimization and
+also the aggregation of up- and down-projection matrices. Moreover, the underlying proof techniques
+differ entirely: they employ standard FL convergence analysis, whereas our approach draws on
+techniques from matrix sensing to highlight the importance of learning the down-projection.
+Limitations and Future Works.While RoLoRA demonstrates robust performance across various
+federated learning settings, our work has a few limitations. The study of learning down-projections has
+primarily focused on linear models, which may not fully capture the complexities of highly non-linear
+language models. While empirical validation has been conducted on non-linear models, a rigorous
+theoretical proof is still lacking. We leave the theoretical extension to simple non-linear models as
+important future work, although empirical results suggest the method remains effective. Second,
+the current analysis assumes full client participation in each communication round, which may not
+hold in real-world federated deployments with intermittent connectivity or resource constraints. A
+theoretical guarantee for partial client participation is needed.
+A3 Theoretical Analysis on Linear Model
+A3.1 Notation
+Table 5 provides a summary of the symbols used throughout this theoretical analysis.
+Notation Description
+a∗,b ∗
+i Ground truth parameters of clienti
+¯b∗ Average ofb ∗
+i
+at,b t Global model parameters oft-th iteration
+δt The angle distance betweena ∗ anda t,|sinθ(a ∗,a t)|
+η Step size
+Id d×didentity matrix
+∥·∥ l2 norm of a vector
+∥ · ∥op Operator norm (l2 norm) of a matrix
+| · | Absolute value of a scalar
+∥ · ∥ψ2 Sub-Gaussian norm of a sub-Gaussian random variable
+∥ · ∥ψ1 Sub-exponential norm of a sub-exponential random variable
+N Total number of clients
+ˆa+ Updatedaby gradient descent
+ˆa Normalized ˆa+
+˜bi analytic solution forbin the local objective function
+¯b Average of ˜bi
+Table 5: Notations
+17

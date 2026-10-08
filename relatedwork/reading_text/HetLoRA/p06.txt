@@ -1,0 +1,103 @@
+normalizing factor Z(t) := P
+k′∈S(t) ∥S(t)
+k′ ∥. This
+way, we can de-emphasize the larger rank assigned-
+clients that have rather less informative updates,
+and more emphasize the smaller rank assigned-
+clients that have more informative ones.
+3.4 Why not Simply Reconstruct First, then
+Redistribute the LoRA modules?
+One might ask why not simply reconstruct each
+of the LoRA modules to the full matrix and aggre-
+gate them. Here we show that reconstructing the
+LoRA modules and aggregating them to get the
+full model results in a different full model com-
+pared to when we aggregate the LoRA modules
+first and then reconstruct the final model. In Sec-
+tion 4 we also empirically show that reconstructing
+the LoRA modules to the full model and redistribut-
+ing them after truncated SVD to the corresponding
+rank of the clients results in an underwhelming
+performance compared to HETLORA.
+Let us consider a simple case where there are 2
+clients with heterogeneous rank lora modulesB1 ∈
+Rd×1, A1 ∈ R1×l and B2 ∈ Rd×1, A2 ∈ R2×l re-
+spectively for client 1 and client 2 where the former
+has rank 1 and latter has rank 2. We set the nota-
+tion for the LoRA modules’ith row and jth column
+value for Bk and Ak as bk,ij and ak,ij respectively.
+Then with d = 3 , l = 2 , when we reconstruct
+each of the LoRA modules first and then aggregate
+the full model we have its ith row and jth column
+as (P2
+k=1 bk,i0ak,0j) + b2,i1a2,1j and aggregating
+the LoRA modules first and then reconstructing the
+model has the full model’sith row and jth column
+as (P2
+k=1 bk,i0)(P2
+k=1 ak,0j) + b2,i1a2,1j.
+One can observe that the difference between the
+two models are the cross-terms between the left
+and right module of different client 1 and 2, i.e.,
+b1,i0a2,0j + b2,i0a1,0j for the ith row and jth col-
+umn. In other words, when we reconstruct the
+LoRA modules first and then aggregate them to get
+the full model, each term in the full model are cross-
+products between the left and right module of each
+client and not the cross-products between clients.
+Thus, reconstructing the LoRA modules loses in-
+formation on the cross-relation across clients, only
+retaining the knowledge on the cross-relation be-
+tween the LoRA modules B and A. Such obser-
+vation is also corroborated by the reconstruction
+first’s underwhelming performance in Table 3.
+4 Experiments
+In this section, we present results for HETLORA
+and its baselines in terms of the performance on
+training speed, computation/communication effi-
+ciency, and final achieved performance. First, we
+show the performance of homogeneous LoRA to
+show how LoRA in general performs for low and
+high rank values. Second, we demonstrate HET-
+LORA’s performance for different rmin and rmax
+values comparing them with full fine-tuning, homo-
+geneous LoRA, and the reconstruction-first method
+elaborated in Section 3.4. We also conduct an ab-
+lation study on HETLORA with varying decay
+factor γ for the rank self-pruning step.The rank
+distribution across clients for HETLORA, unless
+mentioned otherwise, is set to a truncated power-
+law distribution with α = 0 .1 in the range be-
+tween [rmin, rmax] (inclusively), where the small
+α value makes the distribution skewed towards
+smaller ranks. All experiments were ran with 3
+different random seeds and their average is shown
+along with the standard deviation.
+Model. We use the Transformer-based language
+model PaLM 2 (Google, 2023) of size XXS and
+XS for our experiments which are lightweight
+enough to fit in to the category of ODFMs (Google
+DeepMind, 2023) compared to standard FMs.
+The LoRA modules are applied to only the self-
+attention layers as proposed in the original LoRA
+paper (Hu et al., 2021), and their relative number
+of parameters compared to the original model are
+shown in Table 2.
+Tasks. The tasks we consider are the chat
+dialogue from the multi-session chat (MSC)
+dataset (Xu et al., 2021) and the text summariza-
+tion task from the Reddit dataset (Völske et al.,
+2017). The MSC data is a collection of human-
+human interactions comprising numerous extended
+chat sessions, and we use perplexity (Zhang et al.,
+2018) as the metric which has been used to show
+the quality of chat responses from generative mod-
+els from previous literature (Sedoc et al., 2019).
+We sample 100 users uniformly at random and
+partition their data for training and evaluation by
+each previous_dialogs and dialog. The Red-
+dit text summarization data consists of real users’
+reddit posts and their summarization, and we use
+RougeL (Lin, 2004) as the metric. We use 298
+users from Reddit that have at least 100 data sam-
+6

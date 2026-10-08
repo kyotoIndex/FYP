@@ -1,0 +1,57 @@
+Published as a conference paper at ICLR 2026
+clients with varying ranks by truncation. These processes lead to both aggregation and initialization
+noise.
+Parallel Low-Rank Adaptation and Sparse LoRA Fine-Tuning.The concept of employing mul-
+tiple parallel LoRA modules has been investigated primarily for enhancing model capacity. For in-
+stance, Capaboost Haobo et al. (2024) applies different random masks to a single large rank LoRA
+module during training, effectively simulating an ensemble of parallel LoRA modules to increase
+model capacity without incurring additional parameter costs. MELoRA Ren et al. (2024) adopts
+a group of mini LoRA modules to obtain sparseAandBmatrices. They claim that each LoRA
+module is designed to capture different features. These approaches leverage the parallelism of the
+LoRA module for capacity scaling. In contrast, our framework introduces parallel one-rank LoRA
+modules specifically as a way to improve initialization and aggregation within the FL system.
+Another related line of work Zhou et al. (2021); Zhang et al. (2022b) studies sparse LoRA fine-
+tuning, where only a subset of LoRA rows is updated while the remaining rows are simply frozen.
+In principle, such sparsification yields similar training dynamics on the active rows, since the inac-
+tive rows receive zero gradients. However, this design has several system-level limitations. First,
+the frozen rows must still be stored in GPU memory and participate in the forward pass, which in-
+creases activation storage and peak memory consumption compared with physically removing these
+rows. Second, the resulting sparsity pattern is typically unstructured: it does not match theN:M
+structured sparsity patterns required by modern accelerators (for example, the 2:4 pattern used by
+NVIDIA A100 sparse tensor cores Zhou et al. (2021)). As a result, simply freezingR−r i out of
+Rrows cannot exploit hardware sparsity support or lead to real speedups. In contrast, Fed-PLoRA
+folds unused one-rank modules into the backbone weights, preserving the same effective training
+behavior on active ranks while avoiding extra computation and memory overhead, which makes it
+more suitable for large-scale federated deployment.
+Other Resource-Efficient Fine-Tuning Pathways.Quantization is a widely studied technique for
+improving inference efficiency by reducing the precision of model weights and activations. Common
+methods include post-training quantization (PTQ), quantization-aware training (QAT), and activa-
+tion quantization. PTQ Frantar et al. (2022); Lin et al. (2024); Xiao et al. (2023) applies quan-
+tization to a pretrained model without modifying its training process. It is simple and efficient
+but may lead to noticeable accuracy degradation, especially for low-bit quantization or in sensitive
+tasks. QAT Nagel et al. (2022) is particularly focused on preserving inference-time accuracy by
+simulating low-precision operations (e.g., 8-bit or 4-bit) during training through the insertion of
+fake quantization nodes in the computation graph, allowing the model to adapt to quantization ef-
+fects. However, QAT typically targets deployment-time efficiency and does not substantially reduce
+training-time memory or compute costs. Activation quantization Choi et al. (2018) focuses on re-
+ducing the bit-width of intermediate activations in addition to weights. While this offers additional
+memory savings during training, it also introduces additional quantization noise and quantization
+and de-quantization costs with extra computation. This can make training more unstable and often
+requires careful calibration to preserve performance.
+Zeroth-order optimization Xu et al. (2024) reduces memory usage by avoiding explicit gradient
+computation. Since it does not require backpropagation, it eliminates the need to store intermediate
+activations during the forward pass. However, this benefit comes with notable trade-offs: zeroth-
+order methods typically require many more function evaluations (i.e., higher query complexity) to
+estimate gradients indirectly, and the resulting gradient estimates tend to be noisier. These fac-
+tors can significantly slow down convergence, particularly for large, high-dimensional models like
+LLMs, where accurate and efficient gradient information is crucial for effective training Zhang et al.
+(2024a).
+In addition to algorithmic approaches, several system-level engineering strategies have been devel-
+oped to address the memory and compute bottlenecks of large model fine-tuning. These methods
+aim to optimize training pipelines without modifying model architectures or learning objectives.
+For example, activation checkpointing Chen et al. (2016) reduces GPU memory usage by storing
+only a subset of activations during the forward pass and recomputing the rest during backpropaga-
+tion. While it enables training deeper models under tight memory budgets, the trade-off is increased
+computational overhead due to repeated forward computations. This may lengthen training time
+significantly, especially in models with expensive forward passes.
+17

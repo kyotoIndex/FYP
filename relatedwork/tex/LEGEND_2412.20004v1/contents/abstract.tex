@@ -1,0 +1,30 @@
+% Federated fine-tuning (FedFT) is an emerging technology that fine-tunes the pre-trained language models for distributed applications such as IoT and mobile computing.
+%However, there are two critical challenges for efficient FedFT in practical applications, \ie, resource constraints and system heterogeneity.
+%Existing works rely on parameter-efficient fine-tuning methods, \eg, low-rank adaptation (LoRA \footnote{Note that LoRA in this context refers to not the long-range radio communication technique, but the deep learning fine-tuning technique.}), but with major limitations.
+Federated fine-tuning (FedFT) has been proposed to fine-tune the pre-trained language models in a distributed manner.
+However, there are two critical challenges for efficient FedFT in practical applications, \ie, resource constraints and system heterogeneity.
+Existing works rely on parameter-efficient fine-tuning methods, \eg, low-rank adaptation (LoRA \footnote{Note that LoRA in this context refers to not the long-range radio communication technique, but the deep learning fine-tuning technique.}), but with major limitations.
+Herein, based on the inherent characteristics of FedFT, we observe that LoRA layers with higher ranks added close to the output help to save resource consumption while achieving comparable fine-tuning performance.
+Then we propose a novel LoRA-based FedFT framework, termed LEGEND, which faces the difficulty of determining the number of LoRA layers (called, LoRA depth) and the rank
+of each LoRA layer (called, rank distribution). 
+% \bluenote{
+% We systematically analyze the coupled relationship between LoRA depth and rank distribution, unveiling the intrinsic mechanisms of fine-tuning efficiency across heterogeneous devices. 
+% Then, we formulate the optimization problem and develop a greedy algorithm, which assigns diverse and suitable LoRA depth for heterogeneous devices to improve training efficiency while generating reasonable rank distribution further to enhance the fine-tuning performance.
+% }
+% We analyze the coupled relationship between LoRA depth and rank distribution, and design an efficient LoRA configuration algorithm for heterogeneous devices, thereby promoting training efficiency. 
+% Concretely, LEGEND assigns diverse and suitable LoRA depth for heterogeneous devices to improve training efficiency while generating reasonable rank distribution further to enhance the fine-tuning performance.
+We analyze the coupled relationship between LoRA depth and rank distribution, and design an efficient LoRA configuration algorithm for heterogeneous devices, thereby promoting fine-tuning efficiency. 
+% We observe that, in the context of FedFT, existing works, such as low-rank adaptation (LoRA \footnote{Note that LoRA in this context refers to not the long-range radio communication technique, but the deep learning fine-tuning technique.}), have major limitations and cannot achieve both high accuracy and fast convergence, especially for resource-constrained or heterogeneous devices.
+%LoRA layers with higher ranks added close to the output help to save resource consumption while achieving comparable model performance.
+% This work presents the first real-testbed study for federated learning-based natural language processing (NLP) with a prototype of 80 devices connected via wireless networks.  We analyze the coupled relationship between LoRA depth and rank distribution, and design an efficient LoRA configuration algorithm for heterogeneous devices, thereby promoting fine-tuning efficiency. 
+% We propose a novel LoRA-based FedFT framework, called LEGEND, which addresses the challenges of determining the number of LoRA layers (called LoRA depth) and the rank of each LoRA layer (called rank distribution).
+% LEGEND assigns diverse and suitable LoRA depth for heterogeneous devices to improve fine-tuning efficiency while generating reasonable rank distribution to enhance the fine-tuning performance further.
+Extensive experiments are conducted on a physical platform with 80 commercial devices. The results show that LEGEND can achieve a speedup of 1.5-2.8$\times$ and save communication costs by about 42.3\% when achieving the target accuracy, compared to the advanced solutions.
+% To leverage sufficient domain-specific data for fine-tuning, FedNLP has been proposed for fine-tuning pre-training LLMs on devices without sacrificing privacy.
+% Concretely, LEGEND carefully determines the different LoRA depths with diverse ranks for heterogeneous devices to adapt their capabilities and guarantee model performance.
+% However, FedNLP is prohibitively slow due to the large model size and high communication/computation cost.
+% To this end, existing work explores the integration of the parameter-efficient fine-tuning (PEFT) methods, which fine-tune only a small fraction of the parameters, into FedNLP.
+% Despite the reduced number of tunable parameters, FedNLP still faces two critical challenges, \ie, limited on-device computational resources and system heterogeneity.
+% To address these challenges, we propose a novel FedNLP framework, termed LEGEND, based on the fine-grained low-rank adaptation (LoRA) for LLMs. LEGEND jointly optimizes the LoRA depth and rank distribution to improve training efficiency and fine-tuning performance, both of which are highly sensitive to the model performance and training efficiency.
+% Concretely, LEGEND assigns diverse and suitable LoRA depth for heterogeneous devices to improve training efficiency while generating reasonable rank distribution further to enhance the fine-tuning performance.
+% We conduct extensive experiments on a physical platform with 80 NVIDIA Jetson devices, and the experimental results show that LEGEND can achieve a speedup of 1.3-5.2$\times$ when achieving the target accuracy and saves communication costs by about 61\%.

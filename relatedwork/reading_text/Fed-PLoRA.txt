@@ -1,0 +1,2483 @@
+
+
+===== PDF PAGE 1 =====
+
+Published as a conference paper at ICLR 2026
+HETEROGENEOUSFEDERATEDFINE-TUNING WITH
+PARALLELONE-RANKADAPTATION
+Zikai Zhang Rui Hu ∗ Jiahao Xu
+University of Nevada, Reno, USA
+{zikaiz, ruihu, jiahaox}@unr.edu
+ABSTRACT
+Large Language Models (LLMs) have demonstrated remarkable effectiveness
+in adapting to downstream tasks through fine-tuning. Federated Learning (FL)
+extends this capability by enabling collaborative fine-tuning across distributed
+clients using Low-Rank Adaptation (LoRA), while preserving data privacy by
+avoiding raw data sharing. However, practical deployments face challenges when
+clients have heterogeneous resources and thus adopt different LoRA ranks, lead-
+ing to substantial initialization and aggregation noise that undermines perfor-
+mance. To address these challenges, we propose Fed-PLoRA, a novel lightweight
+heterogeneous federated fine-tuning (FFT) framework. Fed-PLoRA introduces
+Parallel One-Rank Adaptation (PLoRA), a new LoRA variant that replaces the
+classic multi-rank LoRA module with multiple parallel one-rank modules, and
+a novel Select-N-Fold strategy that folds untrained PLoRA modules into the
+pre-trained weights before local training, thereby accommodating heterogeneous
+client resources. We provide a unified analysis of initialization and aggregation
+noise of Fed-PLoRA and demonstrate how it addresses the limitations of state-
+of-the-art methods. Extensive experiments on diverse LLM fine-tuning tasks
+demonstrate that Fed-PLoRA consistently outperforms existing methods in both
+accuracy and efficiency. The code is available athttps://github.com/
+TNI-playground/Fed-PLoRA.
+1 INTRODUCTION
+Federated Learning (FL) has emerged as a crucial paradigm for fine-tuning Large Language Models
+(LLMs) across multiple clients while preserving data privacy by avoiding raw data sharing. Low-
+Rank Adaptation (LoRA) Hu et al. (2021) is a widely used parameter-efficient fine-tuning (PEFT)
+method, which adapts LLMs by injecting trainable low-rank matrices into pretrained weight spaces.
+Specifically, LoRA factorizes a weight update matrix∆W∈R d×k as∆W=BA,B∈R d×r,
+A∈R r×k, wherer≪min(d, k)denoting the rank. Combining FL and LoRA provides an ef-
+fective framework for collaborative LLM fine-tuning on downstream tasks Wang et al. (2018). A
+representative example FedIT Zhang et al. (2023), which extends the classical Federated Averaging
+(FedAvg) McMahan et al. (2017) algorithm to the LoRA setting. In FedIT, each clientilocally
+trains its LoRA modules(A i,B i)while keeping the pretrained backbone frozen. At the end of
+each round, the client uploads its LoRA matrices to the server. The server then aggregates them
+by weighted averaging (i.e.,A= P ωiAi andB=ω iBi with weightsω i). The resulting global
+LoRA modules are distributed back to all clients and serve as the initialization for the next training
+round. This iterative process continues until convergence of the global adapted model.
+However, client resource heterogeneity poses a major challenge for federated LoRA-based fine-
+tuning. In practice, clients differ significantly in computational capacity, which directly constrains
+the LoRA ranks they can afford to train Wang et al. (2024); Bai et al. (2024). Prior works Haobo
+et al. (2024); Ren et al. (2024) demonstrate that the LoRA rank critically influences both fine-tuning
+performance and resource consumption. Higher ranks generally enhance adaptation capacity, but at
+the cost of greater computational and communication overhead. As a result, resource-constrained
+clients are often unable to adopt the larger ranks that more capable clients can sustain. This im-
+∗Corresponding author.
+1
+arXiv:2602.16936v1  [cs.DC]  18 Feb 2026
+
+===== PDF PAGE 2 =====
+
+Published as a conference paper at ICLR 2026
+balance undermines global aggregation, leading to degraded model performance and limiting the
+effective participation of weaker clients. These challenges highlight the urgent need for methods
+that can accommodate heterogeneous LoRA ranks across clients, thereby enabling effective and
+inclusive federated fine-tuning of LLMs.
+Existing studies Wang et al. (2024); Cho et al. (2024); Bai et al. (2024); Zhang et al. (2024b; 2025)
+on federated fine-tuning (FFT) with heterogeneous LoRA ranks primarily address the challenge of
+aggregating local LoRA modules with varying dimensions. For example, FLoRA Wang et al. (2024)
+proposes a stacking-based aggregation scheme, where local LoRA modules are concatenated to
+construct global modules, thereby accommodating heterogeneous ranks during aggregation. Beyond
+aggregation, local initialization poses another key challenge in heterogeneous-rank FFT. Since the
+global aggregated module may have a different rank from that of clients, mismatches naturally arise.
+For instance, HETLoRA Cho et al. (2024) initializes local modules by truncating the global LoRA
+matrices from lower to higher rank indices according to each client’s rank, whereas FLoRA resorts
+to random re-initialization in each round. Both strategies introduce substantial initialization noise,
+in contrast to homogeneous settings (e.g., FedIT), where local modules can be directly initialized
+with the global ones of identical rank.
+In this paper, we provide a unified analysis of initialization and aggregation noise across several rep-
+resentative methods for heterogeneous FFT. Building on these insights, we propose a novel heteroge-
+neous FFT framework,Fed-PLoRA, which incorporatesParallel One-Rank Adaptation (PLoRA).
+Unlike the classical LoRA approach that relies on a single multi-rank matrix, PLoRA constructs
+modules of any desired rank by combining multiple parallel one-rank matrices. This design natu-
+rally supports client resource heterogeneity through a novelSelect-N-Foldstrategy. Our theoretical
+results show that Fed-PLoRA achieves near-optimal local initialization while minimizing aggrega-
+tion noise, thereby enabling effective and inclusive fine-tuning in heterogeneous federated settings.
+Our main contributions are summarized as follows:
+• We present a unified analysis of initialization and aggregation noise in heterogeneous FFT
+with varying LoRA ranks. Guided by this analysis, we propose Fed-PLoRA, a lightweight
+framework that naturally accommodates heterogeneous client capacities while ensuring sta-
+ble initialization and low aggregation noise. Fed-PLoRA is lightweight and can be seam-
+lessly integrated into existing LoRA and FL pipelines.
+• Fed-PLoRA incorporates PLoRA, a new LoRA variant that substitutes a single multi-rank
+LoRA module with multiple parallel one-rank modules. Building on this design, we pro-
+pose the Select-N-Fold strategy, where each client trains only a subset of PLoRA modules
+according to its computational budget, while folding the remaining modules into the frozen
+pretrained weights.
+• Through extensive experiments on diverse LLM fine-tuning tasks, we demonstrate that
+Fed-PLoRA consistently outperforms existing heterogeneous LoRA-based FFT methods
+across varying client resource and data settings.
+2 FEDERATEDFINE-TUNINGSYSTEM
+We consider an FFT system consisting of a central server andvclients. The server maintains a
+global transformer-based pre-trained LLM, denoted byΘ 0, while each clienti∈[v]owns a local
+datasetD i. For LoRA-based FFT, LoRA can be applied to a pre-trained target moduleW 0 ∈R d×k
+(e.g., a query projection) within a transformer block ofΘ 0.
+LoRA constrains the update of the target module,∆W, through a low-rank factorization such that
+W 0 + ∆W=W 0 +BA, whereA∈R r×k,B∈R d×r, with the rankr≪min(d, k). In
+practice, LoRA is applied toLdistinct target modules withinΘ 0, denoted byW 0 :={W 0,l}L
+l=1.
+We define the corresponding collection of LoRA parameters asθ:={A,B}withA={A l}L
+l=1
+andB={B l}L
+l=1, and each pair{A l,B l}represents the low-rank matrices associated with thel-th
+target module. Given this setup, the problem of FFT can be formulated as follows:
+min
+θ
+L(θ) := 1
+v
+vX
+i=1
+Li(θ;Θ 0),(1)
+2
+
+===== PDF PAGE 3 =====
+
+Published as a conference paper at ICLR 2026
+(c) HETLoRACLIENT 1CLIENT 𝑣…
+SERVER
+…
++
++
++ +…
+One-RankWeight
++Element-WiseSum
+Trainable
+Frozen
+×Matrix Multiplication
+(a) FLoRACLIENT1 CLIENT𝑣…
+……×
+Stacking
+Aggregation
+LocallyInitialized
+(b) FlexLoRACLIENT 1CLIENT 𝑣…
+𝑩!"
+𝑾#
+××
++Aggregation
+… SVD
+(d) Fed-PLoRA(Ours)CLIENT1 CLIENT𝑣…
+SERVER SERVER
+SERVER
+…++Aggregation
++ +…
+×
+TruncatedInformation
+StartFromScratch
+OptimalInitialization
+Replaceable
+𝑩$" 𝑨$"𝑨!" 𝑩"𝑨"
+𝑾#𝑩!"𝑨!" 𝑩$"𝑨$"
+𝑩!"𝑩$" 𝑨$"𝑨!"
+𝑾!"%!
+𝑾"
+𝑩!"𝑨!" 𝑩$"𝑨$" 𝑾# 𝑾#𝑩!"𝑨!" 𝑩$"𝑨$"
+𝑩!" 𝑩$"
+𝑨$"𝑨!"
+∆𝑾"
+𝑾!" 𝑾#
+𝑩$,(!)"𝑩$,())"𝑩$,(*)"
+𝑨$,(!)"𝑨$,())"𝑨$,(*)"
+𝑩!,())"𝑩!,(*)"𝑩$,())"𝑩$,(*)"
+𝑨!,())"𝑨!,(*)"
+𝑨$,())"𝑨$,(*)"𝑩(!)"𝑩())"𝑩(*)"
+𝑨(!)"𝑨())"𝑨(*)"InteractionTerm Noise
+LocallyInitialized
+Aggregation 𝑨"𝑩"
+Select-N-Fold
+Intermediate
+𝑨!,())"𝑨!,(*)"
+𝑩!,(!)"𝑩!,())"𝑩!,(*)"
+𝑨!,(!)"𝑩$,(!)"
+𝑨$,(!)"
+MatchedAggregation
+TruncatedInformation
+𝑾$"%!
+InformationLoss
+Figure 1: Framework of FLoRA, FlexLoRA, HETLoRA, and our method Fed-PLoRA.
+whereL i(θ;Θ 0) :=E x∈Di[ℓ(θ;Θ 0, x)]denotes the local objective function of clienti, and
+ℓ(θ;Θ 0, x)is the loss of the model on a datapointxsampled fromD i.
+In a heterogeneous rank setting, each clientiemploys LoRA modules with its own LoRA rankr i.
+To solve the optimization problem in Equation equation 1, FFT methods Cho et al. (2024); Wang
+et al. (2024); Bai et al. (2024) typically follow a three-step procedure in each training roundt∈[T]:
+1. Broadcast and Initialization:The server broadcasts the global model to clients, and clienti
+initializes its local LoRA modules with rankr i viaθ t−1
+i =Init
+ 
+θt−1, ri
+
+.
+2. Local Client Update:Each clientithen fine-tunes its initialized LoRA parametersθ t−1
+i using its
+local datasetD i, while keeping the pretrained backboneΘ 0 frozen. This process typically involves
+multiple steps of Stochastic Gradient Descent (SGD) or its variants Kingma (2014), resulting in
+updated local LoRA parameters:θ t
+i =LocalUpdate
+ 
+θt−1
+i , Di,Θ 0
+.The updated parametersθ t
+i
+are then transmitted back to the server.
+3. Server-Side Aggregation:The server collects the set of updated parameters{θ t
+i }i∈[v] and aggre-
+gates them to form the global LoRA parametersθ t for roundt:θ t ={A t,B t}=Agg
+ 
+{θt
+i }i∈[v]
+
+,
+whereA t ∈R R×k andB t ∈R d×R. Here, the aggregation operatorAgg(·)must be capable of
+combining local LoRA modules with heterogeneous ranks, and the resulting global rankR, which
+satisfiesR≥max(r i), is determined by the choice of aggregation rule.
+3 PARALLELONE-RANKADAPTATION FORHETEROGENEOUSFFT
+In this section, we introduce Fed-PLoRA, a heterogeneous FFT framework that incorporates a new
+LoRA variant (PLoRA) and a novel local initialization strategy (Select-N-Fold) to eliminate initial-
+ization noise and mitigate aggregation noise.
+3.1 MOTIVATION
+Existing LoRA-based heterogeneous FFT methods Cho et al. (2024); Bai et al. (2024); Wang et al.
+(2024) that follow the above training framework differ primarily in their initialization and aggrega-
+tion strategies. To analyze their effects, we formally define the notions of initialization noise and
+aggregation noise as follows:
+Initialization Noise:During the initialization step of roundt, clients with limited local rankr i may
+be unable to fully accommodate the information contained in the global LoRA modules asr i ≤R.
+3
+
+===== PDF PAGE 4 =====
+
+Published as a conference paper at ICLR 2026
+This mismatch introduces initialization noise, defined as the total initialization gap across all clients:
+N t
+Init :=
+X
+i∈[v]
+ At−1 ⊖A t−1
+i
+
+F +
+Bt−1 ⊖B t−1
+i
+
+F
+
+,(2)
+where∥·∥ F denotes the Frobenius norm, and the operator⊖represents a rank-wise subtraction. This
+metric quantifies the information that resource-constrained clients fail to retain when initializing
+from the global model. In homogeneous rank settings (i.e.,r i =Rfor alli∈[v]), the initialization
+noise vanishes since all clients can directly adopt the global LoRA modules.
+Aggregation noise:After local training, the server receives updated parametersθ t
+i from each client
+i. Following prior works Wang et al. (2024); Sun et al. (2024), we define anidealmodel update
+∆W t
+∗ as the average of the local model updates, and the deviation from this ideal model update
+defines the aggregation noise, i.e.,
+N t
+Agg :=
+∆W t
+∗ −∆W t
+F ,with∆W t
+∗ = 1
+v
+X
+i∈[v]
+∆W t
+i = 1
+v
+X
+i∈[v]
+Bt
+iAt
+i,(3)
+where∆W t =B tAt represents the actual model update obtained by a specific aggregation method.
+Ideally, a perfect aggregation method yieldsN t
+Agg = 0.
+3.2 PARALLELONE-RANKADAPTATION
+Before presenting the Fed-PLoRA framework, we first introduce its fundamental building block,
+PLoRA. The key idea is to replace a single multi-rank LoRA module with multiple parallel one-
+rank modules. Concretely, consider applying a LoRA module with rankRto a target weight matrix
+W 0 ∈R d×k. In classical LoRA, this is parameterized by matricesA∈R R×k andB∈R d×R,
+yielding the update∆W LoRA :=BA. In contrast, PLoRA decomposes this rank-Rmodule into
+Rparallel one-rank components. For eachj∈[R], a PLoRA component consists of a pair of one-
+rank matricesA (j) ∈R 1×k andB (j) ∈R d×1 (see Figure 1(d)), producing an individual update
+∆W (j) =B (j)A(j). The overall update is simply the sum of these contributions:
+∆WPLoRA :=
+RX
+j=1
+∆W (j) =
+RX
+j=1
+B(j)A(j) =
+RX
+j=1
+B[:,j]A[j,:] = ∆WLoRA
+which is mathematically equivalent to the classic multi-rank LoRA formulation, sinceB(j) =
+B[:, j]andA(j) =A[j,:]. Thus, PLoRA achieves the same adaptation effect and parameter ef-
+ficiency as standard multi-rank LoRA, while enabling a modular decomposition that is naturally
+suited to heterogeneous FTT.
+3.3 FED-PLORA: HETEROGENEOUSFFTWITHPLORA
+As in existing approaches, resource-constrained clients can reduce their LoRA ranks to fit limited
+computational budgets, which naturally results in heterogeneous ranks across clients. Within our
+framework, this corresponds to adjusting the number of parallel one-rank matrix pairs in the PLoRA
+modules. However, this adjustment alone does not eliminate initialization and aggregation noise.
+To overcome these issues in heterogeneous settings, we propose a novelSelect-N-Foldstrategy
+within the Fed-PLoRA framework. This strategy is specifically designed to handle rank hetero-
+geneity, ensuring zero initialization noise and minimizing aggregation noise. Assume the server
+maintains global PLoRA parametersθ={{A l}l∈[L],{B l}l∈[L]}, where for each target module
+l∈[L],A l :={A l
+(j)}j∈[R] andB l :={B l
+(j)}j∈[R] represent theRparallel one-rank PLoRA
+components. For clienti, the local PLoRA parameters areθ i ={{A l
+i}l∈[L],{B l
+i}l∈[L]}, where
+Al
+i :={A l
+i,(j)}j∈[ri] andB l
+i :={B l
+i,(j)}j∈[ri] with local rankr i. The global rank is chosen such
+thatR≥max i∈[v] ri. Fed-PLoRA follows the three-step training framework described in Section 2,
+and the pseudo-code is shown in Algorithm 1. In each training roundt:
+Broadcast and Initialization:The server broadcasts the global PLoRA parametersθ t−1 to clients.
+Each clientithen randomly selects a subsetK t
+i ofr i parallel one-rank PloRA modules for local
+4
+
+===== PDF PAGE 5 =====
+
+Published as a conference paper at ICLR 2026
+training. For clarity, we omit the indexlin the notation, but note that this selection and the subse-
+quence operations are performed independently for each target modulel∈[L]. The local PLoRA
+parameters of clientiare initialized asθ t−1
+i ={A t−1
+(j) ,B t−1
+(j) }j∈Kt
+i
+. The remaining(R−r i)parallel
+one-rank PLoRA modules are temporarilyfoldedinto the corresponding pre-trained target module
+W 0, yielding the local target module
+W t
+i :=W 0 + ∆Wt−1
+fold,i =W 0 +
+X
+j /∈Kt
+i
+Bt−1
+(j) At−1
+(j) ,
+which then remains frozen during local training. This procedure allows the client to preserve infor-
+mation from the full set of global PloRA modules while training only a subset. Consequently, client
+ioperates with an effective rank ofr i, matching the parameter count of a standard rank-r i LoRA
+configuration, but without incurring initialization noise.
+Randomness in Select-N-Fold:Our objective is to obtain a well-trained global PLoRA that can be
+applied to the pretrained backbone for downstream tasks. When local resource is sufficient (i.e.,
+ri =R), all local PLoRA modules can be trained, ensuring that every global PLoRA module is
+updated. Whenr i < R, trainable modules are selected independently across clients and target
+modules; hence, in expectation, each global module is updated by some subset of clients in every
+round. This randomness mitigates the risk of long-term staleness in global PLoRA modules under
+the Select-N-Fold strategy.
+Local Client Update:During local training, each clientiupdates only the selected PLoRA modules
+inK t
+i. After optimization, the updated local PLoRA parameters areθ t
+i ={A t
+i,(j),B t
+i,(j)}j∈Kt
+i
+,
+which are then transmitted to the server.
+Server-Side Aggregation:The server aggregates these local PLoRA modules in a rank-wise man-
+ner. For eachj∈[R], the global PLoRA modules are computed asA t
+(j) = 1
+|Qt
+(j) |
+P
+i∈Qt
+(j)
+At
+i,(j),
+Bt
+(j) = 1
+|Qt
+(j) |
+P
+i∈Qt
+(j)
+Bt
+i,(j), whereQ t
+(j) ={i|i∈[v], j∈ K t
+i}denotes the set of clients that
+updated modulejin roundt. The aggregated global PLoRA parametersθ t ={A t,B t}are then
+used for the next round of training. The process iterates until the global model converges.
+3.4 ANALYSIS OFINITIALIZATION ANDAGGREGATIONNOISE
+(a) Round 1(b) Round 80
+02468101214
+02468101214
+0246810121402468101214Rank Index
+0.80.60.40.20.0-0.2
+Figure 2: Cosine similarities between parallel one-rank
+modules of PLoRA. (a) Low, random similarities at initial-
+ization; (b) Increasing within-rank similarity across clients,
+while cross-rank similarity remains low, indicating that
+modules capture distinct knowledge at different ranks but
+converge on similar knowledge across clients, despite dif-
+ferences in resource limitations and data distributions (see
+Appendix Section C.3).
+Here, we analyze the initializa-
+tion and aggregation noise of Fed-
+PLoRA, comparing it with three
+SOTA methods, FLoRA Wang et al.
+(2024), FlexLoRA Bai et al. (2024),
+and HETLoRA Cho et al. (2024).
+Due to page limitations, we pro-
+vide the detailed derivation in Ap-
+pendix E.
+Fed-PLoRA.Because each
+client either trains or folds
+the globally initialized one-
+rank modules into its frozen
+target weights, there is no
+discrepancy between local
+and global modules. Hence,
+N t
+Ours Init = 0. Under our
+aggregation rule, the aggrega-
+tion noise isN t
+Ours Agg =∥ PR
+j=1((1/|Qt
+(j)|)P
+i∈Qt
+(j)
+(Bt
+i,(j) − B
+t
+(j))(At
+i,(j) − A
+t
+(j)))∥F ,
+where A
+t
+(j) := (1/|Q t
+(j)|)P
+i∈Qt
+(j)
+At
+i,(j) and B
+t
+(j) := (1/|Q t
+(j)|)P
+i∈Qt
+(j)
+Bt
+i,(j). This
+noise vanishes when the cross-client covariance betweenA t
+i,(j) andB t
+i,(j) is zero for
+every rank. More generally, by the Cauchy–Schwarz inequality, it can be bounded as
+N t
+Ours Agg ≤ PR
+j=1
+1
+|Qt
+(j) |
+P
+i∈Qt
+(j)
+∥Bt
+i,(j) − B
+t
+(j)∥2 +∥A t
+i,(j) − A
+t
+(j)∥2.As shown in the
+5
+
+===== PDF PAGE 6 =====
+
+Published as a conference paper at ICLR 2026
+heatmap in Figure 2, the diagonal entries represent the similarity of thej-th PLoRA module
+(j∈[R]) across clients, averaged over all client pairs. We observe that these similarities increase
+significantly as training progresses, indicating that local PLoRA modules become more aligned
+across clients. This alignment reduces deviations from the mean, thereby tightening the upper
+bound of the aggregation noise.
+FLoRA.As shown in Figure 1 (a), FLoRA employs a stacking-based aggregation method to accom-
+modate LoRA modules from clients with heterogeneous ranks. Each clientiinitializes its trainable
+LoRA modules{A t−1
+i ,B t−1
+i }with rankr i from scratch (e.g.,A t−1
+i drawn from a normal distribu-
+tion andB t−1
+i set to zeros). Before local training, the local target module is replaced with the latest
+global target module from the server. After local training, the updated LoRA modules{A t
+i,B t
+i}are
+sent to the server, which concatenates all client updates along the rank dimension to form two large
+intermediate matrices:{A t ∈R (P
+i∈[v] ri)×k,B t ∈R d×(P
+i∈[v] ri)}. The global update is then com-
+puted as∆W t
+FLoRA =B tAt/v. Because local LoRA modules(A t−1
+i ,B t−1
+i )are freshly initialized
+each round, the initialization noise isN t
+FLoRA Init = P
+i∈[v]
+ At−1
+F +
+Bt−1
+F
+
++σ 2, where
+σ2 reflects the variance of the random initialization forA. This noise can be substantial and may
+degrade local training performance. On the other hand, the stacking operation in FLoRA preserves
+the local updates without distortion, leading to zero aggregation noise, i.e.,N t
+FLoRA Agg = 0.
+FlexLoRA.As shown in Figure 1 (b), FlexLoRA applies singular value decomposition (SVD) to
+the global target module update∆W t−1 to construct global LoRA modules{A t−1,B t−1}with
+rankR, i.e.,∆W t−1 ≈B t−1
+svd At−1
+svd whereB t−1
+svd :=U t−1St−1 andA t−1
+svd :=V t−1⊤
+. Here,
+Ut−1 ∈R d×R contains the top-Rleft singular vectors,S t−1 ∈R R×R is the diagonal matrix
+of singular values, andV t−1 ∈R R×k holds the top-Rright singular vectors. For a client with
+rankr i, the local LoRA modules are initialized by truncating to the topr i components:A t−1
+i =
+Vt−1
+[:ri,:]
+⊤
+,B t−1
+i =U t−1
+[:,:ri]St−1
+[:ri,:ri]. After local fine-tuning, the server aggregates client updates
+to form the global target module update:∆W t = 1
+v
+P
+i∈[v] ∆W t
+i = 1
+v
+P
+i∈[v] Bt
+iAt
+i. Because
+each client only retains the top-r i singular components, the initialization noise isN t
+FlexLoRA Init =P
+i∈[v](∥At−1
+[ri+1:R,:]∥F +∥B t−1
+[:,ri+1:R]∥F )which increases asr i decreases. The server obtains the
+exact average update∆W t, but when reconstructing global LoRA modules of rankRvia SVD,
+decomposition error is introduced:N t
+FlexLoRA Agg =∥∆W t −U tStVt⊤∥F . This error increases as
+global rankRincreases.
+HETLoRA.As shown in Figure 1 (c), HETLoRA initializes each client’s LoRA modules by trun-
+cating the global LoRA modules, i.e.,A t−1
+i :=A t−1
+[:ri,:],B t−1
+i :=B t−1
+[:,:ri]. After local fine-tuning,
+the updated modules{A t
+i,B t
+i}are sent to the server, where they are expanded to rankRby zero-
+padding. The padded modulesA t,′
+i ,B t,′
+i are then averaged to form the global LoRA modules:
+At = 1
+v
+P
+i∈[v] At,′
+i ,B t = 1
+v
+P
+i∈[v] Bt,′
+i . Because each client discards the bottom(R−r i)com-
+ponents, the initialization noise isN t
+HETLoRA Init =P
+i∈[v](∥At−1
+[ri+1:R,:]∥F +∥B t−1
+[:,ri+1:R]∥F ), which
+grows asr i decreases. For aggregation, the global update is computed as∆W t =B tAt, but
+becauseA t andB t are averaged separately, this introduces a mathematical bias relative to the opti-
+mal update 1
+v
+P
+i Bt,′
+i At,′
+i Wang et al. (2024); Sun et al. (2024). The resulting aggregation noise is
+N t
+HETLoRA Agg =∥(1/v 2)((v−1) P
+i∈[v] Bt,′
+i At,′
+i −P
+j∈[v]
+P
+k∈[v],k̸=j Bt,′
+j At,′
+k )∥F .
+In summary, FLoRA suffers from substantial initialization noise because each client’s LoRA mod-
+ules are randomly re-initialized. FlexLoRA and HETLoRA reduce this randomness by truncating
+global modules, but still incur initialization noise that grows as more clients operate with smaller
+ranks. Moreover, HETLoRA introduces structural aggregation bias, while FlexLoRA suffers de-
+composition error from SVD. In contrast, Fed-PLoRA eliminates initialization noise entirely and
+minimizes aggregation noise by integrating PLoRA with the Select-N-Fold strategy, leading to more
+stable and accurate FFT under heterogeneous client capacities.
+3.5 COMMUNICATION,COMPUTATION,AND MEMORY OVERHEAD
+We analyze the communication, computation, and memory overhead of Fed-PLoRA in comparison
+with FLoRA, FlexLoRA, and HETLoRA.
+6
+
+===== PDF PAGE 7 =====
+
+Published as a conference paper at ICLR 2026
+Communication.In each round, every client in Fed-PLoRA uploads its local PLoRA update with
+rankr i to the server. The uplink payload scales asO((d+k)r i), which is identical to the uplink cost
+of FLoRA, FlexLoRA, and HETLoRA. Thus, Fed-PLoRA introduces no additional uplink overhead.
+After aggregation, the server sends the global PLoRA module with rankRto every client, giving
+a downlink cost ofO((d+k)R). In comparison, HETLoRA and FlexLoRA send each client a
+personalized global LoRA module of rankr i, resulting in per-client downlink costO((d+k)r i).
+FLoRA incurs a larger downlink cost ofO(dk)as its server sends the updated target module. Thus,
+the downlink cost of Fed-PLoRA is higher than HETLoRA and FlexLoRA byO((d+k)(R−r i))
+per client, but it reduces the downlink cost relative to FLoRA byO(dk−(d+k)R).
+Computation.All methods use an identical local fine-tuning procedure with local rankr i for client
+iafter initialization, so Fed-PLoRA incurs no additional model training cost on the client side.
+The only difference in local computation arises during model initialization, whose cost is negligi-
+ble compared with model training cost. For completeness, we also discuss the initialization cost
+of Fed-PLoRA compared with other methods. During initialization, all methods update their local
+PLoRA/LoRA parameters, either by using the received global PLoRA/LoRA module or by ran-
+domly initializing them. Compared to FlexLoRA and HETLoRA, Fed-PLoRA and FLoRA require
+an additional step. In Fed-PLoRA, clientifolds the remainingR−r i global one-rank PLoRA mod-
+ules into the frozen model weights, which incurs an extra computational cost ofO(dk(R−r i)).
+In FLoRA, every client updates its local target module using the received global target module,
+resulting in an additional computational cost ofO(dk). On the server side, Fed-PLoRA performs
+rank-wise averaging directly on the received local updates, which is lightweight. In HETLoRA,
+the server first expands each local update to rankRbefore averaging, introducing slightly more
+computation than simple rank-wise averaging. FlexLoRA requires an SVD operation to obtain a
+global low-rank update, which is computationally expensive. FLoRA concatenates all local updates
+and computes a full update to the global target module, which also incurs substantial cost. Thus,
+Fed-PLoRA introduces no additional server-side computational overhead compared with the other
+methods and is in fact the most lightweight among them.
+Memory.During local model training, Fed-PLoRA has the same memory footprint for storing
+model parameters, optimizer states, activations, and other training-related tensors as HETLoRA,
+FLoRA, and FlexLoRA. This is because all methods follow the same local fine-tuning procedure
+to update only the LoRA/PLoRA module on top of the frozen backbone. The only difference in
+memory usage arises during model initialization, whose cost is negligible compared to the overall
+fine-tuning memory footprint. During local initialization, each client requires a small temporary
+memory buffer to hold the parameters received from the server. These parameters are immediately
+discarded once initialization completes, resulting in no persistent memory cost. Specifically, in
+Fed-PLoRA, clientitemporarily stores the global PLoRA module of rankR. In HETLoRA and
+FlexLoRA, clientiinstead stores the global LoRA module of rankr i. In contrast, FLoRA requires
+clientito temporarily store the full global target module, whose size scales asO(dk). Thus, Fed-
+PLoRA incurs a temporary memory overhead ofO((d+k)(R−r i))compared with HETLoRA and
+FlexLoRA, but reduces temporary memory usage relative to FLoRA byO(dk−(d+k)R).
+Overall, Fed-PLoRA introduce negligible overhead in communication, computation, and memory.
+Detailed numerical results and measurements are provided in Appendix F.2.
+4 EVALUATION
+Models, Datasets, Baselines, and Experimental Settings.We employ six models with different
+scales in our experiments: BERT-base Devlin et al. (2019), Llama-1B Chen et al. (2024), Llama-3.1-
+8B Meta AI (2024), OPT-1.3B Zhang et al. (2022a), Qwen3-4B-A3B-Instruct-2507 Team (2025),
+and Mistral-7B-v0.3 MistralAI (2023). Following the configurations in the original LoRA paper Hu
+et al. (2021), the LoRA modules are applied to the self-attention layers only. We use datasets across
+multiple domains. For general instruction following, we use Natural Instructions Wang et al. (2022)
+and Dolly-15K Conover et al. (2023) for training and evaluation. For general natural language
+understanding, we adopt the GLUE benchmark Wang et al. (2018). In the finance domain, we train
+on FinGPT FinGPT (2023) and evaluate on FPB Malo et al. (2014), FIQA Maia et al. (2018), and
+TFNS Neural Magic (2022). In the medical domain, we train on MedAlpaca Han et al. (2023) and
+evaluate on PubMedQA Jin et al. (2019), MedMCQA Pal et al. (2022), MedQA Jin et al. (2021), and
+7
+
+===== PDF PAGE 8 =====
+
+Published as a conference paper at ICLR 2026
+Method Natural Instructions (IID)Natural Instructions (non-IID)
+Untuned Model 33.82+0.25−0.12
+HomogeneousFedIT (Rank=R) 66.88+0.59−0.33 61.28+0.67−0.41
+FedIT (Rank=R/2) 64.52+0.11−0.21 60.57+0.08−0.21
+Heterogeneous
+R= 16Avg Rank=8
+FLoRA 33.82+0−0 33.82+0−0
+FlexLoRA 59.07+2.63−3.24 53.51+5.27−9.30
+HETLoRA 58.07+2.02−1.35 58.84+0.32−0.22
+Fed-PLoRA 64.96+1.63
+−1.01 60.76+0.68
+−0.46
+Table 1: Comparison of Fed-PLoRA with baselines on IID and non-IID Natural Instructions dataset.
+FedIT as the baseline for FFT under homogeneous settings without resource constraints.
+Method CoLA SST-2 MRPC QQP QNLI RTE Avg
+Untuned Model 1.20+0.10−0.05 49.08+0.42−0.37 31.61+0.83−0.55 63.09+0.28−0.31 49.95+0.67−0.52 52.70+0.36−0.44 41.27+0.44−0.37
+Homo. FedIT (Rank=R)61.68+1.26−0.88 92.47+0.19−0.16 87.58+0.41−0.33 86.86+0.04−0.02 89.53+0.84−0.54 68.35+0.24−0.12 81.08+0.50−0.34
+FedIT (Rank=R/2)59.05+2.27−2.63 92.23+0.08−0.15 86.16+0.74−0.49 86.47+0.02−0.03 88.32+1.04−0.77 65.23+0−0 79.58+0.69−0.68
+Hete.R= 16Avg Rank=7
+FLoRA −4.08+2.01−2.42 91.70+0.38−0.19 43.87+24.51−12.26 53.88+8.79−15.13 50.47+2.94−3.10 51.02+2.04−3.73 47.81+6.78−6.14
+FlexLoRA 13.42+15.76−10.37 87.88+0.53−0.84 70.40+1.41−2.02 74.29+1.63−2.54 90.01+0.65−0.41 55.83+0.48−0.60 65.31+3.41−2.80
+HETLoRA 48.09+2.64−1.86 91.74+0.34−0.23 78.59+3.76−1.88 77.53+3.20−2.36 85.30+0.07−0.06 60.04+2.05−1.56 73.55+2.01−1.33
+Fed-PLoRA59.38+0.43−0.7992.35+0.31−0.1586.35+0.41−0.5787.25+2.71−1.46 88.54+1.42−1.74 65.46+0.60−0.4879.89+0.98−0.87
+Table 2: Comparison of Fed-PLoRA with baselines on GLUE benchmark.
+CareQA Arias-Duart et al. (2025). In the math domain, we use MATH Hendrycks et al. (2021) for
+training and evaluation. For IID data settings, we evenly split the dataset across clients. For non-IID
+settings, we apply pathological/Dirichlet data partitioning methods.
+We compare Fed-PLoRA against four baselines. FedIT Zhang et al. (2023) represents a classic
+FFT approach that combines FedAvg with LoRA. Since it is designed for homogeneous LoRA,
+we only apply it in homogeneous experiments, where it serves as the baseline representing FFT
+without resource constraints. For heterogeneous LoRA, we consider FLoRA Wang et al. (2024),
+FlexLoRA Bai et al. (2024), and HETLoRA Cho et al. (2024) (see Section 3.4 for their details).
+For the heterogeneous setting, clients are (by default) evenly divided into three groups with ranks
+(1, rm, R), where the maximumRis set as the optimal rank in homogeneous setting, and the middle
+rankr m ∈(1, R)is chosen so that the average rank⌊ P
+i ri/v⌋is at mostR/2, reflecting realistic
+resource-limited clients. The number of clients across tasks ranges from 50 to 200. In each train-
+ing round, 10% of clients are sampled uniformly at random. The main experimental results are
+reported as the average with upper and lower deviations over three repeat experiments. Additional
+experimental configurations are provided in Appendix C.
+4.1 MAINEXPERIMENTALRESULTS
+Due to page limitations, we present the main results on Natural Instructions (IID and non-IID) with
+Llama-1B, the GLUE benchmark (IID) with BERT-base, and financial datasets (IID) with Llama-
+3.1-8B, while leaving the remaining results on other datasets and non-IID settings in Appendix D.
+Results on Natural Instructions.Table 1 reports averaged Rouge-L scores of the fine-tuned global
+model under both IID and non-IID settings (the latter simulated by assigning 20 out of 613 distinct
+tasks per client). The FedIT results under homogeneous settings show that a larger LoRA rank leads
+to better fine-tuning performance, improving over the untuned model by +33.06% under the IID
+setting and by +27.46% under the non-IID setting on average. Fed-PLoRA consistently outperforms
+heterogeneous baselines. In the IID setting, it achieves average Rouge-L gains of +31.14%, +5.89%,
+and +6.89% over FLoRA, FlexLoRA, and HETLoRA, respectively, highlighting the effectiveness
+in eliminating initialization noise and reducing aggregation noise. We also observe that Fed-PLoRA
+slightly outperforms the homogeneous FedIT with rankR/2by +0.19%. Similar trends appear on
+other datasets, and in some cases Fed-PLoRA even surpasses FedIT with rankR. These effects
+are often more pronounced under non-IID settings. This suggests that Fed-PLoRA’s parallel and
+randomized module updates ensure that allRglobal PLoRA modules are updated by different clients
+across rounds. As a result, rank-wise updates stay aligned across clients, allowing each one-rank
+module to gradually learn consistent features even under data heterogeneity, consistent with our
+observations in Figure 2.
+8
+
+===== PDF PAGE 9 =====
+
+Published as a conference paper at ICLR 2026
+Method FPB FIQA TFNS Avg
+Untuned Model 50.57+0.42−0.31 29.33+0.51−0.44 49.87+0.28−0.36 40.12+0.39−0.27
+HomogeneousFedIT (Rank=R)63.53+0.33−0.33 28.94+2.30−1.32 64.11+0.45−0.43 52.19+0.48−0.79
+FedIT (Rank=R/2)62.70+0.14−0.31 29.93+1.23−2.31 63.71+0.44−0.33 52.11+0.44−0.78
+Heterogeneous
+R= 8Avg Rank=4
+FLoRA 52.33+0.80−0.68 31.42+0.44−0.24 50.53+0.26−0.45 44.76+0.32−0.28
+FlexLoRA 62.79+0.54−0.78 31.76+0.90−0.68 62.60+1.05−1.33 52.38+0.49−0.53
+HETLoRA 60.06+0.58−0.33 32.01+2.52
+−1.42 60.09+0.58−0.46 50.72+0.92−0.51
+Fed-PLoRA 63.94+1.15
+−1.16 31.68+2.85−2.08 64.19+1.26
+−0.92 53.27+1.11
+−0.85
+Table 3: Comparison of Fed-PLoRA with baselines on financial datasets.
+Results on GLUE.As shown in Table 2, our method, Fed-PLoRA, demonstrates substantial im-
+provements over these baselines on IID GLUE benchmark. Fed-PLoRA improves untuned model
+by +38.62% on average. Compared to FLoRA, Fed-PLoRA achieves average improvements of
++63.46% on CoLA and +42.48% on MRPC. This significant margin shows the detrimental impact
+of FLoRA’s random initialization, which incurs significant perturbation to the local training at every
+round. Compared to FlexLoRA, Fed-PLoRA achieves a notable average improvement of +4.47%
+on the SST-2 dataset. This suggests that while FlexLoRA aims to provide representative low-rank
+matrices with SVD, it can still suffer from significant information loss that leads to initialization
+and aggregation noise, particularly when some clients are constrained to very small LoRA ranks.
+Fed-PLoRA also outperforms HETLoRA by +9.72% on QQP and +5.42% on RTE. This advantage
+can be attributed to the large initialization and aggregation noises in HETLoRA from zero-padding
+and truncation, which Fed-PLoRA is designed to mitigate more effectively. Note that FlexLoRA
+outperforms FedIT with rankRon QNLI, likely because this relatively simple binary QA task can
+be well captured using a low rank, making SVD-based aggregation particularly effective.
+Results on Financial Datasets.As shown in Table 3, Fed-PLoRA achieves average gains of
++13.15% over untuned model, +8.51% over FLoRA, +0.89% over FlexLoRA, and +2.55% over
+HETLoRA. Additionally, both Fed-PLoRA and FlexLoRA here outperforms the homogeneous
+FedIT baselines. As we discussed before, Fed-PLoRA achieves this by maintaining rank-wise align-
+ment of local module updates across clients. FlexLoRA benefits from its SVD-based initialization,
+which aligns low-rank modules with the most informative global directions. When the task is inher-
+ently low-rank, this targeted representation may outperform homogeneous FedIT, which treats all
+directions equally.
+4.2 ADDITIONALDISCUSSIONS
+Adaptability of the PLoRA to Homogeneous Settings and LoRA Variants.
+Figure 3: Performance of PLoRA
+and Fed-PrsLoRA in homoge-
+neous settings.
+Theoretically, PLoRA achieves the same adaptation effect
+and parameter efficiency as standard multi-rank LoRA (see
+Section 3.2) and can be extended to other LoRA variants.
+We adapt it to rsLoRA Kalajdzievski (2023), forming Fed-
+PrsLoRA, and compare with FedIT and another homogeneous
+method FFA-LoRA Sun et al. (2024) (which only sharesBma-
+trices). We evaluate on IID CoLA dataset, the hardest GLUE
+task, under homogeneous settings with different ranks. From
+Figure 3, we observe that Fed-PrsLoRA consistently outper-
+forms Fed-PLoRA, leveraging rsLoRA’s improvements over
+LoRA. Both methods also achieve substantial gains over FFA-
+LoRA (e.g., +10.63% and +10.89% at rank 16) and in some cases surpass FedIT. This advantage
+becomes more pronounced as the rank decreases, underscoring the effectiveness of PLoRA’s paral-
+lelization in resource-limited settings.
+Figure 4: Select-N-Fold vs. other
+selection methods.
+Effectiveness of Select-N-Fold.We also evaluate other strate-
+gies for selecting trainable one-rank PLoRA modules in Fed-
+PLoRA on IID CoLA dataset. We consider: Weight Norm,
+which picks modules with the largest weight norms; Fixed,
+which always selects the firstr i modules; and Select-N-Drop,
+which randomly selectsr i modules like Select-N-Fold but dis-
+cards the rest. As shown in Figure 4, both random strategies
+9
+
+===== PDF PAGE 10 =====
+
+Published as a conference paper at ICLR 2026
+(Select-N-Drop and Select-N-Fold) outperform the deterministic ones, since randomness ensures
+that all global PLoRA modules are eventually updated. Select-N-Fold achieves the highest perfor-
+mance by additionally reusing the latest unselected modules during local training.
+Communication and Computational Efficiency.Figure 5 shows the accuracy of four heteroge-
+neous methods on the IID QQP dataset with respect to communication (uplink and downlink) cost
+and computation (wall-clock training time) cost. Overall, Fed-PLoRA achieves higher communica-
+tion efficiency although it incurs additionalR−r i downlink cost compared to others. Both Fed-
+PLoRA and HETLoRA achieve good computational efficiency as they are lightweight. FlexLoRA
+incurs substantial computational overhead due to the use of SVD, nearly doubling the training time.
+A detailed overhead analysis is given inAppendix Section F .2.
+5 RELATEDWORK
+LoRA-based FFT has recently emerged as a popular paradigm for adapting LLMs while pre-
+serving data privacy Zhang et al. (2023); Babakniya et al. (2023); Sun et al. (2024); Za-
+wad et al. (2025). Early approaches such as FedIT Zhang et al. (2023) and FFA-LoRA Sun
+et al. (2024) combine LoRA with FedAvg or modify update sharing to mitigate aggre-
+gation noise, but they assume homogeneous client resources. Other work like FedSA-
+LoRA Guo et al. (2024) explores selective aggregation, yet still under homogeneous settings.
+Figure 5: Training efficiency of Fed-
+PLoRA.
+To address resource heterogeneity, several methods allow
+clients to fine-tune with different LoRA ranks. HET-
+LoRA Cho et al. (2024) aggregates heterogeneous updates
+through zero-padding and truncation, FLoRA Wang et al.
+(2024) stacks full-weight updates before reinitialization,
+and FlexLoRA Bai et al. (2024) applies SVD-based ag-
+gregation with truncation. While effective to some extent,
+these approaches introduce substantial initialization or ag-
+gregation noise, degrading global performance.
+The use of multiple parallel LoRA modules has been ex-
+plored, for enhancing model capacity in centralized train-
+ing, e.g., Capaboost Haobo et al. (2024) and MELoRA Ren
+et al. (2024) rather than addressing the unique challenges
+of federated settings. In contrast, our work designs PLoRA
+as a mechanism to mitigate initialization and aggregation
+noise under heterogeneous FFT.
+Finally, other efficiency-oriented techniques such as quan-
+tization Frantar et al. (2022); Lin et al. (2024), zeroth-order
+optimization Xu et al. (2024); Zhang et al. (2024a), and
+system-level methods like activation checkpointing Chen et al. (2016) provide complementary di-
+rections for resource-efficient training. These are orthogonal to our design and could be combined
+with Fed-PLoRA in future work. Due to the limited space, we provide a comprehensive literature
+review inAppendix Section B.
+6 CONCLUSION
+In this paper, we introduced Fed-PLoRA, a novel heterogeneous FFT framework designed to tackle
+the fundamental challenges of initialization and aggregation noise in LoRA-based fine-tuning.
+By leveraging PLoRA’s parallel one-rank modules together with the Select-N-Fold strategy, Fed-
+PLoRA aligns client updates more effectively and preserves consistency under resource heterogene-
+ity. We conducted a unified analysis of initialization and aggregation noise of our method, comparing
+with state-of-the-art heterogeneous LoRA-based FFT methods. Through extensive experiments on
+multiple tasks, we justified the effectiveness of PLoRA and Select-N-Fold and showed that Fed-
+PLoRA consistently outperforms existing state-of-the-art methods in both accuracy and efficiency.
+PLoRA’s parallelization design opens new opportunities for integration with other LoRA-like meth-
+ods, potentially extending its benefits beyond the current framework. In the future, we will work on
+further reducing the noise that arises during the aggregation of low-rank adaptations and investigat-
+ing how parallelization can be leveraged to better align model updates under data heterogeneity.
+10
+
+===== PDF PAGE 11 =====
+
+Published as a conference paper at ICLR 2026
+ACKNOWLEDGMENTS
+This work was supported by the National Science Foundation under the Harnessing the Data Revo-
+lution for Nevada Fire Science (HDRFS) Seed Grant NSHE-24-37.
+REFERENCES
+Anna Arias-Duart, Pablo Agustin Martin-Torres, Daniel Hinjos, Pablo Bernabeu-Perez, Lucia Urce-
+lay Ganzabal, Marta Gonzalez Mallo, Ashwin Kumar Gururajan, Enrique Lopez-Cuena, Sergio
+Alvarez-Napagao, and Dario Garcia-Gasulla. Automatic evaluation of healthcare llms beyond
+question-answering.arXiv preprint arXiv:2502.06666, 2025.
+Sara Babakniya, Ahmed Roushdy Elkordy, Yahya H Ezzeldin, et al. Slora: Federated parameter
+efficient fine-tuning of language models. InInternational Workshop in Conjunction with NeurIPS
+2023, 2023.
+Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao, and Yaliang Li. Federated fine-tuning of large
+language models under heterogeneous tasks and client resources. InThe Thirty-eighth Annual
+Conference on Neural Information Processing Systems, 2024.
+Daoyuan Chen, Yilun Huang, Zhijian Ma, Hesen Chen, Xuchen Pan, Ce Ge, Dawei Gao, Yuexiang
+Xie, Zhaoyang Liu, Jinyang Gao, et al. Data-juicer: A one-stop data processing system for large
+language models. InCompanion of the 2024 International Conference on Management of Data,
+pp. 120–134, 2024.
+Tianqi Chen, Bing Xu, Chiyuan Zhang, and Carlos Guestrin. Training deep nets with sublinear
+memory cost.arXiv preprint arXiv:1604.06174, 2016.
+Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, and Gauri Joshi. Heterogeneous lora for fed-
+erated fine-tuning of on-device foundation models. InProceedings of the 2024 Conference on
+Empirical Methods in Natural Language Processing, pp. 12903–12913, 2024.
+Jungwook Choi, Zhuo Wang, Swagath Venkataramani, Pierce I-Jen Chuang, Vijayalakshmi Srini-
+vasan, and Kailash Gopalakrishnan. Pact: Parameterized clipping activation for quantized neural
+networks.arXiv preprint arXiv:1805.06085, 2018.
+Mike Conover, Matt Hayes, Ankit Mathur, Jianwei Xie, Jun Wan, Sam Shah, Ali Ghodsi, Patrick
+Wendell, Matei Zaharia, and Reynold Xin. Free dolly: Introducing the world’s first truly open
+instruction-tuned llm.Company Blog of Databricks, 2023.
+Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and Luke Zettlemoyer. Qlora: Efficient finetuning
+of quantized llms.Advances in neural information processing systems, 36:10088–10115, 2023.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, et al. Bert: Pre-training of deep bidirectional trans-
+formers for language understanding. InProceedings of the 2019 Conference of the NAACL:
+Human Language Technologies, Volume 1, 2019.
+FinGPT. fingpt-sentiment-train.https://huggingface.co/datasets/FinGPT/
+fingpt-sentiment-train, 2023.
+Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and Dan Alistarh. Gptq: Accurate post-training
+quantization for generative pre-trained transformers.arXiv preprint arXiv:2210.17323, 2022.
+Yan Gao, Massimo Roberto Scamarcia, Javier Fernandez-Marques, Mohammad Naseri, Chong Shen
+Ng, Dimitris Stripelis, Zexi Li, Tao Shen, Jiamu Bai, Daoyuan Chen, et al. Flowertune: A
+cross-domain benchmark for federated fine-tuning of large language models.arXiv preprint
+arXiv:2506.02961, 2025.
+Pengxin Guo, Shuang Zeng, Yanran Wang, Huijie Fan, Feifei Wang, and Liangqiong Qu. Selec-
+tive aggregation for low-rank adaptation in federated learning.arXiv preprint arXiv:2410.01463,
+2024.
+11
+
+===== PDF PAGE 12 =====
+
+Published as a conference paper at ICLR 2026
+Tianyu Han, Lisa C Adams, Jens-Michalis Papaioannou, Paul Grundmann, Tom Oberhauser,
+Alexander L ¨oser, Daniel Truhn, and Keno K Bressem. Medalpaca–an open-source collection
+of medical conversational ai models and training data.arXiv preprint arXiv:2304.08247, 2023.
+SONG Haobo, Hao Zhao, Soumajit Majumder, and Tao Lin. Increasing model capacity for free: A
+simple strategy for parameter efficient fine-tuning. InThe Twelfth International Conference on
+Learning Representations, 2024.
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song,
+and Jacob Steinhardt. Measuring mathematical problem solving with the math dataset.NeurIPS,
+2021.
+Edward J Hu, Phillip Wallis, Zeyuan Allen-Zhu, et al. Lora: Low-rank adaptation of large language
+models. InICLR, 2021.
+Di Jin, Eileen Pan, Nassim Oufattole, Wei-Hung Weng, Hanyi Fang, and Peter Szolovits. What dis-
+ease does this patient have? a large-scale open domain question answering dataset from medical
+exams.Applied Sciences, 11(14):6421, 2021.
+Qiao Jin, Bhuwan Dhingra, Zhengping Liu, William W Cohen, and Xinghua Lu. Pubmedqa: A
+dataset for biomedical research question answering.arXiv preprint arXiv:1909.06146, 2019.
+Damjan Kalajdzievski. A rank stabilization scaling factor for fine-tuning with lora.arXiv preprint
+arXiv:2312.03732, 2023.
+Diederik P Kingma. Adam: A method for stochastic optimization.arXiv preprint arXiv:1412.6980,
+2014.
+Ji Lin, Jiaming Tang, Haotian Tang, Shang Yang, Wei-Ming Chen, Wei-Chen Wang, Guangxuan
+Xiao, Xingyu Dang, Chuang Gan, and Song Han. Awq: Activation-aware weight quantization
+for on-device llm compression and acceleration.Proceedings of machine learning and systems,
+6:87–100, 2024.
+Macedo Maia, Siegfried Handschuh, Andr´e Freitas, Brian Davis, Ross McDermott, Manel Zarrouk,
+and Alexandra Balahur. Www’18 open challenge: financial opinion mining and question answer-
+ing. InCompanion proceedings of the the web conference 2018, pp. 1941–1942, 2018.
+Pekka Malo, Ankur Sinha, Pekka Korhonen, Jyrki Wallenius, and Pyry Takala. Good debt or bad
+debt: Detecting semantic orientations in economic texts.Journal of the Association for Informa-
+tion Science and Technology, 65(4):782–796, 2014.
+Brendan McMahan, Eider Moore, Daniel Ramage, et al. Communication-efficient learning of deep
+networks from decentralized data. InArtificial intelligence and statistics. PMLR, 2017.
+Meta AI. Introducing llama 3.1: Our most capable models to date, July 2024. URLhttps:
+//ai.meta.com/blog/meta-llama-3-1/.
+MistralAI. Mistral-7b-v0.3.https://huggingface.co/mistralai/Mistral-7B-v0.
+3, 2023.
+Markus Nagel, Marios Fournarakis, Yelysei Bondarenko, and Tijmen Blankevoort. Overcoming
+oscillations in quantization-aware training. InInternational Conference on Machine Learning,
+pp. 16318–16330. PMLR, 2022.
+Neural Magic. Twitter financial news sentiment dataset.https://huggingface.co/
+datasets/zeroshot/twitter-financial-news-sentiment, 2022.
+Ankit Pal, Logesh Kumar Umapathi, and Malaikannan Sankarasubbu. Medmcqa: A large-scale
+multi-subject multi-choice dataset for medical domain question answering. InConference on
+health, inference, and learning, pp. 248–260. PMLR, 2022.
+Pengjie Ren, Chengshun Shi, Shiguang Wu, Mengqi Zhang, Zhaochun Ren, Maarten Rijke, Zhumin
+Chen, and Jiahuan Pei. Melora: Mini-ensemble low-rank adapters for parameter-efficient fine-
+tuning. InProceedings of the 62nd Annual Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), pp. 3052–3064, 2024.
+12
+
+===== PDF PAGE 13 =====
+
+Published as a conference paper at ICLR 2026
+Youbang Sun, Zitao Li, Yaliang Li, and Bolin Ding. Improving loRA in privacy-preserving federated
+learning. InThe Twelfth International Conference on Learning Representations, 2024. URL
+https://openreview.net/forum?id=NLPzL6HWNl.
+Qwen Team. Qwen3 technical report, 2025. URLhttps://arxiv.org/abs/2505.09388.
+Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R Bowman.
+Glue: A multi-task benchmark and analysis platform for natural language understanding.arXiv
+preprint arXiv:1804.07461, 2018.
+Yizhong Wang, Swaroop Mishra, Pegah Alipoormolabashi, Yeganeh Kordi, Amirreza Mirzaei,
+Atharva Naik, Arjun Ashok, Arut Selvan Dhanasekaran, Anjana Arunkumar, David Stap, et al.
+Super-naturalinstructions: Generalization via declarative instructions on 1600+ nlp tasks. InPro-
+ceedings of the 2022 Conference on Empirical Methods in Natural Language Processing, pp.
+5085–5109, 2022.
+Ziyao Wang, Zheyu Shen, Yexiao He, Guoheng Sun, Hongyi Wang, Lingjuan Lyu, and Ang Li.
+Flora: Federated fine-tuning large language models with heterogeneous low-rank adaptations. In
+The Thirty-eighth Annual Conference on Neural Information Processing Systems, 2024.
+Hongda Wu and Ping Wang. Node selection toward faster convergence for federated learning on
+non-iid data.IEEE Transactions on Network Science and Engineering, 9(5):3099–3111, 2022.
+Guangxuan Xiao, Ji Lin, Mickael Seznec, Hao Wu, Julien Demouth, and Song Han. Smoothquant:
+Accurate and efficient post-training quantization for large language models. InInternational
+conference on machine learning, pp. 38087–38099. PMLR, 2023.
+Mengwei Xu, Dongqi Cai, Yaozong Wu, Xiang Li, and Shangguang Wang. Fwdllm: Efficient
+federated finetuning of large language models with perturbed inferences. InUSENIX ATC, 2024.
+Rui Ye, Wenhao Wang, Jingyi Chai, Dihan Li, Zexi Li, Yinda Xu, Yaxin Du, Yanfeng Wang, and
+Siheng Chen. Openfedllm: Training large language models on decentralized private data via
+federated learning. InProceedings of the 30th ACM SIGKDD conference on knowledge discovery
+and data mining, pp. 6137–6147, 2024.
+Syed Zawad, Xiaolong Ma, Jun Yi, Cheng Li, Minjia Zhang, Lei Yang, Feng Yan, and Yuxiong
+He. Fedcust: Offloading hyperparameter customization for federated learning.Performance
+Evaluation, 167:102450, 2025.
+Jianyi Zhang, Saeed Vahidian, Martin Kuo, et al. Towards building the federatedgpt: Federated
+instruction tuning. InInternational Workshop in Conjunction with NeurIPS 2023, 2023.
+Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe, Moya Chen, Shuohui Chen, Christo-
+pher Dewan, Mona Diab, Xian Li, Xi Victoria Lin, et al. Opt: Open pre-trained transformer
+language models.arXiv preprint arXiv:2205.01068, 2022a.
+Yihua Zhang, Pingzhi Li, Junyuan Hong, Jiaxiang Li, Yimeng Zhang, Wenqing Zheng, Pin-Yu
+Chen, Jason D Lee, Wotao Yin, Mingyi Hong, et al. Revisiting zeroth-order optimization for
+memory-efficient llm fine-tuning: A benchmark.arXiv preprint arXiv:2402.11592, 2024a.
+Yuxin Zhang, Mingbao Lin, Zhihang Lin, Yiting Luo, Ke Li, Fei Chao, Yongjian Wu, and Ron-
+grong Ji. Learning best combination for efficient n: M sparsity.Advances in Neural Information
+Processing Systems, 35:941–953, 2022b.
+Zikai Zhang, Rui Hu, Ping Liu, and Jiahao Xu. Fed-pilot: Optimizing lora allocation for efficient
+federated fine-tuning with heterogeneous clients.arXiv preprint arXiv:2410.10200, 2024b.
+Zikai Zhang, Suman Rath, Jiahao Xu, and Tingsong Xiao. Federated learning for smart grid: A sur-
+vey on applications and potential vulnerabilities.ACM Transactions on Cyber-Physical Systems,
+2024c.
+Zikai Zhang, Ping Liu, Jiahao Xu, and Rui Hu. Fed-hello: Efficient federated foundation model fine-
+tuning with heterogeneous lora allocation.IEEE Transactions on Neural Networks and Learning
+Systems, 36(10):17556–17569, 2025. doi: 10.1109/TNNLS.2025.3580495.
+13
+
+===== PDF PAGE 14 =====
+
+Published as a conference paper at ICLR 2026
+Aojun Zhou, Yukun Ma, Junnan Zhu, Jianbo Liu, Zhijie Zhang, Kun Yuan, Wenxiu Sun, and Hong-
+sheng Li. Learning n: m fine-grained structured sparse neural networks from scratch.ICLR,
+2021.
+Shenglong Zhou et al. Exact penalty method for federated learning.arXiv preprint
+arXiv:2208.11231, 2022.
+14
+
+===== PDF PAGE 15 =====
+
+Published as a conference paper at ICLR 2026
+APPENDIX
+This appendix presents additional discussions and experimental details to support the main text. The
+content is organized as follows:
+• Appendix Section A: A code snippet illustrating how our method can be easily integrated
+into existing frameworks, as well as pseudo-code of Fed-PLoRA.
+• Appendix Section B: Extended literature review on related work.
+• Appendix Section C: Detailed description of experimental settings.
+–Subsection C.1: Dataset and model descriptions.
+–Subsection C.2: Settings for the main experiments, including FL configuration and
+infrastructure.
+–Subsection C.3: Settings for the experiments in Figure 7 and Figure 2.
+• Appendix Section D: Additional experimental results.
+–Subsection D.1: Results on the GLUE benchmark under the non-IID setting.
+–Subsection D.2: Results on the Dolly-15K dataset under both IID and non-IID set-
+tings.
+–Subsection D.3: Results on the Medical Question Answering datasets.
+–Subsection D.4: Results on the MATH reasoning datasets.
+–Subsection D.5: Ablation studies.
+* Subsection D.5.1: Effectiveness of different selection methods for PLoRA mod-
+ules.
+* Subsection D.5.2: Empirical observations on initialization and aggregation noise.
+* Subsection D.5.3: Impact of the number of clients, heterogeneity ratio, and local
+rank per client.
+* Subsection D.5.4: Effects of different PLoRA ranks.
+* Subsection D.5.5: Effects of Dropout.
+* Subsection D.5.6: Additional visualizations of cosine similarity across PLoRA
+modules.
+• Appendix Section E: Analysis of initialization and aggregation noise in existing methods.
+–Subsection E.1: Derivations for FLoRA.
+–Subsection E.2: Derivations for FlexLoRA.
+–Subsection E.3: Derivations for HETLoRA.
+–Subsection E.4: Detailed derivations of the aggregation noise for Fed-PLoRA.
+• Appendix Section F: Additional Studis.
+–Subsection F.1: Demonstration of the efficiency of the rank-based method on resource-
+constrained devices.
+–Subsection F.2: Theoretical and numerical analysis of the resource overhead for exist-
+ing methods and Fed-PLoRA.
+USE OFLLM STATEMENT
+For the preparation of this manuscript, AI assistants are utilized to aid in checking grammar, spelling,
+and punctuation.
+A CODE SNIPPET AND PSEUDO-CODE
+1# Implementation
+2# Just one line of code to apply Parallel One-Rank LoRA in PyTorch.
+3model=AutoModelForCausalLM.from_pretrained(model_name)
+15
+
+===== PDF PAGE 16 =====
+
+Published as a conference paper at ICLR 2026
+4 - config = LoraConfig(r=8,· · ·)
+5 + config = PLoraConfig(r=1,NumModule=8,· · ·)
+6get_peft_model(model,config)
+We implement Fed-PLoRA using the Huggingface-style LoRA initialization API (as shown above),
+making it easy to use by replacing just a single line in the original code.
+To better illustrate the proposed method, we present the pseudo-code of Fed-PLoRA as follows.
+Algorithm 1Fed-PLoRA
+Require:Number of communication roundsT, global rankR, local ranks{r i}i∈[v], pre-trained
+backboneΘ 0, initial global PLoRA parametersθ 0
+1:Server sendsΘ 0 to all clients
+2:fort= 1toTdo
+3:Server samples a set of clientsS t ⊆[v]
+4:Server sends global PLoRA parametersθ t−1 toi∈ S t
+5:foreach clienti∈ S t in parallel do
+6:Randomly sample a subsetK t
+i of sizer i from index set[R]
+7:Initialize local trainable PLoRA modules:θ t−1
+i ← {A t−1
+(j) ,B t−1
+(j) }j∈Kt
+i
+8:Fold unselected modules into the frozen target weights:W t
+i ←W 0 +P
+j /∈Kt
+i
+Bt−1
+(j) At−1
+(j)
+to obtain the local frozen backboneΘ t
+i
+9:Obtain new local PLoRA parameters:θ t
+i ←LocalUpdate(θ t−1
+i , Di,Θ t
+i)
+10:end for
+11:Rank-wise aggregation of PLoRA modules:θ t ←Agg
+ 
+{θt
+i }i∈S t ,{K t
+i}i∈S t
+
+12:Update global model:Φ t+1
+g ← {Θ 0,θ t}
+13:end for
+14:returnΦ T
+g ={Θ 0,θ T }
+B COMPREHENSIVELITERATUREREVIEWS
+Federated LoRA-based Fine-tuning.The application of FL to LoRA-based fine-tuning of LLMs
+has become a prominent paradigm, enabling multiple clients to collaboratively adapt models with-
+out sharing their raw data Zhang et al. (2023); Babakniya et al. (2023); Sun et al. (2024); Zhang
+et al. (2024c). Several prior works have investigated this combination: FedIT Zhang et al. (2023)
+introduces a naive federated fine-tuning method with LoRA and FedAvg, serving as an effective
+benchmark for further research. FFA-LoRA Sun et al. (2024) introduces a strategy of freezing the
+LoRAAmatrix during local training to help mitigate aggregation noise at the server. Furthermore,
+FedSA-LoRA Guo et al. (2024) explores selective aggregation for a personalized FL system, which
+is designed to only share theAmatrix with the server for aggregation, due to its specific role in
+learning general knowledge. However, these methods assume homogeneous client resources, which
+often do not align with the varied resources present in practical FL systems.
+Federated Fine-Tuning with Heterogeneous LoRA Ranks.Resource heterogeneity remains a
+significant challenge in federated fine-tuning. To address this, HETLoRA Cho et al. (2024) allows
+clients to train with different LoRA ranks based on their capacity. For aggregation, local model
+modules from smaller ranks are zero-padded, and the resulting global LoRA module is subsequently
+truncated for client LoRA module initialization. However, this process introduces both initialization
+and aggregation noise due to the limited LoRA rank. FLoRA Wang et al. (2024) employs a stacking-
+based aggregation method, which is designed to accurately aggregate LoRA module updates from
+clients with heterogeneous ranks in a full-weight space. While this aims for optimal aggregation,
+FLoRA then applies this update to the client’s target module, and the trainable LoRA modules for
+the next round are typically initialized from scratch, thereby incurring significant initialization noise.
+FlexLoRA Bai et al. (2024) utilizes SVD during aggregation, and then initializes LoRA modules for
+16
+
+===== PDF PAGE 17 =====
+
+Published as a conference paper at ICLR 2026
+clients with varying ranks by truncation. These processes lead to both aggregation and initialization
+noise.
+Parallel Low-Rank Adaptation and Sparse LoRA Fine-Tuning.The concept of employing mul-
+tiple parallel LoRA modules has been investigated primarily for enhancing model capacity. For in-
+stance, Capaboost Haobo et al. (2024) applies different random masks to a single large rank LoRA
+module during training, effectively simulating an ensemble of parallel LoRA modules to increase
+model capacity without incurring additional parameter costs. MELoRA Ren et al. (2024) adopts
+a group of mini LoRA modules to obtain sparseAandBmatrices. They claim that each LoRA
+module is designed to capture different features. These approaches leverage the parallelism of the
+LoRA module for capacity scaling. In contrast, our framework introduces parallel one-rank LoRA
+modules specifically as a way to improve initialization and aggregation within the FL system.
+Another related line of work Zhou et al. (2021); Zhang et al. (2022b) studies sparse LoRA fine-
+tuning, where only a subset of LoRA rows is updated while the remaining rows are simply frozen.
+In principle, such sparsification yields similar training dynamics on the active rows, since the inac-
+tive rows receive zero gradients. However, this design has several system-level limitations. First,
+the frozen rows must still be stored in GPU memory and participate in the forward pass, which in-
+creases activation storage and peak memory consumption compared with physically removing these
+rows. Second, the resulting sparsity pattern is typically unstructured: it does not match theN:M
+structured sparsity patterns required by modern accelerators (for example, the 2:4 pattern used by
+NVIDIA A100 sparse tensor cores Zhou et al. (2021)). As a result, simply freezingR−r i out of
+Rrows cannot exploit hardware sparsity support or lead to real speedups. In contrast, Fed-PLoRA
+folds unused one-rank modules into the backbone weights, preserving the same effective training
+behavior on active ranks while avoiding extra computation and memory overhead, which makes it
+more suitable for large-scale federated deployment.
+Other Resource-Efficient Fine-Tuning Pathways.Quantization is a widely studied technique for
+improving inference efficiency by reducing the precision of model weights and activations. Common
+methods include post-training quantization (PTQ), quantization-aware training (QAT), and activa-
+tion quantization. PTQ Frantar et al. (2022); Lin et al. (2024); Xiao et al. (2023) applies quan-
+tization to a pretrained model without modifying its training process. It is simple and efficient
+but may lead to noticeable accuracy degradation, especially for low-bit quantization or in sensitive
+tasks. QAT Nagel et al. (2022) is particularly focused on preserving inference-time accuracy by
+simulating low-precision operations (e.g., 8-bit or 4-bit) during training through the insertion of
+fake quantization nodes in the computation graph, allowing the model to adapt to quantization ef-
+fects. However, QAT typically targets deployment-time efficiency and does not substantially reduce
+training-time memory or compute costs. Activation quantization Choi et al. (2018) focuses on re-
+ducing the bit-width of intermediate activations in addition to weights. While this offers additional
+memory savings during training, it also introduces additional quantization noise and quantization
+and de-quantization costs with extra computation. This can make training more unstable and often
+requires careful calibration to preserve performance.
+Zeroth-order optimization Xu et al. (2024) reduces memory usage by avoiding explicit gradient
+computation. Since it does not require backpropagation, it eliminates the need to store intermediate
+activations during the forward pass. However, this benefit comes with notable trade-offs: zeroth-
+order methods typically require many more function evaluations (i.e., higher query complexity) to
+estimate gradients indirectly, and the resulting gradient estimates tend to be noisier. These fac-
+tors can significantly slow down convergence, particularly for large, high-dimensional models like
+LLMs, where accurate and efficient gradient information is crucial for effective training Zhang et al.
+(2024a).
+In addition to algorithmic approaches, several system-level engineering strategies have been devel-
+oped to address the memory and compute bottlenecks of large model fine-tuning. These methods
+aim to optimize training pipelines without modifying model architectures or learning objectives.
+For example, activation checkpointing Chen et al. (2016) reduces GPU memory usage by storing
+only a subset of activations during the forward pass and recomputing the rest during backpropaga-
+tion. While it enables training deeper models under tight memory budgets, the trade-off is increased
+computational overhead due to repeated forward computations. This may lengthen training time
+significantly, especially in models with expensive forward passes.
+17
+
+===== PDF PAGE 18 =====
+
+Published as a conference paper at ICLR 2026
+All the above techniques are orthogonal and potentially complementary to our approach and could
+be integrated in specific scenarios. However, in the context of our work, these comparisons are
+less directly relevant to serve as comparisons. We will consider exploring such combinations in our
+future work.
+C EXPERIMENTALSETTINGS
+C.1 DATASETS ANDMODELS
+General Language Understanding Task.For evaluating general language understanding profi-
+ciency, we follow Hao et al. Haobo et al. (2024) that utilize six well-established datasets from the
+General Language Understanding Evaluation (GLUE) benchmark, as detailed by Wang et al. Wang
+et al. (2018). Specifically, the tasks included the Corpus of Linguistic Acceptability (CoLA), the
+Stanford Sentiment Treebank (SST-2), the Microsoft Research Paraphrase Corpus (MRPC), the
+Quora Question Pairs (QQP) dataset, Question NLI (QNLI), and the Recognizing Textual Entail-
+ment (RTE) dataset. Across all these GLUE tasks, the BERT-base model, introduced by Devlin et
+al. Devlin et al. (2019), is employed as the foundational pre-trained language model.
+General Instruction Following Task.To assess the framework’s performance on tasks requiring
+general instruction following, we benchmark on two prominent datasets, following the approach of
+Bai et al. Bai et al. (2024). The first dataset is Natural Instructions (NI), a large-scale collection of
+diverse NLP tasks structured as instructions, developed by Wang et al. Wang et al. (2022). For this
+dataset, we utilized a Llama-1B model, with weights sourced from the Data-Juicer project by Chen
+et al. Chen et al. (2024). The second dataset is Dolly-15K, an open-source dataset of instruction-
+followed records created by Databricks Conover et al. (2023), for which the OPT-1.3B model from
+Zhang et al. Zhang et al. (2022a) is employed.
+Domain-Specific Tasks.We further extend our evaluation to domain-specific applications, focus-
+ing on the challenging medical and financial domains.Medical Domain:Adhering to the exper-
+imental design outlined by Ye et al. Ye et al. (2024) and Flower Gao et al. (2025), we utilize the
+MedAlpaca dataset, curated by Han et al. Han et al. (2023), for the training phase of our medical
+domain tasks. The framework’s effectiveness is then evaluated on four widely recognized medi-
+cal question answering benchmarks: PubMedQA by Jin et al. Jin et al. (2019), MedMCQA by Pal
+et al. Pal et al. (2022), MedQA (USMLE-style questions) also by Jin et al. Jin et al. (2021), and
+CareQA Arias-Duart et al. (2025). For these demanding medical tasks, we employ the Mistral-7B-
+v0.3 model MistralAI (2023), leveraging QLoRA for 4-bit precision fine-tuning, as proposed by
+Dettmers et al. Dettmers et al. (2023).Financial Domain:For the financial domain, training is
+conducted on a financial sentiment analysis dataset derived from the FinGPT project by Yang et
+al. FinGPT (2023). Evaluation is performed on three established financial NLP benchmarks: the
+Financial PhraseBank (FPB) by Malo et al. Malo et al. (2014), the Financial Sentiment Analysis on
+News Headlines (FIQA) dataset by Maia et al. Maia et al. (2018), and the Twitter Financial News
+Sentiment (TFNS) dataset Neural Magic (2022). These financial experiments are carried out using
+the Llama-3.1-8B model from Meta Meta AI (2024), also fine-tuned with QLoRA in 4-bit precision.
+Reasoning Tasks.We additionally evaluate our framework on mathematical reasoning, using the
+MATH benchmark introduced by Hendrycks et al. Hendrycks et al. (2021). This dataset contains
+12,500 competition-style math problems, each tagged by subject (algebra, counting and probabil-
+ity, geometry, number theory, etc.) and difficulty level from 1 to 5. Unlike standard word-problem
+benchmarks, MATH emphasizes multi-step deduction and symbolic manipulation rather than direct
+pattern matching, making it a strong stress test for federated parameter-efficient tuning. Every prob-
+lem includes a full step-by-step solution, enabling training signals beyond final answer supervision.
+For these math tasks, we employ the Qwen3-4B-Instruct-2507 model, leveraging QLoRA for 4-bit
+precision fine-tuning, similar to the previous model settings.
+Data Heterogeneity.To evaluate the performance under diverse data distributions, we specifically
+assess task heterogeneity using the Natural Instructions, Dolly-15K, and GLUE datasets, as they
+naturally consist of varied instruction-based or classification-based tasks. We apply both pathologi-
+cal and Dirichlet partitioning methods: the pathological method skews the number of tasks or label
+categories available to each client, while the Dirichlet method primarily controls the number of sam-
+ples per client. For Natural Instructions, we use an extreme case where each client is assigned 20
+18
+
+===== PDF PAGE 19 =====
+
+Published as a conference paper at ICLR 2026
+out of 612 tasks; for Dolly-15K, each client receives data from only 1 out of 7 tasks. In the GLUE
+setup, we apply Dirichlet partitioning withα= 0.01, resulting in a highly imbalanced distribution
+of samples across clients. For all other datasets, we adopt IID partitioning.
+C.2 MAINRESULTSETTINGS
+Table 4: FL settings for all experiments.
+Dataset/ConfigurationModel LoRA Client Training Round Learning Rate batch size
+CoLA BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 200 0.001 16SST-2 BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 45 0.001 16MRPC BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 150 0.001 16QQP BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 150 0.001 16QNLI BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 50 0.001 16RTE BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 150 0.001 16Natural InstructionLlama (Data-Juicer-1B) rank=1/8/16, loraalpha=1/8/16, targetmodules=[“qproj”, “vproj”] 50 (10%) 25 0.00001 4Dolly-15K OPT-1.3B rank=1/8/32, loraalpha=1/8/32, targetmodules=[“qproj”, “vproj”] 50 (10%) 25 0.00001 4Medical Mistral-7B-v0.3 rank=1/2/8, loraalpha=1/2/8, targetmodules=[“qproj”, “vproj”] 50 (10%) 50 0.00005 4Finance Llama-3.1-8B rank=1/2/8, loraalpha=1/2/8, targetmodules=[“qproj”, “vproj”] 50 (10%) 15 0.00005 4MATH Qwen3-4B-Instruct-2507 rank=1/2/8, loraalpha=1/2/8, targetmodules=[“qproj”, “vproj”] 50 (10%) 15 0.00005 4
+FL Settings.As shown in Table 4, the FL configurations for all experiments are comprehensively
+detailed in Table 4. This table outlines the specific models, LoRA parameters, client setups, and
+training hyperparameters employed for each dataset.
+For the GLUE benchmark tasks (CoLA, SST-2, MRPC, QQP, QNLI, and RTE), the BERT-base
+model is utilized. The heterogeneous ranks are set usingR= 16, r m = 4. These experiments
+involve 100 clients. Instruction fine-tuning tasks on Natural Instruction and Dolly-15K employed
+Llama (Data-Juicer-1B) and OPT-1.3B models, respectively. For Natural Instruction,R= 16and
+rm = 8, while for Dolly-15K,R= 16andr m = 8. These setups use 50 clients. Domain-specific
+experiments on Medical and Finance datasets also involve 50 clients. Medical tasks use Mistral-
+7B-v0.3, Finance tasks use Llama-3.1-8B, and both haveR= 16andr m = 2. For mathematical
+reasoning, we further evaluate on the MATH dataset using Qwen3-4B-Instruct-2507 under the same
+federated client setup. All experiments sample 10% of clients uniformly at random per round.
+Across these diverse setups, the number of training rounds was task-specific, varying from 15 to 200,
+as detailed in Table 4. Learning rates are selected for each task group after evaluating a common
+search space of{0.005, 0.001, 0.0005, 0.0001, 0.00005, 0.00001}; specifically, GLUE tasks utilize
+a learning rate of 0.001, Natural Instruction and Dolly-15K tasks are trained with 0.00001, and both
+Medical, Finance, and MATH experiments employ a learning rate of 0.00005. Batch sizes are also
+tailored: 16 for GLUE tasks, 4 for instruction fine-tuning, and 4 for the domain-specific experiments.
+Justification heterogeneous rank settings:We empirically evaluate performance across a wide range
+of LoRA ranks{1, 2, 4, 8, 16, 32, 64}. For the highest-resource clients, we select the largest rank that
+does not lead to overparameterization, following standard practice in FL to ensure a balance between
+model capacity and resource capacity. For clients with mid-level resources, we adopt middle ranks
+so that the average rank does not excced the half of the highest rank, reflecting that majoraty of the
+clients have low resources.
+Justification for rank settings:In homogeneous settings, we evaluate LoRA ranks{1, 2, 4, 8, 16, 32,
+64}to identify the optimal rank. In heterogeneous settings, high-resource clients are assigned this
+optimal rank to avoid over-parameterization while maintaining a balance between model capacity
+and device constraints. Low-resource clients are fixed at rank 1. Mid-resource clients are assigned
+intermediate ranks such that the average rank does not exceed half of the maximum, reflecting the
+realistic case where most clients are resource-limited.
+We evaluate performance across a broad range of LoRA ranks{1, 2, 4, 8, 16, 32, 64}in homoge-
+neous settings and identify the best rank. For high-resource clients in heterogeneous settings, we
+assign the best rank that avoids over-parameterization, ensuring a balance between model capacity
+and device constraints. For mid-resource clients, we choose intermediate ranks such that the average
+rank does not exceed half of the maximum rank, reflecting the realistic scenario where most clients
+have limited resources.
+Implementation Details.Our framework was implemented using PyTorch version 2.6.0 (built
+with CUDA 12.4 support). Key libraries included Hugging Facetransformersversion 4.51.3,
+19
+
+===== PDF PAGE 20 =====
+
+Published as a conference paper at ICLR 2026
+datasetsversion 3.6.0, andpeftversion 0.9.0 for LoRA and QLoRA functionalities. Exper-
+iments were conducted using CUDA 12.4. All experiments were carried out on a server equipped
+with an AMD EPYC 7763 64-Core Processor, 1.0 TB of system RAM, and 8×NVIDIA RTX
+A6000 GPUs. The total GPU hours for running all the experiments are over 5,000.
+C.3 OTHEREXPERIMENTALSETTINGS
+The experiments illustrated in Figure 7 are conducted on the QQP, MRPC, and RTE datasets using
+a BERT-based model. A key aspect of this setup is the use of a homogeneous LoRA rank across
+all clients (i.e., every client uses the same rank). Two distinct homogeneous rank configurations
+are evaluated: a ’Large Rank’ setup with a uniform rank of 16 per client, and a ’Small Rank’ setup
+with a uniform rank of 1 per client. These FL experiments involved a total of 100 clients, with
+10% of clients participating in each training round. The training is conducted for a total of 150
+rounds. In Figure 2, we report the average cosine similarities calculated for LoRAAmatrices on
+the Query target module of Layer 1. These calculations are based on experiments performed on the
+RTE dataset, with a non-IID data distribution achieved by assigning data from only one category to
+each client.
+D ADDITIONALEXPERIMENTALRESULTS
+D.1 RESULTS ON NON-IID GLUE DATASET
+Table 5: Evaluation results on GLUE datasets under a non-IID setting (Dirichletα= 0.01).
+Method CoLA SST-2 MRPC QQP QNLI RTE AvgMatthews Corr. Acc. Acc. Acc. Acc. Acc.
+Untuned Model 1.20 49.08 31.61 63.09 49.95 52.70 41.27
+Homogeneous FedIT (Rank=R) 56.27 90.25 85.29 87.07 87.07 64.62 78.28
+FedIT (Rank=R/2) 51.80 90.25 79.31 84.23 88.01 61.42 75.67
+Heterogeneous
+R= 16
+Avg Rank=7
+FLoRA −2.07 88.97 68.38 38.75 47.37 47.29 48.18
+FlexLoRA 38.51 90.25 68.39 79.91 70.98 53.79 66.97
+HETLoRA 40.08 89.97 76.35 81.71 85.96 58.12 72.03
+Fed-PLoRA 52.33 90.71 79.65 84.79 88.01 61.01 76.08
+Table 5 presents evaluation results on the GLUE dataset under a non-IID setting, where client data
+distributions are skewed using a Dirichlet distribution withα= 0.01, representing a highly im-
+balanced and extreme case. In this challenging scenario, our method Fed-PLoRA consistently out-
+performs all baselines. Compared to FLoRA, Fed-PLoRA yields substantial gains of +54.40% on
+CoLA and +11.27% on MRPC, underscoring the limitations of FLoRA’s random initialization and
+emphasizing the benefit of a more carefully designed initialization strategy in our method. Compared
+to FlexLoRA, Fed-PLoRA achieves a notable improvement of +17.03% on QNLI and +0.46% on
+SST-2. Although FlexLoRA leverages SVD to derive representative low-rank matrices, it remains
+susceptible to information loss, which can lead to significant initialization and aggregation noise,
+especially when some clients operate with much lower ranks than the global configuration and un-
+der non-IID cases. When compared to HETLoRA, Fed-PLoRA improves performance by +3.08%
+on QQP and +2.89% on RTE. These gains come from Fed-PLoRA’s more effective handling of
+initialization and aggregation noise, which HETLoRA introduces through zero-padding and rank
+truncation. Furthermore, Fed-PLoRA surpasses FedIT with a fixed rank of 8 by an average of
++0.41%, despite using a lower average rank of 7. This demonstrates the efficiency and adaptability
+of our approach that incorporate all resource-constrained clients into training with zero initialization
+noise and low aggregation noise.
+D.2 RESULTS ONDOLLY-15K DATASET
+Table 6 presents the main results on the Dolly-15K dataset. We report Rouge-L scores of the fine-
+tuned global model under both IID and non-IID settings, where the non-IID scenario is simulated
+20
+
+===== PDF PAGE 21 =====
+
+Published as a conference paper at ICLR 2026
+Table 6: Evaluation results on IID and non-IID Dolly-15K datasets with OPT-1.3B model.
+Method Dolly-15K (Rouge-L)
+IID non-IID
+Untuned Model 40.02
+Homogeneous FedIT (Rank=R) 60.05 59.37
+FedIT (Rank=R/2) 59.75 59.07
+Heterogeneous
+R= 32
+Avg Rank=13
+FLoRA 40.01 40.01
+FlexLoRA 57.40 48.82
+HETLoRA 59.38 58.36
+Fed-PLoRA 60.07 59.69
+by assigning each client data from only 1 out of 7 distinct tasks. Our method, Fed-PLoRA, con-
+sistently outperforms all baseline approaches under both data and resource heterogeneity. Notably,
+Fed-PLoRA surpasses FlexLoRA in the non-IID setting by a large margin of +10.87%, highlighting
+the critical impact of initialization noise in federated fine-tuning. Moreover, Fed-PLoRA even out-
+performs the homogeneous case with a full rank32, achieving gains of +0.02% and +0.32% under
+IID and non-IID conditions, respectively. This suggests that our parallel one-rank LoRA modules
+offer greater flexibility than conventional high-rank LoRA, and can potentially lead to better over-
+all performance. These results further demonstrate the effectiveness of Fed-PLoRA in mitigating
+initialization and aggregation noise via its parallelized design.
+D.3 RESULTS ONMEDICALDATASETS
+Table 7: Evaluation results on medical datasets with Mistral-7B-v0.3 model.
+Method PubMedQA MedMcQA MedQA CareQA Avg
+Untuned Model 55.77 38.43 40.92 41.28 44.10
+Homogeneous FedIT (Rank=R) 70.60 41.16 46.19 47.35 51.32
+FedIT (Rank=R/2) 68.60 41.19 46.19 46.55 50.63
+Heterogeneous
+R= 8
+Avg Rank=3
+FLoRA 55.80 40.30 45.70 46.10 46.98
+FlexLoRA 58.40 41.1646.2646.26 48.02
+HETLoRA 69.80 41.2346.2646.10 50.85
+Fed-PLoRA 70.20 41.5046.1146.85 51.16
+Table 7 presents the main results (in accuracy) on medical and financial datasets. It is noteworthy
+that due to the inherent capabilities of the LLMs employed and the potential domain shift between
+the training and test sets, the observed performance gaps among different federated methods remain
+relatively small. Fed-PLoRA demonstrates improvements over FLoRA, achieving accuracy gains
+of +14.40% on PubMedQA, +1.20% on MedMcQA, +0.75% on CareQA, +12.29% on FPB, and
++13.15% on TFNS. However, when compared to FlexLoRA and HETLoRA on the MedQA dataset
+and to FLoRA on the FIQA dataset, our method shows slight accuracy drops. This may be attributed
+to the nature of these domain-specific instruction fine-tuning tasks with large LLMs requiring only
+a small LoRA rank. In such scenarios, the initialization noise in FlexLoRA and HETLoRA can be
+relatively small.
+D.4 RESULTS ONMATH DATASETS
+Table 8 summarizes the performance of various federated fine-tuning methods across seven MATH
+sub-categories. The baseline (untuned model) exhibits limited reasoning capability across most cat-
+egories, with overall average accuracy remaining below 10%. Under homogeneous settings, FedIT
+with full rank (R) yields consistent gains over theR/2configuration across all sub-tasks, demon-
+strating the benefit of maintaining richer update capacity during global aggregation.
+21
+
+===== PDF PAGE 22 =====
+
+Published as a conference paper at ICLR 2026
+Table 8: Evaluation of Qwen3-4B-A3B-Instruct-2507 on MATH datasets.
+Method Algebra Counting&Prob. Geometry Inter. Algebra Number Theory PreAlgebra PreCalculusAvg
+Untuned 12.38 5.90 3.75 1.32 5.74 15.61 4.57 7.94
+HomogeneousFedIT (Rank=R)42.20 26.79 19.20 13.73 26.11 42.93 10.98 28.38FedIT (Rank=R/2)36.47 22.57 16.70 11.62 21.48 37.08 12.27 24.62
+HeterogeneousR= 8Avg Rank=4
+FLoRA 12.72 6.75 4.38 1.88 5.37 15.04 2.93 7.94FlexLoRA 38.83 19.62 15.65 9.52 22.03 40.41 10.62 24.88HETLoRA 28.47 12.23 11.69 9.85 17.77 24.79 10.07 18.16Fed-PLoRA43.80 24.89 18.99 14.17 27.77 42.59 12.82 28.96
+Under heterogeneous environments where the average rank is fixed toR= 4, Fed-PLoRA achieves
+the strongest overall results, outperforming FLoRA, FlexLoRA, and HETLoRA with significant im-
+provements in Algebra, Counting & Probability, and Number Theory, where gains exceed +5–15%
+on average. Notably, Fed-PLoRA also maintains competitive accuracy on Geometry and Intermedi-
+ate Algebra, indicating enhanced adaptability even under rank-diverse client configurations.
+D.5 ABLATIONSTUDIES
+D.5.1 COMPARINGSELECT-N-FOLD WITH OTHERSTRATEGIES
+Figure 6: Visualization of rank selection results using different selection strategies.
+Here, we provide a visualization of the rank selection results in Figure 6, comparing Select-N-Fold
+with the Weight Norm and Fixed methods in Figure 4. Overall, random strategies yield a more
+uniform and unbiased distribution across layers.
+D.5.2 EMPIRICALOBSERVATIONS ONINITIALIZATION ANDAGGREGATIONNOISE INSOTA
+METHODS
+As discussed in Section 3.4, existing federated LoRA-based fine-tuning methods suffer from dif-
+ferent levels of initialization and aggregation noise. To isolate these effects, Figure 7 illustrates
+optimization trajectories and empirical results. In this setup, we fix the LoRA rank across clients to
+remove initialization noise for FlexLoRA and HETLoRA, allowing a clearer focus on their aggre-
+gation noise (detailed settings inAppendix Section C.3).
+22
+
+===== PDF PAGE 23 =====
+
+Published as a conference paper at ICLR 2026
+OptimalFlexLoRA(Large Rank)
+FlexLoRA(Small Rank)
+HETLoRA(Large Rank)
+FLoRA(Large Rank)
+RTEMRPCQQPMethod/Dataset (Acc.)51.02!".$"%&.'(43.87!)&.&*%&(.+)53.88!)+.)"%,.$-FLoRA64.25!&.'*%).,,79.65!).*)%'.$*84.64!'.)&%'.',FlexLoRA(Small Rank)66.90!).+*%).*-86.84!).")%'.-'86.94!'.))%'.'*FlexLoRA(Large Rank)68.35!'.)&%'.&(87.58!'.""%'.()86.86!'.'&%'.'(HETLoRA
+Figure 7: The intuitive convergence trajectories of existing methods and empirical results on three
+datasets in homogeneous settings.
+The results show that FLoRA, while free of aggregation noise, struggles due to random initialization,
+yielding low accuracies of 53.88%, 43.87%, and 51.02% on QQP, MRPC, and RTE. FlexLoRA, by
+contrast, is mainly affected by its rank-dependent SVD-based aggregation noise: at large ranks
+(e.g.,r i = 16) it performs well (86.94% on QQP), but its accuracy drops at smaller ranks (e.g.,
+84.64% atr i = 1). HETLoRA introduces bias through its averaging rule, yet achieves strong
+performance, with 87.58% on MRPC and 68.35% on RTE, suggesting its noise can be no worse than
+FlexLoRA’s. Finally, FlexLoRA incurs heavy computation from repeated SVD, whereas HETLoRA
+uses a lightweight averaging scheme.
+D.5.3 IMPACT OFHYPERPARAMETERS
+Table 9: The impacts of the number of TC and clients’ HR.
+Method
+CoLA Dataset
+TC=100
+HR=1:1:1
+TC=200
+HR=1:1:1
+TC=100
+HR=6:3:1
+FLoRA −4.08−2.07−2.07
+FlexLoRA 13.42−4.73−2.50
+HETLoRA 48.09 50.54 51.04
+Fed-PLoRA 59.38 55.56 58.28
+The Impact of Total Clients and Resource Heterogeneity.We study how the total number of
+clients (TC) and the heterogeneity ratio (HR) of client resources affect performance. Table 9 re-
+ports results on CoLA. Across all configurations, Fed-PLoRA consistently outperforms baselines
+(FLoRA, FlexLoRA, HETLoRA). Increasing TC from 100 to 200 (with balanced HR=1:1:1) slightly
+reduces Fed-PLoRA’s score (59.38% to 55.56%) but still keeps a clear margin over HETLoRA
+(50.54%). When shifting HR from balanced (1:1:1) to skewed (6:3:1, more low-resource clients)
+with TC=100, Fed-PLoRA remains robust (59.38% to 58.28%). These results show that Fed-PLoRA
+scales well with both client population and resource imbalance.
+Table 10: The impacts of the heterogeneous rank setting.
+Method
+CoLA Dataset
+Ranks
+1/2/4
+Ranks
+1/2/16
+Ranks
+1/4/16
+Ranks
+2/8/16
+FLoRA −2.07−2.07−4.08−2.07
+FlexLoRA 1.01 4.16 13.42−3.76
+HETLoRA 47.44 46.70 48.09 49.54
+Fed-PLoRA 58.58 60.26 59.38 60.41
+23
+
+===== PDF PAGE 24 =====
+
+Published as a conference paper at ICLR 2026
+The Impact of Client Rank Settings.We evaluate how different distributions of LoRA ranks across
+clients influence performance, with results on CoLA shown in Table 10. Rank configurations tested
+include{1, 2, 4},{1, 2, 16},{1, 4, 16}, and{2, 8, 16}, under the same settings as the main exper-
+iments. Fed-PLoRA consistently achieves the highest Matthews Correlation scores, outperforming
+FLoRA, FlexLoRA, and HETLoRA across all cases. For example, Fed-PLoRA attains 58.58%
+with ranks 1/2/4 and 60.41% with ranks 2/8/16, demonstrating strong robustness and adaptability to
+heterogeneous client resources.
+Table 11: Performance and resource usage of different methods under extremely large global model
+rank.
+Method CoLAMatthews Corr.SST-2AccuracyMRPCAccuracyRTEAccuracyClient FLOPsGFLOPSServer FLOPsMFLOPS Throughputseconds / 100 tokensUplink/DownlinkMB / Round
+Homogeneous FedIT (Rank=R)62.94 91.97 88.72 73.28 695.50 5.89 2.33 430.08/430.08
+HeterogeneousR= 128max(ri) = 16Avg Rank =7
+FLoRA −4.98 70.52 31.51 52.70 202.40 74.94 0.89 23.52/235.20FlexLoRA 1.43 50.91 68.38 53.42 202.37 620.20 0.89 23.52/23.52HETLoRA 47.65 71.62 80.88 59.56 202.37 1.71 0.89 23.52/23.52Fed-PLoRA55.43 72.82 85.04 70.36 202.37 1.71 0.89 23.52/129.36
+The Impact of Extremely Large Global RankRon Learning Efficiency.We evaluate the effect
+of increasing the global model rank to 128 while capping local ranks at 16 to reflect realistic resource
+constraints. Experiments are conducted on four GLUE tasks under the IID setting with a batch size
+of 16. Input sequence length is set to 128 for CoLA and SST-2, and 256 for MRPC and RTE.
+Client-side FLOPS (including initialization and LoRA operations) are averaged over all clients and
+rounds on a per-sample basis. Server-side FLOPS measure aggregation costs. Throughput is re-
+ported as the average seconds to process 100 training tokens on clients. Communication volume
+denotes uplink and downlink per round per client in MB under 32-bit precision.
+As shown in Table 11, Fed-PLoRA consistently outperforms other heterogeneous baselines under
+this extremeR. Client-side FLOPS and throughput remain identical across methods since all use the
+same model structure and simulated hardware. On the server side, Fed-PLoRA matches HETLoRA’s
+efficiency by aggregating one-rank modules independently. Uplink costs are equally low across all
+methods, as only trainable LoRA modules are transmitted. The main trade-off is in downlink cost,
+which scales withRand equals that of FedIT. However, excessively largeRis rarely practical under
+heterogeneous constraints and may even cause divergence, as observed for FLoRA and FlexLoRA
+on CoLA. Since LoRA is designed for parameter efficiency, settingRclose to the hidden dimension
+provides little benefit and often harms stability.
+D.5.4 THEIMPACT OFDIFFERENTCONFIGURATIONS OFPLORA
+We evaluate how the rank size of individual PLoRA modules influences performance. Specifically,
+we compare our default one-rank design (Fed-PLoRA (Parallel One-Rank)) with a two-rank variant
+(Fed-PLoRA (Parallel Two-Rank)), both configured to yield the same total effective LoRA rank
+across clients with heterogeneous rank settings (2, 8, 16). The one-rank configuration achieves
+a slightly higher Matthews Correlation score (60.41%) than the two-rank configuration (59.35%).
+This result supports our design choice.
+D.5.5 THEIMPACTS OFDROPOUT
+Table 12: The impacts of dropout in the PLoRA.
+Method
+Dolly-15K (Rouge-L)
+Rank: 1/8/32
+IID non-IID
+Fed-PLoRA (Unfold, w/ Dropout)60.07 59.70
+Fed-PLoRA 60.07 59.69
+We investigate the impact of applying LoRA dropout within the Fed-PLoRA framework. Typi-
+cally, dropout layers are utilized for regularization before input features pass into LoRA modules
+24
+
+===== PDF PAGE 25 =====
+
+Published as a conference paper at ICLR 2026
+(specifically, before the LoRAAmatrix). In our Fed-PLoRA approach, theSelect-N-Foldstrategy
+involves merging non-selected parallel LoRA modules into the main target module. When these
+modules are folded, any dropout layers specifically associated with these folded LoRA paths are ef-
+fectively bypassed for those components in subsequent forward passes. This characteristic motivates
+an evaluation to understand how performance is affected by dropout under our folding mechanism.
+Table 12 presents a comparison on the Dolly-15K dataset (Rouge-L score), with client ranks set to
+(1, 8, 32). We compare a variant termed “Fed-PLoRA (Unfold, w/ Dropout)”, where we assume
+modules are frozen but kept unfolded, allowing standard LoRA dropout to be active on all PLoRA
+modules against our standard Fed-PLoRA configuration, but with higher computational costs. The
+results show minimal differences between the two approaches across both IID and non-IID data dis-
+tributions. In the IID setting, both configurations achieve a Rouge-L score of 60.07%. In the non-IID
+setting, “Fed-PLoRA (Unfold, w/ Dropout)” achieves 59.70%, while our method achieves 59.69%.
+These nearly identical results suggest that not using dropout on frozen layers does not affect the
+performance.
+D.5.6 MOREVISUALIZATION ONCOSINESIMILARITIES ACROSSPLORA MODULES.
+LoRA-A
+LoRA-B
+Layer 0Layer 1Layer 2Layer 3Layer 4Layer 5
+LoRA-A
+LoRA-B
+Layer 6Layer 7Layer 8Layer 9Layer 10Layer 11
+Figure 8: Cosine similarity heatmaps of PLoRA modules on the non-IID RTE dataset (averaged
+over all rounds). Each block reports pairwise similarities of modules across clients for LoRA-A and
+LoRA-B, spanning layers 0 through 11.
+To analyze the aggregation noise in Fed-PLoRA, we visualize the cosine similarity heatmaps across
+clients’ PLoRA modules for the Query weights in all 12 transformer layers of BERT-base, averaged
+over all rounds. BothAandBmodule similarities are shown. According to Section E, when
+At
+i,(j) ≈ A
+t
+(j) orB t
+i,(j) ≈ B
+t
+(j), aggregation noise of Fed-PLoRA is minimized. Figure 8 reveals
+consistently high similarity values (near 1.0) along diagonal and cross-wise patterns, particularly
+highlighted by the red arrow in Layer 0’s LoRA-A, suggesting strong similarity among certain ranks.
+Moreover, we observe that some consecutive layers maintain high inter-client similarity, indicating
+that even under non-IID settings, certain ranks learn overlapping or redundant features, potentially
+pointing to shared semantic structures across clients.
+This pattern emerges naturally from the design of Fed-PLoRA. Since each client receives the full set
+ofRglobal PLoRA modules and selects a subset for local training, all modules remain aligned
+in initialization across rounds. The random selection mechanism ensures that over time, every
+rank-jmodule is trained by a diverse subset of clients, leading to gradual synchronization of pa-
+rameters across the population. Furthermore, the frozen folded modules help preserve the global
+25
+
+===== PDF PAGE 26 =====
+
+Published as a conference paper at ICLR 2026
+structure even on clients with limited capacity, reducing noise accumulation across rounds. As a
+result, frequently selected ranks tend to exhibit strong inter-client alignment, while occasionally se-
+lected modules still retain structural consistency due to their shared initialization and partial update
+history. This design promotes implicit coordination among clients and contributes to the observed
+high cosine similarity, thereby reducing the aggregation noise without explicit regularization or co-
+ordination.
+While our method does not entirely eliminate aggregation noise. This is a characteristic shared with
+several other federated LoRA-based fine-tuning methods, such as FedIT and HETLoRA. However,
+we note that there is a growing body of research in the literature Sun et al. (2024); Guo et al. (2024)
+focused on improving the aggregation of LoRA in the homogeneous setting. We will explore the
+integration of these methods with Fed-PLoRA in heterogeneous settings in our future research.
+E DETAILEDANALYSIS OFINITIALIZATION ANDAGGREGATIONNOISE
+This section investigates the noise arising from initialization and aggregation processes in heteroge-
+neous federated LoRA-based fine-tuning methods.
+We use the following general definitions for noise as established in the main paper: Letθ t−1 =
+(At−1,B t−1)be the global LoRA parameters from the server at the end of roundt−1(with global
+rankR). Letθ t−1
+i = (At−1
+i ,B t−1
+i )be the local LoRA parameters with which clienti(from a set of
+vclients) starts roundt(with local rankr i). TheInitialization Noiseat the beginning of roundtis:
+N t
+Init :=
+vX
+i=1
+ At−1 ⊖A t−1
+i
+
+F +
+Bt−1 ⊖B t−1
+i
+
+F
+
+Here,X⊖Ysignifies the part ofXnot captured byY.
+After local training, clientiproduces updated LoRA parametersθ t
+i = (A t
+i,B t
+i). The ideal ag-
+gregated target module update is∆W t
+∗ = 1
+v
+Pv
+i=1 Bt
+iAt
+i. The actual aggregated target module
+update by a specific method is∆W t =B tAt, whereA t,B t are the global LoRA parameters after
+aggregation at roundt. TheAggregation Noiseat the end of roundtis:
+N t
+Agg :=
+∆W t
+∗ −∆W t
+F
+E.1 FLORA
+FLoRA Wang et al. (2024) employs a stacking-based aggregation. For initialization, client LoRA
+modulesA t−1
+i are randomly initialized (e.g., Gaussian Distribution), andBt−1
+i is initialized to zeros
+at each roundt.
+Initialization Noise (N t
+FLoRA Init):GivenA t−1
+i is random andB t−1
+i =0, these local parameters do
+not retain information from the previous global LoRA parametersA t−1 andB t−1. ForBmatrices:
+SinceB t−1
+i =0, the part ofB t−1 not captured byB t−1
+i isB t−1 itself. Thus,
+Bt−1 ⊖B t−1
+i
+
+F =Bt−1
+F . ForAmatrices:A t−1
+i is random and independent ofA t−1. It does not systematically
+capture any part ofA t−1. The initialization noise is formulated as:
+N t
+FLoRA Init =
+vX
+i=1
+ At−1 ⊖A t−1
+i
+
+F +
+Bt−1 ⊖B t−1
+i
+
+F
+
+≈
+vX
+i=1
+ At−1
+F +
+Bt−1
+F
+
++σ 2
+whereσ 2 denotes the magnitude of the random noise used for initializingAmatrix. This noise is
+substantial.
+Aggregation Noise (N t
+FLoRA Agg):FLoRA stacks client LoRA modules. Let clientihaveA t
+i ∈
+Rri×k andB t
+i ∈R d×ri. The server forms:
+At =
+
+
+At
+1
+...
+At
+v
+
+ ∈R (P ri)×k andB t =
+ Bt
+1 · · ·B t
+v
+
+∈R d×(P ri)
+26
+
+===== PDF PAGE 27 =====
+
+Published as a conference paper at ICLR 2026
+The aggregated update is∆W t
+FLoRA = 1
+vBtAt. The product isB tAt = P
+i∈[v] Bt
+iAt
+i. So, the
+actual aggregated update is:
+∆W t
+FLoRA = 1
+v
+X
+i∈[v]
+Bt
+iAt
+i
+The ideal target module update is∆W t
+∗ = 1
+v
+P
+i∈[v] Bt
+iAt
+i. Therefore, the aggregation noise is:
+N t
+FLoRA Agg =
+∆W t
+∗ −∆W t
+FLoRA
+
+F
+=
+
+1
+v
+X
+i∈[v]
+Bt
+iAt
+i − 1
+v
+X
+i∈[v]
+Bt
+iAt
+i
+
+F
+= 0
+E.2 FLEXLORA
+FlexLoRA aggregates LoRA modules in full weight space, then uses SVD for local LoRA modules.
+Clients truncate these for initialization.
+Initialization Noise (N t
+FlexLoRA Init):The server has global LoRA modulesA t−1 (from SVD, rank
+R) andB t−1 (from SVD, rankR). Clienti(rankr i ≤R) initializes by truncation:A t−1
+i =A t−1
+[:ri,:]
+(firstr i rows ofA t−1).B t−1
+i =B t−1
+[:,:ri] (firstr i columns ofB t−1). The part ofA t−1 not captured is
+At−1
+[ri+1:R,:]. The part ofB t−1 not captured isB t−1
+[:,ri+1:R]. The initialization noise is then formulated
+as,
+N t
+FlexLoRA Init =
+X
+i∈[v]
+ At−1 ⊖A t−1
+i
+
+F +
+Bt−1 ⊖B t−1
+i
+
+F
+
+=
+X
+i∈[v]
+At−1
+[ri+1:R,:]
+
+F
++
+Bt−1
+[:,ri+1:R]
+
+F
+
+This noise is non-zero if anyr i < R.
+Aggregation Noise (N t
+FlexLoRA Agg):Clients sendA t
+i,B t
+i. The server computes the ideal average
+update:
+∆W t
+∗ = 1
+v
+vX
+i=1
+Bt
+iAt
+i
+However, FlexLoRA then performs SVD on∆W t
+∗ to get a rank-Rapproximation:
+∆W t
+FlexLoRA =SVD(∆W t
+∗) =U tSt(Vt)⊤
+The aggregation noise is the SVD truncation error:
+N t
+FlexLoRA Agg =
+∆W t
+∗ −∆W t
+FlexLoRA
+
+F
+=
+∆W t
+∗ −U tSt(Vt)⊤
+F
+E.3 HETLORA
+HETLoRA zero-pads LoRA modules to a uniform rank for aggregation, and then clients truncate
+for initialization.
+Initialization Noise (N t
+HETLoRA Init):Server has global LoRA modulesA t−1 (rankR),B t−1 (rank
+R). Clientiinitializes by rankr i truncation:A t−1
+i =A t−1
+[:ri,:],B t−1
+i =B t−1
+[:,:ri]. The initialization
+noise is formulated as,
+N t
+HETLoRA Init =
+X
+i∈[v]
+At−1
+[ri+1:R,:]
+
+F
++
+Bt−1
+[:,ri+1:R]
+
+F
+
+Aggregation Noise (N t
+HETLoRA Agg):ClientisendsA t
+i (rankr i),B t
+i (rankr i). Server zero-pads to
+rankR:A t,′
+i ,B t,′
+i . Global LoRA modules are averages of padded matrices:A t = 1
+v
+P
+j∈[v] At,′
+j ,
+27
+
+===== PDF PAGE 28 =====
+
+Published as a conference paper at ICLR 2026
+Bt = 1
+v
+P
+j∈[v] Bt,′
+j . Actual update:∆W t
+HETLoRA =B tAt = 1
+v2
+P
+j∈[v]
+P
+k∈[v] Bt,′
+j At,′
+k . Ideal
+update:∆W t
+∗ = 1
+v
+P
+l∈[v] Bt
+lAt
+l = 1
+v
+P
+l∈[v] Bt,′
+l At,′
+l . The aggregation noise is:
+N t
+HETLoRA Agg =
+∆W t
+∗ −∆W t
+HETLoRA
+
+F
+=
+
+1
+v
+X
+l∈[v]
+Bt,′
+l At,′
+l − 1
+v2
+X
+j∈[v]
+X
+k∈[v]
+Bt,′
+j At,′
+k
+
+F
+= 1
+v2
+
+v
+X
+l∈[v]
+Bt,′
+l At,′
+l −
+X
+j∈[v]
+X
+k∈[v]
+Bt,′
+j At,′
+k
+
+F
+= 1
+v2
+
+v
+X
+l∈[v]
+Bt,′
+l At,′
+l −
+
+X
+l∈[v]
+Bt,′
+l At,′
+l +
+X
+j∈[v],j̸=k
+Bt,′
+j At,′
+k
+
+
+
+F
+= 1
+v2
+
+(v−1)
+X
+l∈[v]
+Bt,′
+l At,′
+l −
+X
+j∈[v],j̸=k
+Bt,′
+j At,′
+k
+
+F
+E.4 FED-PLORA
+Clientiupdates its selected modules{A t
+i,(j),B t
+i,(j)}j∈Kt
+i
+and sends them to the server. The server
+aggregates eachj-th parallel module independently. LetQ t
+(j) ={i|i∈[v], j∈ K t
+i}be the set of
+clients that trained thej-th module. The server computes the average for each PLoRA module’sA
+andBmatrices:
+A
+t
+(j) = 1
+|Qt
+(j)|
+X
+i∈Qt
+(j)
+At
+i,(j), B
+t
+(j) = 1
+|Qt
+(j)|
+X
+i∈Qt
+(j)
+Bt
+i,(j)
+The actual global update from Fed-PLoRA is the sum of the products of these averaged components:
+∆W t
+Fed-PLoRA =
+RX
+j=1
+B
+t
+(j)A
+t
+(j)
+=
+RX
+j=1
+
+ 1
+|Qt
+(j)|
+X
+i1∈Qt
+(j)
+Bt
+i1,(j)
+
+
+
+ 1
+|Qt
+(j)|
+X
+i2∈Qt
+(j)
+At
+i2,(j)
+
+
+=
+RX
+j=1
+1
+|Qt
+(j)|2
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j)
+The optimal aggregation in this context, as defined for Fed-PLoRA, is an average of client products
+per parallel module path:
+∆W t
+∗ =
+RX
+j=1
+
+ 1
+|Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+28
+
+===== PDF PAGE 29 =====
+
+Published as a conference paper at ICLR 2026
+The aggregation noise is then the difference between these two global updates. We use the formula-
+tion consistent with the main paper, which is∥∆W t
+∗ −∆W t
+Fed-PLoRA∥F :
+N t
+Fed-PLoRA Agg =
+∆W t
+∗ −∆W t
+Fed-PLoRA
+
+F
+=
+
+RX
+j=1
+1
+|Qt
+(j)|2
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) −
+RX
+j=1
+
+ 1
+|Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+
+F
+=
+
+RX
+j=1
+1
+|Qt
+(j)|2
+
+
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) − |Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+
+F
+LetT ′
+j be the term inside the parenthesis for modulej:
+T ′
+j =
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) − |Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+We can expand the double summation:
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) =
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j) +
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j)
+Substituting this back intoT ′
+j:
+T ′
+j =
+
+
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j) +
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j)
+
+ − |Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+=
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j) −
+
+|Qt
+(j)| −1
+ X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+So the aggregation noise can also be expressed by substituting this form ofT ′
+j:
+N t
+Fed-PLoRA Agg =
+
+RX
+j=1
+1
+|Qt
+(j)|2
+
+
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j) −
+
+|Qt
+(j)| −1
+ X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+
+F
+This noise termT ′
+j (and thus the overall noise) becomes zero if, for each modulej, the condition
+1
+|Qt
+(j) |
+P
+k∈Qt
+(j)
+(Bt
+k,(j) − B
+t
+(j))(At
+k,(j) − A
+t
+(j)) =0holds, which typically occurs when client up-
+dates{B t
+k,(j) ,A t
+k,(j) }for a given modulejare highly similar or aligned across clientsk∈ Q t
+(j).
+F ADDITIONALSTUDIES
+F.1 EFFICIENCY OFRANK-BASEDFEDERATEDFINE-TUNINGMETHOD
+In this section, we demonstrate the efficiency of the rank-based method for resource-constrained
+devices by analyzing the FLOPs of LoRA modules, overall training throughput, and communication
+costs under different rank settings. We use the LLaMA-3.1-8B model on the Finance dataset as a
+representative case (detailed dataset description is shown in Section C.1), with a hidden size of8192,
+a batch size of4, and assuming float32 precision, where each parameter occupies4bytes.
+To compute the FLOPs introduced by LoRA modules, we begin with the forward computationz=
+BAx, which requires2r(d in+d out)operations per token, whereris the LoRA rank andd in =d out =
+29
+
+===== PDF PAGE 30 =====
+
+Published as a conference paper at ICLR 2026
+Rank=8(a) LoRAFLOPs Reduction
+…
+……
+Rank=2Rank=1
+Reduction: 11.77×10!FLOPSReduction: 1.96×10!FLOPS
+Rank=8
+…
+……
+Rank=2Rank=1
+Increase: 0.07Seconds / 100 Tokens
+(b) Throughput Increase
+Increase: 0.12 Seconds / 100 Tokens
+Rank=8
+…
+……
+Rank=2Rank=1
+Reduction:23.44 GB
+Reduction:3.90 GB
+(c) Communication Volume Reduction
+15.70×10!FLOPS 0.86Seconds / 100 Tokens
+31.25GB
+Rank=8
+…
+……
+Rank=2Rank=1
+Reduction:1.15%
+Reduction:1.34%
+(d) Averaged Accuracy Reduction on Finance Dataset
+52.19%
+Figure 9: Visualization on the efficiency of the rank-based method.
+d= 8192is the hidden dimension. Since the backward pass roughly doubles the compute cost, the
+total per-token FLOPs for each LoRA module becomes6rd. The total LoRA FLOPs per training
+step can thus be estimated as6rd×batch size×sequence length×number of LoRA modules. For
+instance, with a sequence length of512,32transformer layers,2target modules per layer, result in
+total64LoRA modules, the total becomes6×r×8192×4×512×64 = 196,608×rFLOPs.
+This value increases linearly with rank. On the training dataset, in order to train one epoch with
+the full dataset, it requires approximately10,000steps with this batch size (i.e., 4), such that the
+total FLOPs introduced by LoRA modules under rank settingsr= 8,2, and1are respectively
+1.57×10 6 ×10,000 = 1.57×10 10,3.93×10 5 ×10,000 = 3.93×10 9, and1.97×10 5 ×10,000 =
+1.97×10 9 FLOPs per epoch for the LLaMA-3.1-8B model. We visualize the FLOPs reductions for
+three levels of rank settings in Figure 9 (a).
+To assess the training efficiency under different LoRA rank settings, we measure the throughput in
+terms of seconds per 100 tokens. The actual wall-clock times for the whole training process in our
+setting are 3.07, 2.84, and 2.41 days under rank settingsr= 8,2, and1, respectively. The experi-
+mental and hardware settings are reported in Sections C.1, C.2. This results in throughput values of
+approximately0.864,0.799, and0.678seconds per 100 tokens, respectively. These measurements
+demonstrate that reducing the rank leads to improved computational efficiency during training. We
+visualize the throughput increase for three levels of rank settings in Figure 9 (b).
+To estimate the communication volume for one training epoch, we assume that only the LoRA pa-
+rameters are transmitted every 10 steps. With 10,000 steps per epoch and transmission frequency
+every 10 steps, there are 1,000 transmissions in total. Each transmission involves sending and re-
+ceiving128rdLoRA module parameters, whereris the LoRA rank andd= 8192is the hidden
+size. Assumingfloat32precision (4 bytes per parameter), this yields a total communication vol-
+ume of512,000rdbytes per epoch. For ranksr= 1,2, and8, the resulting communication costs
+are approximately 3.91 GB, 7.81 GB, and 31.25 GB, respectively. We visualize the communication
+volume reductions for three levels of rank settings in Figure 9 (c).
+From the resource consumption perspective, the rank-based method provides a practical solution for
+efficient federated fine-tuning of LLMs, as evidenced by the reduction in LoRA module FLOPs and
+communication volume, as well as improved training throughput. Although the rank-based approach
+is not specifically designed for memory savings, our method is orthogonal to a wide range of existing
+memory-efficient techniques and can be easily combined with them (as discussed in Section B).
+These resource consumption reductions make low-rank configurations particularly practical for de-
+ployment in heterogeneous federated settings. However, as shown in Figure 9 (d), we provide an
+average performance comparison on Finance datasets under three levels of rank settings. The av-
+erage accuracies are 52.19%, 51.04%, and 50.05% for ranksr= 8,2, and1, respectively. This
+demonstrates that different LoRA rank settings lead to a noticeable performance gap, where even
+a 1% drop in accuracy is considered significant and typical in LLM instruction fine-tuning tasks
+on domain-specific downstream datasets. This observation motivates the design of our proposed
+method, Fed-PLoRA, which aims to incorporate clients experiencing degraded performance under
+low-rank configurations into a heterogeneous-rank federated training process and improve the over-
+all performance of the global model.
+30
+
+===== PDF PAGE 31 =====
+
+Published as a conference paper at ICLR 2026
+F.2 COMPUTATION, COMMUNICATION,ANDMEMORYOVERHEAD OFFED-PLORA
+We analyze numerical resource overhead in this section. Here, we use HETLoRA Cho et al. (2024)
+as a reference to calculate overhead, since it is the naive extension of FedAvg to heterogeneous
+resource settings. We provide the results as following:
+Computation Overhead.During the FL process, the computation overhead can be analyzed in
+the steps of local parameter initialization, local training, and server-side model aggregation Wu &
+Wang (2022); Zhou et al. (2022). To ground the discussion, we report the per-client, per-round
+computational workloads under BERT-base Devlin et al. (2019) with PF16 precision. The results
+(in terms of FLOPs) are reported using 100 clients with a global rank ofR=16and a local rank
+configuration of{1,4,16}, representing three tiers of resource heterogeneity. The number of clients
+in each tier are 34, 33, and 33, respectively. Each client is assigned 100 training samples. The
+result are summarized in Table 13. Note that, because local initialization, local training, and local
+overhead vary across clients, we report the results for the weakest client withri = 1, as it represents
+the most resource-constrained setting.
+Method Local Initialization (FLOPs) Local Training (FLOPs) Model Aggregation (FLOPs)Local Overhead(FLOPs) Server Overhead(FLOPs)
+HETLoRA3.68×10 4 1.45×1014 2.94×107 - -
+FLoRA6.26×10 5 1.45×1014 8.88×109 +5.89×105 +8.85×109
+FlexLoRA3.68×10 4 1.45×1014 7.71×1010 None+7.70×10 10
+Fed–PLoRA (Ours)1.41×107 1.45×1014 1.10×106 +1.40×107 −2.83×107
+Table 13: Computation overhead of Fed-PLoRA compared with SOTA methods.
+Overall, the dominant computation cost arises from local training, which on the order of10 14
+FLOPs. Our method adds only negligible overhead during local initialization (on the order of10 7
+FLOPs), and reduces computational cost for model aggregation compared to HETLoRA.
+Communication Overhead.The communication cost accounts for both uplink and downlink traffic.
+Here, we report the per-client, per-round uplink and downlink volumes. The measurements are
+obtained using FP16 BERT-base Devlin et al. (2019) with a global rank ofR=16. In Table 14,
+we report the results for the weakest client withr i = 1, which reflects the largest communication
+overhead incurred by our method.
+Method Uplink (MB) Downlink (MB) Overhead (MB)
+HETLoRA 0.04 0.04 -
+FLoRA 0.04 13.54 +13.50
+FlexLoRA 0.04 0.04 None
+Fed–PLoRA (Ours)0.04 0.54 +0.50
+Table 14: Communication overhead of Fed-PLoRA compared with SOTA methods.
+We can see that our method incurs only 0.50 MB of overhead per round for the weakest client,
+which is negligible even in constrained network settings. We further extend our evaluation to larger
+models when analyzing the downlink traffic of Fed-PLoRA. As shown in Table 15, in Fed-PLoRA,
+the downlink traffic is only a few megabytes per round per client, even for models with billions of
+parameters, making it easily deployable over low-bandwidth networks.
+Model Downlink (MB)
+LLaMA-1B 2.79
+OPT-1.3B 2.62
+Mistral-7B-v0.3 7.08
+Llama-3.1-8B 7.09
+Qwen3-4B-Instruct-2507 5.24
+Table 15: Downlink traffic of Fed–PLoRA across model scales.
+31
+
+===== PDF PAGE 32 =====
+
+Published as a conference paper at ICLR 2026
+Method Persistent Base Model (MB) Persistent Local Trainable Parameters (MB) Temporary Global Parameters (MB) Local Training (MB) Total Overhead (MB)
+HETLoRA 210.00 0.04 0.04→0 2717.91 -
+FLoRA 210.00 0.04 13.54→0 2717.91 +13.50→0FlexLoRA 210.00 0.04 0.04→0 2717.91 NoneFed–PLoRA (Ours)210.00 0.04 0.54→0 2717.91 +0.50→0
+Table 16: Memory overhead of Fed-PLoRA compared with SOTA methods.
+Memory Overhead.Here, we study the memory usage for the storage of the base model and
+local trainable LoRA/PLoRA parameters, the temporary memory for the received global parameters
+during local initialization, and the memory during local training. The results are obtained using
+FP16 BERT-base Devlin et al. (2019) with a global rank ofR=16. The batch size for local training
+is 16, and the input size is 512. We report the memory footprint on the weakest client with rank
+ri = 1in Table 16. The persistent base model and local LoRA/PLoRA parameters occupy the
+same amount of memory across all methods. When dealing with the received global parameters
+during local initialization, our method requires addtional 0.50 MB of temporary memory, which is
+negligible compared to the base model’s and local training memory costs.
+32

@@ -1,0 +1,93 @@
+0 1234Performance gain (%) Layers-A  Layers-S Layers-M  Layers-DR
+oBERTa on SST-2
+(a) Performance gain (rank 1 → 128)
+9 3949596Test accuracy (%)R
+oBERTa on SST-2 
+Inc             Dec  Avg  Rand (b) Final accuracy
+Figure 5: The impact of LoRA rank distribution.
+rank budget under resource constraints, strategically allocat-
+ing higher ranks to task-relevant layers becomes crucial for
+maximizing model performance [26, 27]. Specifically, the
+higher ranks of the deep LoRA layers achieve better fine-
+tuning performance on a specific task, since the layers at deep
+position need to focus on higher semantic levels and more
+contextual information [7, 19, 42, 43]. Shallow LoRA layers
+with smaller ranks leverage the pre-trained model’s inher-
+ent feature extraction capability, preventing overfitting while
+maintaining model performance.
+To demonstrate the impact of rank distribution, we conduct
+two sets of experiments for fine-tuning RoBERTa on SST-2.
+Firstly, we separately apply the different ranks, i.e., {1, 2, 4,
+8, 16, 32, 64, 128}, for Layers-A, Layers-S, Layers-M, and
+Layers-D (refer to Section 2.2) and record their performance
+gains for comparison. Secondly, we employ four different rank
+distributions with a total budget of 96 across 12 transformer
+layers (from input to output): Inc [4, 4, 5, 6, 7, 7, 8, 9, 10, 11,
+12, 13], Dec [13, 12, 11, 10, 9, 8, 7, 7, 6, 5, 4, 4], Avg [8, 8, 8,
+8, 8, 8, 8, 8, 8, 8, 8, 8], and Rand (randomly allocated). The
+findings illustrated in Figure 5 highlight that:
+1) Deeper layers are more sensitive to the rank of LoRA.
+Specifically, applying larger ranks for LoRA layers close to
+the output helps to achieve better model performance. For in-
+stance, as shown in Figure 5(a), the final performance gain of
+Layers-A, Layers-S, Layers-M, and Layers-D are separately
+0.41%, 0.23%, 2.67%, and 1.3%.
+2) The gradually increasing rank distribution achieves
+higher model accuracy. For example, as illustrated in Fig-
+ure 5(b), Inc distribution achieves the best accuracy (94.9%)
+among all variants, outperforming others by up to 1.6%. This
+is because Inc strategically allocates larger ranks to critical
+deeper layers, greatly enhancing fine-tuning performance.
+Based on the results, it is effective and necessary to allocate
+larger ranks to deeper layers. However, due to the limited
+computing and communication resources, allocating larger
+ranks to deeper layers constrains the applicable LoRA depth,
+whereas smaller ranks tend to slow down the convergence
+process. Therefore, in this paper, LEGEND simultaneously
+determines the appropriate LoRA depth with reasonable rank
+distribution for different devices so as to balance the trade-off
+between resource consumption and fine-tuning performance.
+Figure 6: The proposed LEGEND framework.
+3 System Overview
+As illustrated in Figure 6, LEGEND consists of two key com-
+ponents with a total of six main modules, i.e., four modules
+on the PS and two modules on each device. The details of
+each module are as follows:
+Initialization and Update. The PS distributes different
+LoRA layers for heterogeneous devices to adapt their capa-
+bilities. Hence, the devices need to initialize and update the
+local model ( 1⃝) for local fine-tuning in each round.
+Local Fine-Tuning. Based on the initialized local model,
+the devices perform local fine-tuning and record the fine-
+tuning status information (e.g., computing time and commu-
+nication time). After that, the devices send the updated LoRA
+layers ( 2⃝) and the status information ( 3⃝) to the PS.
+Capacity Estimation. To make effective LoRA configu-
+rations, the PS estimates the capabilities of each device ( 4⃝)
+by calculating the moving average of the historical status
+information of the devices.
+LoRA Configuration. In this module, the PS simultane-
+ously determines the appropriate LoRA depth with rank dis-
+tribution, i.e., LoRA configurations ( 5⃝), for the devices.
+LoRA Aggregation. The PS performs adaptive weighted
+aggregation for the collected LoRA layers with different
+LoRA depths from all devices to obtain the aggregated global
+LoRA layers ( 6⃝).
+LoRA Assignment. Due to the diverse LoRA configura-
+tions of devices, the PS needs to assign the specific LoRA
+layers ( 7⃝) to each device based on the aggregated model.
+4 System Design
+4.1 Initialization and Update
+In each round, the device receives a set of LoRA layers from
+the PS to initialize and update the local model for local fine-
+tuning. These LoRA layers are tailored to the device’s capac-
+ity (e.g., computing and communication capacity), including
+information on which transformer layers to fine-tune and the
+ranks of those LoRA layers. Specifically, devicei receives the
+LoRA layers eθh
+i = {eθh
+i,l|l ∈ [L −kh
+i ,L −1]} to initialize and up-
+date kh
+i transformer layers close to the output, whereL denotes
+5

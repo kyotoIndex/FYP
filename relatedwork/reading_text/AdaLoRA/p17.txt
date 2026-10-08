@@ -1,0 +1,62 @@
+Published as a conference paper at ICLR 2023
+0 20000 40000
+Iterations
+10−4
+10−3
+10−2
+10−1
+100
+||P⊤P − I||2
+F
+(a) P of Wo at the first layer.
+0 20000 40000
+Iterations
+10−4
+10−3
+10−2
+10−1
+100
+||QQ⊤ − I||2
+F (b) Q of Wo at the first layer.
+0 20000 40000
+Iterations
+10−4
+10−3
+10−2
+10−1
+100
+||P⊤P − I||2
+F
+(c) P of Wf2 at the first layer.
+0 20000 40000
+Iterations
+10−4
+10−3
+10−2
+10−1
+||QQ⊤ − I||2
+F (d) Q of Wf2 at the first layer
+Figure 4: We plot the ∥P ⊤P − I∥2
+F and ∥QQ⊤ − I∥2
+F when fine-tuning DeBERTaV3-base on SST-2.
+Table 15: Comparison of practical training cost between AdaLoRA and LoRA.
+Dataset # Param Method GPU Mem Time/epoch
+MNLI
+0.08% LoRA 11.094 GB 105 min
+AdaLoRA 11.104 GB 116 min
+0.16% LoRA 11.098 GB 105 min
+AdaLoRA 11.110 GB 117 min
+0.65% LoRA 11.128 GB 105 min
+AdaLoRA 11.188 GB 117 min
+SST-2
+0.08% LoRA 13.138 GB 60 min
+AdaLoRA 13.148 GB 71 min
+0.16% LoRA 13.142 GB 61 min
+AdaLoRA 13.164 GB 71 min
+0.65% LoRA 13.170 GB 61 min
+AdaLoRA 13.226 GB 71 min
+we only evaluate the importance score for small incremental matrices P ΛQ. Their total number of
+parameters is usually less than 1% of pre-trained weights. Therefore, it does not lead to significant
+computational cost to update the importance scores of these well-structured small matrices, compared
+to forward-backward pass of full model.
+17

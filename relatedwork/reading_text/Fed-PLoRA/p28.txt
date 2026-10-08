@@ -1,0 +1,209 @@
+Published as a conference paper at ICLR 2026
+Bt = 1
+v
+P
+j∈[v] Bt,′
+j . Actual update:∆W t
+HETLoRA =B tAt = 1
+v2
+P
+j∈[v]
+P
+k∈[v] Bt,′
+j At,′
+k . Ideal
+update:∆W t
+∗ = 1
+v
+P
+l∈[v] Bt
+lAt
+l = 1
+v
+P
+l∈[v] Bt,′
+l At,′
+l . The aggregation noise is:
+N t
+HETLoRA Agg =
+∆W t
+∗ −∆W t
+HETLoRA
+
+F
+=
+
+1
+v
+X
+l∈[v]
+Bt,′
+l At,′
+l − 1
+v2
+X
+j∈[v]
+X
+k∈[v]
+Bt,′
+j At,′
+k
+
+F
+= 1
+v2
+
+v
+X
+l∈[v]
+Bt,′
+l At,′
+l −
+X
+j∈[v]
+X
+k∈[v]
+Bt,′
+j At,′
+k
+
+F
+= 1
+v2
+
+v
+X
+l∈[v]
+Bt,′
+l At,′
+l −
+
+X
+l∈[v]
+Bt,′
+l At,′
+l +
+X
+j∈[v],j̸=k
+Bt,′
+j At,′
+k
+
+
+
+F
+= 1
+v2
+
+(v−1)
+X
+l∈[v]
+Bt,′
+l At,′
+l −
+X
+j∈[v],j̸=k
+Bt,′
+j At,′
+k
+
+F
+E.4 FED-PLORA
+Clientiupdates its selected modules{A t
+i,(j),B t
+i,(j)}j∈Kt
+i
+and sends them to the server. The server
+aggregates eachj-th parallel module independently. LetQ t
+(j) ={i|i∈[v], j∈ K t
+i}be the set of
+clients that trained thej-th module. The server computes the average for each PLoRA module’sA
+andBmatrices:
+A
+t
+(j) = 1
+|Qt
+(j)|
+X
+i∈Qt
+(j)
+At
+i,(j), B
+t
+(j) = 1
+|Qt
+(j)|
+X
+i∈Qt
+(j)
+Bt
+i,(j)
+The actual global update from Fed-PLoRA is the sum of the products of these averaged components:
+∆W t
+Fed-PLoRA =
+RX
+j=1
+B
+t
+(j)A
+t
+(j)
+=
+RX
+j=1
+
+ 1
+|Qt
+(j)|
+X
+i1∈Qt
+(j)
+Bt
+i1,(j)
+
+
+
+ 1
+|Qt
+(j)|
+X
+i2∈Qt
+(j)
+At
+i2,(j)
+
+
+=
+RX
+j=1
+1
+|Qt
+(j)|2
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j)
+The optimal aggregation in this context, as defined for Fed-PLoRA, is an average of client products
+per parallel module path:
+∆W t
+∗ =
+RX
+j=1
+
+ 1
+|Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+28

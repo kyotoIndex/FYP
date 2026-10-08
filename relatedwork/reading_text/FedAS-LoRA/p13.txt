@@ -1,0 +1,321 @@
+13
+The fitted value satisfiesBC ⋆
+i =BB †Yi = Π BYi, where
+ΠB is the orthogonal projector onto the column space ofB.
+It follows that
+min
+Ai
+∥(∆i −BA i)Σ1/2
+i ∥2
+F =∥(I−Π B)Yi∥2
+F
+=
+(I−Π B)∆iΣ1/2
+i
+
+2
+F
+.(24)
+Averaging over the clients and minimizing over the shared
+factorByields (6), which completes the proof.
+APPENDIXD
+PROOF OFTHEOREM2
+For clientiat local stepeof roundt, letU e
+t,i =B e
+t,iAe
+t,i
+andU t,i =U 0
+t,i. We define the aggregate objective asF t =
+1
+N
+PN
+i=1 fi(Ut,i)and recall thatC ⋆ = max{C A, CB}. By
+Assumption 2and Jensen’s inequality, we have
+∥ ¯Ge
+t,i∥F ≤E
+
+∥Ge
+t,i∥F |U e
+t,i
+
+≤G max.(25)
+During local training, both LoRA factors are updated
+according toB e+1
+t,i =B e
+t,i −η ℓGe
+t,iAe⊤
+t,i , Ae+1
+t,i =A e
+t,i −
+ηℓBe⊤
+t,i Ge
+t,i. Thus, we have
+U e+1
+t,i −U e
+t,i =−η ℓBe
+t,iBe⊤
+t,i Ge
+t,i −η ℓGe
+t,iAe⊤
+t,i Ae
+t,i
++η 2
+ℓ Ge
+t,iAe⊤
+t,i Be⊤
+t,i Ge
+t,i.(26)
+ApplyingAssumption 1to the increment (26) gives
+fi(U e+1
+t,i )−f i(U e
+t,i)≤
+
+ ¯Ge
+t,i, U e+1
+t,i −U e
+t,i
+
+F
++ L
+2 ∥U e+1
+t,i −U e
+t,i∥2
+F .(27)
+For the first term on the RHS of (27), based on the
+unbiasedness ofG e
+t,i andAssumption 3, we have
+−ηℓE
+h
+ ¯Ge
+t,i, Be
+t,iBe⊤
+t,i Ge
+t,i
+
+F
+i
+≤ −ηℓcB∥ ¯Ge
+t,i∥2
+F ,
+−ηℓE
+h
+ ¯Ge
+t,i, Ge
+t,iAe⊤
+t,i Ae
+t,i
+
+F
+i
+≤ −ηℓcA∥ ¯Ge
+t,i∥2
+F .(28)
+For theη 2
+ℓ Ge
+t,iAe⊤
+t,i Be⊤
+t,i Ge
+t,i term in (26), we have
+η2
+ℓ
+
+
+ ¯Ge
+t,i, Ge
+t,iAe⊤
+t,i Be⊤
+t,i Ge
+t,i
+
+F
+ ≤η 2
+ℓ ∥ ¯Ge
+t,i∥F ∥Ge
+t,i∥2
+F
+∥Ae
+t,i∥F ∥Be
+t,i∥F ≤η 2
+ℓ CACBG3
+max.(29)
+where the first inequality is due to the Cauchy–Schwarz
+inequality, and the second inequality comes fromAssump-
+tions 2and3.
+With (28), (29) and the Cauchy–Schwarz inequality, we
+obtain
+∥U e+1
+t,i −U e
+t,i∥2
+F ≤3η 2
+ℓ (C4
+A +C 4
+B)G2
+max
++ 3η4
+ℓ C2
+AC2
+BG4
+max.(30)
+Combining the upper bounds above with (27), the second
+term on the RHS of (27) is bounded, as given by
+E
+
+fi(U e+1
+t,i )−fi(U e
+t,i)
+
+≤ −ηℓ(cA+cB)E
+
+∥ ¯Ge
+t,i∥2
+F
+
++η 2
+ℓ CACBG3
+max + 3L
+2 η2
+ℓ (C4
+A +C 4
+B)G2
+max
++ 3L
+2 η4
+ℓ C2
+AC2
+BG4
+max,(31)
+Summing (31) overe= 0, . . . , E−1gives
+E
+
+fi(U E
+t,i)−f i(Ut,i)
+
+≤ −η ℓ(cA +c B)
+E−1X
+e=0
+E
+
+∥ ¯Ge
+t,i∥2
+F
+
++Er loc,(32)
+wherer loc =η 2
+ℓ CACBG3
+max + 3L
+2 η2
+ℓ (C4
+A +C 4
+B)G2
+max +
+3L
+2 η4
+ℓ C2
+AC2
+BG4
+max.
+For the accumulated local gradientsPE−1
+e=0 E
+
+∥ ¯Ge
+t,i∥2
+F
+
+in
+(32), we have
+E−1X
+e=0
+E
+
+∥ ¯Ge
+t,i∥2
+F
+
+=E
+"
+ ¯G0
+t,i
+2
+F +
+E−1X
+e=1
+ ¯Ge
+t,i
+2
+F
+#
+≥E
+h ¯G0
+t,i
+2
+F
+i
+≥κEE
+h
+∥∇fi (Ut,i)∥2
+F
+i
+,(33)
+whereκ∈[0, 1
+E ]. Substituting (33) into the preceding bound
+yields
+E
+
+fi(U E
+t,i)−f i(Ut,i)
+
+≤
+Erloc −ηℓ(cA+cB)κEE
+
+∥∇fi(Ut,i)∥2
+F
+
+, i∈ S t.(34)
+We next bound the changes in the shared factor during
+local training and server aggregation. Telescoping the cor-
+responding local factor updates gives
+∥AE
+t,i −A t∥F ≤η ℓECBGmax,for Share-A/Local-B,
+∥BE
+t,i −B t∥F ≤η ℓECAGmax,for Share-B/Local-A.
+(35)
+where both inequalities come from the triangle inequality,
+Assumptions 2and3. Consequently, either choice of the
+shared factorQsatisfies
+∥QE
+t,i −Q t∥F ≤η ℓEC⋆Gmax, i∈ S t.(36)
+Based on the server update in (3), we obtain
+∥Qt+1 −Qt∥F =
+
+ηg
+St
+X
+k∈St
+(QE
+t,k −Qt)
+
+F
+≤ηgηℓEC⋆Gmax.
+(37)
+where the inequality follows from the triangle inequality and
+the upper bound of∥Q E
+t,k −Q t∥F in (36).
+After server aggregation, letU t+1,i denote the product
+formed fromQ t+1 and clienti’s retained local factor. For
+i∈ S t,U t+1,i andU E
+t,i have the same local factor and differ
+only inQ t+1 andQ E
+t,i. Forj /∈ St,U t+1,j andU t,j have the
+same local factor and differ only inQ t+1 andQ t. Based on
+Frobenius-norm submultiplicativity, we obtain
+∥Ut+1,i −U E
+t,i∥F ≤Dsel :=(1+η g)ηℓEC 2
+⋆ Gmax, i∈ S t,
+(38)
+∥Ut+1,j −Ut,j∥F ≤Duns :=η gηℓEC 2
+⋆ Gmax, j /∈ St.(39)
+where the selected-client bound uses∥Q t+1 −Q E
+t,i∥F ≤
+∥Qt+1 −Q t∥F +∥Q E
+t,i −Q t∥F , whereas the unselected-
+client bound contains only∥Q t+1 −Q t∥F .

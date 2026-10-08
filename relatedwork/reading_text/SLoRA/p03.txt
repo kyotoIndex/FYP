@@ -1,0 +1,96 @@
+optimize a model that is sparse both at the client
+and server sides (Bibikar et al., 2022; Babakniya
+et al., 2022; Qiu et al., 2022; Li et al., 2021).
+Although efficient learning and PEFT seem very
+similar at first glance, given they both share a com-
+mon goal of reducing the training complexity for
+the clients. PEFT also focuses on the unique aspect
+of storage load when considering multiple tasks.
+Applying efficient sparse training methods on
+(pre-trained) large language models typically can
+only retain good performance with a moderate level
+of sparsity (Frantar and Alistarh, 2023; Gordon
+et al., 2020; Chen et al., 2020). This can result in a
+huge storage penalty as sparsification patterns can
+be heterogeneous across different tasks. On the
+other hand, PEFT retains the full pre-trained model
+but applies extremely sparse with (∼ 1%) density
+updates (Hu et al., 2021; Houlsby et al., 2019; Za-
+ken et al., 2021; Pfeiffer et al., 2022; He et al.,
+2021) to the pre-trained model per task, which al-
+lows for substantial storage savings and significant
+reduction on the communication cost. Importantly,
+PEFT does this while providing a strong compara-
+ble performance to the fully fine-tuned model.
+3 Preliminaries
+3.1 PEFT Baselines in Centralized Learning
+We investigate Pfieffer, LoRA, Holusby, and BitFit
+as state-of-the-art PEFT methods in PEFT. The first
+three methods add a separate bottleneck module
+(a down projection dense layer followed by an up
+projection) with a dimension r to the model. Their
+difference is where the module is added. Holusby
+places a bottleneck module after the multi-head at-
+tention and feed-forward block in each Transformer
+layer. Pfieffer places a bottleneck module only after
+the feed-forward block in each Transformer layer.
+In LoRA, the bottleneck module can be parallel to
+any dense layer in the model. Finally, BitFit is a
+simple method that only allows fine-tuning the bias
+terms.
+3.2 Observation: PEFT is challenged when
+data distribution gets non-IID
+One of the biggest challenges in FL is the degra-
+dation in performance when training in scenarios
+with heterogeneous client distributions (Kairouz
+et al., 2021). While this is a well-documented phe-
+nomenon reflected in FFT in FL, we observe in this
+work that the penalty to performance is even more
+substantial when using PEFT compared to FFT. In
+B = 0
+x
+d
+h
+r
+Pretrained 
+weights
+ W ∊ ℛ d x k
+A = 𝒩 (0,σ2)
+d
+Figure 2: LoRA Block
+particular, after benchmarking different models and
+datasets, we observe that the higher the level of het-
+erogeneity, the more significant the performance
+gap between FFT and PEFT methods. Thus, a sim-
+ple naive adaptation of applying PEFT methods
+locally in an FL setting can lead to potentially huge
+performance loss.
+Our focus in the remainder of the paper is on de-
+veloping approaches to reduce the gap between
+FFT and PEFT while efficiently using clients’
+resources regarding communication and storage
+loads. Before proposing our approach in Section 4,
+we summarize the approach that shows the great-
+est promise, which is the SOTA PEFT approach,
+LoRA.
+3.3 Low-Rank Adaption: LoRA
+We focus on presenting Low-Rank Adaptation
+(LoRA) since it’s the state-of-the-art method for
+PEFT of large pre-trained language models (LMs),
+and our proposed algorithm adopts this method.
+The key idea of LoRA is that instead of fully fine-
+tuning the pre-trained weight matrix W0 ∈ Rd×k,
+its update is constrained with a low-rank decompo-
+sition W0 +∆W = W0 +BA, where B ∈ Rd×r,
+A ∈ Rr×k, and r << min(k, d), and only B and
+A are trained while freezing the pre-trained weight
+W0.
+The way the LoRA is implemented is shown in
+Fig. 2, where a parallel module of a down projec-
+tion matrix B followed by the up projection matrix
+A in parallel to original pre-trained weight matrix.
+A random Gaussian initialization for A and zero
+for B are used to ensure the modified model and the
+original model are equivalent (e.g., ∆W = BA is
+zero at the beginning of training). The modified for-
+ward pass after adding the LoRA module is given

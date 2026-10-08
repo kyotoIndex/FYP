@@ -1,0 +1,49 @@
+Method MNLI-m (Val. Acc./%) RTE (Val. Acc./%)
+GPT-3 Few-Shot 40.6 69.0
+GPT-3 Fine-Tuned 89.5 85.4
+Table 8: Fine-tuning signiﬁcantly outperforms few-shot learning on GPT-3 (Brown et al., 2020).
+B I NFERENCE LATENCY INTRODUCED BY ADAPTER LAYERS
+Adapter layers are external modules added to a pre-trained model in a sequential manner, whereas
+our proposal, LoRA, can be seen as external modules added in a parallel manner. Consequently,
+adapter layers must be computed in addition to the base model, inevitably introducing additional
+latency. While as pointed out in R ¨uckl´e et al. (2020), the latency introduced by adapter layers can
+be mitigated when the model batch size and/or sequence length is large enough to full utilize the
+hardware parallelism. We conﬁrm their observation with a similar latency study on GPT-2 medium
+and point out that there are scenarios, notably online inference where the batch size is small, where
+the added latency can be signiﬁcant.
+We measure the latency of a single forward pass on an NVIDIA Quadro RTX8000 by averaging
+over 100 trials. We vary the input batch size, sequence length, and the adapter bottleneck dimension
+r. We test two adapter designs: the original one by Houlsby et al. (2019), which we call Adapter H,
+and a recent, more efﬁcient variant by Lin et al. (2020), which we call Adapter L. See Section 5.1
+for more details on the designs. We plot the slow-down in percentage compared to the no-adapter
+baseline in Figure 5.
+0
+5
+10
+15
+20
+25
+30
+35
+010100250
+AdapterH r
+Seq Len = 128 Seq Len = 256 Seq Len = 512
+1 2 4 8 16 32
+Batch Size
+010100250
+AdapterL r
+1 2 4 8 16 32
+Batch Size
+1 2 4 8 16 32
+Batch Size
+Figure 5: Percentage slow-down of inference latency compared to the no-adapter ( r = 0) baseline.
+The top row shows the result for Adapter H and the bottom row Adapter L. Larger batch size and
+sequence length help to mitigate the latency, but the slow-down can be as high as over 30% in an
+online, short-sequence-length scenario. We tweak the colormap for better visibility.
+C D ATASET DETAILS
+GLUE Benchmark is a wide-ranging collection of natural language understanding tasks. It includes
+MNLI (inference, Williams et al. (2018)), SST-2 (sentiment analysis, Socher et al. (2013)), MRPC
+(paraphrase detection, Dolan & Brockett (2005)), CoLA (linguistic acceptability, Warstadt et al.
+(2018)), QNLI (inference, Rajpurkar et al. (2018)), QQP 8 (question-answering), RTE (inference),
+8https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs
+17

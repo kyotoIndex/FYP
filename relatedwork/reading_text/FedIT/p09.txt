@@ -1,0 +1,44 @@
+Table 1: Prompt Template
+Template
+Prompt Input Below is an instruction that describes a task, paired with an input that provides
+further context. Write a response that appropriately completes the request.
+Instruction: {instruction}
+Input: {input}
+Response:
+Prompt No Input Below is an instruction that describes a task. Write a response that appropri-
+ately completes the request.
+Instruction: {instruction}
+Response:
+Model Aggregation This component is responsible for the combination of trained client mod-
+els into a single global model, with the objective of producing a more generalized and accurate
+model. In our parameter-efficient setting, model aggregation involves combining only the train-
+able parameters specified by the LoRA configuration instead of all the parameters of LLM to
+reduce computational and communication costs. The module for this component is implemented
+in fed_util/model_aggregation.py, which provides a platform for the adoption of various
+federated optimization methods, including FedAvg [55].
+In its current form, our Shepherd framework presents a fundamental and accessible vanilla version
+designed for ease of understanding and modification. In future iterations, we plan to expand the
+framework by incorporating more complex functionalities, such as novel client selection strategies
+[12, 25, 78, 95] and advanced optimization methods [10, 68, 79]. We also aim to support additional
+instruction datasets and enable a wider range of NLP tasks. Furthermore, we believe that the
+framework’s practicality in real-world scenarios can be significantly improved by integrating advanced
+system simulations that account for various factors such as computing time delays, communication
+latencies, overheads, and bandwidth limitations.
+4 Qualitative Study
+4.1 Implementation details
+In our FL setup, we assume the presence of 100 clients. We proceed to apply the Shepherd frame-
+work’s second data partitioning technique to divide the residual data from theDatabricks-dolly-15k
+dataset into 100 distinct portions. Each of these portions corresponds to an individual client’s local
+instruction dataset. We conduct a total of 20 communication rounds, with each round involving the
+random selection of 5 (5%) clients for training. Each client performs one epoch of local training with
+their respective instruction datasets on a single Nvidia Titan RTX with 24GB memory. We initialize
+the model with the 7B LLaMA model. The model remains frozen during training, thereby reducing
+GPU memory usage and enhancing training speed. In alignment with Baize’s settings [88], we apply
+LoRA to all linear layers with a rank of 8 to boost adaptation capabilities. Following [31], we use
+random Gaussian initialization for A and set B to zero, ensuring that the value of BA is zero at the
+beginning of training. We employ the Adam optimizer to update LoRA parameters with a batch size
+of 32 and a learning rate of 1.5e-4. We set the maximum input sequence length to 512 and provide
+the template of the prompt adopted from Alpaca-lora in Table 1. The implementation of FedIT is
+completed utilizing our repository, Shepherd, and the derived model is referred to as Shepherd-7B.
+We detail the number of model parameters, training time, and GPU memory consumption in Table 2.
+9

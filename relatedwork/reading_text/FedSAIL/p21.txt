@@ -1,0 +1,61 @@
+D Shared-Message Ablation on Personalized GLUE
+Controlled comparison.To understand exactly what makes the shared consensus effective, we isolate
+the components of our transmitted message. Specifically, we ask whether the performance gains stem
+from incorporating the local input moments (bΣ
+1/2
+k ), the up-projection (Bk), or their combination. In our
+experiments, we compare the rank-1 right spectral messages extracted from four variants: Ak, the full raw
+update ∆k, AkbΣ
+1/2
+k , and our full input-aware action matrix bGk =∆ kbΣ
+1/2
+k . Besides, to ensure a strict
+comparison of the messages themselves, we hold the local optimization objective constant across all variants.
+We evaluate these variants using seed 123 across all three Dirichlet heterogeneity settings. To rule out
+confounding initialization effects, all configurations are strictly matched from step zero, sharing identical
+client partitions, data-loader states, and warmup trajectories up to round50.
+Results and interpretation.As shown in Table 13, incorporating the input-moment weighting improves
+performance across all 18 task-by-heterogeneity configurations. WithoutbΣ
+1/2
+k , both unweighted messages
+(Ak and ∆k) suffer severe performance degradation, averaging only 66.68%. Notably, even though sharing
+the full raw update ∆k resolves the non-uniqueness (reparameterization ambiguity) of individual LoRA
+factors, it still performs poorly under the fixed action-based regularizer. This demonstrates a key insight:
+merely fixing factorization ambiguity is insufficient. To provide meaningful cross-client guidance, the
+shared geometric consensus must be explicitly anchored in the local input distribution. We also observe
+that extracting the shared subspace from AkbΣ
+1/2
+k yields an overall mean (88.92%) that is only marginally
+lower than using the full action matrix bGk (89.02%). Consistent with our discussion in the main text,
+this minor empirical gap suggests that including the output factor Bk in the shared message is not strictly
+necessary for achieving high predictive performance on these tasks. However, our preference for the full
+action matrix bGk is mathematically motivated. Unlike the right subspace of AkbΣ
+1/2
+k , bGk is inherently
+invariant to invertible LoRA reparameterizations. This coordinate-free property makes it a fundamentally
+more robust and principled geometric object to share across heterogeneous clients. Finally, we note that these
+single-seed results specifically assess the composition of the shared message; to maintain a strictly controlled
+comparison, all evaluated variants still retain both Bk and the input moment in their local optimization
+objective.
+Table 13: Ablation of shared-message on personalized GLUE. We report validation accuracy (%) over500
+rounds.
+αShared message RTE SST-2 QNLI MNLI-m MNLI-mm QQP Avg.
+0.5A k 74.73 81.42 70.49 48.04 49.14 69.11 65.49
+∆k 74.37 81.65 70.55 48.13 49.15 68.56 65.40
+Ak bΣ
+1/2
+k 85.2095.30 93.25 87.45 87.3986.0189.10
+bGk 85.20 95.53 93.37 87.56 87.5585.9289.19
+0.75A k 63.54 76.72 69.25 62.65 63.10 68.35 67.27
+∆k 61.73 78.67 69.34 62.69 63.13 68.87 67.40
+Ak bΣ
+1/2
+k 83.3995.41 93.04 89.04 89.25 85.35 89.25
+bGk 83.0395.53 93.26 89.06 89.37 85.67 89.32
+1.0A k 70.40 72.25 70.25 59.36 59.43 71.95 67.27
+∆k 70.04 72.48 70.14 59.36 59.43 71.99 67.24
+Ak bΣ
+1/2
+k 77.98 95.9993.0688.5188.5286.40 88.41
+bGk 78.34 96.4492.8488.6588.4486.63 88.56
+21

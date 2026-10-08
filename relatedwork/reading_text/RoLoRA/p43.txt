@@ -1,0 +1,33 @@
+Client num Method MNLI QQP QNLI
+3 FLoRA 39.29 51.05 59.88
+RoLoRA 85.70 86.14 91.64
+20 FLoRA 32.01 51.58 49.89
+RoLoRA 85.28 85.83 90.35
+50 FLoRA 31.97 50.54 38.82
+RoLoRA 82.98 85.71 90.00
+Table 11: Results with RoBERTa-Large models with rank-4 LoRA adapter for varying numbers
+of clients (3, 20, 50), comparing FLoRA with RoLoRA, maintaining a constant sample count
+during finetuning. In the 3-client setting, while FLoRA eventually converges (e.g., 83.3% on MNLI
+after 4000 rounds), the figure shows results for only 500 rounds, within which FLoRA has not yet
+converged. This highlights RoLoRA’s faster convergence and better scalability.
+Figure 8: Accuracies over 100 rounds. It involves 50 clients using rank 4.
+Layer Attributes SST-2 QNLI MNLI QQP RTE
+P1
+TypeW v Wv, Wq Wv, Wq Wv, Wq Wv, Wq
+Index{21, . . . ,23} {21, . . . ,23} {21, . . . ,23} {21, . . . ,23} {21, . . . ,23}
+P2
+TypeW v, Wq Wv, Wq Wv, Wq Wv, Wq Wv, Wq
+Index{18, . . . ,23} {15, . . . ,23} {15, . . . ,23} {15, . . . ,23} {16, . . . ,23}
+P3
+TypeW v, Wq Wv, Wq Wv, Wq Wv, Wq Wv, Wq
+Index{0, . . . ,23} {12, . . . ,23} {12, . . . ,23} {12, . . . ,23} {12, . . . ,23}
+Table 12: The selected layer set attached with LoRA for the setup of Figure 4
+Figure 9: Results with RoBERTa-Large models on GLUE of different budget of finetuning parameters.
+It involves 3 clients using rank 8.
+A5.5 Effect of Rank on RoLoRA and FFA-LoRA in the Centralized Setting
+We evaluated FFA-LoRA and RoLoRA on MNLI and QQP using 8 LoRA adapters attached to query
+and value projection of last 4 layers, and trained for 50000 iterations to ensure full convergence.
+Increasing ranks can narrow the performance gap between the two schemes. Another related technique
+to narrow the performance gap between the two schemes is by increasing the number of adapters, as
+discussed in Section 5.1 (“Effect of Number of Fine-Tuning Parameters”). With sufficient adapters,
+43

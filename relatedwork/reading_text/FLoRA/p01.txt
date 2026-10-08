@@ -1,0 +1,45 @@
+FLoRA: Federated Fine-Tuning Large Language
+Models with Heterogeneous Low-Rank Adaptations
+Ziyao Wang1, Zheyu Shen1, Yexiao He1, Guoheng Sun1, Hongyi Wang2,3, Lingjuan Lyu4, Ang Li1
+1. University of Maryland, College Park
+2. Rutgers University 3. GenBio.ai 4. Sony Reasearch
+Abstract
+The rapid development of Large Language Models (LLMs) has been pivotal in
+advancing AI, with pre-trained LLMs being adaptable to diverse downstream
+tasks through fine-tuning. Federated learning (FL) further enhances fine-tuning
+in a privacy-aware manner by utilizing clients’ local data through in-situ com-
+putation, eliminating the need for data movement. However, fine-tuning LLMs,
+given their massive scale of parameters, poses challenges for clients with con-
+strained and heterogeneous resources in FL. Previous methods employed low-rank
+adaptation (LoRA) for efficient federated fine-tuning but utilized traditional FL
+aggregation strategies on LoRA adapters. These approaches led to mathematically
+inaccurate aggregation noise, reducing fine-tuning effectiveness and failing to
+address heterogeneous LoRAs. In this work, we first highlight the mathemati-
+cal incorrectness of LoRA aggregation in existing federated fine-tuning methods.
+We introduce a new approach called FLORA that enables federated fine-tuning
+on heterogeneous LoRA adapters across clients through a novel stacking-based
+aggregation method. Our approach is noise-free and seamlessly supports hetero-
+geneous LoRA adapters. Extensive experiments demonstrate FL ORA’s superior
+performance in both homogeneous and heterogeneous settings, surpassing state-
+of-the-art methods. We envision this work as a milestone for efficient, privacy-
+preserving, and accurate federated fine-tuning of LLMs. Our code is available at
+https://github.com/ATP-1010/FederatedLLM.
+1 Introduction
+The Large Language Models (LLMs) have shown remarkable performance on various tasks, such as
+chatbots [1], virtual assistants [4], search engines [10], and healthcare [18; 16]. However, adapting pre-
+trained LLMs (e.g., Llama 2 [20]) to downstream tasks requires tremendous computation resources to
+fine-tune all the model parameters. To mitigate this issue, a variety of parameter-efficient fine-tuning
+(PEFT) methods have been proposed. One of the most widely used PEFT methods is low-rank
+adaptation (LoRA) [9]. As shown in the top of Figure 1, LoRA adds a parallel branch of trainable
+adapters A and B to compute the model update ∆W, where the ranks of A and B are much smaller
+than the pre-trained model parameter W. When applying LoRA for fine-tuning, only A and B are
+updated while the entire W is frozen, thereby significantly reducing the GPU memory consumption.
+Fine-tuning LLMs requires ample data for adaptation to specific downstream tasks. Often, this data is
+dispersed across a multitude of devices, raising privacy concerns. For instance, aggregating medical
+data from hospitals for centralized LLM fine-tuning poses significant challenges. Consequently, to
+facilitate fine-tuning without compromising private data, federated learning (FL) becomes essential,
+enabling LLM fine-tuning across distributed clients while preserving data privacy [14; 24]. In this
+work, we focus on federated fine-tuning, enabling distributed clients to collaboratively fine-tune
+LLMs for adaptation to downstream tasks while preserving data privacy.
+Preprint. Under review.
+arXiv:2409.05976v1  [cs.LG]  9 Sep 2024

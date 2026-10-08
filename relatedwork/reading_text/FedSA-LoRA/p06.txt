@@ -1,0 +1,55 @@
+Published as a conference paper at ICLR 2025
+There are some works analyzing the asymmetry of A and B within LoRA in other areas (Zhu et al.,
+2024; Tian et al., 2024). However, our work distinctly considers the asymmetry analyses of A and
+B within LoRA in the context of federated learning, while these related papers (Zhu et al., 2024;
+Tian et al., 2024) can further serve as verification of the effectiveness of our method. In particu-
+lar, we further analyzed different non-IID scenarios, as data heterogeneity is a significant issue in
+FL. Through our analysis, we not only found that the learned A matrices are more similar across
+clients than the B matrices (consistent with previous findings), but more importantly, we discov-
+ered that with increased data heterogeneity, the similarity of B matrices between different clients
+decreases. Moreover, we further extended this asymmetry analysis to other LoRA variants, such
+as rsLoRA (Kalajdzievski, 2023) and VeRA (Kopiczko et al., 2024), and found similar phenomena.
+This generalization was previously lacking in the literature (Zhu et al., 2024; Tian et al., 2024).
+4 O UR METHOD
+4.1 F EDERATED SHARE -A L OW RANK ADAPTATION
+Drawing from the insights of our findings, we introduce Federated Share-A Low-Rank Adaptation
+(FedSA-LoRA), illustrated in Figure 1(c), which utilizes two low-rank trainable matrices A and
+B to model the weight update, but only A matrices are shared with the server for aggregation.
+Specifically, similar to LoRA (Hu et al., 2022), we employ two low-rank matrices, namely B ∈
+Rk×r and A ∈ Rr×d with r ≪ min(k, d), to model the weight update∆W ∈ Rk×d for a pre-trained
+weight matrix W0 ∈ Rk×d. This approach allows us to represent the fine-tuned weight asW0 + BA.
+During the local training process, W0 is frozen and does not receive gradient updates, while A and
+B contain trainable parameters. Following LoRA (Hu et al., 2022), the matrix A is initialized with
+a random Gaussian distribution, whereas B is initially set to zero, ensuring that ∆W = BA is zero
+at the start of training. Then, for global aggregation, only the A matrices are shared with the server
+for aggregation. Once the server averages these A matrices, they are broadcast to each client for
+the subsequent training round. By sharing the A matrices that learn general knowledge with the
+server for aggregation, while keeping the B matrices that model client-specific knowledge locally,
+the learning abilities of LoRA combined with FL can be enhanced.
+Moreover, based on the similar phenomena observed in other LoRA variants (i.e., rsLoRA (Kala-
+jdzievski, 2023) and VeRA (Kopiczko et al., 2024)), we extend the FedSA-LoRA method to these
+variants, resulting in FedSA-rsLoRA and FedSA-VeRA. Specifically, rsLoRA (Kalajdzievski, 2023)
+is similar to LoRA, differing only in the scaling factor. Thus, the difference between FedSA-rsLoRA
+and FedSA-LoRA also lies in the scaling factor. In VeRA (Kopiczko et al., 2024), the low-rank ma-
+trices A and B are initialized using the uniform version of Kaiming initialization, fixed, shared
+across all layers, and adapted with trainable scaling vectors d and b. The b vectors are initialized
+to zero, and the d vectors are initialized with a value of 0.1. To make the notation consistent with
+our work, we rewrite the scaling vectors d and b as Ad and Bb to reflect the position of each scaling
+vector. Thus, in FedSA-VeRA, only the scaling vector Ad is shared with the server for aggregation,
+while Bb is trained locally. By extending the proposed method to other LoRA variants, we establish
+a general paradigm for integrating LoRA with FL, offering guidance for future work on subsequent
+LoRA variants combined with FL.
+4.2 C ONVERGENCE ANALYSIS
+To facilitate the convergence analysis of the proposed method, we make assumptions commonly en-
+countered in the literature (Li et al., 2020c) to characterize the smooth and non-convex optimization
+landscape.
+Assumption 1. L1, · · · , Lm are all L-smooth. For all Wi,j and Wi,k:
+Li(Wi,k) ≤ L i(Wi,j) + ⟨Wi,k − Wi,j, ∇Li(Wi,j)⟩F + L
+2 ∥Wi,k − Wi,j∥2
+F .
+Here, m is the number of clients, Wi,j and Wi,k represent any different model weights of client i,
+Li is the empirical loss on client i, ∇Li(Wi,j) represents the gradient of Li with respect to Wi,j,
+⟨·, ·⟩F is the Frobenius inner product, and ∥ · ∥F denotes the Frobenius norm.
+Assumption 2. Let ξi,t be sampled from the i-th client’s local data uniformly at random at t-
+th training step. The expected squared norm of stochastic gradients is uniformly bounded, i.e.,
+6

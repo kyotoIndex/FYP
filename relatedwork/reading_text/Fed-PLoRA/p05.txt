@@ -1,0 +1,145 @@
+Published as a conference paper at ICLR 2026
+training. For clarity, we omit the indexlin the notation, but note that this selection and the subse-
+quence operations are performed independently for each target modulel∈[L]. The local PLoRA
+parameters of clientiare initialized asθ t−1
+i ={A t−1
+(j) ,B t−1
+(j) }j∈Kt
+i
+. The remaining(R−r i)parallel
+one-rank PLoRA modules are temporarilyfoldedinto the corresponding pre-trained target module
+W 0, yielding the local target module
+W t
+i :=W 0 + ∆Wt−1
+fold,i =W 0 +
+X
+j /∈Kt
+i
+Bt−1
+(j) At−1
+(j) ,
+which then remains frozen during local training. This procedure allows the client to preserve infor-
+mation from the full set of global PloRA modules while training only a subset. Consequently, client
+ioperates with an effective rank ofr i, matching the parameter count of a standard rank-r i LoRA
+configuration, but without incurring initialization noise.
+Randomness in Select-N-Fold:Our objective is to obtain a well-trained global PLoRA that can be
+applied to the pretrained backbone for downstream tasks. When local resource is sufficient (i.e.,
+ri =R), all local PLoRA modules can be trained, ensuring that every global PLoRA module is
+updated. Whenr i < R, trainable modules are selected independently across clients and target
+modules; hence, in expectation, each global module is updated by some subset of clients in every
+round. This randomness mitigates the risk of long-term staleness in global PLoRA modules under
+the Select-N-Fold strategy.
+Local Client Update:During local training, each clientiupdates only the selected PLoRA modules
+inK t
+i. After optimization, the updated local PLoRA parameters areθ t
+i ={A t
+i,(j),B t
+i,(j)}j∈Kt
+i
+,
+which are then transmitted to the server.
+Server-Side Aggregation:The server aggregates these local PLoRA modules in a rank-wise man-
+ner. For eachj∈[R], the global PLoRA modules are computed asA t
+(j) = 1
+|Qt
+(j) |
+P
+i∈Qt
+(j)
+At
+i,(j),
+Bt
+(j) = 1
+|Qt
+(j) |
+P
+i∈Qt
+(j)
+Bt
+i,(j), whereQ t
+(j) ={i|i∈[v], j∈ K t
+i}denotes the set of clients that
+updated modulejin roundt. The aggregated global PLoRA parametersθ t ={A t,B t}are then
+used for the next round of training. The process iterates until the global model converges.
+3.4 ANALYSIS OFINITIALIZATION ANDAGGREGATIONNOISE
+(a) Round 1(b) Round 80
+02468101214
+02468101214
+0246810121402468101214Rank Index
+0.80.60.40.20.0-0.2
+Figure 2: Cosine similarities between parallel one-rank
+modules of PLoRA. (a) Low, random similarities at initial-
+ization; (b) Increasing within-rank similarity across clients,
+while cross-rank similarity remains low, indicating that
+modules capture distinct knowledge at different ranks but
+converge on similar knowledge across clients, despite dif-
+ferences in resource limitations and data distributions (see
+Appendix Section C.3).
+Here, we analyze the initializa-
+tion and aggregation noise of Fed-
+PLoRA, comparing it with three
+SOTA methods, FLoRA Wang et al.
+(2024), FlexLoRA Bai et al. (2024),
+and HETLoRA Cho et al. (2024).
+Due to page limitations, we pro-
+vide the detailed derivation in Ap-
+pendix E.
+Fed-PLoRA.Because each
+client either trains or folds
+the globally initialized one-
+rank modules into its frozen
+target weights, there is no
+discrepancy between local
+and global modules. Hence,
+N t
+Ours Init = 0. Under our
+aggregation rule, the aggrega-
+tion noise isN t
+Ours Agg =∥ PR
+j=1((1/|Qt
+(j)|)P
+i∈Qt
+(j)
+(Bt
+i,(j) − B
+t
+(j))(At
+i,(j) − A
+t
+(j)))∥F ,
+where A
+t
+(j) := (1/|Q t
+(j)|)P
+i∈Qt
+(j)
+At
+i,(j) and B
+t
+(j) := (1/|Q t
+(j)|)P
+i∈Qt
+(j)
+Bt
+i,(j). This
+noise vanishes when the cross-client covariance betweenA t
+i,(j) andB t
+i,(j) is zero for
+every rank. More generally, by the Cauchy–Schwarz inequality, it can be bounded as
+N t
+Ours Agg ≤ PR
+j=1
+1
+|Qt
+(j) |
+P
+i∈Qt
+(j)
+∥Bt
+i,(j) − B
+t
+(j)∥2 +∥A t
+i,(j) − A
+t
+(j)∥2.As shown in the
+5

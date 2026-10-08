@@ -1,0 +1,94 @@
+, , Zhang et al.
+we conduct experiments by training the first 1, first 6, last 1, last 6, and all 12 LoRA modules on the CIFAR-100 dataset, as shown in
+Figure. 1 (a). These strategies lead to varying memory consumption, which corresponds to different memory capacities commonly seen in
+real-world NVIDIA GPUs, such as NVIDIA RTX A2000 (12GB), NVIDIA RTX A5000 (24GB), NVIDIA Tesla A100 (40GB), NVIDIA RTX A6000
+(48GB). The GPU memory usage is calculated based on the method described in Section A.4. The memory consumption for contexts with 1,
+6, and 12 layers is derived from multiple experimental results and fixed at 100, 2,280, and 5,800 MB, respectively.
+Due to the presence of static activations [1], which cannot be discarded because of non-linear functions (e.g., GELU, LayerNorm, and
+Softmax), the memory consumption for training the first 1 or 6 layers approaches that of training all 12 layers. Additionally, the results
+reveal a notable performance disparity based on which LoRA modules are trained (e.g., a comparison between the “Last 6” and “First 6”
+strategies), highlighting the varying importance of different layers in the model.
+C Details of Dataset
+1 Natural Instruction: The Natural Instruction dataset [28] is a large-scale collection of human-written instructions designed to facilitate
+instruction-based learning for natural language processing models. It consists of a diverse set of tasks, covering various domains such as
+classification, summarization, translation, question answering, and reasoning. The dataset consists of 1,616 diverse natural language tasks
+with instructions and answers. In our experiments, data instances are formatted into prompts before being processed by the LLMs. We utilize
+the template provided by Alpaca [26] to format the datasets used in our experiments. In the pre-processing, we first filter out tokens with a
+total length larger than 512, which results in 613 tasks, with 50,348 training samples, and 5,517 testing samples. We simulate three levels of
+task heterogeneity from IID to extreme Non-IID, by varying the number of client’s data tasks to full, 20, and 15 for NI.
+2 Dolly-15K: The Dolly-15K dataset [7] is an open-source instruction-tuning dataset introduced by Databricks to improve the fine-tuning
+of large language models for instruction-following tasks. It comprises 15,000 human-generated prompt-response pairs spanning diverse
+domains such as open-ended question answering, summarization, brainstorming, and information extraction. Unlike many instruction-tuning
+datasets that rely on synthetic data, Dolly-15K ensures high-quality, natural language interactions through human-authored responses,
+making it a valuable resource for training and evaluating instruction-following models. For preprocessing, we applied the same prompts as
+in the NI dataset and filtered out samples exceeding 512 tokens in total length. This resulted in 10,936 training and 2,735 testing samples. To
+simulate different levels of task heterogeneity, we varied the number of tasks per client, creating three settings: IID (full task set per client),
+mild Non-IID (3 tasks per client), and extreme Non-IID (1 task per client).
+3 CIFAR-100: The CIFAR-100 dataset consists of 60,000 32×32 color images in 100 classes, with 600 images per class. There are 500
+training images and 100 testing images per class. For the Non-IID data distribution, we apply quantity and label skews to the dataset. For
+quantity skew, we use Dirichlet with 𝛼 = 1.0, and for label skew, we use pathological where the data on each client only contains the specific
+number of labels. This results in three levels of data distribution: {𝐼 𝐼 𝐷,(20/𝐷𝑖𝑟 ∼ 1.0), (10/𝐷𝑖𝑟 ∼ 1.0)}, where (20/𝐷𝑖𝑟 ∼ 1.0) means each
+client only contains 20 out of 100 categories of samples, and the number of samples obeys the Dirichlet distribution with 𝛼 = 1.0.
+4 LEDGAR-100: The LEDGAR dataset aims at contract provision classification. The contract provisions sourced from contracts obtained
+from the US Securities and Exchange Commission filings, which are publicly available from EDGAR. Each category represents the single
+main topic of the corresponding contract provision. There are 100 categories, with 60,000 samples for training and 10,000 for testing. The
+number of samples for each category is unbalanced. The data distribution skew is the same as that of CIFAR-100.
+5 DomainNet-121: The original DomainNet is a dataset of common objects in six different domains. All domains include 345 categories
+of objects and a total of 424.5k images. The domains include clipart, real, sketch, infograph, painting, and quickdraw. We craft DomainNet-121
+by selecting categories that all six domains have more than 50 images, resulting in 121 categories. Then, we randomly choose 50 images
+per category per domain, resulting in 300 images per category. Subsequently, we sample 5 images from each category in each domain for
+testing. There are 270 training images and 30 testing images per class. For Non-IID data distribution, we apply domain and category skews:
+{1𝐷/121𝐶, 1𝐷/50𝐶, 1𝐷/25𝐶)}, where 1𝐷/121 means each client contains 121 out of 121 categories and 1 out of 6 domains of samples.
+More specifically, the categories drawn from the original DomainNet are as follows:
+barn
+baseball_bat
+basket
+beach
+bear
+beard
+bee
+bird
+blueberry
+bowtie
+bracelet
+brain
+bread
+broccoli
+bus
+butterfly
+circle
+cloud
+cruise_ship
+dolphin
+dumbbell
+elephant
+eye
+eyeglasses
+feather
+fish
+flower
+foot
+frog
+giraffe
+goatee
+golf_club
+grapes
+grass
+guitar
+hamburger
+hand
+hat
+headphones
+helicopter
+hexagon
+hockey_stick
+horse
+hourglass
+house
+ice_cream
+jacket
+ladder
+leg
+lipstick
+megaphone
+monkey

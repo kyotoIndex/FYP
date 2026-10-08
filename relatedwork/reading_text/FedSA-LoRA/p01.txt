@@ -1,0 +1,51 @@
+Published as a conference paper at ICLR 2025
+SELECTIVE AGGREGATION FOR LOW-RANK ADAPTA -
+TION IN FEDERATED LEARNING
+Pengxin Guo1 Shuang Zeng1 Yanran Wang2 Huijie Fan3 Feifei Wang1,4 Liangqiong Qu1∗
+1 The University of Hong Kong 2 Stanford University
+3 Shenyang Institute of Automation, Chinese Academy of Sciences
+4 Materials Innovation Institute for Life Sciences and Energy (MILES), HKU-SIRI
+{guopx,zengsh9}@connect.hku.hk, joycewyr@stanford.edu,
+fanhuijie@sia.cn, ffwang@eee.hku.hk, liangqqu@hku.hk
+ABSTRACT
+We investigate LoRA in federated learning through the lens of the asymmetry
+analysis of the learned A and B matrices. In doing so, we uncover that A ma-
+trices are responsible for learning general knowledge, while B matrices focus on
+capturing client-specific knowledge. Based on this finding, we introduce Fed-
+erated Share-A Low-Rank Adaptation (FedSA-LoRA), which employs two low-
+rank trainable matrices A and B to model the weight update, but only A matrices
+are shared with the server for aggregation. Moreover, we delve into the rela-
+tionship between the learned A and B matrices in other LoRA variants, such as
+rsLoRA and VeRA, revealing a consistent pattern. Consequently, we extend our
+FedSA-LoRA method to these LoRA variants, resulting in FedSA-rsLoRA and
+FedSA-VeRA. In this way, we establish a general paradigm for integrating LoRA
+with FL, offering guidance for future work on subsequent LoRA variants com-
+bined with FL. Extensive experimental results on natural language understanding
+and generation tasks demonstrate the effectiveness of the proposed method. Our
+code is available at https://github.com/Pengxin-Guo/FedSA-LoRA.
+1 I NTRODUCTION
+Large Language Models (LLMs) trained on large amounts of text, referred to as Pre-trained Lan-
+guage Models (PLMs), have become a cornerstone of Natural Language Processing (NLP) (Brown,
+2020; Touvron et al., 2023; Achiam et al., 2023; Chowdhery et al., 2023). Typically, to adapt PLMs
+for specific tasks or enhance accuracy in real-world scenarios, fine-tuning PLMs on task-specific
+data is often needed. However, in many real-world applications, data is distributed across different
+institutions, and data sharing between these entities is often restricted due to privacy and regula-
+tory concerns. Federated Learning (FL) (McMahan et al., 2017; Li et al., 2020a; Zhang et al.,
+2021; Kairouz et al., 2021), which utilizes collaborative and decentralized training of models across
+multiple institutions without sharing personal data externally, offers a promising solution to this
+challenge.
+Despite its promise, fine-tuning PLMs in an FL system is challenging due to the high computational
+and storage demands on local clients and the communication overhead involved. To enable fine-
+tuning of PLMs in an FL system with limited resources, various Parameter-Efficient Fine-Tuning
+(PEFT) techniques have been explored. These include adapter-tuning-based methods (Houlsby
+et al., 2019; Zhang et al., 2024b), prompt-tuning-based methods (Li & Liang, 2021; Guo et al.,
+2023b; Che et al., 2023; Guo et al., 2023a; Qiu et al., 2024; Li et al., 2024; Deng et al., 2024; Sun
+et al., 2024a; Cui et al., 2024; Cao et al., 2024), and LoRA-based methods (Hu et al., 2022; Yi
+et al., 2023; Liu et al., 2023; Yang et al., 2024; Qi et al., 2024; Cho et al., 2023; Byun & Lee, 2024;
+Chen et al., 2024; Sun et al., 2024b; Lin et al., 2024; Wu et al., 2024; Wang et al., 2024b). Among
+these, LoRA-based methods have become increasingly popular, leveraging the assumption that over-
+parameterized models have a low intrinsic dimension (Li et al., 2018; Aghajanyan et al., 2020). A
+pre-trained model can be shared and utilized to create multiple small LoRA modules tailored for
+∗Corresponding author.
+1
+arXiv:2410.01463v3  [cs.LG]  21 Mar 2025

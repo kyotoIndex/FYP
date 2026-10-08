@@ -1,0 +1,103 @@
+, , Zhang et al.
+Table 4: Main results on Dolly-15K dataset with OPT-1.3B
+model in both IID and Non-IID settings.
+Methods Model Performance (Rouge-L)
+IID Non-IID (3) Non-IID (1) Avg
+Baseline-EL 57.99 59.05 57.52 58.18
+Baseline-MH 58.39 58.33 56.07 57.59
+Baseline-MS 58.14 58.01 58.00 58.05
+FLoRA 40.33 40.49 40.37 40.39
+FlexLoRA 40.12 40.13 40.21 40.15
+HETLoRA 58.76 59.17 57.80 58.57
+FedRA 58.21 58.64 57.94 58.26
+Ours 59.46 59.36 59.37 59.39
+Table 5: Main results on DomainNet-121 dataset with ViT-
+base model in both IID and Non-IID settings.
+Methods Model Performance (Accuracy)
+IID Non-IID (50) Non-IID (25) Avg
+Baseline-EL 50.33 38.34 21.15 36.60
+Baseline-MH 50.19 38.20 19.61 36.00
+Baseline-MS 58.92 53.60 40.82 51.11
+FLoRA 1.10 1.04 1.01 1.05
+FlexLoRA 0.85 0.85 0.88 0.86
+HETLoRA 6.94 3.30 0.96 3.73
+FedRA 57.38 53.05 38.07 49.50
+Ours 59.36 54.40 42.20 51.98
+around 40% accuracy, likely due to their noise-alleviation aggrega-
+tion being ineffective when some LoRA modules with extreme low
+rank. Among them, FlexLoRA exhibits the lowest average Rouge-L
+score of 40.15%. Among the baselines, Baseline-EL, Baseline-MH,
+Baseline-MS, and FedRA perform similarly, with average scores
+ranging from 57.59% to 58.26%.
+Results on DomainNet-121. Table 5 presents the main results
+on DomainNet-121. For the domain heterogeneity, each client only
+contain dataset from one domain. Our method shows significant im-
+provements over the baseline methods. Specifically, our approach
+achieves average accuracy gains of +15.98% over Baseline-MH,
++15.38% over Baseline-EL, and +2.48% over FedRA. Even though
+Baseline-MS trains more LoRA modules, our approach still sur-
+passes it by +0.87% on average, demonstrating the effectiveness of
+our LoRA allocation strategy. This improvement remains consis-
+tent across all levels of data heterogeneity, further emphasizing the
+superiority of our approach. Rank-based methods diverge due to
+the same reasons we discussed above.
+5.3 Memory Utilization and Convergence
+Performance
+Accuracy and Memory Utilization Comparisons. To better
+understand the memory utilization across methods, we visual-
+ize the average accuracy versus average memory utilization on
+CIFAR-100 dataset. The average memory utilization is calculated
+by 1
+𝑣
+Í𝑣
+𝑖=1
+C (𝑚𝑖 )
+K𝑖
+. As shown in Figure 3, our method achieves the
+highest average model accuracy and memory utilization among all
+Figure 5: Accuracy over training time on CIFAR-100 dataset
+(other methods not shown in the figure diverges).
+Table 6: Ablation studies on IG score-based value function
+and aggregation rule ComAgg.
+Methods IID Non-IID (10) Avg
+Local IG score-based 75.81 58.80 67.30
+Global IG score-based (using proxy data)79.74 63.17 71.45
+FedAvg 75.86 57.35 66.60
+ComAgg with𝛼𝑡
+(𝑗) = 𝛽𝑡
+(𝑗) = 1 79.31 62.18 70.74
+Ours 80.09 63.93 72.01
+methods. Specifically, Baseline-EL excludes clients that cannot par-
+ticipate in full LoRA modules fine-tuning, resulting in only 25.00%
+memory utilization. Baseline-MH focuses more on LoRA modules
+in shallow layers and excludes clients that cannot even fine-tune
+the first LoRA modules, resulting in 49.59% memory utilization.
+FedRA randomly samples LoRA modules, leading to lower memory
+utilization compared to our memory optimization-based method.
+Rank-based methods such as FLoRA, FlexLoRA, and HETLoRA
+maintain high memory utilization but suffer from bad convergence
+when the LoRA ranks are too low. Baseline-MS has comparable
+memory utilization to ours, however, it heuristically selects as many
+as LoRA modules as possible in higher layers without considering
+their contribution. Our method outperforms Baseline-MS by +5.00%
+in accuracy.
+Convergence Performance. Figure 4 presents the convergence
+performance of baselines on CIFAR-100 and LEDGAR under two
+different Non-IID (20, 10) settings. Across all settings, our method
+consistently outperforms baselines and converges in a stable man-
+ner. FedRA and Baseline-MS select random or fixed LoRA modules
+within memory constraints, resulting in significantly lower accu-
+racy and Macro F1 scores compared to our approach on CIFAR-100
+and LEDGAR. Both Baseline-EL and Baseline-MH exhibit poor con-
+vergence, and Baseline-MH diverges significantly after few rounds.
+This indicates that limited client participation or training only a
+few shallow layers can lead to model divergence.
+5.4 Ablation Studies
+To evaluate the effectiveness of our IG score-based value function,
+we conduct two ablation studies on CIFAR-100 dataset. We compare
+our value function with other alternations that only use the local IG
+score 𝐼 𝑡
+𝑖 or a global IG score that is calculated using a proxy dataset
+sampled from the training data of clients.
+Table 6 presents results under both IID and Non-IID (10) settings.
+Our method consistently outperforms others, improving over the

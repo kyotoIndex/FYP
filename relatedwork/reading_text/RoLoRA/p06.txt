@@ -1,0 +1,74 @@
+for c∈(0,1) . Under these conditions, if with sufficient number of samples m= Ω(q) and small
+auxiliary error thresholds ϵ′ = ϵ2
+(1−ϵ0)(1−ϵ1) ,˜ϵ= ϵ3
+1−ϵ0
+, such that ϵ′,˜ϵ < 1−(δ0)2
+16 , we achieve that
+with probability at least1−2T q −10 forq= max
+
+log(N)
+[min(ϵ1,ϵ2)]2 ,
+dlog( 2
+ϵ0 )
+ϵ2
+2
+
+,
+sinθ(a T ,a ∗)≤ϵ
+which we refer to asϵ-accurate recovery. In addition,
+∥aT (bT+1 )⊤ −a ∗(b∗)⊤∥ ≤(1 +ϵ ′)ϵ∥a∗b∗⊤
+∥.
+Theorem 4.5 and Lemma 4.3 show that with a random initialization for the unit vectora(δ 0 ∈(0,1)) ,
+RoLoRA makes the global model converge to the target model exponentially fast with large q.
+The requirement for sample complexity is well-supported, as demonstrated in [10, 12]. While the
+proof of the above results are relegated to the Appendix, we provide a brief outline of the proof. In
+Appendices A3.3, we first analyze the minimization step for updatingbt
+i (Lemma A3.9), then establish
+a bound on the deviation of the gradient from its expectation with respect to a (Lemma A3.10),
+and finally derive a bound for |sinθ(a t+1,a ∗)| based on the gradient descent update rule for a
+(Lemma 4.3). The proof of Theorem 4.5 is in Section A3.4.
+Intuition on Freezing-A Scheme (FFA-LoRA) can Saturate.We begin by applying the FFA-
+LoRA scheme to a centralized setting, aiming to solve the following optimization problem:
+min
+b∈Rd
+∥Xa∗b∗⊤
+−Xa 0b⊤∥2
+where a∗ ∈R d and b∗ ∈R d represent the ground truth parameters, and a0 ∈R d is the random
+initialization. The objective can be transformed toPd
+p=1(a∗b∗
+p −a 0bp)⊤X⊤X(a∗b∗
+p −a 0bp), with
+bp as the p-th entry of b, b∗
+p as the p-th entry of b∗. In FFA-LoRA scheme, a0 remains fixed during
+training. If a0 is not initialized to be parallel to a∗, the objective can never be reduced to zero. This
+is because optimizing b only scales the vector a0bp along the direction of a0, without altering the
+angular distance betweena 0 anda ∗.
+Suppose we are in the federated setting described in Section 4.1, we apply FFA-LoRA, to optimize
+the objective in (6). In FFA-LoRA scheme, we fix a of all clients to a random unit vector a0, where
+the initial angle distance δ0 =|sinθ(a ∗,a 0)|, δ0 ∈(0,1) . And we only update bi by minimizing li
+and aggregate them.
+Proposition 4.6.(FFA-LoRA lower bound) Suppose we are in the setting described in Section 4.1.
+For any set of ground truth parameters (a∗,b ∗), the initializationa0, initial angle distanceδ0 ∈(0,1) ,
+we apply FFA-LoRA scheme to obtain a shared global model (a0,b F F A), yielding an expected global
+loss of
+E[ 1
+N m
+NX
+i=1
+∥Xia∗b∗⊤
+−X ia0(bF F A)⊤∥2] = (1 + ˜c)∥b∗∥2(δ0)2 (9)
+where the expectation is over all the randomness in theX i, and˜c=O( 1
+N m).
+See Appendix A3.4.1 for the proof.
+Remark4.7.Proposition 4.6 holds for any unit vector a and corresponding b obtained by fully
+minimizing the local loss. The same expected loss applies to RoLoRA by substituting RoLoRA’s
+reduced angle into Eq. 9.
+Comparison of RoLoRA and FFA-LoRA.Proposition 4.6 shows that for any choice of δ0 ∈(0,1) ,
+the global objective reached by FFA-LoRA is shown as in (9). The global objective of FFA-LoRA is
+dominated by∥b ∗∥2(δ0)2 which is due to the angular distance betweena 0 anda ∗.
+By Theorem 4.5, we demonstrate that RoLoRA achieves ϵ-accurate recovery of the global minimizer.
+Specifically, the expected global loss of RoLoRA can be upper bounded by(1 + ˜c)∥b∗∥2ϵ2. Under
+the same initialization and ground truth parameters for both FFA-LoRA and RoLoRA, RoLoRA’s
+ability to update a reduces the global loss caused by the angle distance between a and a∗ from
+∥b∗∥2(δ0)2 to∥b ∗∥2ϵ2. By increasing the number of iterations,ϵcan be made arbitrarily small.
+6

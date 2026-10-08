@@ -1,0 +1,94 @@
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+OuterOpt
+Pretrained
+LLM
+Local 
+data
+Client-i Server
+Personalized 
+LoRA
+Other clients
+Global 
+LoRA
+Sync
+×T
+InnerOpt
+×K
+𝒘𝒘𝟏𝟏
+×
+𝒘𝒘𝟐𝟐
+×
++ =
+Sampled 
+data
+Evaluate
+Client-i
+AdaFusion
+Personalized 
+LLM
+Question 
+...
+User
+Q&A
+Merge
+1. Federated learning
+2. Adaptive Fusion 3. Inference
+Figure 3: Framework overview of FDLoRA.
+3.2 Framework Overview
+We introduce the overview of the FDLoRA framework in this sub-
+section. As shown in Figure 3, each client is comprised of four main
+components:LLM,Personalized LoRA module,Global LoRA
+module,andAdaptive Fusion module. The personalized LoRA
+primarily focuses on acquiring knowledge from local data and re-
+mains uninvolved in the federated learning process. The global
+LoRA aggregates knowledge from diverse clients. Specifically, each
+client uploads its global LoRA parameters to the central server.
+Then, by employing an external optimizer updates these parameters
+and subsequently broadcasts them to all clients, thereby completing
+a communication round of the federated learning process. Finally,
+the global LoRA parameters and personalized LoRA parameters
+are aggregated via the AdaFusion module. We will introduce the
+elaboration in the following subsections.
+3.3 Local Learning
+First, we start from the basic model, which can be initialized with
+pretrained LLM, such as LLaMA2 [42] and ChatGLM [13, 52]. We
+assume that there are 𝑁 clients, each capable of training a model
+replica, and 𝑁 shards of data with one for each worker. Then, we
+initialize personalized LoRA with parameters 𝜃𝑝, and utilize SFT to
+capture knowledge from local private data (Algorithm1,line 1-6).
+We formulate this process in each client as follows:
+𝜃 (𝑖)
+𝑝 ←𝑆𝐹𝑇(𝑓(𝐵;(Θ, 𝜃 (𝑖)
+𝑝 )))(5)
+where1 ≤𝑖≤𝑁 and B is randomly sample batch data from
+𝐷 (𝑖) .
+Finally, the average of all clients 𝜃 (𝑖)
+𝑝 is used to initialize the
+global LoRA parameters 𝜃𝑠 for the subsequent federated learning
+process (in line 7), which could reduce the computational cost in
+the first round. This process is formulated as follows:
+𝜃 (0)
+𝑠 ← 1
+𝑁
+𝑁∑︁
+𝑖=1
+𝜃 (𝑖)
+𝑝 (6)
+3.4 Federate Learning
+At this stage, there are two optimization processes. There is an
+outer optimization, which consists of 𝑇 outer steps. At each outer
+step 𝑡, gradients from each client are gathered, averaged, and sent
+to an outer optimizer (OuterOpt) to update the global LoRA module
+parameters (Algorithm1,line 17-18). Afterward, the global LoRA
+module parameters are re-dispatched to each client (Algorithm1,
+line 11).
+In each phase, each client performs its own inner optimization
+for 𝐾 steps independently and in parallel using an inner optimizer,
+denoted by InnerOpt. Each client samples data from local data and
+updates its personalized LoRA module parameters (Algorithm1,
+line 12). It should be noted that the inner optimization consists
+of 𝐾> 1steps; for instance, 𝐾= 3is the default setting in our
+experiments. Therefore, communication across clients is minimal.
+Once all clients have completed their inner optimization step,
+the cumulative gradients of each client are averaged. The resulting
+outer gradient is then utilized to update the global LoRA parameters,

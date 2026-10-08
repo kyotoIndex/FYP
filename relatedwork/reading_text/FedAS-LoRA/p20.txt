@@ -1,0 +1,35 @@
+20
+Dirichlet (1) Dirichlet (0.5) MNLI-genre
+0.5
+1.0
+1.5
+2.0
+2.5Relative heterogeneity amplification (RHA)
+Client-update heterogeneity across MNLI partitions
+(a) Overall relative heterogeneity amplification.
+0 5 10 15 20 23
+Transformer layer
+Dirichlet (1)
+Dirichlet (0.5)
+MNLI-genre
+Query projection
+−1.0 −0.5 0.0 0.5 1.0
+Mean log RHA across five seeds (negative: ΔB-relative; positive: ΔA-relative disagreement)
+(b) Layer-wise RHA for the query projection.
+0 5 10 15 20 23
+Transformer layer
+Dirichlet (1)
+Dirichlet (0.5)
+MNLI-genre
+Value projection
+−1.0 −0.5 0.0 0.5 1.0
+Mean log RHA across five seeds (negative: ΔB-relative; positive: ΔA-relative disagreement) (c) Layer-wise RHA for the value projection.
+Fig. 4: Relative heterogeneity amplification of LoRA factors across MNLI client partitions. The clients perform local training
+independently without server aggregation. For each of the three non-IID partitioning schemes, five three-client partitions
+are independently generated using different partition seeds. Each non-IID partition is paired with an IID reference partition
+generated using the same seed, while the model initialization and training-related random seeds are fixed across all partition
+instances. (a) Bars show the geometric mean across the five partition instances, white circles denote individual partition
+instances, and error bars represent one sample standard deviation in log-RHA space. The dashed line marksRHA = 1.
+(b,c) Layer-wise mean log RHA for the query and value projections, respectively. Both heatmaps use the same color scale;
+positive values indicate stronger relative disagreement in∆A, whereas negative values indicate stronger relative disagreement
+in∆B.

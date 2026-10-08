@@ -1,0 +1,73 @@
+Lemma A3.15.(Update for a) In RoLoRA for linear regressor, the update for a and b in each
+iteration is:
+bt+1 = ¯b= ¯b∗a∗⊤at (204)
+at+1 = ˆa= at −2η(a t¯b⊤¯b−a ∗¯b∗⊤
+¯b)
+∥ˆa+∥ (205)
+where ¯b∗ =PN
+i=1 b∗
+i ,∥ ˆa+∥=∥a t −2η(a t¯b⊤¯b−a ∗¯b∗⊤
+¯b)∥.
+Proof. Minimization for bi.At the start of each iteration, each client computes the analytic solution
+for bi by fixing a and solving their local objective arg minbi ∥a∗b∗⊤
+i −ab ⊤
+i ∥2, where a∗ and a are
+both unit vectors. Settinga=a t, we obtainb i such that
+bi = b∗
+i a∗⊤
+a
+a⊤a =b ∗
+i a∗⊤
+a(206)
+(206) follows sincea ⊤a= 1.
+Aggregation forb i.The server simply computes the average of{b i}N
+i=1 and gets
+¯b=
+NX
+i=1
+bi =
+NX
+i=1
+b∗
+i a∗⊤a= ¯b∗a∗⊤a(207)
+The server then sends ¯bto clients for synchronization.
+Gradient Descent for ˆa.In this step, each client fixes bi to ¯b received from the server and update a
+using gradient descent. With the following gradient
+∇ali(a, ¯b) = 2(a¯b⊤¯b−a ∗b∗⊤
+i ¯b)(208)
+Thus, with step sizeη,ais updated such as
+ˆa+ =a− η
+N
+NX
+i=1
+∇ali(a, ¯b)
+=a−2 η
+N
+NX
+i=1
+(a¯b⊤¯b−a ∗b∗⊤
+i ¯b)
+=a−2η(a ¯b⊤¯b−a ∗¯b∗⊤
+¯b)(209)
+ˆa= a−2η(a ¯b⊤¯b−a ∗¯b∗⊤
+¯b)
+∥ˆa+∥ (210)
+Lemma A3.16.Let δt =|sinθ(a ∗,a t)| be the angle distance between a∗ and at. Assume that
+Assumption A3.12 holds andδ t ≤δ t−1 ≤ · · · ≤δ 0, ifη≤ 1
+2L2max
+, then
+|sinθ(a t+1,a ∗)|=δ t+1 ≤δ t ·(1−2η(1−(δ 0)2)∥¯b∗∥2)(211)
+Proof.From Lemma A3.15,a t+1 andb t+1 are computed as follows:
+bt+1 = ¯b= ¯b∗a∗⊤at (212)
+at+1 = at −2η(a t¯b⊤¯b−a ∗¯b∗⊤
+¯b)
+∥at −2η(a t¯b⊤¯b−a ∗¯b∗⊤ ¯b)∥ (213)
+Note that at and at+1 are both unit vectors. Now, we multiply both sides of Equation (213) by the
+projection operator P=I d −a ∗(a∗)⊤, which is the projection to the direction orthogonal to a∗. We
+obtain:
+Pat+1 = Pat −2ηPa t¯b⊤¯b+Pa ∗¯b∗⊤
+¯b
+∥at −2η(a t¯b⊤¯b−a ∗¯b∗⊤ ¯b)∥ (214)
+= Pat −2ηPa t¯b⊤¯b
+∥at −2η(a t¯b⊤¯b−a ∗¯b∗⊤ ¯b)∥ (215)
+32

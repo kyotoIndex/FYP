@@ -1,0 +1,131 @@
+Next, we bound ∥∇al(a, ¯b)−E[∇ al(a, ¯b)]∥. Construct ϵ0-net N over d dimensional unit spheres
+S d−1, by Lemma A3.7, we have
+∥∇al(a, ¯b)−E[∇ al(a, ¯b)]∥(48)
+≤ 1
+1−ϵ 0
+max
+w∈N
+w⊤∇al(a, ¯b)−w ⊤E[∇al(a, ¯b)]
+ (49)
+≤ 1
+1−ϵ 0
+2
+N m max
+w∈N
+
+NX
+i=1
+mX
+j=1
+(x⊤
+i,jw)(xi,j(a¯b⊤ −a ∗b∗⊤
+))¯b−w ⊤(a¯b⊤ −a ∗b∗⊤
+)¯b
+
+(50)
+where x⊤
+i,j is the j-th row of Xi. Observe that x⊤
+i,jw and xi,j(a¯b⊤ −a ∗b∗⊤
+)¯b are sub-Gaussian
+variables. Thus the product of them are sub-exponentials. For the right hand side of (50), the
+summands are sub-exponential random variables with sub-exponential norm
+∥(x⊤
+i,jw)(xi,j(a¯b⊤ −a ∗b∗⊤
+))¯b−w ⊤(a¯b⊤ −a ∗b∗⊤
+)¯b∥ψ1 (51)
+≤ ∥(x ⊤
+i,jw)(xi,j(a¯b⊤ −a ∗b∗⊤
+))¯b∥ψ1 +∥w ⊤(a¯b⊤ −a ∗b∗⊤
+)¯b∥ψ1 (52)
+≤ ∥(x ⊤
+i,jw)(xi,j(a¯b⊤ −a ∗b∗⊤
+))¯b∥ψ1 + |w⊤(a¯b⊤ −a ∗b∗⊤
+)¯b|
+log 2 (53)
+≤c 2 · ∥w∥ · ∥a ¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥+ |w⊤(a¯b⊤ −a ∗b∗⊤
+)¯b|
+log 2 (54)
+≤c 2 · ∥w∥ · ∥a ¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥+ ∥w∥ · ∥(a¯b⊤ −a ∗b∗⊤
+)¯b∥
+log 2 (55)
+≤c 2 · ∥w∥ · ∥a ¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥+ ∥w∥ · ∥a¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥
+log 2 (56)
+=c 4 · ∥a¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥(57)
+where c4 =c 2 + 1
+log 2 is some absolute constant greater than 1. Equation (53) is due to the fact that
+for a constantc∈R,
+∥c∥ψ1 = inf
+t
+exp
+ |c|
+t ≤2
+
+= |c|
+log 2.
+Equation (54) is derived similarly as (20)-(22).
+The summands in (50) are mutually independent and have zero mean. Applying sub-exponential
+Bernstein inequality (Theorem A3.8) witht=ϵ 3N m∥a¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥,
+P
+
+
+
+
+NX
+i=1
+mX
+j=1
+[((x⊤
+i,jw)(xi,j(a¯b⊤ −a ∗b∗⊤
+))−w ⊤(a¯b⊤ −a ∗b∗⊤
+))¯b]
+
+≥ϵ 3N m∥a¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥
+
+
+
+(58)
+≤2 exp
+
+−cmin( ϵ2
+3N m
+c2
+4
+, ϵ3N m
+c4
+)
+
+(59)
+= 2 exp (−c5ϵ2
+3N m)(60)
+for any fixedw∈ N,ϵ 3 ∈(0,1)and some absolute constantc 5.
+Now we apply union bound over allw∈ Nusing Corollary 4.2.13 of [37]. We can conclude that
+P
+
+max
+w∈N
+w⊤∇al(a, ¯b)−w ⊤E[∇al(a, ¯b)]
+ ≥2ϵ 3∥a¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥
+
+(61)
+≤
+X
+w∈N
+P
+nw⊤∇al(a, ¯b)−w ⊤E[∇al(a, ¯b)]
+ ≥2ϵ 3∥a¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥
+o
+(62)
+≤2 exp (dlog(1 + 2
+ϵ0
+)−c 5ϵ2
+3N m)(63)
+22

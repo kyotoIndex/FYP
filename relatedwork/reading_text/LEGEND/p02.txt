@@ -1,0 +1,108 @@
+inserted blocks to achieve efficient fine-tuning [21]. For ex-
+ample, Cai et al. [10] first apply Adapter in FedFT and pro-
+pose FedAdapter, which dynamically searches for the opti-
+mal Adapter structure to improve the fine-tuning efficiency.
+However, the Adapter method inevitably brings additional
+inference latency, potentially resulting in up to a 30% latency
+increase [16, 22, 23], which is often unacceptable in practi-
+cal applications, e.g., real-time sentiment analysis [24] and
+real-time news categorization [25]. In addition, none of these
+methods have been tested under real wireless network envi-
+ronments with heterogeneous devices.
+To avoid the extra inference latency, LoRA [16] has been
+proposed to freeze the pre-trained LM and add trainable by-
+pass low-rank matrices (i.e., LoRA layers) to the transformer
+layers, in which only the LoRA layers would be updated dur-
+ing fine-tuning. The vanilla LoRA adds the LoRA layers with
+the same rank (i.e., the dimension of the bypass low-rank ma-
+trices) to all transformer layers [26]. To explore the potential
+of LoRA in FedFT, Zhang et al. [20] propose FedLoRA and
+verify the efficiency of FedFT with vanilla LoRA through ex-
+periments. Upon FedLoRA, Choet al. [27] propose HetLoRA,
+in which each device adds LoRA layers to all transformer lay-
+ers with a diverse and appropriate LoRA rank to deal with
+system heterogeneity. However, due to the rank mismatch of
+all LoRA layers on different devices, it is difficult to aggregate
+these layers, resulting in poor fine-tuning performance. In a
+nutshell, existing works simply add LoRA layers with the uni-
+form rank distribution for all transformer layers, which still
+requires substantial computing and communication resources,
+resulting in slow fine-tuning speeds on weak devices. More-
+over, system heterogeneity further leads to low fine-tuning
+efficiency or poor fine-tuning performance [14, 28, 29]. They
+do not address the two above challenges.
+Overview of the Proposed Approach. According to the
+pre-test in Section 2, adding the LoRA layers with different
+LoRA configurations (e.g., LoRA depth and rank distribu-
+tion) significantly impacts the fine-tuning performance and
+resource consumption, where LoRA depth denotes the num-
+ber of the continuous LoRA layers from the output. Adding
+LoRA layers with higher ranks to transformer layers close to
+the output helps to save resource consumption while achiev-
+ing comparable fine-tuning performance. Based on the insight,
+we propose a novel FedFT framework with adaptive LoRA
+depth and rank distribution on heterogeneous devices, termed
+LEGEND, to deal with resource constraint and system hetero-
+geneity. Our unique findings include: 1) large LoRA depth
+with high rank helps to achieve superior fine-tuning perfor-
+mance but incurs significant resource consumption, leading
+to a slow convergence rate on devices with limited resources;
+2) Small LoRA depth with low ranks reduces the fine-tuning
+overhead on devices while resulting in poor fine-tuning perfor-
+mance or even failure to converge. Therefore, it is necessary
+yet challenging to simultaneously determine the appropriate
+LoRA depth with reasonable rank distribution for heteroge-
+neous devices, so as to well balance the trade-off between
+fine-tuning performance and resource consumption. To our
+knowledge, this is the first study of federated learning based
+NLP in a real wireless testbed with heterogeneous devices.
+The main contributions of this paper can be summarized as:
+• To address the challenges of resource constraints and
+system heterogeneity, we propose an efficient LoRA-
+based FedFT framework, called LEGEND, by reviewing
+the inherent characteristics of FedFT.
+• We analyze the joint influence of the LoRA depth and
+rank distribution on fine-tuning performance and obtain
+their coupled relationship. Upon this, we develop an
+efficient algorithm to carefully determine the appropriate
+LoRA depths with a reasonable rank distribution across
+all selected LoRA layers for heterogeneous devices to
+improve the fine-tuning performance.
+• The performance of LEGEND is evaluated through a
+physical platform with 80 commercial devices that are
+connected via WiFi. The experimental results show that
+LEGEND provides a speedup of fine-tuning by about
+1.5-2.8× and saves communication costs by about 42.3%
+when achieving the target accuracy, compared to existing
+solutions.
+2 Background and Motivation
+2.1 Federated Fine-Tuning LMs with LoRA
+Language Models. From design to deployment, training
+transformer-based LMs typically involves two main stages:
+pre-training and fine-tuning [1, 7, 10]. In the first stage, the
+LMs are pre-trained on the large-scale corpus,e.g., Wikipedia
+[30], C4 [31], to learn the ubiquitous linguistic structure,
+which is independent of downstream tasks [10]. The pre-
+training stage demands massive computing resources, typ-
+ically undertaken by large tech companies [3, 5], such as
+Google and Microsoft. Fine-tuning adapts the pre-trained
+LMs to various downstream tasks, such as text classification
+and text generation, which require substantial data to update
+the entire LM for a giving task. However, fine-tuning the en-
+tire LM usually demands excessive resources,e.g., computing
+and communication resources, leading to slow fine-tuning
+speeds on resource-constraint devices [10, 32].
+LoRA for LMs. Herein, low-rank adaptation (LoRA) adds
+trainable rank decomposition matrices to each transformer
+layer of the LM while freezing the pre-trained weights of the
+LM to improve fine-tuning efficiency [16]. For a pre-trained
+weight matrix M ∈ Rm×q (m and q are the dimension sizes
+of M ), LoRA injects low-rank decomposition ∆M = BA
+as the trainable parameters. Note that, B ∈ Rm×r and A ∈
+Rr×q are the project-down matrix and the project-up matrix
+respectively, where r denotes the rank of LoRA and is much
+smaller than both m and q. Formally, for a simple linear layer
+y = M x in the transformer layer, LoRA modifies the forward
+propagation as:
+y = M x + BA x (1)
+2

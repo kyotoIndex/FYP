@@ -1,0 +1,1653 @@
+
+
+===== PDF PAGE 1 =====
+
+Adaptive Parameter-Efficient Federated Fine-Tuning on Heterogeneous Devices
+Jun Liu1,2, Yunming Liao1,2, Hongli Xu1,2, Yang Xu1,2, Jianchun Liu1,2, Chen Qian3
+1School of Computer Science and Technology, University of Science and Technology of China
+2Suzhou Institute for Advanced Research, University of Science and Technology of China
+3Department of Computer Science and Engineering, University of California at Santa Cruz
+Abstract
+Federated fine-tuning (FedFT) has been proposed to fine-tune
+the pre-trained language models in a distributed manner. How-
+ever, there are two critical challenges for efficient FedFT in
+practical applications, i.e., resource constraints and system
+heterogeneity. Existing works rely on parameter-efficient fine-
+tuning methods, e.g., low-rank adaptation (LoRA 1), but with
+major limitations. Herein, based on the inherent characteris-
+tics of FedFT, we observe that LoRA layers with higher ranks
+added close to the output help to save resource consumption
+while achieving comparable fine-tuning performance. Then
+we propose a novel LoRA-based FedFT framework, termed
+LEGEND, which faces the difficulty of determining the num-
+ber of LoRA layers (called, LoRA depth) and the rank of each
+LoRA layer (called, rank distribution). We analyze the cou-
+pled relationship between LoRA depth and rank distribution,
+and design an efficient LoRA configuration algorithm for het-
+erogeneous devices, thereby promoting fine-tuning efficiency.
+Extensive experiments are conducted on a physical platform
+with 80 commercial devices. The results show that LEGEND
+can achieve a speedup of 1.5-2.8× and save communication
+costs by about 42.3% when achieving the target accuracy,
+compared to the advanced solutions.
+1 Introduction
+The emergence of transformer [1] and its variants [2 –4]
+has catalyzed significant advancements in natural language
+processing (NLP), unveiling the immense potential for de-
+ploying NLP models on various devices. The existing NLP
+paradigm encompasses two stages, i.e., pre-training and fine-
+tuning [3,5]. Specifically, the language model (LM) is first pre-
+trained on a large corpus to learn general features and patterns.
+Subsequently, the LM is further fine-tuned on domain-specific
+data generated on devices to enhance the model performance
+for a specific task. However, it is infeasible to collect enough
+domain-specific data from devices for centralized fine-tuning
+1Note that LoRA in this context refers to not the long-range radio com-
+munication technique, but the deep learning fine-tuning technique.
+due to data privacy [6–8]. To fully utilize the massive data on
+devices, federated fine-tuning (FedFT) has been proposed to
+perform fine-tuning in a distributed manner [7]. In the typical
+FedFT framework, e.g., FedNLP [7], participating devices pe-
+riodically fine-tune the LMs on their local data, and push the
+local LMs to the parameter server (PS) for global aggregation
+without exposing their raw data. The fine-tuning procedure
+is repeated for multiple rounds until the LM converges or
+reaches the target accuracy [6, 9, 10]. FedFT not only protects
+individual privacy but also fully utilizes plenty of computing
+resources on devices to enhance the fine-tuning performance
+of the LMs.
+Challenges of FedFT. Although FedFT has demonstrated
+its advantages, it still faces the following two challenges in
+practical applications: (1)Resource constraints. Many devices
+such as smartphones and in-vehicle devices typically have
+limited resources (e.g., memory, computing power), which are
+orders of magnitude weaker than cloud servers [11–14]. How-
+ever, existing LMs,e.g., Llama [15], typically involve billions
+of parameters, requiring substantial computing power for fine-
+tuning [16], while resource-constrained devices always lead
+to very slow fine-tuning rates. (2) System heterogeneity. The
+devices commonly possess varying computing capabilities
+(e.g., CPU frequency) or communication capabilities ( e.g.,
+bandwidth), which could differ from each other by more than
+tenfold [17–19]. Specifically, there are huge gaps of com-
+puting/communication capabilities among different types of
+devices, and even among devices of the same type with di-
+verse configurations (e.g., smartphones, laptops) [13]. Due to
+system heterogeneity, fast devices should be forced to wait
+for slow ones, leading to prolonged waiting time and poor
+fine-tuning efficiency.
+Status Quo and Limitations. To handle the issue of re-
+source constraints, existing works rely on parameter-efficient
+fine-tuning methods [20], e.g., Adapter [21] and low-rank
+adaptation (LoRA) [16], which only fine-tune additional
+lightweight parameters (typically less than 1%). The Adapter
+method inserts additional blocks between two continuous
+transformer layers and only updates the parameters of the
+1
+arXiv:2412.20004v1  [cs.DC]  28 Dec 2024
+
+===== PDF PAGE 2 =====
+
+inserted blocks to achieve efficient fine-tuning [21]. For ex-
+ample, Cai et al. [10] first apply Adapter in FedFT and pro-
+pose FedAdapter, which dynamically searches for the opti-
+mal Adapter structure to improve the fine-tuning efficiency.
+However, the Adapter method inevitably brings additional
+inference latency, potentially resulting in up to a 30% latency
+increase [16, 22, 23], which is often unacceptable in practi-
+cal applications, e.g., real-time sentiment analysis [24] and
+real-time news categorization [25]. In addition, none of these
+methods have been tested under real wireless network envi-
+ronments with heterogeneous devices.
+To avoid the extra inference latency, LoRA [16] has been
+proposed to freeze the pre-trained LM and add trainable by-
+pass low-rank matrices (i.e., LoRA layers) to the transformer
+layers, in which only the LoRA layers would be updated dur-
+ing fine-tuning. The vanilla LoRA adds the LoRA layers with
+the same rank (i.e., the dimension of the bypass low-rank ma-
+trices) to all transformer layers [26]. To explore the potential
+of LoRA in FedFT, Zhang et al. [20] propose FedLoRA and
+verify the efficiency of FedFT with vanilla LoRA through ex-
+periments. Upon FedLoRA, Choet al. [27] propose HetLoRA,
+in which each device adds LoRA layers to all transformer lay-
+ers with a diverse and appropriate LoRA rank to deal with
+system heterogeneity. However, due to the rank mismatch of
+all LoRA layers on different devices, it is difficult to aggregate
+these layers, resulting in poor fine-tuning performance. In a
+nutshell, existing works simply add LoRA layers with the uni-
+form rank distribution for all transformer layers, which still
+requires substantial computing and communication resources,
+resulting in slow fine-tuning speeds on weak devices. More-
+over, system heterogeneity further leads to low fine-tuning
+efficiency or poor fine-tuning performance [14, 28, 29]. They
+do not address the two above challenges.
+Overview of the Proposed Approach. According to the
+pre-test in Section 2, adding the LoRA layers with different
+LoRA configurations (e.g., LoRA depth and rank distribu-
+tion) significantly impacts the fine-tuning performance and
+resource consumption, where LoRA depth denotes the num-
+ber of the continuous LoRA layers from the output. Adding
+LoRA layers with higher ranks to transformer layers close to
+the output helps to save resource consumption while achiev-
+ing comparable fine-tuning performance. Based on the insight,
+we propose a novel FedFT framework with adaptive LoRA
+depth and rank distribution on heterogeneous devices, termed
+LEGEND, to deal with resource constraint and system hetero-
+geneity. Our unique findings include: 1) large LoRA depth
+with high rank helps to achieve superior fine-tuning perfor-
+mance but incurs significant resource consumption, leading
+to a slow convergence rate on devices with limited resources;
+2) Small LoRA depth with low ranks reduces the fine-tuning
+overhead on devices while resulting in poor fine-tuning perfor-
+mance or even failure to converge. Therefore, it is necessary
+yet challenging to simultaneously determine the appropriate
+LoRA depth with reasonable rank distribution for heteroge-
+neous devices, so as to well balance the trade-off between
+fine-tuning performance and resource consumption. To our
+knowledge, this is the first study of federated learning based
+NLP in a real wireless testbed with heterogeneous devices.
+The main contributions of this paper can be summarized as:
+• To address the challenges of resource constraints and
+system heterogeneity, we propose an efficient LoRA-
+based FedFT framework, called LEGEND, by reviewing
+the inherent characteristics of FedFT.
+• We analyze the joint influence of the LoRA depth and
+rank distribution on fine-tuning performance and obtain
+their coupled relationship. Upon this, we develop an
+efficient algorithm to carefully determine the appropriate
+LoRA depths with a reasonable rank distribution across
+all selected LoRA layers for heterogeneous devices to
+improve the fine-tuning performance.
+• The performance of LEGEND is evaluated through a
+physical platform with 80 commercial devices that are
+connected via WiFi. The experimental results show that
+LEGEND provides a speedup of fine-tuning by about
+1.5-2.8× and saves communication costs by about 42.3%
+when achieving the target accuracy, compared to existing
+solutions.
+2 Background and Motivation
+2.1 Federated Fine-Tuning LMs with LoRA
+Language Models. From design to deployment, training
+transformer-based LMs typically involves two main stages:
+pre-training and fine-tuning [1, 7, 10]. In the first stage, the
+LMs are pre-trained on the large-scale corpus,e.g., Wikipedia
+[30], C4 [31], to learn the ubiquitous linguistic structure,
+which is independent of downstream tasks [10]. The pre-
+training stage demands massive computing resources, typ-
+ically undertaken by large tech companies [3, 5], such as
+Google and Microsoft. Fine-tuning adapts the pre-trained
+LMs to various downstream tasks, such as text classification
+and text generation, which require substantial data to update
+the entire LM for a giving task. However, fine-tuning the en-
+tire LM usually demands excessive resources,e.g., computing
+and communication resources, leading to slow fine-tuning
+speeds on resource-constraint devices [10, 32].
+LoRA for LMs. Herein, low-rank adaptation (LoRA) adds
+trainable rank decomposition matrices to each transformer
+layer of the LM while freezing the pre-trained weights of the
+LM to improve fine-tuning efficiency [16]. For a pre-trained
+weight matrix M ∈ Rm×q (m and q are the dimension sizes
+of M ), LoRA injects low-rank decomposition ∆M = BA
+as the trainable parameters. Note that, B ∈ Rm×r and A ∈
+Rr×q are the project-down matrix and the project-up matrix
+respectively, where r denotes the rank of LoRA and is much
+smaller than both m and q. Formally, for a simple linear layer
+y = M x in the transformer layer, LoRA modifies the forward
+propagation as:
+y = M x + BA x (1)
+2
+
+===== PDF PAGE 3 =====
+
+Figure 1: Illustration of FedNLP, FedLoRA, and LEGEND. FedNLP (left) fine-tunes all parameters of the LM; FedLoRA (mid)
+applies the same LoRA configuration to all devices; LEGEND (right) applies different LoRA configurations (e.g., LoRA depth)
+to devices with heterogeneous capabilities.
+where x ∈ Rq×s and y ∈ Rm×s are the input tensors and the
+output tensors, respectively, and s is the sequence length (i.e.,
+the number of tokens in a given sequence). As a generation of
+full fine-tuning [16], LoRA utilizes two bypass matrices (i.e.,
+B and A) with the low rank to perform fine-tuning without
+modifying the pre-trained weight matrix, thus LoRA can be
+applied to any transformer layers of the LMs. Fine-tuning
+LMs with LoRA can greatly reduce the number of trainable
+parameters (typically less than 1% [16,20]) while maintaining
+satisfactory fine-tuning performance.
+FedFT with LoRA. Considering a distributed system with
+one PS and n devices, FedFT is proposed to fine-tune the LMs
+through a loose federation of devices. Naturally, LoRA is
+introduced into FedFT (e.g., FedLoRA) to reduce computing
+and communication overhead [20,27]. The difference between
+FedFT (e.g., FedNLP) and FedLoRA is illustrated in Figure 1.
+FedLoRA only exchanges lightweight LoRA layers eθ instead
+of all cumbersome LMs θ in FedFT. The goal of FedLoRA
+is to find the optimal model θ∗ = {eθ∗, θ} minimizing the loss
+function f (θ) as follows:
+min
+θ={eθ,θ}
+f (θ) ≜ 1
+n
+n
+∑
+i=1
+fi(θi) (2)
+where fi(θi) = 1
+|Di| ∑ξi∈Di Fi(θi; ξi) denotes the loss function
+of the local model θi on device i and Fi(θi; ξi) is the loss over
+data samples ξi on local dataset Di. To minimize the local
+objective function, device i only updates the LoRA layers
+through the gradient descent algorithm (e.g., AdamW [33]).
+The optimization procedure for updating the LoRA layers eθh
+i
+on device i at local step t in round h can be expressed as:
+eθh,t
+i = eθh,t−1
+i − η · ∇ fi(eθh,t−1
+i ) (3)
+where η is the learning rate and ∇ fi(eθh,t−1
+i ) is the gradient of
+the loss for LoRA layers eθh,t−1
+i .
+After local fine-tuning, all devices send the updated LoRA
+layers to the PS for global aggregation as follows:
+eθh+1 = 1
+n
+n
+∑
+i=1
+eθh
+i (4)
+After global aggregation, the PS distributes the latest LoRA
+layers to all devices and moves to the next fine-tuning round.
+2.2 Importance of LoRA Position
+Existing LoRA-based frameworks (e.g., FedLoRA [20] and
+HetLoRA [27]) typically add LoRA layers to all transformer
+layers, which requires the complete backpropagation process
+to update all LoRA layers [34] and results in a slow con-
+vergence rate for fine-tuning pre-trained LMs on resource-
+constrained devices. As illustrated in Figure 2, we divide an
+LM (e.g., RoBERTa) into three parts representing different
+positions, i.e., shallow, medium and deep, respectively. Based
+on the backward direction of the backpropagation process,
+fine-tuning the continuous LoRA layers added to the trans-
+former layers at deep position is computationally efficient
+while achieving satisfactory fine-tuning performance. Wei
+et al. [35] provide rigorous theoretical insights into the con-
+vergence of partial LoRA layer fine-tuning. Besides, only
+the LoRA layers at deep position need to perform the back-
+propagation process and be transmitted to the PS, effectively
+reducing computing/communication overhead and speeding
+up the fine-tuning process. In addition, since pre-trained LMs
+have acquired powerful language understanding and gener-
+ation capabilities during the pre-training stage, fine-tuning
+the added LoRA layers to partial transformer layers at deep
+position can essentially achieve comparable fine-tuning per-
+formance [7, 36, 37].
+To demonstrate the importance of LoRA position, we con-
+duct a set of experiments for federated fine-tuning RoBERTa
+[38] on SST-2 [39] with 10 devices (more experimental setup
+details in Section 6.1). We train a 12-layer RoBERTa with
+LoRA layers added to partial transformer layers at different
+positions (as illustrated in Figure 2), including all layers (de-
+noted as Layers-A), shallow layers {#0, #1, #2, #3} (denoted
+as Layers-S), medium layers {#4, #5, #6, #7} (denoted as
+Layers-M), and deep layers {#8, #9, #10, #11} (denoted as
+Layers-D). As shown in Figure 3, we can derive the following
+conclusions:
+3
+
+===== PDF PAGE 4 =====
+
+B A LoRA layers B A
+r8 r11 ... 
+LoRA rank distribution 
+#11 #0 ... Inputs Outputs 
+LoRA depth 
+#8 
+... 
+... #3 
+B AB A
+r0
+#4 ... #7 
+B AB A
+r3 r4 r7
+... ... 
+Shallow Medium Deep 
+ᴪ᯦␧ᓜ 
+Figure 2: Fine-tuning RoBERTa at different positions.
+1) Fine-tuning LoRA layers added to only the transformer
+layers at the deep position achieves comparable performance
+to vanilla LoRA. For example, as shown in Figure 3(a),
+Layers-D achieves comparable final accuracy ( i.e., 93.1%)
+to Layers-A (94.3%), with only fine-tuning a third of LoRA
+layers in Layers-A (i.e., less computing resource). In addition,
+compared with Layers-S and Layers-M, Layers-D improves
+the final model accuracy by 6.4% and 1.3%, respectively.
+2) Fine-tuning LoRA layers added to only the transformer
+layers at deep position speeds up the fine-tuning process. For
+instance, by Figure 3(b), Layers-D achieves 2.1×, 1.6×, and
+1.2× speedup compared to Layers-A, Layers-S, and Layers-
+M, respectively. This is because Layers-D greatly shortens
+the backpropagation process from 12 transformer layers to 4
+transformer layers, reducing the fine-tuning time.
+By the results, the LoRA position will greatly affect fine-
+tuning performance and resource consumption, while adding
+LoRA layers to a fixed number of transformer layers at the
+deep position can save resource cost with satisfactory fine-
+tuning performance. Our conclusion is consistent with the
+relevant conclusions that layers at the deep position are more
+important than those at the shallow position [10, 12, 26].
+2.3 Importance of LoRA Depth
+In addition to the results of adding LoRA layers to partial
+transformer layers at deep position, we further explore the
+impact of the number of transformer layers at deep position
+to add extra LoRA layers (called LoRA depth) on fine-tuning
+performance. In general, LoRA depth is closely related to
+fine-tuning performance and resource consumption. Specifi-
+cally, the larger LoRA depth means fine-tuning more layers at
+deep positions to enhance fine-tuning performance but leads
+to a longer backpropagation process (i.e., slower convergence
+rate). Although the smaller LoRA depth can shorten the back-
+propagation process to speed up the fine-tuning process, it
+constrains the number of tunable transformer layers and thus
+restricts the task-fitting capability of the LM. Therefore, it
+is critical and non-negligible to determine the appropriate
+LoRA depth for achieving the trade-off between fine-tuning
+performance and resource consumption.
+To illustrate the impact of the LoRA depth, we conduct a
+set of experiments for fine-tuning RoBERTa on SST-2 with
+different LoRA depths (from 1 to 12) and rank of 8. We can
+draw the following conclusions from Figure 4:
+1) As LoRA depth increases, resource consumption (e.g.,
+8 59095Test accuracy (%)R
+oBERTa on SST-2 
+Layers-A  Layers-S Layers-M  Layers-D
+(a) Test accuracy
+8
+8.406 9.705 1.304 2.80406080100Per-batch Latency (ms)R
+oBERTa on SST-2 
+Layers-A  Layers-S  Layers-M  Layers-D (b) Per-batch latency
+Figure 3: The impact of LoRA position.
+1 2 3 4 5 6 7 8 9 1 0111202468 Accuracy Loss (%)  Per-batch Latency (ms)L
+oRA depths4 06080100
+(a) Accuracy loss & Per-batch latency
+1 2 3 4 5 6 7 8 9 1 011121.01.52.0Memory(GB)L
+oRA depths (b) Memory usage
+Figure 4: The impact of LoRA depth.
+memory usage) increases almost linearly, resulting in slow
+convergence rate. For example, by Figures 4(a) and 4(b), with
+each additional LoRA layer, the per-batch latency increases
+by approximately 5ms, and the memory usage increases by
+approximately 107MB. Compared with LoRA depth of 1, fine-
+tuning RoBERTa with depth of 12 results in a 252% increase
+in per-batch latency and 221% growth in memory usage.
+2) The fine-tuning performance improves with the increase
+of LoRA depth, but the magnitude of the improvement dimin-
+ishes gradually. For instance, by Figure 4(a), compared to the
+LoRA depth of 3, fine-tuning RoBERTa with LoRA depths of
+6 and 9 exhibit improvements of 0.6% and 0.9% in accuracy,
+respectively. As LoRA depth increases from 1 to 3, the final
+model performance improves by 5.3%, but only 1.4% from
+LoRA depth of 3 to 12.
+By the results, carefully determining LoRA depth is critical
+to improve fine-tuning performance while saving computing
+and communication resources. Moreover, to deal with system
+heterogeneity, LEGEND assigns different LoRA depths for
+heterogeneous devices to adapt their capabilities. The devices
+with strong computing and communication capabilities are
+assigned with larger LoRA depths, while those with lower
+computing and communication capabilities are assigned with
+smaller LoRA depths, so as to reduce waiting time and further
+improve fine-tuning efficiency.
+2.4 Importance of LoRA Rank Distribution
+We further explore the impact of rank distribution on fine-
+tuning performance. In general, the rank of LoRA layer is
+closely related to the model capacity, and increasing rank is
+essential for better performance [40, 41]. Given a fixed total
+4
+
+===== PDF PAGE 5 =====
+
+0 1234Performance gain (%) Layers-A  Layers-S Layers-M  Layers-DR
+oBERTa on SST-2
+(a) Performance gain (rank 1 → 128)
+9 3949596Test accuracy (%)R
+oBERTa on SST-2 
+Inc             Dec  Avg  Rand (b) Final accuracy
+Figure 5: The impact of LoRA rank distribution.
+rank budget under resource constraints, strategically allocat-
+ing higher ranks to task-relevant layers becomes crucial for
+maximizing model performance [26, 27]. Specifically, the
+higher ranks of the deep LoRA layers achieve better fine-
+tuning performance on a specific task, since the layers at deep
+position need to focus on higher semantic levels and more
+contextual information [7, 19, 42, 43]. Shallow LoRA layers
+with smaller ranks leverage the pre-trained model’s inher-
+ent feature extraction capability, preventing overfitting while
+maintaining model performance.
+To demonstrate the impact of rank distribution, we conduct
+two sets of experiments for fine-tuning RoBERTa on SST-2.
+Firstly, we separately apply the different ranks, i.e., {1, 2, 4,
+8, 16, 32, 64, 128}, for Layers-A, Layers-S, Layers-M, and
+Layers-D (refer to Section 2.2) and record their performance
+gains for comparison. Secondly, we employ four different rank
+distributions with a total budget of 96 across 12 transformer
+layers (from input to output): Inc [4, 4, 5, 6, 7, 7, 8, 9, 10, 11,
+12, 13], Dec [13, 12, 11, 10, 9, 8, 7, 7, 6, 5, 4, 4], Avg [8, 8, 8,
+8, 8, 8, 8, 8, 8, 8, 8, 8], and Rand (randomly allocated). The
+findings illustrated in Figure 5 highlight that:
+1) Deeper layers are more sensitive to the rank of LoRA.
+Specifically, applying larger ranks for LoRA layers close to
+the output helps to achieve better model performance. For in-
+stance, as shown in Figure 5(a), the final performance gain of
+Layers-A, Layers-S, Layers-M, and Layers-D are separately
+0.41%, 0.23%, 2.67%, and 1.3%.
+2) The gradually increasing rank distribution achieves
+higher model accuracy. For example, as illustrated in Fig-
+ure 5(b), Inc distribution achieves the best accuracy (94.9%)
+among all variants, outperforming others by up to 1.6%. This
+is because Inc strategically allocates larger ranks to critical
+deeper layers, greatly enhancing fine-tuning performance.
+Based on the results, it is effective and necessary to allocate
+larger ranks to deeper layers. However, due to the limited
+computing and communication resources, allocating larger
+ranks to deeper layers constrains the applicable LoRA depth,
+whereas smaller ranks tend to slow down the convergence
+process. Therefore, in this paper, LEGEND simultaneously
+determines the appropriate LoRA depth with reasonable rank
+distribution for different devices so as to balance the trade-off
+between resource consumption and fine-tuning performance.
+Figure 6: The proposed LEGEND framework.
+3 System Overview
+As illustrated in Figure 6, LEGEND consists of two key com-
+ponents with a total of six main modules, i.e., four modules
+on the PS and two modules on each device. The details of
+each module are as follows:
+Initialization and Update. The PS distributes different
+LoRA layers for heterogeneous devices to adapt their capa-
+bilities. Hence, the devices need to initialize and update the
+local model ( 1⃝) for local fine-tuning in each round.
+Local Fine-Tuning. Based on the initialized local model,
+the devices perform local fine-tuning and record the fine-
+tuning status information (e.g., computing time and commu-
+nication time). After that, the devices send the updated LoRA
+layers ( 2⃝) and the status information ( 3⃝) to the PS.
+Capacity Estimation. To make effective LoRA configu-
+rations, the PS estimates the capabilities of each device ( 4⃝)
+by calculating the moving average of the historical status
+information of the devices.
+LoRA Configuration. In this module, the PS simultane-
+ously determines the appropriate LoRA depth with rank dis-
+tribution, i.e., LoRA configurations ( 5⃝), for the devices.
+LoRA Aggregation. The PS performs adaptive weighted
+aggregation for the collected LoRA layers with different
+LoRA depths from all devices to obtain the aggregated global
+LoRA layers ( 6⃝).
+LoRA Assignment. Due to the diverse LoRA configura-
+tions of devices, the PS needs to assign the specific LoRA
+layers ( 7⃝) to each device based on the aggregated model.
+4 System Design
+4.1 Initialization and Update
+In each round, the device receives a set of LoRA layers from
+the PS to initialize and update the local model for local fine-
+tuning. These LoRA layers are tailored to the device’s capac-
+ity (e.g., computing and communication capacity), including
+information on which transformer layers to fine-tune and the
+ranks of those LoRA layers. Specifically, devicei receives the
+LoRA layers eθh
+i = {eθh
+i,l|l ∈ [L −kh
+i ,L −1]} to initialize and up-
+date kh
+i transformer layers close to the output, whereL denotes
+5
+
+===== PDF PAGE 6 =====
+
+the number of transformer layers in the pre-trained model θ.
+The LoRA layers eθh
+i,l ∈ eθh
+i includes coupled LoRA matrices
+for all linear layers in transformer layer l. The coupled LoRA
+matrices include two components, i.e., the project-down ma-
+trix B ∈ Rm×r and the project-up matrix A ∈ Rr×q, where r
+denotes the rank of the LoRA matrix and is much smaller than
+both m and q. Without loss of generality, for arbitary coupled
+LoRA matrices Bh
+i,l ∈ eθh
+i,l and Ah
+i,l ∈ eθh
+i,l, the device injects the
+matrices into the linear layery = Ml ·x with pre-trained weight
+matrix Ml in transformer layer l as {(Bh
+i,l,Ah
+i,l,Ml)|l ∈ Lh
+i }.
+Then, the forward propagation of the linear layer with initial-
+ized parameters {Bh
+i,l,Ah
+i,l,Ml} in l-th transformer layer on
+device i in round h can be expressed as:
+y = Ml · x + Bh
+i,l · Ah
+i,l · x (5)
+where x is the given input tensor andy is the respective output
+tensor of the initialized linear layer. After that, the device
+initializes and updates the local model θh
+i = {eθh
+i , θ} for local
+fine-tuning in round h.
+4.2 Local Fine-Tuning
+After local model initialization, device i fine-tunes the model
+on local dataset Di. During the process of local fine-tuning
+in round h, device i is associated with the local loss function
+fi(θh
+i ), where θh
+i = {eθh
+i , θ} is the local model. The loss of
+device i on the local dataset Di in round h are as follows:
+fi(θh
+i ) = 1
+|Di| ∑
+ξ∈Di
+Fi(θh
+i ; ξi) (6)
+where ξi is a batch of data samples in Di, and Fi(θh
+i ; ξi) is the
+local loss over ξi. In general, the devices leverage stochastic
+gradient descent, e.g., AdamW [33], to iteratively update the
+LoRA layers based on the computed gradients over each batch
+of data samples in Di [7, 10]. Specifically, for a batch of local
+data samples ξi on device i, the process of updating the LoRA
+layers eθh
+i on device i at local step t in round h is expressed as:
+eθh,t
+i = eθh,t−1
+i − η · ∇ fi(eθh,t−1
+i ) (7)
+where η is the learning rate and ∇ fi(eθh,t−1
+i ) is the gradient
+of the loss for LoRA layers eθh,t−1
+i . When completing local
+fine-tuning, the devices send the updated local LoRA layers
+to the PS for aggregation. Simultaneously, the devices upload
+the relevant computing and communication information of
+the current round to PS for device resource estimation.
+4.3 Capacity Estimation
+The estimation of device capabilities (e.g., time-varying com-
+puting and communication capabilities) is essential for LEG-
+END to determine reasonable LoRA configurations for hetero-
+geneous devices. For arbitrary device i in round h, LEGEND
+utilizes µh
+i to denote the time required for updating all LoRA
+layers in a transformer layer during backpropagation, which
+can be recorded by the devices directly during the process
+of local fine-tuning, to indicate the computing capability. Be-
+sides, since the upload bandwidth is usually much smaller
+than the download bandwidth in typical W ANs [6,44] and the
+size of LoRA layers is typically less than 1% of the original
+model size [20], LEGEND employs the uploading time βh
+i of
+transmitting a LoRA layer with unit rank from the device i in
+round h to the PS to indicate the communication capability.
+In round h, PS collects recent computing time ˆµh
+i and up-
+loading time ˆβh
+i from device i and maintains the historical
+status. Then, we use the moving average with the historical
+status of devices to estimate the capacities of the devices [45].
+Accordingly, the PS estimates the computing time µh
+i and the
+uploading time βh
+i for device i in round h by calculating the
+moving average with ρ ∈ [0,1] (for example, ρ = 0.8 in our
+experiments) as:
+µh
+i = ρ · µh−1
+i + (1 − ρ) · ˆµh
+i , ∀i ∈ [1,n], ∀h ∈ [1,H] (8)
+βh
+i = ρ · βh−1
+i + (1 − ρ) · ˆβh
+i , ∀i ∈ [1,n], ∀h ∈ [1,H] (9)
+The primary focus of this work is not on improving status
+estimation techniques and advanced methods [46, 47] can be
+easily integrated into LEGEND.
+4.4 LoRA Configuration
+LEGEND addresses the challenges of resource constraints
+and system heterogeneity by determining appropriate LoRA
+configurations, i.e., LoRA depth and rank distribution, for het-
+erogeneous devices to promote fine-tuning efficiency. Based
+on the observation in Sections 2.3 and 2.4, LEGEND adap-
+tively assigns LoRA depth for device i in round h with grad-
+ually increasing rank distribution. The LoRA configuration
+of device i in round h can be denoted as the rank distribution
+Rh
+i = {ri,l|l ∈ [L −kh
+i ,L −1]} that includes the LoRA depthkh
+i ,
+where ri,l is the rank of the LoRA layers in l-th transformer
+layer. For simplicity, we use Lh
+i = [L − kh
+i ,L − 1] to represent
+the index of the deep kh
+i transformer layers. Assuming that
+the total rank of all L transformer layers is ψ, the constraints
+of rank distribution for device i in round h are as:
+ri,l−1 ≤ ri,l (10)
+∑
+l∈Lh
+i
+ri,l ≤ ψ (11)
+In round h, based on the estimation of computing and com-
+munication capacities, the completion time (including com-
+puting and communication time) on device i is expressed as:
+th
+i = ˆti + kh
+i · µh
+i + ∑
+l∈Lh
+i
+ri,l · βh
+i (12)
+where ˆti represents the computing time of forward propaga-
+tion in one round of local fine-tuning, kh
+i · µh
+i represents the
+total time for backpropagation during the process of local
+fine-tuning, and ∑l∈Lh
+i
+ri,l · βh
+i denotes the uploading time. Ad-
+ditionally, the waiting time for device i can be represented
+as th −th
+i , where th = max{th
+i |i ∈ [1,n]} denotes the comple-
+tion time of the slowest device in round h. Then, the average
+waiting time of all devices in round h can be formulated as:
+W h = 1
+n
+n
+∑
+i=1
+(th −th
+i ) (13)
+6
+
+===== PDF PAGE 7 =====
+
+We define the computing resource consumption of the
+LoRA layers in a transformer layer with unit rank during
+local fine-tuning as c. In addition, we use ˆc to denote the
+computing resource consumption for the pre-trained model
+θ during the forward propagation, which is a constant. Then,
+assuming that the total computing resource budgets of device
+i in round h is Ch
+i , the computing resource constraints can be
+expressed as follows:
+ˆc + ∑
+l∈Lh
+i
+ri,l · c ≤ Ch
+i (14)
+Similarly, we useb to denote the communication consumption
+of LoRA layers in a transformer layer with unit rank. Let Bh
+i
+represent the total communication resource budget for device
+i in round h. Then, the communication resource constraints
+can then be formulated as:
+∑
+l∈Lh
+i
+ri,l · b ≤ Bh
+i (15)
+Given a specific task in the FedFT system, LEGEND de-
+termines an appropriate LoRA configuration Rh
+i for device i
+according to the estimation of the device’s resource in round
+h to minimize the overall fine-tuning time ∑H
+h=1 th. Thus, we
+can formulate the problem as follows:
+min
+H
+∑
+h=1
+th
+s.t.
+
+
+
+ri,l−1 ≤ ri,l, ∀l ∈ Lh
+i
+∑l∈Lh
+i
+ri,l ≤ ψ, ∀i ∈ [1,n]
+th
+i = ˆti + kh
+i · µh
+i + ∑l∈Lh
+i
+ri,l · βh
+i , ∀i ∈ [1,n]
+W h = 1
+n ∑n
+i=1(th −th
+i ) ≤ ε, ∀h ∈ [1,H]
+ˆc + ∑l∈Lh
+i
+ri,l · c ≤ Ch
+i , ∀i ∈ [1,n]
+∑l∈Lh
+i
+ri,l · ˆb ≤ Bh
+i , ∀i ∈ [1,n]
+(16)
+The first set of inequalities denotes the constraints of rank
+distribution. The second set of inequalities represents that the
+rank of all LoRA layers cannot exceed the given budget ψ.
+The third set of equations represents the total time of local
+fine-tuning and uploading on device i in round h. The fourth
+set of inequalities represents the average waiting time of all
+devices cannot exceed the predefined threshold ε > 0. The
+last two sets of inequalities express that the accumulated
+computing and communication resources cost cannot exceed
+the computing and communication resource budgets of device
+i in round h, respectively.
+To solve the problem in Equation (16), we propose a greedy-
+based LoRA configuration determination algorithm, termed
+LCD, as shown in Algorithm 1. First, the PS calculates the
+gap kh between the maximum and minimum LoRA depth
+(Line 2) according to the device status information. Then, the
+completion time gap kh
+i between device i and the slowest is
+used to generate the appropriate LoRA depth to adapt hetero-
+geneous devices (Line 3). For example, the most powerful
+device is assigned with maximum LoRA depthL, the weakest
+device is assigned with LoRA depth of L − kh, while other
+devices are assigned values within the gap[L −kh,L] based on
+Algorithm 1 LoRA Configuration Determination
+Input: Total rank budget ψ; the completion time of the de-
+vices th
+i ; parameter λ.
+Output: LoRA configuration Rh
+i = {ri,l|l ∈ [L − kh
+i ,L − 1]}.
+1: function LORACONFIGURATION ( ):
+2: Calculate the gap between the maximum and mini-
+mum LoRA depth in round h
+kh ← ⌈L ·
+th −th
+i,min}
+th ⌉;
+3: Determine the LoRA depth for device i by
+kh
+i ← ⌈kh · th −th
+i
+th ⌉;
+4: Get global rank distribution R = {rl|l ∈ [0,L − 1]}
+using an arithmetic sequence with a common difference
+of λ, where rl = rl−1 + λ.
+5: Adjust LoRA depth kh
+i to ensure the configuration
+meets device-specific computing and communication con-
+straints by Equations 14 and 15.
+6: Generate LoRA configuration Rh
+i = {rh
+i,l|l ∈ [L −
+kh
+i ,L − 1]} for device i, where rh
+i,l = rl ∈ R.
+7: end function
+their capabilities. Secondly, the PS gets the reasonable rank
+distribution R = {rl|l ∈ [0,L −1] for all transformer layers us-
+ing an arithmetic sequence with a common difference of λ in
+round h (line 4). We use the parameter λ to guide the genera-
+tion of the rank distribution, whereλ indicates that the rank of
+LoRA layers added to the transformer layer l is λ greater than
+that of the adjacent transformer layer l − 1, i.e., rl = rl−1 + λ.
+For instance, λ = 1 in our experiments by default. Then, we
+greedily adjust the LoRA depth to ensure the configuration
+meets the device’s capacity (Line 5). Finally, based on global
+rank distribution R and LoRA depth kh
+i , the PS generates the
+LoRA configuration Rh
+i = {rh
+i,l|l ∈ [L − kh
+i ,L − 1]} for device
+i in round h (Line 6).
+4.5 LoRA Aggregation
+After receiving the updated LoRA layers from all devices, the
+PS performs global aggregation. Since the LoRA depth varies
+across devices while the rank of each LoRA layer remains con-
+sistent across all devices, the PS performs adaptive layer-wise
+aggregation on the collected LoRA layers, i.e., aggregating
+each layer based on the number of devices contributing to that
+layer. We use eθh+1
+l to represent the global LoRA layers in
+l-th transformer layer obtained by aggregating the respective
+LoRA layers from nl devices. Formally, the adaptive layer-
+wise aggregation of LoRA layers in transformer layer l can
+be expressed as follows:
+eθh+1
+l = 1
+nl
+nl
+∑
+i=1
+eθh
+i,l (17)
+After aggregation, PS obtains a set of global LoRA layers
+eθh+1 = {eθh+1
+l |l ∈ [0,L −1]}, which will be used for assigning
+different LoRA layers for each device.
+7
+
+===== PDF PAGE 8 =====
+
+4.6 LoRA Assignment
+According to the obtained LoRA configuration, the PS assigns
+specific LoRA layers for each device. Specifically, based on
+the LoRA configurationRh
+i = {ri,l|l ∈ Lh
+i } and the aggregated
+set of global LoRA layers that can be expressed as:
+eθh = {eθh
+l |l ∈ [0,L − 1]} (18)
+LEGEND generates LoRA layers eθh
+i for device i by selecting
+the LoRA layers from global LoRA layers eθh as follows:
+eθh
+i = {eθh
+i,l|l ∈ Lh
+i } (19)
+where eθh
+i,l = eθh
+l ∈ eθh. Since the LoRA layers are all continu-
+ous layers at deep position, there is no need to send a sepa-
+rate LoRA configuration for local initialization and update.
+Thus, after obtaining the LoRA layers, the PS immediately
+distributes the LoRA layers to the respective devices.
+5 Implementation
+We implement our FedFT prototype based on the open-source
+FedPETuning framework [48], extending its functionality
+with approximately 2.1K lines of custom code. The prototype
+is designed to support heterogeneous computing platforms,
+with a specific focus on commercial NVIDIA Jetson devices
+[49], including Jetson TX2, Jetson NX, and Jetson AGX. The
+software platform is built based on Docker Swarm [50, 51],
+a distributed software development kit that helps build dis-
+tributed systems with the ability to monitor the status of each
+device. For computing, we utilize PyTorch [52] to facilitate
+the implementation of model fine-tuning on devices, ensuring
+platform independence while allowing platform-specific back-
+end acceleration. To accelerate the on-device fine-tuning, we
+utilize NVIDIA-provided development packages2 to take full
+advantage of the underlying hardware capabilities. For com-
+munication, we adopt MPI (Message Passing Interface) [53],
+which includes a collection of sending and receiving func-
+tions, e.g., comm.send(data, dest, tag)/comm.recv(sour, tag),
+to streamline communication between the PS and devices.
+The prototype provides simple APIs to abstract away the
+problem of federated fine-tuning on heterogeneous comput-
+ing platforms. For example, in the PS, we use docker API
+docker stack deploy to deploy the fine-tuning process on both
+PS and the heterogeneous device with the customized con-
+tainer for different devices. The implementation addresses
+key challenges in supporting heterogeneous devices by devel-
+oping flexible communication and fine-tuning protocols that
+can adapt to varying computational resources.
+6 Evaluation
+6.1 Methodology
+Experimental Setup. Extensive experiments are conducted
+on the implemented prototype system with one PS and 80
+2https://forums.developer.nvidia.com/t/pytorch-for-jetson/72048
+Table 1: Technical Overview of Jetson Platforms
+Jetson AI Performance GPU Type
+TX2 1.33 TFLOPS 256-core Pascal
+NX 21 TOPS 384-core V olta
+AGX Xavier 22 TOPS 512-core V olta
+Jetson CPU Type ROM
+TX2 Denver 2 and ARM 4 8 GB LPDDR4
+NX 6-core Carmel ARM 8 8 GB LPDDR4x
+AGX Xavier 8-core Carmel ARM 8 32 GB LPDDR4x
+devices to evaluate the performance of LEGEND. Specifi-
+cally, the PS runs on a workstation equipped with an Intel(R)
+Xeon(R) Platinum 8358P CPU (@ 2.60GHz with 128 cores),
+8 NVIDIA RTX A6000 GPUs (48GB memory each) and 512
+GB RAM. In addition, we specify 80 NVIDIA commercial
+developer kits, including 30 Jetson TX2 kits, 40 Jetson NX
+kits, and 10 Jetson AGX kits, as devices to construct a het-
+erogeneous system. The detailed technical specifications of
+Jetson TX2, NX, and AGX kits are listed in Table 1.
+Settings of System Heterogeneity. To emulate the hetero-
+geneous computing and communication capabilities among
+devices, we present the following setups.
+(1) For computing. By specifying different modes of the
+Jetson devices (i.e., Jetson TX2, NX, and AGX), our prototype
+system enables these devices to work with varying computing
+capabilities. Specifically, Jetson TX2 offers four configurable
+modes, whereas the Jetson NX and AGX support up to eight
+modes. For example, the Jetson AGX with the mode 0 (i.e.,
+the highest performance mode of Jetson AGX) achieves fine-
+tuning by 100 × faster than the TX2 with the mode 1 ( i.e.,
+the lowest performance mode of Jetson TX2). Besides, to
+reflect resource varying over time, the devices are configured
+to randomly change the mode every 20 rounds.
+(2) For communication. To replicate the practical network
+environment, all devices are connected to the PS via Wi-Fi
+routers in the prototype system. Concretely, the devices are
+randomly shuffled and divided into four groups, with each
+group containing 20 devices. Then, these groups are placed at
+different locations, i.e., 2m, 8m, 14m, and 20m, away from the
+Wi-Fi routers. Due to random channel noise and competition
+among devices, the bandwidth between the PS and devices
+varies dynamically during the fine-tuning. The bandwidth of
+devices is measured by iperf3 [54], which fluctuates between
+1Mb/s and 30Mb/s.
+Tasks and Models. We evaluate the performance of LEG-
+END using three representative models downloaded from
+Hugging Face [55], i.e., RoBERTa [38], DeBERTa [56], and
+Llama [15], across the three categories of tasks, including
+general language understanding [39], massive multitask un-
+derstanding [57] and mathematical reasoning [58, 59].
+1) General Language Understanding aims to assess the
+natural language understanding capabilities of the models. We
+pick four datasets from the General Language Understand-
+8
+
+===== PDF PAGE 9 =====
+
+Table 2: Overview of Datasets for Experimental Evaluation
+Dataset Partition Rules # Training
+Samples
+# Test
+Samples
+SST-2 non-i.i.d. 67,349 1,821
+QNLI non-i.i.d. 104,743 5,463
+QQP non-i.i.d. 363,846 40,430
+MNLI non-i.i.d. 392,702 9,815
+GSM-8K i.i.d. 7473 1,319
+MMLU i.i.d. 20,000 2,000
+ing Evaluation (GLUE) datasets [39], encompassing a di-
+verse spectrum of natural language understanding challenges:
+SST-2 for sentiment analysis, QNLI for question-based nat-
+ural language inference, QQP for semantic equivalence, and
+MNLI for multi-genre textual entailment, respectively. Fol-
+lowing the Dirichlet distribution with α = 10, we build
+the non-independent and identically (non-i.i.d.) distributed
+datasets [7]. We fine-tune a 125M-parameter RoBERTa-base
+model [38] with 12 transformer layers on SST-2 and QNLI,
+and a 350M-parameter DeBERTa-Large model [56] with 24
+transformer layers on QQP and MNLI, respectively.
+2) Massive Multitask Understanding aims to test model
+generalization and knowledge transfer by fine-tuning across
+multiple related tasks. We utilize the Massive Multitask Lan-
+guage Understanding (MMLU) datasets [57] for the evalua-
+tion, which is a comprehensive multiple-choice benchmark
+spanning 57 tasks across diverse academic domains. By sam-
+pling 20,000 training and 2,000 test samples from the auxil-
+iary_train subset, we create a dataset that challenges models
+to demonstrate broad knowledge and nuanced reasoning ca-
+pabilities. We fine-tune a 7B-parameter Llama2 model (i.e.,
+Llama2-7B) [15], which is composed of 32 transformer layers,
+on this customized dataset.
+3) Mathematical Reasoning serves as a critical task for
+evaluating the models’ logical reasoning and computational
+reasoning capabilities. We employ the Grade School Math
+(GSM-8K) dataset [59], which is a widely recognized bench-
+mark designed to evaluate models’ elementary mathematical
+reasoning and problem-solving abilities. It comprises 7,473
+training and 1,319 test problems, each requiring multi-step rea-
+soning and arithmetic calculations, reflecting the complexity
+of grade-school mathematics. This dataset challenges models
+to demonstrate logical consistency, numerical computation,
+and interpretive skills essential for advanced mathematical
+understanding. We fine-tune Llama2-7B on this dataset.
+Baselines. To evaluate the effectiveness of LEGEND, we
+adopt two LoRA-based approaches (i.e., naive FedLoRA [20]
+and advanced HetLoRA [27]) and the state-of-the-art FedFT
+approaches (i.e., FedAdapter [10]) as baselines.
+1) FedLoRA integrates LoRA [16] into FedFT, where all
+the devices fine-tune the same local model with the identical
+rank applied to all transformer layers.
+2) HetLoRA is an advanced LoRA-based approach for
+FedFT, which assigns each device with a diverse but appro-
+priate LoRA rank for fine-tuning all transformer layers of its
+local model so as to deal with system heterogeneity.
+3) FedAdapter is the state-of-the-art FedFT approach,
+which introduces Adapters [21] in FedFT and dynamically
+searches for the optimal Adapter configuration to improve
+fine-tuning efficiency.
+Metrics. The following metrics are adopted to evaluate the
+performance of LEGEND and the baselines.
+1) Test Accuracy reflects the accuracy of the models fine-
+tuned by different approaches on the test datasets, measured
+by the proportion of correctly predicted data. Specifically, we
+record the test accuracy of the global model (the model after
+aggregation at the PS) in each round.
+2) Completion time represents the total wall-clock time
+required for fine-tuning a model to achieve a target accuracy.
+For fair comparisons, we set the target accuracy as the mini-
+mum accuracy achieved by the four methods. We record the
+time of each round, summing it up to obtain the completion
+time, and also record the average waiting time to reflect the
+fine-tuning efficiency of different approaches.
+3) Communication Traffic is recorded by summing up the
+traffic for transmitting the trainable parameters between the
+PS and devices during model fine-tuning, which is used to
+measure the communication efficiency of each approach.
+Experimental Parameters. By default, all experiments
+are carried out on our prototype system and run 100 rounds.
+Each device fine-tunes 1 epoch per round using AdamW [33]
+optimizer locally. The learning rate is set as 0.002 and decays
+according to a cosine scheduler. The batch size is fixed at
+4 and the maximum sequence length is set to 512 for all
+experiments.
+6.2 Overall Performance
+Firstly, we conduct sets of experiments to evaluate the per-
+formance of LEGEND and the baselines. The fine-tuning
+processes and the completion time of the general language un-
+derstanding task are presented in Figures 7 and 8, respectively.
+By the results, LEGEND achieves the fastest convergence
+rate, outperforming the other approaches by a significant mar-
+gin on all tasks. By assigning smaller LoRA depths with an
+optimized rank distribution for resource-constrained devices,
+LEGEND effectively enhances fine-tuning performance while
+reducing the time for local fine-tuning. For instance, by Fig-
+ures 7(a) and 8(a), LEGEND takes only 1,479s to achieve
+85% accuracy on SST-2, while FedAdapter, HetLoRA, and
+FedLoRA take 2,412s, 2,503s, and 4,074s, respectively. Com-
+pared to FedAdapter, HetLoRA, and FedLoRA, LEGEND
+provides 1.6×, 1.7×, and 2.8× speedup, respectively. By Fig-
+ures 7(b) and 8(b), LEGEND also outperforms the other base-
+lines in terms of completion time for QNLI. Similarly, Figures
+7(c) and 8(c) show that LEGEND takes 121,156s to achieve
+87% accuracy for QQP, while FedAdapter, HetLoRA, and
+FedLoRA consume 173,375s, 209,196s, and 269,749s, re-
+9
+
+===== PDF PAGE 10 =====
+
+0 1 2 3 4 5 6 7 8890929496Test accuracy (%)T
+ime (×103s) LEGEND FedAdapter HetLoRA FedLoRA
+(a) SST-2
+0 1 2 3 80828486889092Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×104s) (b) QNLI
+0 1 2 3 4 76788082848688Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×105s) (c) QQP
+0 1 2 80828486Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×105s) (d) MNLI
+Figure 7: Fine-tuning process of four approaches on general language understanding tasks.
+1 2345Completion time (×103s)S
+ST-2 
+LEGEND  FedAdapter HetLoRA  FedLoRA
+(a) Time to reach 95% accuracy
+1 .01.52.02.53.0Completion time (×104s)Q
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Time to reach 90% accuracy
+1 .01.52.02.53.03.5Completion time (×105s)Q
+QP 
+LEGEND  FedAdapter HetLoRA  FedLoRA (c) Time to reach 87% accuracy
+0 .51.01.5Completion time (×105s)M
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (d) Time to reach 85% accuracy)
+Figure 8: Completion time of four approaches on general language understanding tasks.
+0 5 1 01 52 030405060Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×104s)
+(a) Fine-tuning process (MMLU)
+1 2Completion time (×105s)M
+MLU 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Time to reach 60% accuracy
+Figure 9: Results on massive multitask understanding tasks.
+spectively. LEGEND separately achieves a speedup of 1.4×,
+1.7×, and 2.2×, compared with FedAdapter, HetLoRA, and
+FedLoRA. For MNLI, as shown in Figures 7(d) and 8(d),
+LEGEND speeds up the fine-tuning process by about 1.2×,
+1.5×, and 2.1×, compared to FedAdapter, HetLoRA, and Fed-
+LoRA, respectively. Then, we present the experimental results
+for massive multitask understanding and mathematical reason-
+ing tasks in Figures 9 and 10. LEGEND consistently outper-
+forms all other baselines, significantly accelerating the fine-
+tuning process. Specifically, as shown in Figure 9, LEGEND
+achieves a speedup of 1.3 ×, 1.5×, and 2.3 × compared to
+FedAdapter, HetLoRA, and FedLoRA, respectively. In Figure
+10, LEGEND reduces the total completion time required to
+achieve 30% accuracy by approximately 26%, 41%, and 54%
+when compared to FedAdapter, HetLoRA, and FedLoRA, re-
+spectively. These results demonstrate the superiority of LEG-
+END in accelerating the fine-tuning process through joint
+optimization of LoRA depth and rank distribution.
+Secondly, to illustrate the advantage of LEGEND in sav-
+ing communication resources, we evaluate the communica-
+0 2 4 6 8 1 0102030 LEGEND FedAdapter HetLoRA FedLoRATime (×103s)T
+est accuracy (%)
+(a) Fine-tuning process (GSM-8K)
+0 .51.0Completion time (×104s)G
+SM-8K 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Time to reach 30% accuracy
+Figure 10: Results on mathematical reasoning tasks.
+tion traffic consumption of these approaches when achiev-
+ing the target accuracy. According to the results in Figure
+11, LEGEND always causes the least communication traf-
+fic among all approaches. For example, as shown in Fig-
+ure 11(a), when achieving 95% accuracy, LEGEND con-
+sumes 9.9GB, while FedAdapter, HetLoRA, and FedLoRA
+consume 14.2GB, 14.7GB, and 16.2GB, respectively. Com-
+pared with FedAdapter, HetLoRA, and FedLoRA, LEGEND
+reduces communication traffic by about 30.0%, 32.1%, and
+38.3%, respectively. On one hand, compared to FedLoRA
+and HetLoRA which add LoRA layers of the same rank to all
+layers, LEGEND generates adaptive LoRA depth and rank
+distribution to accommodate heterogeneous devices. On the
+other hand, unlike FedAdapter which requires multiple device
+groups to find the optimal adapter structure, LEGEND deter-
+mines the suitable LoRA configuration based on the device’s
+status, making fine-tuning more efficient and thus reducing
+communication overhead. Besides, by Figure 11(b), LEG-
+END consumes 12.1GB when achieving 90% accuracy for
+QNLI, reducing the communication traffic by about 1.95GB,
+10
+
+===== PDF PAGE 11 =====
+
+0 .51.01.52.0Network traffic (×10 GB)S
+ST-2 
+LEGEND  FedAdapter HetLoRA  FedLoRA
+(a) Traffic to reach 95% accuracy
+1 .01.52.0Network traffic (×10 GB)Q
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Traffic to reach 90% accuracy
+0 .60.81.01.2Network traffic (×102 GB)Q
+QP 
+LEGEND  FedAdapter HetLoRA  FedLoRA (c) Traffic to reach 87% accuracy
+4 5678Network traffic (×10 GB)M
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (d) Traffic to reach 85% accuracy
+Figure 11: Communication traffic of four approaches on general language understanding tasks.
+0 2 04 06 08 01 001015Avg. waiting time (s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA 
+(a) SST-2
+0 2 04 06 08 01 0046810Avg. waiting time (×10s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) QNLI
+0 2 04 06 08 01 0046810Avg. waiting time (×102s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA (c) QQP
+0 2 04 06 08 01 003456Avg. waiting time (×102s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA (d) MNLI
+Figure 12: Average waiting time of four approaches on general language understanding tasks.
+5.46GB, and 5.74GB compared with FedAdapter, HetLoRA,
+and FedLoRA, respectively. For QQP, the results in Figure
+11(c) show that LEGEND reduces the total traffic consump-
+tion up to 42.3% when achieving accuracy. Moreover, by Fig-
+ure 11(d), when achieving 85% accuracy for MNLI, LEGEND
+consumes 42GB, while FedAdapter, HetLoRA, and FedLoRA
+consume about 54GB, 60GB, and 69GB, respectively. The
+experimental results underscore the advantages of LEGEND
+in reducing communication costs.
+To demonstrate the effectiveness of LEGEND towards sys-
+tem heterogeneity, we illustrate the average waiting time of
+the four approaches on the four datasets in Figure 12. LEG-
+END achieves the shortest waiting time across all datasets
+by assigning different LoRA depths with reasonable rank
+distribution to heterogeneous devices. For example, by Fig-
+ure 12(a), LEGEND separately improves the average wait-
+ing time by about 11.0%, 19.5%, and 40.2%, compared with
+FedAdapter, HetLoRA, and FedLoRA for SST-2. By Fig-
+ure 12(b), the average waiting time of LEGEND is 38.6s for
+QNLI, while FedAdapter, HetLoRA, and FedLoRA incur av-
+erage waiting time of 50.3s, 57.4s, and 76.7s, respectively.
+LEGEND reduces the average waiting time by about 23.4%,
+32.8%, and 49.7% compared to FedAdapter, HetLoRA, and
+FedLoRA, respectively. Besides, as illustrated by Figure 12(c),
+the average waiting time of LEGEND is 352s for SST-2 while
+FedAdapter, HetLoRA, and FedLoRA incur an average wait-
+ing time of 532s, 623s, and 710s, respectively. Compared with
+FedAdapter, HetLoRA, and FedLoRA, LEGEND reduces the
+average waiting time by about 33.8%, 43.5%, and 50.4%,
+respectively. In addition, by Figure 12(d), LEGEND also out-
+performs FedAdapter, HetLoRA, and FedLoRA, reducing the
+averaging waiting time by 14%, 24%, and 32.7%, respectively.
+LEGEND achieves the least waiting time across all tasks by
+assigning appropriate depth to devices, significantly reducing
+the time for local fine-tuning on resource-constrained devices.
+In contrast, FedLoRA adds LoRA layers to all transformer
+layers of the model, which requires the complete backprop-
+agation process to update all LoRA layers and fast devices
+should be forced to wait for slow ones, leading to prolonged
+waiting time and poor fine-tuning efficiency. HetLoRA im-
+proves FedLoRA by assigning diverse ranks to the devices
+to alleviate the challenge of system heterogeneity but with
+limited success, while FedAdapter speeds up the fine-tuning
+process by selecting the best fine-tuning group from groups
+with different Adapter configurations in each round. These
+experimental results demonstrate the superiority of LEGEND
+in mitigating system heterogeneity.
+6.3 Ablation Study
+There are two key factors in LEGEND, i.e., LoRA depth and
+rank distribution, which are developed to enhance the per-
+formance of FedLoRA. Herein, we conduct several sets of
+ablation experiments on SST-2 and QNLI to validate the ef-
+fectiveness of the two essential factors. We adopt LEGEND,
+LEGEND without LoRA depth (denoted as LEGEND w/o
+LD), LEGEND without rank distribution (denoted as LEG-
+END w/o RD) as the baselines. As illustrated in Figure 13,
+both LoRA depth and rank distribution are essential in LEG-
+END, but they contribute to the system in different ways.
+For instance, by Figures 13(a) and 13(b), LEGEND w/o LD
+achieves similar final test accuracy,e.g., 95.3% on SST-2 and
+91.6% on QNLI, compared with LEGEND, while LEGEND
+w/o RD slightly degrades to 94.6% on SST-2 and 90.5% on
+QNLI, respectively. Besides, by Figure 13(a), when achiev-
+11
+
+===== PDF PAGE 12 =====
+
+0 1 2 3 4 5 88909294Test accuracy (%)T
+ime (×103s) LEGEND LEGEND w/o RD LEGEND w/o LD
+(a) SST-2
+0 1 2 3 808284868890 LEGEND LEGEND w/o RD LEGEND w/o LDTime (×104s)T
+est accuracy (%) (b) QNLI
+Figure 13: Effect of LoRA depth and rank distribution.
+ing a target accuracy of 94% on SST-2, LEGEND saves the
+completion time by about 50.3% and 54.5% compared with
+LEGEND w/o RD and LEGEND w/o LD, respectively. By
+Figure 13(b), compared with LEGEND w/o RD and LEG-
+END w/o LD, LEGEND separately speeds up fine-tuning
+by about 1.38× and 1.93×, when achieving the same target
+accuracy (i.e., 90% on QNLI). On the one hand, by employ-
+ing a reasonable rank distribution and enabling all devices
+to fine-tune all LoRA layers, LEGEND w/o LD enhances
+the fine-tuning performance, but results in prolonged waiting
+time and slow convergence rates. On the other hand, LEG-
+END w/o RD assigns adaptive LoRA depth for the devices
+with uniform ranks across all layers, failing to strategically
+allocate larger rank to critical layers (e.g., deep layers), which
+constrains the fine-tuning performance and leads to perfor-
+mance degradation. The results demonstrate the positive roles
+of the two designs.
+7 Related Works
+Natural Language Processing. The development of mod-
+ern natural language processing (NLP) traces back to the
+introduction of the transformer architecture by Vaswani et al.
+in 2017 [1]. Upon transformer architecture, groundbreaking
+language models, such as BERT [3], GPT-2 [60], and more
+recently Llama [15], have achieved state-of-the-art results
+across various NLP tasks. Specifically, the language model
+(LM) is first pre-trained on a large corpus to learn general
+features and patterns. Subsequently, the LM is further trained
+on domain-specific data generated on devices to enhance the
+model performance for a specific task [3, 5]. However, due to
+data privacy, it is impractical to collect enough data from the
+devices for centralized fine-tuning [6, 7].
+Federated Fine-Tuning.To fully utilize the massive data
+on devices, federated fine-tuning (FedFT) has been proposed
+to perform fine-tuning in a distributed manner [7]. However,
+the high resource costs associated with FedFT pose significant
+challenges to its practical implementation. Modern FedFT
+utilizes parameter-efficient fine-tuning (PEFT) methods, such
+as Adapter [10, 21], prompt-tuning [61, 62], to reduce on-
+device resources costs. For example, Cai et al. [10] first apply
+Adapter in FedFT and propose FedAdapter, which dynami-
+cally searches for the optimal Adapter structure to improve
+the fine-tuning efficiency. However, due to the intrinsic prop-
+erty of Adapter, the fine-tuned Adapter-based LM inevitably
+brings additional inference latency, potentially resulting in
+up to a 30% latency increase [16, 22, 23], which is often
+unacceptable in practical applications. Upon prompt-tuning,
+Zhao et al. [62] propose FedPrompt to realize communication-
+efficient and privacy-preserving fine-tuning in federated set-
+ting. Nevertheless, prompt-tuning unavoidably occupies a
+portion of the model’s input length, consequently diminishing
+the usable input space and extra inference latency.
+Low-Rank Adaptation. To mitigate the disadvantages of
+the aforementioned PEFT methods, Hu et al. [16] propose
+low-rank adaptation (LoRA), which adds trainable rank de-
+composition matrices to each transformer layer of the LM
+while freezing the pre-trained weights of the LM to improve
+fine-tuning efficiency. LoRA achieves comparable perfor-
+mance of fully fine-tuning while introducing no additional
+inference latency, and has been widely adopted. For instance,
+Dettmers et al. [63] propose QLoRA, which is an efficient
+fine-tuning method based on model quantization, significantly
+reducing the memory requirement. Chen et al. [64] propose
+LongLoRA, which is an efficient fine-tuning approach to ex-
+tend the context sizes of the LM with limited cost.
+FedFT with LoRA. LoRA is naturally incorporated into
+FedFT to reduce resource costs. For example, Zhang et al.
+[20] propose FedLoRA and verify the efficiency of LoRA in
+the context of FedFT through extensive experiments. Upon
+FedLoRA, Cho et al. [27] propose HetLoRA, in which each
+device adds LoRA layers to all transformer layers with a
+diverse and appropriate LoRA rank to deal with system het-
+erogeneity. However, due to the rank mismatch of all LoRA
+layers on different devices, it is difficult to aggregate these lay-
+ers, resulting in poor fine-tuning performance. In conclusion,
+existing works simply add LoRA layers with the uniform rank
+distribution for all transformer layers, which still requires sub-
+stantial computing and communication resources, resulting in
+slow fine-tuning speeds on weak devices. Moreover, system
+heterogeneity further leads to low fine-tuning efficiency or
+poor fine-tuning performance [28,29]. They do not address the
+challenges of resource constraints and system heterogeneity.
+8 Conclusion
+In this paper, we review the intrinsic properties of FedFT and
+propose an efficient LoRA-based FedFT framework, called
+LEGEND, to address resource constraints and system hetero-
+geneity. We analyze the coupled relationship between LoRA
+depth and rank distribution, and design an efficient LoRA
+configuration algorithm for heterogeneous devices, thereby
+promoting fine-tuning efficiency. Extensive experiments are
+conducted on a real platform of 80 wireless devices. The
+experimental results show that LEGEND significantly out-
+performs the existing methods, providing a speedup of 1.5-
+2.8× and saving communication costs by about 42.3% while
+achieving the target accuracy.
+12
+
+===== PDF PAGE 13 =====
+
+References
+[1] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser,
+and Illia Polosukhin. Attention is all you need.Advances
+in neural information processing systems, 30, 2017.
+[2] Haoli Bai, Wei Zhang, Lu Hou, Lifeng Shang, Jing Jin,
+Xin Jiang, Qun Liu, Michael Lyu, and Irwin King. Bi-
+narybert: Pushing the limit of bert quantization. arXiv
+preprint arXiv:2012.15701, 2020.
+[3] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. Bert: Pre-training of deep bidirec-
+tional transformers for language understanding. arXiv
+preprint arXiv:1810.04805, 2018.
+[4] Lu Hou, Zhiqi Huang, Lifeng Shang, Xin Jiang, Xiao
+Chen, and Qun Liu. Dynabert: Dynamic bert with adap-
+tive width and depth. Advances in Neural Information
+Processing Systems, 33:9782–9793, 2020.
+[5] Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, et al. Language models are few-shot learn-
+ers. Advances in neural information processing systems,
+33:1877–1901, 2020.
+[6] Brendan McMahan, Eider Moore, Daniel Ramage, Seth
+Hampson, and Blaise Aguera y Arcas. Communication-
+efficient learning of deep networks from decentralized
+data. In Artificial intelligence and statistics, pages 1273–
+1282. PMLR, 2017.
+[7] Bill Yuchen Lin, Chaoyang He, Zihang Zeng, Hulin
+Wang, Yufen Huang, Christophe Dupuy, Rahul Gupta,
+Mahdi Soltanolkotabi, Xiang Ren, and Salman Aves-
+timehr. Fednlp: Benchmarking federated learning meth-
+ods for natural language processing tasks.arXiv preprint
+arXiv:2104.08815, 2021.
+[8] Yunming Liao, Yang Xu, Hongli Xu, Zhiwei Yao, Lun
+Wang, and Chunming Qiao. Accelerating federated
+learning with data and model parallelism in edge com-
+puting. IEEE/ACM Transactions on Networking, 2023.
+[9] Joel Stremmel and Arjun Singh. Pretraining federated
+text models for next word prediction. In Advances in In-
+formation and Communication: Proceedings of the 2021
+Future of Information and Communication Conference
+(FICC), Volume 2, pages 477–488. Springer, 2021.
+[10] Dongqi Cai, Yaozong Wu, Shangguang Wang, Felix Xi-
+aozhu Lin, and Mengwei Xu. Fedadapter: Efficient
+federated learning for modern nlp. arXiv preprint
+arXiv:2205.10162, 2022.
+[11] Yang Xu, Yunming Liao, Hongli Xu, Zhenguo Ma, Lun
+Wang, and Jianchun Liu. Adaptive control of local up-
+dating and model compression for efficient federated
+learning. IEEE Transactions on Mobile Computing ,
+22(10):5675–5689, 2022.
+[12] Ligeng Zhu, Lanxiang Hu, Ji Lin, Wei-Ming Chen, Wei-
+Chen Wang, Chuang Gan, and Song Han. Pockengine:
+Sparse and efficient fine-tuning in a pocket. In Proceed-
+ings of the 56th Annual IEEE/ACM International Sym-
+posium on Microarchitecture, pages 1381–1394, 2023.
+[13] Sauptik Dhar, Junyao Guo, Jiayi Liu, Samarth Tripathi,
+Unmesh Kurup, and Mohak Shah. A survey of on-device
+machine learning: An algorithms and learning theory
+perspective. ACM Transactions on Internet of Things,
+2(3):1–49, 2021.
+[14] Yunming Liao, Yang Xu, Hongli Xu, Lun Wang, Zhiwei
+Yao, and Chunming Qiao. Mergesfl: Split federated
+learning with feature merging and batch size regulation.
+In 2024 IEEE 40th International Conference on Data
+Engineering (ICDE), pages 2054–2067. IEEE, 2024.
+[15] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+Martinet, Marie-Anne Lachaux, Timothée Lacroix, Bap-
+tiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar,
+et al. Llama: Open and efficient foundation language
+models. arXiv preprint arXiv:2302.13971, 2023.
+[16] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-
+Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu
+Chen. Lora: Low-rank adaptation of large language
+models. arXiv preprint arXiv:2106.09685, 2021.
+[17] Yunming Liao, Yang Xu, Hongli Xu, Lun Wang, and
+Chen Qian. Adaptive configuration for heterogeneous
+participants in decentralized federated learning. InIEEE
+INFOCOM 2023-IEEE Conference on Computer Com-
+munications, pages 1–10. IEEE, 2023.
+[18] Fan Lai, Xiangfeng Zhu, Harsha V Madhyastha, and
+Mosharaf Chowdhury. Oort: Efficient federated learn-
+ing via guided participant selection. In 15th {USENIX}
+Symposium on Operating Systems Design and Imple-
+mentation ({OSDI} 21), pages 19–35, 2021.
+[19] Jun Liu, Jianchun Liu, Hongli Xu, Yunming Liao,
+Zhiyuan Wang, and Qianpiao Ma. Yoga: Adaptive
+layer-wise model aggregation for decentralized feder-
+ated learning. IEEE/ACM Transactions on Networking,
+2023.
+13
+
+===== PDF PAGE 14 =====
+
+[20] Zhuo Zhang, Yuanhang Yang, Yong Dai, Qifan Wang,
+Yue Yu, Lizhen Qu, and Zenglin Xu. Fedpetuning: When
+federated learning meets the parameter-efficient tuning
+methods of pre-trained language models. In Annual
+Meeting of the Association of Computational Linguistics
+2023, pages 9963–9977. Association for Computational
+Linguistics (ACL), 2023.
+[21] Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski,
+Bruna Morrone, Quentin De Laroussilhe, Andrea Ges-
+mundo, Mona Attariyan, and Sylvain Gelly. Parameter-
+efficient transfer learning for nlp. In International con-
+ference on machine learning, pages 2790–2799. PMLR,
+2019.
+[22] Baohao Liao, Yan Meng, and Christof Monz. Parameter-
+efficient fine-tuning without introducing new latency.
+arXiv preprint arXiv:2305.16742, 2023.
+[23] Suyi Li, Hanfeng Lu, Tianyuan Wu, Minchen Yu,
+Qizhen Weng, Xusheng Chen, Yizhou Shan, Binhang
+Yuan, and Wei Wang. Caraserve: Cpu-assisted and rank-
+aware lora serving for generative llm inference. arXiv
+preprint arXiv:2401.11240, 2024.
+[24] Mayur Wankhade, Annavarapu Chandra Sekhara Rao,
+and Chaitanya Kulkarni. A survey on sentiment anal-
+ysis methods, applications, and challenges. Artificial
+Intelligence Review, 55(7):5731–5780, 2022.
+[25] Shervin Minaee, Nal Kalchbrenner, Erik Cambria, Nar-
+jes Nikzad, Meysam Chenaghlu, and Jianfeng Gao.
+Deep learning–based text classification: a comprehen-
+sive review. ACM computing surveys (CSUR), 54(3):1–
+40, 2021.
+[26] Qingru Zhang, Minshuo Chen, Alexander Bukharin,
+Pengcheng He, Yu Cheng, Weizhu Chen, and Tuo Zhao.
+Adaptive budget allocation for parameter-efficient fine-
+tuning. In The Eleventh International Conference on
+Learning Representations, 2022.
+[27] Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, Matt
+Barnes, and Gauri Joshi. Heterogeneous lora for fed-
+erated fine-tuning of on-device foundation models. In
+International Workshop on Federated Learning in the
+Age of Foundation Models in Conjunction with NeurIPS
+2023, 2023.
+[28] Young Geun Kim and Carole-Jean Wu. Autofl: Enabling
+heterogeneity-aware energy efficient federated learning.
+In MICRO-54: 54th Annual IEEE/ACM International
+Symposium on Microarchitecture, pages 183–198, 2021.
+[29] Bing Luo, Wenli Xiao, Shiqiang Wang, Jianwei Huang,
+and Leandros Tassiulas. Tackling system and statistical
+heterogeneity for federated learning with adaptive client
+sampling. In IEEE INFOCOM 2022-IEEE conference
+on computer communications, pages 1739–1748. IEEE,
+2022.
+[30] Wikimedia Foundation. Wikimedia downloads.
+[31] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine
+Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei
+Li, and Peter J. Liu. Exploring the limits of transfer
+learning with a unified text-to-text transformer. arXiv
+e-prints, 2019.
+[32] Mengwei Xu, Yaozong Wu, Dongqi Cai, Xiang Li, and
+Shangguang Wang. Federated fine-tuning of billion-
+sized language models across mobile devices. arXiv
+preprint arXiv:2308.13894, 2023.
+[33] I Loshchilov. Decoupled weight decay regularization.
+arXiv preprint arXiv:1711.05101, 2017.
+[34] Jean Kaddour, Joshua Harris, Maximilian Mozes, Her-
+bie Bradley, Roberta Raileanu, and Robert McHardy.
+Challenges and applications of large language models.
+arXiv preprint arXiv:2307.10169, 2023.
+[35] Chenxing Wei, Yao Shu, Ying Tiffany He, and
+Fei Richard Yu. Flexora: Flexible low rank adap-
+tation for large language models. arXiv preprint
+arXiv:2408.10774, 2024.
+[36] Yunhui Guo, Honghui Shi, Abhishek Kumar, Kristen
+Grauman, Tajana Rosing, and Rogerio Feris. Spottune:
+transfer learning through adaptive fine-tuning. In Pro-
+ceedings of the IEEE/CVF conference on computer vi-
+sion and pattern recognition, pages 4805–4814, 2019.
+[37] Qingru Zhang, Minshuo Chen, Alexander Bukharin,
+Pengcheng He, Yu Cheng, Weizhu Chen, and Tuo Zhao.
+Adaptive budget allocation for parameter-efficient fine-
+tuning. arXiv preprint arXiv:2303.10512, 2023.
+[38] Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-
+dar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke
+Zettlemoyer, and Veselin Stoyanov. Roberta: A robustly
+optimized bert pretraining approach. arXiv preprint
+arXiv:1907.11692, 2019.
+[39] Alex Wang, Amanpreet Singh, Julian Michael, Felix
+Hill, Omer Levy, and Samuel R Bowman. Glue: A multi-
+task benchmark and analysis platform for natural lan-
+guage understanding. arXiv preprint arXiv:1804.07461,
+2018.
+[40] Haobo Song, Hao Zhao, Soumajit Majumder, and Tao
+Lin. Increasing model capacity for free: A simple strat-
+egy for parameter efficient fine-tuning. arXiv preprint
+arXiv:2407.01320, 2024.
+14
+
+===== PDF PAGE 15 =====
+
+[41] Reece Shuttleworth, Jacob Andreas, Antonio Torralba,
+and Pratyusha Sharma. Lora vs full fine-tuning: An illu-
+sion of equivalence. arXiv preprint arXiv:2410.21228,
+2024.
+[42] Xiaosong Ma, Jie Zhang, Song Guo, and Wenchao Xu.
+Layer-wised model aggregation for personalized feder-
+ated learning. In Proceedings of the IEEE/CVF confer-
+ence on computer vision and pattern recognition, pages
+10092–10101, 2022.
+[43] Chongyang Gao, Kezhen Chen, Jinmeng Rao, Baochen
+Sun, Ruibo Liu, Daiyi Peng, Yawen Zhang, Xiaoyuan
+Guo, Jie Yang, and VS Subrahmanian. Higher
+layers need more lora experts. arXiv preprint
+arXiv:2402.08562, 2024.
+[44] Jakub Konecn `y, H Brendan McMahan, Felix X Yu, Pe-
+ter Richtárik, Ananda Theertha Suresh, and Dave Bacon.
+Federated learning: Strategies for improving communi-
+cation efficiency. arXiv preprint arXiv:1610.05492, 8,
+2016.
+[45] David Leroy, Alice Coucke, Thibaut Lavril, Thibault
+Gisselbrecht, and Joseph Dureau. Federated learning
+for keyword spotting. In ICASSP 2019-2019 IEEE in-
+ternational conference on acoustics, speech and signal
+processing (ICASSP), pages 6341–6345. IEEE, 2019.
+[46] Daniel Halperin, Wenjun Hu, Anmol Sheth, and David
+Wetherall. Predictable 802.11 packet delivery from wire-
+less channel measurements. ACM SIGCOMM computer
+communication review, 40(4):159–170, 2010.
+[47] Chaoqun Yue, Ruofan Jin, Kyoungwon Suh, Yanyuan
+Qin, Bing Wang, and Wei Wei. Linkforecast: Cellu-
+lar link bandwidth prediction in lte networks. IEEE
+Transactions on Mobile Computing, 17(7):1582–1594,
+2017.
+[48] Zhuo Zhang, Yuanhang Yang, Yong Dai, Lizhen Qu, and
+Zenglin Xu. When federated learning meets pre-trained
+language models’ parameter-efficient tuning methods.
+arXiv preprint arXiv:2212.10025, 2022.
+[49] Sparsh Mittal. A survey on optimized implementation
+of deep learning models on the nvidia jetson platform.
+Journal of Systems Architecture, 97:428–442, 2019.
+[50] Dirk Merkel et al. Docker: lightweight linux containers
+for consistent development and deployment. Linux j,
+239(2):2, 2014.
+[51] Nitin Naik. Building a virtual system of systems using
+docker swarm in multiple clouds. In 2016 IEEE Interna-
+tional Symposium on Systems Engineering (ISSE), pages
+1–3. IEEE, 2016.
+[52] Adam Paszke, Sam Gross, Francisco Massa, Adam
+Lerer, James Bradbury, Gregory Chanan, Trevor Killeen,
+Zeming Lin, Natalia Gimelshein, Luca Antiga, et al. Py-
+torch: An imperative style, high-performance deep learn-
+ing library. Advances in neural information processing
+systems, 32, 2019.
+[53] Edgar Gabriel, Graham E Fagg, George Bosilca, Thara
+Angskun, Jack J Dongarra, Jeffrey M Squyres, Vishal
+Sahay, Prabhanjan Kambadur, Brian Barrett, Andrew
+Lumsdaine, et al. Open mpi: Goals, concept, and de-
+sign of a next generation mpi implementation. InRecent
+Advances in Parallel Virtual Machine and Message Pass-
+ing Interface: 11th European PVM/MPI Users’ Group
+Meeting Budapest, Hungary, September 19-22, 2004.
+Proceedings 11, pages 97–104. Springer, 2004.
+[54] Iperf: The tcp/udp bandwidth measurement tool.
+http://dast. nlanr. net/Projects/Iperf/, 1999.
+[55] Thomas Wolf, Lysandre Debut, Victor Sanh, Julien
+Chaumond, Clement Delangue, Anthony Moi, Pierric
+Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz, et al.
+Transformers: State-of-the-art natural language process-
+ing. In Proceedings of the 2020 conference on empirical
+methods in natural language processing: system demon-
+strations, pages 38–45, 2020.
+[56] Pengcheng He, Jianfeng Gao, and Weizhu Chen. Deber-
+tav3: Improving deberta using electra-style pre-training
+with gradient-disentangled embedding sharing. arXiv
+preprint arXiv:2111.09543, 2021.
+[57] Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou,
+Mantas Mazeika, Dawn Song, and Jacob Steinhardt.
+Measuring massive multitask language understanding.
+arXiv preprint arXiv:2009.03300, 2020.
+[58] Yan Wang, Xiaojiang Liu, and Shuming Shi. Deep neu-
+ral solver for math word problems. In Proceedings of
+the 2017 conference on empirical methods in natural
+language processing, pages 845–854, 2017.
+[59] Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian,
+Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plap-
+pert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, et al.
+Training verifiers to solve math word problems. arXiv
+preprint arXiv:2110.14168, 2021.
+[60] Alec Radford, Jeffrey Wu, Rewon Child, David Luan,
+Dario Amodei, Ilya Sutskever, et al. Language mod-
+els are unsupervised multitask learners. OpenAI blog,
+1(8):9, 2019.
+[61] Brian Lester, Rami Al-Rfou, and Noah Constant. The
+power of scale for parameter-efficient prompt tuning.
+arXiv preprint arXiv:2104.08691, 2021.
+15
+
+===== PDF PAGE 16 =====
+
+[62] Haodong Zhao, Wei Du, Fangqi Li, Peixuan Li, and
+Gongshen Liu. Fedprompt: Communication-efficient
+and privacy-preserving prompt tuning in federated learn-
+ing. In ICASSP 2023-2023 IEEE International Con-
+ference on Acoustics, Speech and Signal Processing
+(ICASSP), pages 1–5. IEEE, 2023.
+[63] Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and
+Luke Zettlemoyer. Qlora: Efficient finetuning of quan-
+tized llms. Advances in Neural Information Processing
+Systems, 36, 2024.
+[64] Yukang Chen, Shengju Qian, Haotian Tang, Xin Lai,
+Zhijian Liu, Song Han, and Jiaya Jia. Longlora: Effi-
+cient fine-tuning of long-context large language models.
+arXiv preprint arXiv:2309.12307, 2023.
+16

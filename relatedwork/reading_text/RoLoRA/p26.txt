@@ -1,0 +1,60 @@
+Proving δ1 ≤δ 0C . Now we are to prove that for the first iteration, δ1 ≤δ 0C with certain
+probability.
+By Lemma A3.9, we get∥ ¯b−g∥ ≤ϵ ′δ0∥b∗∥with probability at least1−q −10.
+By Lemma A3.10, we get ∥∇al(a, ¯b)−E[∇ al(a, ¯b)]∥ ≤2˜ϵ((ϵ′)2 +ϵ ′)δ0∥b∗∥2 with probability at
+least1−2q −10.
+By Lemma A3.11, without assuming decreasing angles, we obtain, with probability at least1−2q −10,
+δ1 ≤δ 0p
+1−η(1−(δ 0)2)∥b∗∥2.(123)
+Inductive Hypothesis.Based on inductive hypothesis, by provingδ 1 ≤δ 0C, the assumption that
+δt ≤δ t−1C≤ · · · ≤δ 1C t−1, and proving δt+1 ≤δ tC, we conclude that δt ≤δ t−1C holds for all
+t∈[T]iterations. We take a union bound over allt∈[T]such that,
+P
+(T−1\
+t=0
+δt+1 ≤δ tp
+1−c(1−(δ 0)2)
+)
+≥1−2T q −10.(124)
+Solve forT.In order to achieveϵ-recovery ofa ∗, we need
+δ0(1−c(1−(δ 0)2))
+T
+2 ≤ϵ(125)
+(1−c(1−(δ 0)2))
+T
+2 ≤ ϵ
+δ0 (126)
+T
+2 log (1−c(1−(δ 0)2))≤log( ϵ
+δ0 )(127)
+(128)
+We proceed such that
+T≥ 2 log( ϵ
+δ0 )
+log (1−c(1−(δ 0)2)) (129)
+> 2 log( ϵ
+δ0 )
+−c(1−(δ 0)2) (130)
+= 2
+c(1−(δ 0)2) log( δ0
+ϵ )(131)
+where (130) follows by usinglog(1−x)<−x for |x|<1 . Thus, with probability at least1−2T q −10,
+δT = sinθ(a T ,a ∗)≤ϵ.
+Convergence to the target model.We now aim to upper bound ∥aT (bT+1 )⊤ −a ∗(b∗)⊤∥. Recall
+that(g T )⊤ = (aT )⊤a∗b∗⊤
+andδ T =∥(I d −a T (aT )⊤)a∗∥, we have
+∥aT (bT+1 )⊤ −a ∗b∗⊤
+∥=∥a T (bT+1 )⊤ −a T (gT )⊤ +a T (gT )⊤ −a ∗b∗⊤
+∥(132)
+≤ ∥a T (bT+1 )⊤ −a T (gT )⊤∥+∥a T (gT )⊤ −a ∗b∗⊤
+∥(133)
+=∥a T (bT+1 −g T )⊤∥+∥(a T (aT )⊤ −I d)a∗b∗⊤
+∥(134)
+=∥a T ∥∥bT+1 −g T ∥+∥(I d −a T (aT )⊤)a∗∥∥b∗∥(135)
+≤ϵ ′δT ∥b∗∥+δ T ∥b∗∥(136)
+= (1 +ϵ ′)ϵ∥b∗∥(137)
+= (1 +ϵ ′)ϵ∥a∗b∗⊤
+∥(138)
+where (136) is by Lemma A3.9 and the fact that ∥aT ∥= 1 , and (138) is due to the fact that
+∥xy⊤∥=∥x∥∥y∥and∥a ∗∥= 1.
+26

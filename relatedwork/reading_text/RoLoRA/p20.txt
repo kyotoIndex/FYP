@@ -1,0 +1,147 @@
+Meanwhile, denote thej-th row ofX i byx ⊤
+i,j, for everyw∈ N, we have
+a⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+w=
+mX
+j=1
+(a⊤xi,j)(x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w)(19)
+On the right hand side of(19), a⊤xi,j and x⊤
+i,j(Id−aa⊤)a∗b∗⊤
+w are sub-Gaussian random variables.
+Thus, the summands on the right-hand side of (19) are products of sub-Gaussian random variables,
+making them sub-exponential. Now by choosing c2 = (C ′)2 for the C ′ in Corollary A3.5, we have
+the following chain of inequalities for alli, j:
+∥(a⊤xi,j)(x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w)∥ψ1 ≤ ∥a ⊤xi,j∥ψ2 · ∥x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w∥ψ2 (20)
+≤c 2 · ∥a∥ · ∥(Id −aa ⊤)a∗b∗⊤w∥(21)
+≤c 2 · ∥a∥ · ∥(Id −aa ⊤)a∗b∗⊤∥op∥w∥(22)
+≤c 2 · ∥(Id −aa ⊤)a∗b∗⊤∥op (23)
+Equation (20) is due to Lemma A3.3, (21) is due to Corollary A3.5, (23) is by the fact that ∥a∥=
+∥w∥= 1.
+Furthermore, these summands are mutually independent and have zero mean. By applying sub-
+exponential Bernstein’s inequality (Theorem A3.8) witht=ϵ 2m∥(Id −aa ⊤)a∗b∗⊤
+∥op, we get
+P
+na⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+w
+ ≥ϵ 2m∥(Id −aa ⊤)a∗b∗⊤
+∥op
+o
+(24)
+=P
+
+
+
+
+mX
+j=1
+(a⊤xi,j)(x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w)
+
+≥ϵ 2m∥(Id −aa ⊤)a∗b∗⊤
+∥op
+
+
+ (25)
+≤2 exp
+ 
+−cmin
+ 
+ϵ2
+2m2∥(Id −aa ⊤)a∗b∗⊤
+∥2
+opPm
+j=1 ∥(a⊤xi,j)(x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w)∥2
+ψ1
+, ϵ2m∥(Id −aa ⊤)a∗b∗⊤
+∥op
+maxj ∥(a⊤xi,j)(x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w)∥ψ1
+!!
+(26)
+= 2 exp (−c3ϵ2
+2m)(27)
+for any fixedw∈ N,ϵ 2 ∈(0,1), and some absolute constantc 3. (27) follows because
+ϵ2
+2m2∥(Id −aa ⊤)a∗b∗⊤
+∥2
+opPm
+j=1 ∥(a⊤xi,j)(x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w)∥2
+ψ1
+≥ ϵ2
+2m
+c2
+2
+(28)
+ϵ2m∥(Id −aa ⊤)a∗b∗⊤
+∥op
+maxj ∥(a⊤xi,j)(x⊤
+i,j(Id −aa ⊤)a∗b∗⊤
+w)∥ψ1
+≥ ϵ2m
+c2
+(29)
+And ϵ2
+2m
+c2
+2
+≤ ϵ2m
+c2
+. Now we apply union bound over all elements in N . By Corollary 4.2.13 in [37],
+there exists anϵ 0-netNwith|N | ≤( 2
+ϵ0
++ 1)d, therefore for this choice ofN,
+P
+
+max
+w∈N
+a⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+w
+ ≥ϵ 2m∥(Id −aa ⊤)a∗b∗⊤
+∥op
+
+(30)
+≤
+X
+w∈N
+P
+na⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+w
+ ≥ϵ 2m∥(Id −aa ⊤)a∗b∗⊤
+∥op
+o
+(31)
+≤
+ 2
+ϵ0
++ 1
+d
+·2 exp (−c3ϵ2
+2m)(32)
+= 2 exp (dlog(1 + 2
+ϵ0
+)−c 3ϵ2
+2m)(33)
+Combining (15),(16), (18), and (33), we get
+P
+n
+∥˜bi −g∥ ≤ϵ ′∥(Id −aa ⊤)a∗b∗⊤
+∥op
+o
+≥1−p 0 (34)
+20

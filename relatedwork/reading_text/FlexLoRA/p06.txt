@@ -1,0 +1,83 @@
+includes over 1600 clients, the distribution of 76 task types across these clients means that some
+will inherently share similar local data distributions, thereby mirroring the natural variability and
+overlapping task characteristics often encountered in real-world settings. Unless stated otherwise, we
+conduct all our FL experiments on this dataset and adopt DataJucier (1.3B) as our foundation models
+[6], chosen for its suitability for edge devices with constrained resources. More details about data
+preparation are included in Appendix E.2.
+Table 1: The LoRA configurations that com-
+pose heterogeneous resource distributions,
+detailed in Figure 3.
+LoRA Config # Params
+Type 1 r = 8 on all layers 0.12 %
+Type 2 r = 30 on all layers 2.46 %
+Type 3 r = 30 on atten layer,
+r = 200 on FFN layer 8.22 %
+Type 4 r = 200 on all layers 12.22 %
+Uniform Heavy-tail-light Heavy-tail-strong Normal
+Resource Distributions
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8Ratio
+0.25
+0.80
+0.05 0.06
+0.25
+0.10
+0.05
+0.45
+0.25
+0.05
+0.10
+0.43
+0.25
+0.05
+0.80
+0.06
+Heterogeneous Resource Distribution Composition
+LoRA configurations
+Type 1
+Type 2
+Type 3
+Type 4
+Figure 3: Heterogeneous resource distributions contain-
+ing different ratios of various LoRA configuration types.
+4.2 Setup for FL Baselines
+Baselines with Homogeneous Rank. We adopt FedAvg [ 28], FedIT [ 43], and SLoRA [ 2] as
+baselines utilizing unvarying LoRA ranks. FedIT aggregates the LoRA module weight of each client
+by averaging which limits the local LoRA rank to meet the lowest resource constraint. Comparing
+with FedAvg, FedIT adopts Adam optimizer for local training instead of SGD optimizer. SLoRA first
+trains local client models with sparse fine-tuning for several epochs then switches to LoRA for PEFT
+and uses the updates from sparse fine-tuning as initialization.
+Baselines with Heterogeneous Ranks. Besides, we compare with HETLORA [ 8], a concurrent
+work exploring the effective utilization of diverse LoRA ranks in FL. It first employs zero-padding on
+all the LoRA matrices based on the largest rank, then conducts element-wise averages like FedAvg,
+and finally truncates the aggregated model to fit the local client LoRA rank.
+We note that both FlexLoRA and HETLORA are able to be plugged into the above-mentioned FL
+methods with homogeneous LoRA ranks. In our experiment, for each baseline with homogeneous
+rank, we also examine their performance after integration by either FlexLoRA or HETLORA.
+4.3 Unseen Client Generalization
+Evaluation Setup. Our initial examination focuses on the generalization capabilities of global models
+to unseen clients by deploying the models to clients with unseen data distributions. The unseen
+clients are newly sampled clients from the next communication round. This assessment allows us
+to measure zero-shot performance, a key indicator of a model’s ability to generalize beyond the
+data available during the training phase. This approach is to simulate the real FL setting, where
+well-trained global weights will be deployed to new clients rather than clients participating in the
+previous round. Specifically, we investigate the performance of global models trained with baseline
+methods both with and without the integration of FlexLoRA and HETLORA under four distinct
+resource heterogeneity scenarios.
+Overview Performance Comparison. Table 2 displays the zero-shot performance under Rouge-L
+scores on the test set from unseen clients, facilitating a comparison of the generalization capabilities
+across different federated global models. It is observed from the table that in most of the cases,
+methods with heterogeneous LoRA ranks have better performance than that of homogeneous ranks,
+indicating that heterogeneous LoRA ranks enhance the clients with larger ranks to fully exploit their
+capability. Furthermore, among the heterogeneous LoRA rank methods, our proposed FlexLoRA
+consistently outperforms HETLORA across all resource distribution settings. This shows that
+FlexLoRA is able to take advantage of heterogeneous resource distribution, and is more capable of
+leveraging the general information from heterogeneous LoRA configurations.
+6

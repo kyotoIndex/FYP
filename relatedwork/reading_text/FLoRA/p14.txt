@@ -1,0 +1,67 @@
+Figure 7: The impact of scaling factor on Llama2 model.
+Assumption 1. Each local objective function is L- smooth, that is, for all x and y, Fk(x) ≤
+Fk(y) + (x − y)T ∇Fk(y) + L
+2 ∥x − y∥2
+2
+Assumption 2. Each local objective function is µ - strongly convex that is, for all x and y, Fk(x) ≥
+Fk(y) + (x − y)T ∇Fk(y) + µ
+2 ∥x − y∥2
+2
+Assumption 3. The variance of stochastic gradients in each client is bounded: E∥∇Fk(W (t)
+k , ξ(t)
+k ) −
+∆W (t)
+k ∥2 ≤ σ2
+k for k = 1, ..., K, where ξ(t)
+k is the subset of training data randomly sampled from
+k-th client.
+Assumption 4. The expected squared norm of stochastic gradients is uniformly bounded:
+E∥∇Fk(W (t)
+k , ξ(t)
+k )∥2 ≤ G2 for all k = 1 , ..., K and t = 1 , ..., T, where ξ(t)
+k is the subset of
+training data randomly sampled from k-th client.
+For the convergence analysis of FLORA, we introduce an additional assumption 5 tailored to the
+specific dynamics of LoRA fine-tuning and its relation to traditional SGD-based full fine-tuning:
+Assumption 5. (Unbiased LoRA Gradient). The updates applied to LoRA modules by each client
+serve as unbiased estimators of the gradient that would be directly computed on the base model
+through SGD: B(t+1)
+k A(t+1)
+k − B(t)
+k A(t)
+k = η(t)∇Fk(W(t)
+k |ξ(t)
+k ). Note that we define the model
+parameter in t-th round by W(t).
+Theorem 1. Based on Assumptions 1-5, we choose k = L
+µ , γ = max{8k, E}. The local learning
+rate αk
+rk
+= 2
+µ(γ+t). Then, we can deduce that the expectation of the fine-tuning error in FL ORA can
+be bounded by:
+δ(T ) ≤ 2k
+γ + T ( M
+µ + 2L∥W(1) − W∗∥2), (13)
+where δ(T ) is the fine-tuning error in T -th round. δ(T ) and M are defined as follows:
+δ(T ) = E[F (w(T−1) + B(T )A(T ))] − F ∗,
+M =
+KX
+k=1
+p2
+kσ2
+k + 6LΓ + 8(E − 1)2G2.
+(14)
+where L, µ, σk, and G are defined by the assumptions 1-4. Γ is defined by Γ = F ∗ −PK
+k=1 pkF ∗
+k
+for quantifying the degree of non-iid. This theorem posits that as the number of rounds T approaches
+infinity, the expectation of the fine-tuning errorδ(T ) converges to zero. In contrast, FedIT deviates
+from the FedAvg model updating rule as depicted in Equation 2, introducing non-gradient noises
+through its averaging process. Therefore, it fails to achieve convergence at the rate of O(1/T ) While
+this deviation does not invalidate FedIT’s utility in federated fine-tuning, it significantly impairs its
+convergence rate and overall effectiveness.
+C Limitation
+Our approach has the limitation that the server sends the stacked LoRA modules to the client,
+thereby increasing the communication costs. We discussed this limitation both theoretically and
+14

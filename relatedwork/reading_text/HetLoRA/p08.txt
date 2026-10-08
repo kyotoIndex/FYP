@@ -1,0 +1,107 @@
+Reddit (RougeL) Multi-Session Chat (Perplexity)
+PaLM 2-XXS PaLM 2-XS PaLM 2-XXS PaLM 2-XS
+HETLORA, γ = 1 92 .17 (±0.08) 91 .95 (±0.03) 55 .07 (±0.81) 40 .92 (±0.58)
+HETLORA, γ = 0.99 94.23 (±0.03) 94.41 (±0.05) 53.93 (±1.57) 38.76 (±0.52)
+HETLORA, γ = 0.95 89 .62 (±1.33) 83 .19 (±1.70) 71 .10 (±1.39) 46 .39 (±0.87)
+HETLORA, γ = 0.85 60 .31 (±3.04) 53 .28 (±2.47) 120 .72 (±10.93) 59 .67 (±1.98)
+Table 4: Ablation study on the effect of the decaying factor γ for HETLORA’s self-rank pruning in the local training step.
+While aggressive pruning can be harmful to HETLORA’s performance, pruning (γ = 0.99) can outperform the case when there
+is no pruning at all (γ = 1) by reducing the noise introduced by large rank clients with low data complexity.
+Heterogeneous LoRA compared to Baselines.
+Finally, we compare our proposedHETLORA with
+other baselines in Table 3 and Fig. 5. We see
+that HETLORA with rmin = 5 and rmax = 50
+achieves faster training as well as better perfor-
+mance than homogeneous LoRA cases with both
+edge cases of the ranks r ∈ {5, 50} and reconos-
+truction+SVD which was explained in Section 3.4.
+This implies that HETLORA is not only practical
+in the sense that clients are allowed to have their
+own rank values, it can also outperform the lim-
+ited case of homogeneous LoRA where all clients
+have r = rmin or the impractical case where all
+clients have r = rmax. We also observe that HET-
+LORA achieves slightly lower performance than
+full fine-tuning. However, as shown in the blue
+text in Table 3 that shows the number of trained pa-
+rameters compared to the full fine-tuning case, full
+fine-tuning requires to train a much larger number
+of parameters compared to HETLORA, making it
+infeasible to train with ODFMs in practice. We
+also show in Fig. 6 that to achieve the targeted
+performance for both Reddit and MSC task, HET-
+LORA requires significantly less number of param-
+eters to be trained and communicated compared
+to full fine-tuning. Although for Reddit, HOM-
+LORA has a slightly less number of parameters
+to be trained, the final achieved RougeL is outper-
+formed by HETLORA as shown in Table 3.
+Effect of the Decaying Factor γ. Lastly, we
+conduct an ablation study on the effect of the de-
+caying factor γ of HETLORA’s local training step
+with self-rank pruning in Table 4. We observed that
+aggressive pruning hurts the performance where
+γ = 0 .85 shows the worse performance across
+the varying γ values. On the other hand, no prun-
+ing at all ( γ = 1 ) underperforms the case when
+there is pruning (γ = 0.99), showing that reducing
+the noise introduced by large rank clients which
+data complexity is actually not that high indeed
+improves the performance.
+0 50 100 150 200
+Communication Rounds
+40
+50
+60
+70
+80
+90
+100RougeL
+HomLoRA r = 5
+HomLoRA r = 50
+HetLoRA
+Full Fine-T une
+(a) Reddit
+0 50 100 150 200
+Communication Rounds
+102
+103
+Perplexity
+HomLoRA r = 5
+HomLoRA r = 50
+HetLoRA
+Full Fine-T une (b) MSC
+Figure 5: Comparison of the performance across homoge-
+neous LoRA, heterogeneous LoRA, and full fine-tuning. Het-
+erogeneous LoRA achieves better performance than homoge-
+neous LoRA with fewer number of communication rounds.
+
+
+ 	  
+
+
+
+Ratio of communicated parameter # to Full Fine-Tuning 
+FullHomLoRA(min rank)HomLoRA(max rank)HetLoRA
+RedditMSC1.0000.9980.0040.0020.000
+Figure 6: Ratio of communicated number of parameters for
+different PEFT methods to full fine-tuning to achieve the
+target value for the metric where it is RougeL 80 for Reddit
+text summarization task and perplexity 150 for the multi-
+session chat response task. The ‘X’ means that the target
+metric is not achieved even after convergence.
+5 Discussions and Concluding Remarks
+In our work, we investigated federated fine-tuning
+for ODFMs that cater to device system and data
+heterogeneity with our proposed HETLORA. We
+show that HETLORA is not only practical but
+also achieves better training speed, communica-
+tion/computation efficiency, and final performance
+compared to homogeneous LoRA. We also show
+interesting findings consistent with previous liter-
+ature (Hu et al., 2021; Zhang et al., 2023b) that
+increasing ranks does not always help for homoge-
+neous LoRA. Our findings in this work opens up
+several questions worth investigating. For instance,
+if the settings allow us to assign specific ranks to
+8

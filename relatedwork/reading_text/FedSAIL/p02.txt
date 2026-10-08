@@ -1,0 +1,81 @@
+Pretrained
+W
+B
+A
+r
++
+yk
+hk
+(a) LoRA
+Pretrained
+W
+Bk
+A
+r
++
+yk
+hk
+(b) FedSA-LoRA
+Pretrained
+W
+Bk
+Ak
+r
++
+yk
+hk
+Client input regimes
+Math
+Coding
+Natural language
+∫ x
+2
+dx
+</>
+Hello
+Input-aware action
+Bk Ak Gk
+Dominant right subspace
+Client input moment
+(c) FedSAIL (Ours)
+Frozen backbone Shared object Local object
+Σ𝑘 = 𝔼𝑘[ℎℎ⊤]
+Σ𝑘
+1/2
+Figure 1: Sharing in federated LoRA. (a) LoRA. (b) FedSA-LoRA shares A and retains Bk locally. (c)
+FedSAIL shares a spectral summary of the dominant right subspace ofG k =B kAkΣ1/2
+k .
+Initialization provides one reason for this distinction. FedSA-LoRA motivates sharing A by its higher
+cross-client similarity relative to B (Guo et al., 2025). However, recent analyses suggest that this apparent
+similarity may be largely inherited from common initialization (Zhu et al., 2024; Ban and Ji, 2026). Our
+controlled RoBERTa/RTE (Liu et al., 2019; Wang et al., 2018) experiment further supports this interpretation:
+the rowspace agreement of the final A falls to near-random levels under independent initialization, while the
+learned changes remain only weakly aligned under either initialization scheme.
+A further limitation of sharing only LoRA parameters is that it does not explicitly account for client-specific
+input distributions. Since each client induces a local input regime at every adapted layer, an update’s effect
+depends jointly on its weights and the hidden states it encounters. Differences in domain, prompts, or
+sequence length can therefore make even identical adapters behave differently across clients. These local
+input regimes are reflected in the hidden-state activations, motivating the use of activation statistics, such
+as second moments, to summarize their local geometry. Such statistics have already been used for adapter
+construction: EV A initializes LoRA input factors from dominant activation directions and allocates rank
+according to explained activation variance (Paischer et al., 2025), while CorDA uses activation covariance
+to orient decompositions of pretrained weights (Yang et al., 2024a). While these methods use activation
+statistics to construct adapters, we instead ask whether such statistics can reveal shared structure in learned
+updates across client-specific input regimes, motivating a shift beyond raw parameter sharing.
+To address this question, we introduce the input-aware action matrix Gk =B kAkΣ1/2
+k , where Σk =
+Ek
+
+hh⊤
+is the uncentered second moment of the local layer inputs. We defer its formal properties to
+Section 2.2, but intuitively, the leading right singular directions of Gk identify the input subspace where
+the adapter’s effect is most concentrated. This provides a natural and robust representation of cross-client
+common structure. Figure 1 (c) contrasts this action-based perspective with existing parameter-sharing
+approaches.
+Our empirical studies confirm that Gk uncovers a robust shared structure often obscured by raw parameter
+comparisons. In our RoBERTa/RTE diagnostic, the leading action direction remains aligned across clients
+even under independent initialization and captures substantially more action energy on a held-out client than
+matched geometric controls. Furthermore, a factorial GPT-2 study reveals that this geometric alignment
+is highly task-conditioned and depth-dependent: clients solving the same task remain more aligned across
+domains than clients solving different tasks. These results suggest a simple design principle: share only a
+2

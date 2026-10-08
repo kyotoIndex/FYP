@@ -1,0 +1,85 @@
+\vspace{-2mm}
+
+\section{Method}
+
+\vspace{-2mm}
+
+In this section, we introduce our AS-LoRA framework. We first describe the problem formulation of FL with LoRA, and then present the score computation algorithm $\mathcal{S}(\cdot)$ and the mode selection algorithm $\mathcal{M}(\cdot)$ that together determine which LoRA component is activated at each layer and communication round. The full algorithmic procedure and visual illustration of AS-LoRA are deferred to Appendix~\ref{sec:Appendix B}.
+
+\textbf{Problem formulation.}
+We consider a FL setting with $K$ clients and a central server. Each client holds a local dataset that is not shared with others, and the goal is to collaboratively fine-tune a large pre-trained model while preserving data privacy. Following Section \ref{sec:back}, the adapted weight matrix is parameterized as \(W = W_0 + BA\), where \(A\) and \(B\) denote the two low-rank components.
+Since LoRA is applied to multiple layers of the model, we further decompose the update into layer-wise adapters. Specifically, for the $n$-th layer at round $t$, the adapted weight can be written as
+$
+W_t(n) = W_0(n) + B^t(n)A^t(n),~ n \in \left[N \right],
+$
+where $N$ denotes the total number of LoRA layers.
+
+
+\textbf{Score computation algorithm.} To determine which LoRA component should be activated at each communication round, we design a score function based on a second-order approximation of the expected loss decrease after a gradient update. Let $a \in \{A, B\}$ denote a candidate LoRA component. For a given layer $n$, we consider one gradient descent step at round $t$,
+$
+W' = W_t - \eta \nabla_{a(n)} L(W_t),
+$
+whose resulting change in the loss admits the second-order Taylor approximation
+$
+L(W') \approx L(W_t) 
+- \eta \|\nabla_{a(n)} L(W_t)\|^2 
++ \frac{\eta^2}{2} \nabla_{a(n)} L(W_t)^\top H_{a(n)}(W_t) \nabla_{a(n)} L(W_t),
+$
+where $H_{a(n)}(W_t)$ is the Hessian with respect to the parameter block $a(n)$. This motivates the following score function:
+\begin{equation}
+\label{eq:score_function} 
+\mathcal{S}_{a(n)}(W_t) =
+\|\nabla_{a(n)} L(W_t)\|^2 
+- \frac{\eta}{2}\, \nabla_{a(n)} L(W_t)^\top H_{a(n)}(W_t)\, \nabla_{a(n)} L(W_t),
+\end{equation}
+where we omit the client index $k$ throughout this derivation for notational clarity. The two terms in $\mathcal{S}_{a(n)}$ admit complementary interpretations from two well-established design principles. The \emph{first term} extends the classical Gauss--Southwell rule of block coordinate descent (BCD)~\cite{nesterov2012bcd}, which selects the block with the largest gradient magnitude and yields strictly faster convergence than uniform block selection. The \emph{second term} introduces a curvature-induced penalty whose effect mirrors the implicit bias of sharpness-aware minimization (SAM)~\cite{foret2021sam}, which discourages updates along directions in which a gradient step would overshoot a sharp region of the loss surface. Selecting the block that maximizes $\mathcal{S}_{a(n)}$ therefore corresponds to choosing the LoRA component that offers the largest expected one-step loss decrease while preferring flatter regions of the loss landscape. We formally establish these two design benefits in Theorem~\ref{thm:conv} and Theorem~\ref{thm:implicit}. 
+
+
+
+Now, we introduce the Gaussian random projection \cite{johnson1984extensions}, which is applied to the computed score \eqref{eq:score_function}. Recent studies have shown that large language models often exhibit channel-wise activation outliers  \cite{xiao2023smoothquant, lin2024awq}. \cite{jung2025gralora} further shows that the gradient magnitude of the $A$ component is highly concentrated in a small subset of channels, and the squared-gradient term $\|\nabla_{a(n)} L(W_t)\|^2$ in \eqref{eq:score_function}) can lead to an overestimation of the score of the $A$ component. To alleviate this, we apply the random projection step as follow.
+For each LoRA component, we construct a random projection matrix in the original gradient space that preserves the original dimensionality while redistributing channel-wise outliers across coordinates, denoted as
+%Specifically, for each LoRA component, we construct a Gaussian random projection matrix that maps the original gradient to a lower-dimensional subspace, denoted as $
+$
+R_A(n), 
+R_B(n).
+$
+For client $k$ at round $t$, let
+$
+g_{a,k}^t(n) = \nabla_{a(n)} \mathcal{L}_k^t, 
+% g_{B,k}^t(n) = \nabla_{B_k^t(n)} \mathcal{L}_k^t,
+$
+denote the locally computed gradients with respect to the LoRA components of layer $n$. 
+We project these gradients as
+$
+\widetilde{g}_{A,k}^t(n) = g_{A,k}^t(n) R_A(n), \quad
+\widetilde{g}_{B,k}^t(n) = R_B(n) g_{B,k}^t(n),
+$
+so that the projected gradients redistribute channel-wise outliers across dimensions. The effectiveness of random projection is empirically validated in Appendix~\ref{app:random_projection}. In additoin, we remark that our score computation is \emph{single-pass}, \emph{i.e.,} the scores are obtained as a by-product of local training phase. As an alternative, one could consider a \emph{two-pass inner-loop computation} that re-evaluates the score after the globally aggregated model is redistributed to the clients. We empirically compare the two designs in terms of performance, and overhead (Appendix~\ref{app:pass}).
+
+\textbf{Mode selection algorithm.} We now design a mode selection algorithm, denoted by $\mathcal{M}(\cdot)$ which determines the active LoRA component for each layer at round $t$ using the layer-wise scores calculated from stored scores and aggregate scores in an Exponential Moving Average (EMA) manner. The algorithm outputs the \emph{mode vector} indicating which component should be optimized.  
+We denote the mode vector at round $t$ as
+$
+\{M^t(1), M^t(2), \dots, M^t(N)\},~ M^t(n) \in \{0,1\},
+$
+where $M^t(n)=0$ indicates that $A^t(n)$ is optimized and $M^t(n)=1$ indicates that $B^t(n)$ is optimized during round $t$. 
+Accordingly, we define the layer-wise scores as $
+\hat{S}_a^t(n) := \mathrm{EMA}\!\left(\hat{S}_a^{t-1}(n), S_a^t(n)\right),
+$
+where $S_a^t(n):=\tfrac{1}{K}\sum_{k=1}^{K} S_{a,k}^t(n)$. Instead of deterministically selecting the component with the larger score, we use a temperature-scaled softmax strategy. 
+This approach encourages exploration during training and is consistent with the common practice of temperature annealing \cite{jang2016categorical, maddison2016concrete}. The probability of selecting $a$ at round $t$ is defined as
+$
+P^t(a,n)=
+\frac{\exp\!\left(\hat{S}_a^{t}(n)/T^t\right)}
+{\exp\!\left(\hat{S}_A^{t}(n)/T^t\right)+\exp\!\left(\hat{S}_B^{t}(n)/T^t\right)},
+$
+where $T^t$ is the temperature parameter at round $t$.
+The temperature follows an annealing schedule
+\begin{equation}
+T^t =
+\begin{cases}
+T^0, & t \le t_w, \\
+\max\!\left(T_{\min},\, T^0 \cdot \gamma^{(t-t_w)}\right), & t > t_w ,
+\end{cases}
+\end{equation}
+where $T^0$ is the initial temperature, $T_{\min}$ is the minimum temperature, $\gamma \in (0,1)$ is the decay factor, and $t_w$ denotes the warm-up period.
+During the warm-up stage ($t \le t_w$), the two LoRA components are alternately activated across rounds. The stochastic selection mechanism prevents premature convergence to a single component while allowing the framework to gradually favor the component with consistently higher scores as the temperature decreases. We remark that our mode selection operates on scores aggregated by \emph{uniform averaging} across clients, which gives equal weight to every client and and can be regarded as the standard choice. In Appendix~\ref{app:selection_rule}, we compare this design against two alternative aggregation rules, namely \emph{majority voting} and \emph{weighted averaging}.

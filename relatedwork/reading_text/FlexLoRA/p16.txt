@@ -1,0 +1,47 @@
+Table 8: The example of prompt template for training, adapting from Table 7.
+Instruction In this task your given two statements. You must judge whether the second sentence is the cause
+or effect of the first one. Label the instances as “cause” or “effect” based on your judgment. The
+sentences are separated by a newline character.
+Input The woman tolerated her friend’s difficult behavior. The woman knew her friend was going through a
+hard time.
+Output “cause”
+Category Cause Effect Classification
+training duration. Besides, the batch size is set as 4 via searching from a range of {2,4,16}. The
+maximum token length is 512. All the experiments are repeated with 2 random seeds and we report the
+standard deviations. More details about the computational infrastructure and cost for our experiments
+are in Appendix K.
+For the sparse fine-tuning stage of SLoRA, we set its sparsity corresponding with the resource cost of
+the client’s LoRA configuration shown in Table1. For example, if the client is assigned with Type 1
+LoRA configuration, we will generate a mask with a sparsity of 0.12%. For HETLORA, following
+the original paper, we adopt 0.99 as the decay factor for rank pruning and search the regularization
+factor from a range of {5e-2, 5e-3, 5e-4}. For both the experiments integrated with and without
+FlexLoRA, we grid search their learning rates from a range of {5e-2, 5e-3, 5e-4} for FedAvg, and
+{5e-4, 1e-4, 5e-5, 1e-5} for FedIT and SLoRA, both accompanied with a linear scheduler which
+decays from the initial learning rate to 0.
+E.2 Cross-Task Splitter Details
+Echoing findings from [39] on model performance saturation with few data instances, we randomly
+sample 10% of each task’s data to scale experiments. For all the datasets we used, data for each client
+is partitioned into training, validation, and testing sets in a ratio of 8:1:1. In the initial setup of the
+natural instruction dataset, each task is accompanied by its definition, along with a positive example
+and a negative example. To adapt this dataset for model fine-tuning through instruction tuning, we
+transform the structure so that the task definition serves as the direct instruction for each data instance.
+This restructuring is illustrated by comparing the original and modified data formats in the natural
+instruction dataset, as shown in Table 7 and Table 8. This adjustment ensures that each instance is
+now explicitly aligned with its instructional context, facilitating a more straightforward and effective
+fine-tuning process.
+E.3 Choice of Layers for applying LoRA
+We explore the influence of insertion layers of LoRA on the performance of the fine-tuning. While
+[16] and [8] add LoRA on all the attention layers, [43] adds LoRA on all the linear layers, i.e., the
+attention layers and Feed-Forward Network layers. We experimented with both approaches to adding
+LoRA. From Table 9, we demonstrate that adding LoRA to both the attention layers and Feed-Forward
+Network layers boosts generalization performance and adopt this setting in our experiments.
+Table 9: Impact of choosing different layers to apply LoRA module. The results are zero-shot
+Rouge-L score of the global model. For the experiment that uses FlexLoRA for aggregation, the
+client resource distribution is uniform.
+Experiment Atten Layers All layers
+FedIT 0.5701 0.6195
+w/ FlexLoRA 0.5751 0.6211
+F Relative Improvement for Table 2 and Significant Test
+Table 10 presents the percentage of improvement for Table 2, providing a more straightforward
+overview of the enhancement of FlexLoRA.
+16

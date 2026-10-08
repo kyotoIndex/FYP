@@ -1,0 +1,134 @@
+introducing heterogeneous LoRA we truncate the
+LoRA modules’ rank dimension, for example from
+B ∈ Rd×r, A ∈ Rr×l to B′ ∈ Rd×r′
+, A′ ∈
+Rr′×l where r′ < r . Throughout the paper, we
+denote such truncation of a matrix with the : sym-
+bol for each row and column at the subscript. For
+instance, for truncation to r′ < r at the column
+for the matrix B ∈ Rd×r, we keep all the columns
+until r′ and omit the last r − r′ columns and denote
+the resulting matrix it as B:,:r′.
+3.2 Naïve Case: Homogeneous LoRA
+A straightforward way to perform federated fine-
+tuning with LoRA is to train the LoRA mod-
+ules B, A with homogeneous rank r across all
+clients with standard FL (McMahan et al., 2017).
+Specifically, first the clients have the pre-trained
+ODFM weights W0 stored in their devices prior
+to training for the forward pass when training the
+LoRA modules. Then, the server sends the global
+LoRA modules B
+(t)
+, A
+(t)
+to the set of m selected
+clients S (t) per communication round t. Each se-
+lected client k ∈ S (t) trains the LoRA modules
+on their local data for a few local iterations (usu-
+ally with mini-batch SGD) and send the updated
+modules B(t)
+k , A(t)
+k back to the server. The server
+then updates the global LoRA modules accord-
+ingly to B
+(t+1)
+= P
+k∈S(t) B(t)
+k /m, A
+(t+1)
+=P
+k∈S(t) A(t)
+k /m and sends back to the next set of
+selected clients for the next communication round.
+This training process is nearly identical to the stan-
+dard FL algorithm (McMahan et al., 2017) except
+that the pretrained weights W0 are freezed and
+locally stored in the clients’ devices and only the
+LoRA moduels are trained and communicated.
+Instead of such homogeneous rank deployment
+across all clients, it is not only possible but more
+practical to use heterogeneous rank deployment
+for federated fine-tuning. This involves training
+LoRA modules with varying ranks on different
+clients, based on their system capabilities. Such
+setting is motivated and often required from the sys-
+tem constraints of the clients (Wang et al., 2021)
+where most of the clients are only capable of hav-
+ing smaller ranks while a few can handle larger
+ranks. However, this approach poses challenges in
+aggregating and redistributing the LoRA modules.
+To address these challenges, we introduce a solu-
+tion called HETLORA, which pushes the limits
+beyond homogeneous LoRA deployment.
+3.3 Proposed Method: Heterogeneous LoRA
+Overview. Our proposed heterogeneous LoRA
+method, namely HETLORA, is not restricted to any
+specific method to assign the ranks to the clients
+and the clients can decide their respective ranks
+themselves. For formality, in our paper, we for-
+mulate that each client has a rank denoted as rk,
+within a range of rk ∈ [rmin, r max], ∀k (see Fig. 1).
+HETLORA comprises three steps: 1) Distribution
+via Truncation, 2) Local Training with Rank Self-
+Pruning, and 3) Sparsity-Weighted Aggregation of
+the LoRA modules. These steps are detailed fur-
+ther in the subsequent paragraphs. An overview of
+HETLORA is illustrated in Fig. 2.
+1) Distribution via Truncation. At the begin-
+ing of each communication round t, the server
+holds initial global LoRA modules B
+(t)
+, A
+(t)
+with
+a global rank r(t). The value of the global rank r(t)
+depends on how we aggregate the heterogeneous
+rank LoRA modules which is elaborated on in step
+3). The server then distributes these global LoRA
+modules to a subset of selected set of clients S (t)
+with heterogeneous ranks r(t)
+k , k ∈ S (t) for local
+training1. With the given global LoRA modules,
+we consider a simple and intuitive method of trun-
+cation where the server sendsB
+(t)
+:,:rk , A
+(t)
+:rk,: to each
+client k with rank r(t)
+k for local training where we
+omitted the superscript for rk for simplicity.
+2) Local Training with Rank Self-Pruning.
+After receiving LoRA modules from the server
+as B(t,0)
+k = B
+(t)
+:,:rk , A(t,0)
+k = A
+(t)
+:rk,:, each client
+k ∈ S (t) performs τ local iterations of mini-batch
+SGD on their local data to minimize the local ob-
+jective 1
+|Bk|
+P
+ξ∈Bk ℓ((Bk, Ak), ξ|W0), and sends
+back the updated LoRA modules B(t,τ )
+k ∈ Rd×r(t)
+k
+and A(t,τ )
+k ∈ Rr(t)
+k ×l to the server. This is the
+same process as the standard local training step
+in vanilla FedAvg (McMahan et al., 2017). How-
+ever, we improve this vanilla local training step
+by adding a rank self-pruning mechanism where
+clients self-prune their respective ranks depending
+on the magnitude of the model parameters.
+1There is a superscript t for the ranks r(t)
+k across clients
+which indicates that in HETLORA these heterogeneous ranks
+can be changed over the communication rounds via self-
+pruning explained in step 2).
+4

@@ -1,0 +1,51 @@
+Published as a conference paper at ICLR 2023
+ADALORA: A DAPTIVE BUDGET ALLOCATION FOR
+PARAMETER -E FFICIENT FINE -T UNING
+Qingru Zhang†∗, Minshuo Chen ‡, Alexander Bukharin †, Nikos Karampatziakis ⋄,
+Pengcheng He⋄, Yu Cheng⋄, Weizhu Chen⋄ and Tuo Zhao†
+†Georgia Institute of Technology ‡Princeton University ⋄Microsoft Azure AI
+{qingru.zhang,abukharin3,tourzhao}@gatech.edu
+mc0750@princeton.edu
+{nikosk,penhe,yu.cheng,wzchen}@microsoft.com
+ABSTRACT
+Fine-tuning large pre-trained language models on downstream tasks has become
+an important paradigm in NLP. However, common practice fine-tunes all of the
+parameters in a pre-trained model, which becomes prohibitive when a large number
+of downstream tasks are present. Therefore, many fine-tuning methods are proposed
+to learn incremental updates of pre-trained weights in a parameter efficient way,
+e.g., low-rank increments. These methods often evenly distribute the budget
+of incremental updates across all pre-trained weight matrices, and overlook the
+varying importance of different weight parameters. As a consequence, the fine-
+tuning performance is suboptimal. To bridge this gap, we propose AdaLoRA,
+which adaptively allocates the parameter budget among weight matrices according
+to their importance score. In particular, AdaLoRA parameterizes the incremental
+updates in the form of singular value decomposition. Such a novel approach
+allows us to effectively prune the singular values of unimportant updates, which
+is essentially to reduce their parameter budget but circumvent intensive exact
+SVD computations. We conduct extensive experiments with several pre-trained
+models on natural language processing, question answering, and natural language
+generation to validate the effectiveness of AdaLoRA. Results demonstrate that
+AdaLoRA manifests notable improvement over baselines, especially in the low
+budget settings. Our code is publicly available at https://github.com/
+QingruZhang/AdaLoRA.
+1 I NTRODUCTION
+Pre-trained language models (PLMs) have manifested superior performance in various natural
+language processing tasks (Devlin et al., 2019; Liu et al., 2019; He et al., 2021b; Radford et al.,
+2019; Brown et al., 2020). The most common way to adapt pre-trained models to down-stream
+tasks is to fine-tune all the parameters (full fine-tuning, Qiu et al. (2020); Raffel et al. (2020)).
+However, pre-trained models typically incurs large memory footprint. For example, BERT model
+(Devlin et al., 2019) consists up to 300 million parameters; T5 (Raffel et al., 2020) comprises up
+to 11 billion parameters and GPT-3 (Brown et al., 2020) contains up to 175 billion parameters.
+When building a NLP system upon these pre-trained models, we usually handle multiple tasks
+that arrive simultaneously (Radford et al., 2019). Given a large number of down-stream tasks, full
+fine-tuning requires that each task maintains a separated copy of large models. The resulting memory
+consumption is prohibitively expensive.
+To address this issue, researchers have proposed two main lines of research to reduce the fine-tuning
+parameters, while maintaining or even improving the performance of PLMs. Specifically, one line
+of research focuses on adding small neural modules to PLMs and fine-tune only these modules for
+each task – the base model is kept frozen and shared across tasks. In this way, only a small number
+of task-specific parameters are introduced and updated, greatly enhancing the practicality of large
+models. For example, adapter tuning (Houlsby et al., 2019; Rebuffi et al., 2017; Pfeiffer et al., 2020;
+∗Work was done during Qingru Zhang’s internship at Microsoft Azure AI.
+1
+arXiv:2303.10512v2  [cs.CL]  20 Dec 2023

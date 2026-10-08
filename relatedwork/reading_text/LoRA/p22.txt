@@ -1,0 +1,51 @@
+Method WebNLG
+BLEU↑ MET↑ TER↓
+U S A U S A U S A
+GPT-2 Medium
+Fine-Tune (354M) 27.7 64.2 46.5 .30 .45 .38 .76 .33 .53
+AdapterL (0.37M) 45.1 54.5 50.2 .36 .39 .38 .46 .40 .43
+AdapterL (11M) 48.3 60.4 54.9 .38 .43 .41 .45 .35 .39
+FTTop2 (24M) 18.9 53.6 36.0 .23 .38 .31 .99 .49 .72
+Preﬁx (0.35M) 45.6 62.9 55.1 .38 .44 .41 .49 .35 .40
+LoRA (0.35M) 46.7±.4 62.1±.2 55.3±.2 .38 .44 .41 .46 .33 .39
+GPT-2 Large
+Fine-Tune (774M) 43.1 65.3 55.5 .38 .46 .42 .53 .33 .42
+AdapterL (0.88M) 49.8±.0 61.1±.0 56.0±.0 .38 .43 .41 .44 .35 .39
+AdapterL (23M) 49.2±.1 64.7±.2 57.7±.1 .39 .46 .43 .46 .33 .39
+Preﬁx (0.77M) 47.7 63.4 56.3 .39 .45 .42 .48 .34 .40
+LoRA (0.77M) 48.4±.3 64.0±.3 57.0±.1 .39 .45 .42 .45 .32 .38
+Table 14: GPT-2 with different adaptation methods on WebNLG. The variances of MET and TER
+are less than 0.01 for all the experiments we ran. “U” indicates unseen categories, “S” indicates seen
+categories, and “A” indicates all categories in the test set of WebNLG.
+F.2 A DDITIONAL EXPERIMENTS ON GPT-3
+We present additional runs on GPT-3 with different adaptation methods in Table 15. The focus is on
+identifying the trade-off between performance and the number of trainable parameters.
+F.3 L OW-DATA REGIME
+To evaluate the performance of different adaptation approaches in the low-data regime. we randomly
+sample 100, 1k and 10k training examples from the full training set of MNLI to form the low-data
+MNLI-n tasks. In Table 16, we show the performance of different adaptation approaches on MNLI-
+n. To our surprise, PreﬁxEmbed and PreﬁxLayer performs very poorly on MNLI-100 dataset, with
+PreﬁxEmbed performing only slightly better than random chance (37.6% vs. 33.3%). PreﬁxLayer
+performs better than PreﬁxEmbed but is still signiﬁcantly worse than Fine-Tune or LoRA on MNLI-
+100. The gap between preﬁx-based approaches and LoRA/Fine-tuning becomes smaller as we in-
+crease the number of training examples, which might suggest that preﬁx-based approaches are not
+suitable for low-data tasks in GPT-3. LoRA achieves better performance than ﬁne-tuning on both
+MNLI-100 and MNLI-Full, and comparable results on MNLI-1k and MNLI-10K considering the
+(±0.3) variance due to random seeds.
+The training hyperparameters of different adaptation approaches on MNLI-n are reported in Ta-
+ble 17. We use a smaller learning rate for PreﬁxLayer on the MNLI-100 set, as the training loss does
+not decrease with a larger learning rate.
+G M EASURING SIMILARITY BETWEEN SUBSPACES
+In this paper we use the measure φ(A, B, i, j) = ψ(Ui
+A, Uj
+B) = ∥U i⊤
+A UB∥2
+F
+min{i,j} to measure the subspace
+similarity between two column orthonormal matrices Ui
+A ∈ Rd×i and Uj
+B ∈ Rd×j, obtained by
+taking columns of the left singular matrices of A and B. We point out that this similarity is simply
+a reverse of the standard Projection Metric that measures distance between subspaces Ham & Lee
+(2008).
+22

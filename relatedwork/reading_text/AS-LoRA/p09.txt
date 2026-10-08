@@ -1,0 +1,83 @@
+solution appears to suggest a flatter optimization geometry. Such flatness is known to correlate with
+improved stability and generalization [45], which is consistent with the empirical results in TABLE 3
+and TABLE 4.
+Table 8: Comparison of curva-
+ture computation schedules in AS-
+LoRA under DP-SGD (ϵ= 3).
+Method MNLI (m) MNLI (mm)
+Periodic computation
+(f=5) 77.99±1.1779.39±1.07
+(f=10) 78.83±1.0879.76±0.80
+Late-phase computation
+(T ∗=80) 78.91±1.1179.87±0.95
+(T ∗=90) 78.85±0.8880.11±0.74
+Original
+Proposed (ours)79.15±0.2380.03±0.40
+Overhead analysis.Under AS-LoRA with FD approxima-
+tion, each client evaluates the local loss at two perturbed points
+Lt
+k
+
+Wt ±ϵ fdvt
+a,k(n)
+
+per layer (Algorithm 4). In our setting,
+this incurs a 160% increase in training cost over the baseline,
+which may be impractical for resource-constrained deployments.
+We therefore propose two complementary strategies that jointly
+reduce this overhead from 160% to 8% while preserving the
+performance gains.One-sided FD.Replacing the symmetric
+difference with the forward difference Lt
+k
+
+Wt +ϵ fdvt
+a,k(n)
+
+−
+Lt
+k(Wt) requires only a single additional forward pass, halving
+the curvature-evaluation cost.Occasional curvature computa-
+tion.We reduce the frequency of computing the curvature part
+g⊤
+a Haga in Sa =∥g a∥2 − η
+2 g⊤
+a Haga, and uses only ∥ga∥2, which is free through training, otherwise.
+We compare two scheduling variants:(i) Periodic computation, inspired by the periodic SVD [16],
+evaluates the full score every f∈ {5,10} rounds, and(ii) Late-phase computationevaluates it only
+after round T ∗ ∈ {80,90} . The latter is motivated by our empirical observation that ∥ga∥2 dominate
+the optimization in early training, whereas g⊤
+a Haga becomes informative as ∥ga∥2 diminishes. As
+shown in Table 8, late-phase computation matches the full FD-based AS-LoRA and incur only a
+marginal performance drop in terms of variance, causing only a 8% computation increase at T ∗ = 90
+(20× reduction from the original). These results suggest that full per-round curvature scoring is
+unnecessary, and that selective computation, at the last phase in particular, can substantially reduce
+overhead. Communication overhead is negligible: AS-LoRA introduces only N scalar scores (up-
+link) and N mode bits (downlink) per round, accounting for less than 0.02% of the active LoRA
+parameter traffic in our 24-layer configuration. Detailed analyses are provided in Appendix J.5 and
+Appendix J.6.
+Effect of gradient smoothing under DP-SGD.Motivated by prior work [ 46, 47, 48] demonstrating
+that applying smoothing after Gaussian noise injection in DP-SGD improves utility, we investigate
+several smoothing strategies such as Gaussian, Laplacian, and EMA applied to our method. Detailed
+results are provided in Appendix J.7.
+6 Conclusion
+In this paper, we proposed AS-LoRA, an adaptive optimization framework for LoRA in differentially
+private FL. Different to the prior work on federated LoRA whose optimization is fixed or layer-tied,
+AS-LoRA introduces a layer-wise adaptive selection mechanism that dynamically determines which
+component to update based on a theoretically grounded score function. We provided theoretical
+analysis showing that AS-LoRA eliminates the irreducible reconstruction error floor of static methods
+and achieves accelerated convergence with implicit flatter solution, without incurring additional
+privacy cost. Empirically, AS-LoRA consistently outperforms prior methods across language and
+vision tasks under non-IID and differentially private settings.
+Limitations and future works.Our current analysis and algorithm focus on layer-wise greedy
+selection. While this design enables tractable analysis and strong empirical performance, it does not
+explicitly account for possible dependencies across layers. In practice, the mode selection dynamics
+in Appendix J.8 suggest that, particularly for language tasks, cross-layer structure may exist in the
+selection process. Extending AS-LoRA to a joint layer-wise decision framework that models such
+inter-layer correlations is an important direction for future work.
+Broader impacts.The proposed method advances differentially private FL, which has clear positive
+societal impact by enabling collaborative model training without exposing private user data—relevant.
+Potential negative impacts are limited: the method is an optimization technique for fine-tuning
+foundation models and does not directly enable new harmful capabilities. Improving DP fine-tuning
+efficiency could in principle lower barriers to deploying powerful models, but this is a general concern
+shared by all efficiency improvements in machine learning and not specific to this work.
+9

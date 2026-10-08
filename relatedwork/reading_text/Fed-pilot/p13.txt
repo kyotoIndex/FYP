@@ -1,0 +1,75 @@
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+LayerNorm
+Linear 𝑊𝑄
+Linear 𝑊𝑄
+Linear 𝑊𝑄 Linear 𝑊𝑄
+Linear 𝑊𝑄
+Linear 𝑊𝐾 Linear 𝑊𝑄
+Linear 𝑊𝑄
+Linear 𝑊𝑉
+A
+B
+MatMul
+SoftMax
+MHSA
+A
+B
+A
+B A
+B
+A
+B
+A
+B
+Dense
+MatMul
+LayerNorm
+Dense
+GELU
+DenseFFN
+B: Batch      H: Hidden      T: Sequence      R: LoRA Rank 
+    Dynamic Activation           Static Activation
+Trainable
+9*B*T*H+2*B*T*T=B*T*(9H+2T)=B*197*(9*768+2*197)=1439282B=11.514256MB
+2*B*T*H+2*B*T*R=B*T*(2H+2R)=B*197*(2*768+2*16)=   398896B=3.191168MB
+Dynamic/Static=0.21
+Element Size=4
+optimizer_state_memory_ = 3 * sum(p.numel() * p.element_size() for p in model.parameters() if p.requires_grad)
+params_memory_ = sum(p.numel() * p.element_size() for p in model.parameters())
+activations_attention=Static+Dynamic
+B × T × H
+B × T × R
+B × T × H
+B × T × R
+B × T × H
+B × T × H 2 ×
+B × T × T
+B × T × H + B × T × T
+B × T × H
+B × T × 4 × H
+ViT
+Figure 7: Illustration of activation memory usage in a transformer block for the ViT-base model (the rest layers are frozen if
+not specified.
+Table 10: Details of transformer block of for ViT-base, including the internal layer types, descriptions, activation sizes, and
+type of activations [1].
+Table 11: Memory consumption estimates for training different LoRA modules.
+Module Type of Layer Description # Activations Type of Activations
+MHSA
+Dense attention.query 𝐵 × 𝑇 × 𝐻 Dynamic
+Dense attention.query.lora.B 𝐵 × 𝑇 × 𝑅 Dynamic
+Dense attention.value 𝐵 × 𝑇 × 𝐻 Dynamic
+Dense attention.value.lora.B 𝐵 × 𝑇 × 𝑅 Dynamic
+MatMul - 𝐵 × 𝑇 × 𝐻 (2×) Static
+Softmax - 𝐵 × 𝑇 × 𝑇 Static
+MatMul - 𝐵 × 𝑇 × 𝐻 & 𝐵 × 𝑇 × 𝑇 Static
+LayerNorm attention.output 𝐵 × 𝑇 × 𝐻 Static
+FFN GELU - 𝐵 × 𝑇 × 4𝐻 Static
+LayerNorm output 𝐵 × 𝑇 × 𝐻 Static
+A.3 Dynamic and Static Activations: An Example for ViT-base with LoRA module
+In the previous sections, we defined dynamic and static activations. Here, we provide a real example using the ViT-base [9] model, which
+consists of 12 transformer blocks with LoRA modules added to the attention layers. Figure 7 illustrates the activation memory usage in a
+transformer block of ViT-base, where only the LoRA modules are trainable.
+Among different operations, GELU, MatMul, Softmax, and LayerNorm involve static activations, as summarized in Table 11. Notably,
+MatMul and Softmax share the same activations—Softmax stores its output during the forward pass for reuse in backward computations,
+while MatMul requires its input for backpropagation. Since Softmax’s output serves as MatMul’s input during the forward pass, both
+operations rely on the same activations.

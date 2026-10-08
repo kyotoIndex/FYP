@@ -1,0 +1,72 @@
+H. Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, Blaise Ag ¨uera y Arcas
+Figure 2: Test set accuracy vs. communication rounds
+for the MNIST CNN (IID and then pathological non-IID)
+and Shakespeare LSTM (IID and then by Play&Role) with
+C = 0.1 and optimizedη. The gray lines show the target
+accuracies used in Table 2. Plots for the 2NN are given as
+Figure 7 in Appendix A.
+in Appendix A.
+Can we over-optimize on the client datasets? The cur-
+rent model parameters only inﬂuence the optimization per-
+formed in each ClientUpdate via initialization. Thus,
+asE → ∞ , at least for a convex problem eventually the
+initial conditions should be irrelevant, and the global min-
+imum would be reached regardless of initialization. Even
+for a non-convex problem, one might conjecture the algo-
+rithm would converge to the same local minimum as long as
+the initialization was in the same basin. That is, we would
+expect that while one round of averaging might produce a
+reasonable model, additional rounds of communication (and
+averaging) would not produce further improvements.
+Figure 3 shows the impact of largeE during initial training
+on the Shakespeare LSTM problem. Indeed, for very large
+numbers of local epochs, FedAvg can plateau or diverge.7
+This result suggests that for some models, especially in the
+later stages of convergence, it may be useful to decay the
+7Note that due to this behavior and because for large E not all
+experiments for all learning rates were run for the full number of
+rounds, we report results for a ﬁxed learning rate (which perhaps
+surprisingly was near-optimal across the range of E parameters)
+and without forcing the lines to be monotonic.
+Figure 3: The effect of training for many local epochs (large
+E) between averaging steps, ﬁxingB = 10 andC = 0.1 for
+the Shakespeare LSTM with a ﬁxed learning rateη = 1.47.
+0 500 1000 1500 2000 2500 3000
+Communication Rounds
+0.2
+0.4
+0.6
+0.8
+1.0
+Test Accuracy
+CIFAR-10
+FedAvg, η=0.05
+FedAvg, η=0.15
+FedAvg, η=0.25
+FedSGD, η=0.45
+FedSGD, η=0.6
+FedSGD, η=0.7
+Figure 4: Test accuracy versus communication for the CI-
+FAR10 experiments. FedSGD uses a learning-rate decay
+of 0.9934 per round; FedAvg usesB = 50, learning-rate
+decay of 0.99 per round, andE = 5.
+amount of local computation per round (moving to smaller
+E or larger B) in the same way decaying learning rates
+can be useful. Figure 8 in Appendix A gives the analo-
+gous experiment for the MNIST CNN. Interestingly, for this
+model we see no signiﬁcant degradation in the convergence
+rate for large values ofE. However, we see slightly better
+performance for E = 1 versusE = 5 for the large-scale
+language modeling task described below (see Figure 10 in
+Appendix A).
+CIFAR experiments We also ran experiments on the
+CIFAR-10 dataset [24] to further validate FedAvg. The
+dataset consists of 10 classes of 32x32 images with three
+RGB channels. There are 50,000 training examples and
+10,000 testing examples, which we partitioned into 100
+clients each containing 500 training and 100 testing exam-
+ples; since there isn’t a natural user partitioning of this data,
+we considered the balanced and IID setting. The model
+architecture was taken from the TensorFlow tutorial [ 38],
+which consists of two convolutional layers followed by two
+fully connected layers and then a linear transformation layer

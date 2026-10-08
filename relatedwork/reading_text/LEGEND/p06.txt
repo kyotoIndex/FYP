@@ -1,0 +1,169 @@
+the number of transformer layers in the pre-trained model θ.
+The LoRA layers eθh
+i,l ∈ eθh
+i includes coupled LoRA matrices
+for all linear layers in transformer layer l. The coupled LoRA
+matrices include two components, i.e., the project-down ma-
+trix B ∈ Rm×r and the project-up matrix A ∈ Rr×q, where r
+denotes the rank of the LoRA matrix and is much smaller than
+both m and q. Without loss of generality, for arbitary coupled
+LoRA matrices Bh
+i,l ∈ eθh
+i,l and Ah
+i,l ∈ eθh
+i,l, the device injects the
+matrices into the linear layery = Ml ·x with pre-trained weight
+matrix Ml in transformer layer l as {(Bh
+i,l,Ah
+i,l,Ml)|l ∈ Lh
+i }.
+Then, the forward propagation of the linear layer with initial-
+ized parameters {Bh
+i,l,Ah
+i,l,Ml} in l-th transformer layer on
+device i in round h can be expressed as:
+y = Ml · x + Bh
+i,l · Ah
+i,l · x (5)
+where x is the given input tensor andy is the respective output
+tensor of the initialized linear layer. After that, the device
+initializes and updates the local model θh
+i = {eθh
+i , θ} for local
+fine-tuning in round h.
+4.2 Local Fine-Tuning
+After local model initialization, device i fine-tunes the model
+on local dataset Di. During the process of local fine-tuning
+in round h, device i is associated with the local loss function
+fi(θh
+i ), where θh
+i = {eθh
+i , θ} is the local model. The loss of
+device i on the local dataset Di in round h are as follows:
+fi(θh
+i ) = 1
+|Di| ∑
+ξ∈Di
+Fi(θh
+i ; ξi) (6)
+where ξi is a batch of data samples in Di, and Fi(θh
+i ; ξi) is the
+local loss over ξi. In general, the devices leverage stochastic
+gradient descent, e.g., AdamW [33], to iteratively update the
+LoRA layers based on the computed gradients over each batch
+of data samples in Di [7, 10]. Specifically, for a batch of local
+data samples ξi on device i, the process of updating the LoRA
+layers eθh
+i on device i at local step t in round h is expressed as:
+eθh,t
+i = eθh,t−1
+i − η · ∇ fi(eθh,t−1
+i ) (7)
+where η is the learning rate and ∇ fi(eθh,t−1
+i ) is the gradient
+of the loss for LoRA layers eθh,t−1
+i . When completing local
+fine-tuning, the devices send the updated local LoRA layers
+to the PS for aggregation. Simultaneously, the devices upload
+the relevant computing and communication information of
+the current round to PS for device resource estimation.
+4.3 Capacity Estimation
+The estimation of device capabilities (e.g., time-varying com-
+puting and communication capabilities) is essential for LEG-
+END to determine reasonable LoRA configurations for hetero-
+geneous devices. For arbitrary device i in round h, LEGEND
+utilizes µh
+i to denote the time required for updating all LoRA
+layers in a transformer layer during backpropagation, which
+can be recorded by the devices directly during the process
+of local fine-tuning, to indicate the computing capability. Be-
+sides, since the upload bandwidth is usually much smaller
+than the download bandwidth in typical W ANs [6,44] and the
+size of LoRA layers is typically less than 1% of the original
+model size [20], LEGEND employs the uploading time βh
+i of
+transmitting a LoRA layer with unit rank from the device i in
+round h to the PS to indicate the communication capability.
+In round h, PS collects recent computing time ˆµh
+i and up-
+loading time ˆβh
+i from device i and maintains the historical
+status. Then, we use the moving average with the historical
+status of devices to estimate the capacities of the devices [45].
+Accordingly, the PS estimates the computing time µh
+i and the
+uploading time βh
+i for device i in round h by calculating the
+moving average with ρ ∈ [0,1] (for example, ρ = 0.8 in our
+experiments) as:
+µh
+i = ρ · µh−1
+i + (1 − ρ) · ˆµh
+i , ∀i ∈ [1,n], ∀h ∈ [1,H] (8)
+βh
+i = ρ · βh−1
+i + (1 − ρ) · ˆβh
+i , ∀i ∈ [1,n], ∀h ∈ [1,H] (9)
+The primary focus of this work is not on improving status
+estimation techniques and advanced methods [46, 47] can be
+easily integrated into LEGEND.
+4.4 LoRA Configuration
+LEGEND addresses the challenges of resource constraints
+and system heterogeneity by determining appropriate LoRA
+configurations, i.e., LoRA depth and rank distribution, for het-
+erogeneous devices to promote fine-tuning efficiency. Based
+on the observation in Sections 2.3 and 2.4, LEGEND adap-
+tively assigns LoRA depth for device i in round h with grad-
+ually increasing rank distribution. The LoRA configuration
+of device i in round h can be denoted as the rank distribution
+Rh
+i = {ri,l|l ∈ [L −kh
+i ,L −1]} that includes the LoRA depthkh
+i ,
+where ri,l is the rank of the LoRA layers in l-th transformer
+layer. For simplicity, we use Lh
+i = [L − kh
+i ,L − 1] to represent
+the index of the deep kh
+i transformer layers. Assuming that
+the total rank of all L transformer layers is ψ, the constraints
+of rank distribution for device i in round h are as:
+ri,l−1 ≤ ri,l (10)
+∑
+l∈Lh
+i
+ri,l ≤ ψ (11)
+In round h, based on the estimation of computing and com-
+munication capacities, the completion time (including com-
+puting and communication time) on device i is expressed as:
+th
+i = ˆti + kh
+i · µh
+i + ∑
+l∈Lh
+i
+ri,l · βh
+i (12)
+where ˆti represents the computing time of forward propaga-
+tion in one round of local fine-tuning, kh
+i · µh
+i represents the
+total time for backpropagation during the process of local
+fine-tuning, and ∑l∈Lh
+i
+ri,l · βh
+i denotes the uploading time. Ad-
+ditionally, the waiting time for device i can be represented
+as th −th
+i , where th = max{th
+i |i ∈ [1,n]} denotes the comple-
+tion time of the slowest device in round h. Then, the average
+waiting time of all devices in round h can be formulated as:
+W h = 1
+n
+n
+∑
+i=1
+(th −th
+i ) (13)
+6

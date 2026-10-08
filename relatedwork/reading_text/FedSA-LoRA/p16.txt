@@ -1,0 +1,77 @@
+Published as a conference paper at ICLR 2025
+A A PPENDIX
+A.1 P ROOF OF LEMMA 1
+Proof. Consider fine-tuning B while freezing A = Q. The loss function in Eq. (3) becomes:
+L = E(xt,yt)[∥yt − (W0 + BQ)xt∥2
+2]. (7)
+Then, the gradient of Eq. (7) w.r.t. B is:
+∂L
+∂B = ∂E(xt,yt)[∥yt − (W0 + BQ)xt∥2
+2]
+∂B
+= ∂E[∥Wtxt − (W0 + BQ)xt∥2
+2]
+∂B
+= ∂E[∥(W0 + ∆W )xt − (W0 + BQ)xt∥2
+2]
+∂B
+= ∂E[∥(∆W − BQ)xt∥2
+2]
+∂B
+= E[2[(∆W − BQ)xt](−xT
+t QT )]
+= E[2(BQ − ∆W )xtxT
+t QT ].
+(8)
+To obtain the optimal B∗, we set Eq. (8) to zero, which means:
+E[2(BQ − ∆W )xtxT
+t QT ] = 0
+2BQE[xtxT
+t ]QT − 2∆W E[xtxT
+t ]QT = 0
+2BQE[xtxT
+t ]QT − 2∆W E[xtxT
+t ]QT = 0
+BQE[xtxT
+t ]QT = ∆W E[xtxT
+t ]QT
+B = ∆W E[xtxT
+t ]QT (QE[xtxT
+t ]QT )−1.
+(9)
+Therefore, we obtain B∗ = ∆W E[xtxT
+t ]QT (QE[xtxT
+t ]QT )−1.
+When fine-tuning A with fixed B = U. The loss function in Eq. (3) becomes:
+L = E(xt,yt)[∥yt − (W0 + U A)xt∥2
+2]. (10)
+Then, the gradients of Eq. (7) w.r.t. A is:
+∂L
+∂A = ∂E(xt,yt)[∥yt − (W0 + U A)xt∥2
+2]
+∂A
+= ∂E[∥Wtxt − (W0 + U A)xt∥2
+2]
+∂A
+= ∂E[∥(W0 + ∆W )xt − (W0 + BQ)xt∥2
+2]
+∂A
+= ∂E[∥(∆W − U A)xt∥2
+2]
+∂A
+= E[2U T [(∆W − U A)xt]xT
+t ]
+(11)
+To obtain the optimal A∗, we set Eq. (11) to zero, which means:
+E[2U T [(∆W − U A)xt]xT
+t ] = 0
+2U T ∆W E[xtxT
+t ] − 2U T U AE[xtxT
+t ] = 0
+U T U AE[xtxT
+t ] = U T ∆W E[xtxT
+t ]
+A = U −1∆W .
+(12)
+Thus, we obtain A∗ = U −1∆W .
+16

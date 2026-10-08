@@ -1,0 +1,30 @@
+\vspace{-0.2cm}
+As illustrated in Figure \ref{framework}, LEGEND consists of two key components with a total of six main modules, \ie,  four modules on the PS and two modules on each device. 
+The details of each module are as follows:
+
+\textbf{Initialization and Update.} 
+The PS distributes different LoRA layers for heterogeneous devices to adapt their capabilities.
+Hence, the devices need to initialize and update the local model (\normalsize{\textcircled{\scriptsize{1}}}) for local fine-tuning in each round.
+
+\textbf{Local Fine-Tuning.}
+Based on the initialized local model, the devices perform local fine-tuning and record the fine-tuning status information (\eg, computing time and communication time).
+After that, the devices send the updated LoRA layers (\normalsize{\textcircled{\scriptsize{2}}}) and the status information (\normalsize{\textcircled{\scriptsize{3}}}) to the PS.
+
+\textbf{Capacity Estimation.}
+To make effective LoRA configurations, the PS estimates the capabilities of each device (\normalsize{\textcircled{\scriptsize{4}}}) by calculating the moving average of the historical status information of the devices.
+
+\textbf{LoRA Configuration.}
+In this module, the PS simultaneously determines the appropriate LoRA depth with rank distribution, \ie, LoRA configurations (\normalsize{\textcircled{\scriptsize{5}}}), for the devices.
+
+\textbf{LoRA Aggregation.}
+The PS performs adaptive weighted aggregation for the collected LoRA layers with different LoRA depths from all devices to obtain the aggregated global LoRA layers (\normalsize{\textcircled{\scriptsize{6}}}).
+
+
+\textbf{LoRA Assignment.}
+Due to the diverse LoRA configurations of devices, the PS needs to assign the specific LoRA layers (\normalsize{\textcircled{\scriptsize{7}}}) to each device based on the aggregated model.
+\vspace{-0.4cm}
+
+% The PS generates customized LoRA parameters for the devices from the global LoRA parameters under the guidance of LoRA configurations, and then distributed to the respective device.
+
+% According to the LoRA configurations, the PS selects the corresponding LoRA parameters from the global set of LoRA parameters to generate sets of customized LoRA parameters for the devices (\normalsize{\textcircled{\scriptsize{7}}}). 
+% The generated LoRA parameters are then distributed to the respective devices for local training.

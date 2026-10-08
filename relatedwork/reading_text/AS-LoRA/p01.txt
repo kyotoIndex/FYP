@@ -1,0 +1,50 @@
+Adaptive Selection of LoRA Components in
+Privacy-Preserving Federated Learning
+Myoungjun Kim
+Myongji University
+tjmjtjmj2237@mju.ac.kr
+Sangwoo Park
+King’s College London
+sangwoo.park@kcl.ac.uk
+Yoseob Han
+Soongsil University
+yoseob.han@ssu.ac.kr
+Jin-Hyun Ahn
+Myongji University
+wlsgus3396@mju.ac.kr
+Abstract
+Differentially private federated fine-tuning of large models with LoRA suffers
+from aggregation error caused by LoRA’s multiplicative structure, which is further
+amplified by DP noise and degrades both stability and accuracy. Existing remedies
+apply a single update mode uniformly across all layers and all communication
+rounds (or alternate them on a fixed schedule), ignoring both the structural asym-
+metry between the two LoRA factors and the round-wise dynamics of training.
+We propose AS-LoRA, an adaptive framework defined by three axes(i)layer-
+wise freedom, in which each layer independently selects its active component, (ii)
+round-wise adaptivity, in which the selection updates over communication rounds,
+and(iii)a curvature-aware score derived from a second-order approximation of
+the loss. Theoretically, AS-LoRA eliminates the reconstruction-error floor of
+layer-tied schedules, accelerates convergence, implicitly biases solutions toward
+flatter minima, and incurs no additional privacy cost. Across GLUE, SQuAD,
+CIFAR-100, and Tiny-ImageNet under strict DP budgets and non-IID partitions,
+AS-LoRA improves over the federated LoRA baselines by up to +7.5 pp on
+GLUE and +12.5 pp on MNLI-mm for example, while matching or exceeding
+SVD-based aggregation methods at 33–180× lower aggregation cost and with
+negligible communication overhead. Code for the proposed method is available at
+https://anonymous.4open.science/r/as_lora-F75F/.
+1 Introduction
+Federated learning (FL) enables collaborative training over decentralized data without exposing raw
+samples [1, 2], yet the communicated updates remain vulnerable to attacks such as Deep Leakage from
+Gradients [3] and Membership Inference [4]. Differential privacy (DP) has thus become a standard
+safeguard in this setting [5, 6]. Meanwhile, as foundation models such as GPT-4 [7], LLaMA [8],
+PaLM2 [9], ViT [10], and Swin-T [11] continue to scale, fine-tuning them on resource-constrained
+clients quickly becomes prohibitive. Low-Rank Adaptation (LoRA) [ 12], which adapts a frozen
+weight W0 via a small low-rank update W=W 0 +BA , has therefore become the predominant
+approach for Parameter-Efficient Fine-Tuning (PEFT) in FL with foundation models, incurring
+minimal performance degradation compared to full fine-tuning.
+However, applying LoRA in private FL is non-trivial. Its multiplicative structure induces anaggrega-
+tion erroracross clients, which is further amplified into aquadratic noise termunder DP-SGD, and
+we defer the detailed mechanism to Section 2.FedLoRA[ 13], which is the most direct adaptation of
+LoRA to FL, suffers from both effects and degrades sharply under tight privacy budgets and non-IID
+Preprint.
+arXiv:2605.05769v1  [cs.LG]  7 May 2026

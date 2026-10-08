@@ -1,0 +1,51 @@
+Published as a conference paper at ICLR 2026
+HETEROGENEOUSFEDERATEDFINE-TUNING WITH
+PARALLELONE-RANKADAPTATION
+Zikai Zhang Rui Hu ∗ Jiahao Xu
+University of Nevada, Reno, USA
+{zikaiz, ruihu, jiahaox}@unr.edu
+ABSTRACT
+Large Language Models (LLMs) have demonstrated remarkable effectiveness
+in adapting to downstream tasks through fine-tuning. Federated Learning (FL)
+extends this capability by enabling collaborative fine-tuning across distributed
+clients using Low-Rank Adaptation (LoRA), while preserving data privacy by
+avoiding raw data sharing. However, practical deployments face challenges when
+clients have heterogeneous resources and thus adopt different LoRA ranks, lead-
+ing to substantial initialization and aggregation noise that undermines perfor-
+mance. To address these challenges, we propose Fed-PLoRA, a novel lightweight
+heterogeneous federated fine-tuning (FFT) framework. Fed-PLoRA introduces
+Parallel One-Rank Adaptation (PLoRA), a new LoRA variant that replaces the
+classic multi-rank LoRA module with multiple parallel one-rank modules, and
+a novel Select-N-Fold strategy that folds untrained PLoRA modules into the
+pre-trained weights before local training, thereby accommodating heterogeneous
+client resources. We provide a unified analysis of initialization and aggregation
+noise of Fed-PLoRA and demonstrate how it addresses the limitations of state-
+of-the-art methods. Extensive experiments on diverse LLM fine-tuning tasks
+demonstrate that Fed-PLoRA consistently outperforms existing methods in both
+accuracy and efficiency. The code is available athttps://github.com/
+TNI-playground/Fed-PLoRA.
+1 INTRODUCTION
+Federated Learning (FL) has emerged as a crucial paradigm for fine-tuning Large Language Models
+(LLMs) across multiple clients while preserving data privacy by avoiding raw data sharing. Low-
+Rank Adaptation (LoRA) Hu et al. (2021) is a widely used parameter-efficient fine-tuning (PEFT)
+method, which adapts LLMs by injecting trainable low-rank matrices into pretrained weight spaces.
+Specifically, LoRA factorizes a weight update matrix∆W∈R d×k as∆W=BA,B∈R d×r,
+A∈R r×k, wherer≪min(d, k)denoting the rank. Combining FL and LoRA provides an ef-
+fective framework for collaborative LLM fine-tuning on downstream tasks Wang et al. (2018). A
+representative example FedIT Zhang et al. (2023), which extends the classical Federated Averaging
+(FedAvg) McMahan et al. (2017) algorithm to the LoRA setting. In FedIT, each clientilocally
+trains its LoRA modules(A i,B i)while keeping the pretrained backbone frozen. At the end of
+each round, the client uploads its LoRA matrices to the server. The server then aggregates them
+by weighted averaging (i.e.,A= P ωiAi andB=ω iBi with weightsω i). The resulting global
+LoRA modules are distributed back to all clients and serve as the initialization for the next training
+round. This iterative process continues until convergence of the global adapted model.
+However, client resource heterogeneity poses a major challenge for federated LoRA-based fine-
+tuning. In practice, clients differ significantly in computational capacity, which directly constrains
+the LoRA ranks they can afford to train Wang et al. (2024); Bai et al. (2024). Prior works Haobo
+et al. (2024); Ren et al. (2024) demonstrate that the LoRA rank critically influences both fine-tuning
+performance and resource consumption. Higher ranks generally enhance adaptation capacity, but at
+the cost of greater computational and communication overhead. As a result, resource-constrained
+clients are often unable to adopt the larger ranks that more capable clients can sustain. This im-
+∗Corresponding author.
+1
+arXiv:2602.16936v1  [cs.DC]  18 Feb 2026

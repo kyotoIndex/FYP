@@ -1,0 +1,68 @@
+subspace:
+min
+Ak,Bk
+bLtask
+k (BkAk) + β
+2
+BkAkbΣ
+1/2
+k (Ip −bP)
+
+2
+F
+.(7)
+This objective function selectively penalizes action energy that falls outside the globally shared space.
+Coefficients operating within that space remain entirely client-specific. Furthermore, the finite penalty
+weight β provides local adapters with the necessary flexibility to retain unshared, residual directions if they
+sufficiently reduce the local task loss. This aligns with our observation in Figure 3: while different tasks
+share a dominant direction, they still require task-conditioned geometric variations to optimize performance.
+Algorithm 1FedSAIL: Federated Subspace-Guided Action-Informed Learning
+Require:Clients{D k}K
+k=1; LoRA rankr L; shared ranks; shrinkageγ; penaltyβ; stabilizerε 0; roundsT.
+1:for allclientskin paralleldo
+2:Estimate bΣk by (4); locally warm up(A 0
+k,B 0
+k)withβ= 0.
+3:end for
+4:fort= 1, . . . , Tdo
+5:for allclientskin paralleldo
+6:Form bCt−1
+k by (5).
+7:Q t
+k ←TopEig s((bCt−1
+k )⊤bCt−1
+k ); collect the corresponding eigenvalues inλ t
+k.
+8:Upload(Q t
+k,λ t
+k, nk).
+9:end for
+10:Server forms cMt by (6) and broadcasts bVt ←TopEig s(cMt).
+11:for allclientskin paralleldo
+12:Update(A t
+k,B t
+k)using (7) with bPt = bVt(bVt)⊤.
+13:end for
+14:end for
+Ensure:Personalized adapters{B T
+k AT
+k }K
+k=1.
+4 Experiments
+In this section, we evaluate FedSAIL to validate the effectiveness of sharing input-aware action subspaces for
+personalized adaptation under data heterogeneity. We begin by comparing its predictive performance with
+existing federated LoRA methods. We then study how local adapter rank and shared subspace rank could
+affect accuracy and communication cost, before examining the contribution ofG k sharing through ablation
+studies. Finally, we evaluate whether layer selection based on cross-client subspace agreement can reduce
+communication while retaining comparable predictive performance.
+4.1 Personalized Adaptation on GLUE
+We first evaluate RoBERTa-large on five GLUE benchmarks (RTE, SST-2, QNLI, MNLI, and QQP). To
+simulate a heterogeneous federated environment, we distribute each task across three clients using a Dirichlet
+label skew (α∈ {0.5,0.75,1.0} ) and initialize each client’s adapters independently. We compare FedSAIL
+against standard LoRA (Hu et al., 2022), FFA-LoRA (Sun et al., 2024), FedSA-LoRA (Guo et al., 2025),
+and FedDPA-LoRA (Yang et al., 2024b). Full optimization details and hyperparameters are provided in
+Appendix C.
+Table 2 shows that FedSAIL achieves the highest six-split mean validation accuracy at all three heterogeneity
+levels. Its overall mean is 89.33%, compared with 88.69% for FedSA-LoRA and 88.57% for FedDPA-LoRA,
+although the gains vary across tasks. FFA-LoRA averages 74.62% under the independent-initialization
+8

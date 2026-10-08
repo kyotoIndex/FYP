@@ -1,0 +1,111 @@
+8
+Method QNLI SST-2 MNLI-m
+LoRA 87.12 ±0.16 95.41 ±0.19 88.48 ±0.27
+FFA-LoRA 86.45 ±0.83 94.90 ±0.22 88.61 ±0.09
+FedSA-LoRA 89.42 ±0.29 96.56 ±0.41 89.61 ±0.23
+FedAS-LoRA (Ours)89.46 ±0.27 96.79 ±0.21 89.63 ±0.15
+LoRA 90.25 ±0.32 95.67 ±0.48 87.38 ±0.35
+FFA-LoRA 91.05 ±0.21 94.78 ±0.49 90.62 ±0.46
+FedSA-LoRA 92.01 ±0.35 96.30 ±0.20 90.01 ±0.39
+FedAS-LoRA (Ours)92.80 ±0.23 96.33 ±0.14 90.28 ±0.25
+LoRA 90.80 ±0.29 95.19 ±0.09 88.36 ±0.08
+FFA-LoRA 89.24 ±0.24 95.53 ±0.03 86.46 ±0.04
+FedSA-LoRA 91.13 ±0.27 95.72 ±0.03 89.77 ±0.02
+FedAS-LoRA (Ours)92.94 ±0.39 97.17 ±0.19 89.95 ±0.06
+LoRA 88.47 ±0.52 94.95 ±0.19 88.75 ±0.27
+FFA-LoRA 88.25 ±0.55 94.92 ±0.16 88.23 ±0.13
+FedSA-LoRA 89.12 ±0.39 95.73 ±0.18 89.01 ±0.17
+FedAS-LoRA (Ours)89.56 ±0.19 95.72 ±0.16 89.73 ±0.07
+TABLE IV: Test accuracy on QNLI, SST-2, and MNLI-m
+with different LoRA ranksr. From top to bottom, the four
+blocks correspond tor= 2,r= 4,r= 8, andr= 16,
+respectively.
+REFERENCES
+Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao,
+and Yaliang Li. Federated fine-tuning of large
+language models under heterogeneous tasks and
+client resources. InAdvances in Neural Information
+Processing Systems, volume 37, pages 14457–
+14483, 2024. doi: 10.52202/079017-0461. URL
+https://proceedings.neurips.cc/paper_files/paper/2024/
+hash/1a134b50202088aa8c595cc99b310e5a-Abstract-
+Conference.html.
+Jieming Bian, Lei Wang, Letian Zhang, and Jie Xu. LoRA-
+FAIR: Federated LoRA fine-tuning with aggregation and
+initialization refinement. InProceedings of the IEEE/CVF
+International Conference on Computer Vision, pages
+3737–3746, 2025.
+Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind Nee-
+lakantan, Pranav Shyam, Girish Sastry, Amanda Askell,
+Sandhini Agarwal, Ariel Herbert-V oss, Gretchen Krueger,
+Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M.
+Ziegler, Jeffrey Wu, Clemens Winter, Christopher Hesse,
+Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray,
+Benjamin Chess, Jack Clark, Christopher Berner, Sam
+McCandlish, Alec Radford, Ilya Sutskever, and Dario
+Amodei. Language models are few-shot learners. In
+Advances in Neural Information Processing Systems, vol-
+ume 33, pages 1877–1901, 2020.
+Yuji Byun and Jaeho Lee. Towards federated low-rank
+adaptation of language models with rank heterogeneity. In
+Proceedings of the 2025 Conference of the Nations of the
+Americas Chapter of the Association for Computational
+Linguistics: Human Language Technologies (Volume 2:
+Short Papers), pages 356–362, Albuquerque, New Mex-
+ico, 4 2025. Association for Computational Linguistics.
+doi: 10.18653/v1/2025.naacl-short.30.
+Tianshi Che, Ji Liu, Yang Zhou, Jiaxiang Ren, Jiwen Zhou,
+Victor Sheng, Huaiyu Dai, and Dejing Dou. Federated
+learning of large language models with parameter-efficient
+prompt tuning and adaptive optimization. InProceedings
+of the 2023 Conference on Empirical Methods in Natural
+Language Processing, pages 7871–7888, Singapore, 2023.
+Association for Computational Linguistics. doi: 10.18653/
+v1/2023.emnlp-main.488. URL https://aclanthology.org/
+2023.emnlp-main.488/.
+Shuangyi Chen, Yuanxin Guo, Yue Ju, Hardik Dalal,
+Zhongwen Zhu, and Ashish Khisti. Robust federated
+finetuning of LLMs via alternating optimization
+of LoRA. InAdvances in Neural Information
+Processing Systems, volume 38, 2025. URL
+https://proceedings.neurips.cc/paper_files/paper/2025/
+file/adf17e7346b6be4c2f2bb40de572e5bc-Paper-
+Conference.pdf.
+Yiming Chen, Ruanjun Li, Jiawei Shao, Lifeng Sun, Chi
+Zhang, Jun Zhang, and Xuelong Li. Federated LoRA
+fine-tuning of LLMs with only transmitting matrix A or
+B.IEEE Transactions on Mobile Computing, pages 1–
+17, May 2026. doi: 10.1109/TMC.2026.3696859. Early
+Access, Art. no. 11535031.
+Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, and
+Gauri Joshi. Heterogeneous LoRA for federated fine-
+tuning of on-device foundation models. InProceedings
+of the 2024 Conference on Empirical Methods in Nat-
+ural Language Processing, pages 12903–12913, Miami,
+Florida, USA, November 2024. Association for Compu-
+tational Linguistics. doi: 10.18653/v1/2024.emnlp-main.
+717. URL https://aclanthology.org/2024.emnlp-main.717/.
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark
+Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plap-
+pert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano,
+Christopher Hesse, and John Schulman. Training ver-
+ifiers to solve math word problems.arXiv preprint
+arXiv:2110.14168, 2021. doi: 10.48550/arXiv.2110.
+14168. URL https://arxiv.org/abs/2110.14168.
+Pengxin Guo, Shuang Zeng, Yanran Wang, Huijie Fan, Feifei
+Wang, and Liangqiong Qu. Selective aggregation for low-
+rank adaptation in federated learning. InInternational
+Conference on Learning Representations, 2025. URL
+https://openreview.net/forum?id=iX3uESGdsO.
+Tao Guo, Song Guo, Junxiao Wang, Xueyang Tang, and
+Wenchao Xu. PromptFL: Let federated participants co-
+operatively learn prompts instead of models—federated
+learning in age of foundation model.IEEE Transactions
+on Mobile Computing, 23(5):5179–5194, 2024. doi:
+10.1109/TMC.2023.3302410.
+Soufiane Hayou, Nikhil Ghosh, and Bin Yu. LoRA+:
+Efficient low rank adaptation of large models. InPro-
+ceedings of the 41st International Conference on Machine
+Learning, volume 235 ofProceedings of Machine Learn-
+ing Research, pages 17783–17806. PMLR, 2024. URL

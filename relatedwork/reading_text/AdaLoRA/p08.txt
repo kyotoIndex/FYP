@@ -1,0 +1,50 @@
+Published as a conference paper at ICLR 2023
+Table 2: Results with DeBERTaV3-base on SQuAD v1.1 and SQuADv2.0. Here # Params is the
+number of trainable parameters relative to that in full fine-tuning. We report EM/F1. The best results
+in each setting are shown in bold.
+SQuADv1.1 SQuADv2.0
+Full FT 86.0 / 92.7 85.4 / 88.4
+# Params 0.08% 0.16% 0.32% 0.65% 0.08% 0.16% 0.32% 0.65%
+HAdapter 84.4/91.5 85.3/92.1 86.1/92.7 86.7/92.9 83.4/86.6 84.3/87.3 84.9/87.9 85.4/88.3
+PAdapter 84.4/91.7 85.9/92.5 86.2/92.8 86.6/93.0 84.2/87.2 84.5/87.6 84.9/87.8 84.5/87.5
+LoRA 86.4/92.8 86.6/92.9 86.7/93.1 86.7/93.1 84.7/87.5 83.6/86.7 84.5/87.4 85.0/88.0
+AdaLoRA 87.2/93.4 87.5/93.6 87.5/93.7 87.6/93.7 85.6/88.7 85.7/88.8 85.5/88.6 86.0/88.9
+we use AdaLoRA to fine-tune DeBERTaV3-base. These tasks are treated as a sequence labeling
+problem, where we predict the probability of each token being the start and end of the answer span.
+Dataset details can be found in Appendix D.
+Implementation Details. We compare AdaLoRA with the baseline methods under different parameter
+budgets. That is we have the number of trainable parameters as 0.08%/0.16%/0.32%/0.65% of
+total pre-trained parameters. To match the budget requirements, we select the hidden dimensions
+of adapters from {4, 8, 16, 32, 64}, set the rank r of LoRA as {1, 2, 4, 8} and choose the final total
+rank b(T) of AdaLoRA from {72, 144, 288, 576}. We set the batch size as 16. We use AdamW
+(Loshchilov & Hutter, 2019) as the optimizer and we set the learning rate as 1 × 10−3 for AdaLoRA.
+Please refer to Appendix D for more details.
+Main Results. Table 2 summarizes experimental results when we fine-tune DeBERTaV3-base under
+4 different budget settings: 0.08%, 0.16%, 0.32% and 0.65% of total pre-trained parameters. From the
+result, we see that AdaLoRA consistently outperforms existing approaches under all the budget levels
+in term of two evaluation metrics: exact match (EM) and F1. Notice that the performance of Houlsby
+adapter and Pfeiffer adapter are notably decreased when we reduce the parameter budget. In contrast,
+our method shows the consistent performance under different budget levels. For example, AdaLoRA
+achieves 88.7% F1 on SQuADv2.0 with the smallest budget 0.08%. It is close to its performance
+under the high budget and it is also 1.2% higher than the best-performing baseline.
+4.3 N ATURAL LANGUAGE GENERATION
+Table 3: Results with BART-large on XSum and CNN/DailyMail. Here# Params is the number of trainable
+parameters relative to that in full fine-tuning. We report R-1/2/L. The best results are shown in bold.
+# Params Method XSum CNN/DailyMail
+100% Full FT 45.49 / 22.33 / 37.26 44.16 / 21.28 / 40.90
+2.20% LoRA 43.95 / 20.72 / 35.68 45.03 / 21.84 / 42.15
+AdaLoRA 44.72 / 21.46 / 36.46 45.00 / 21.89 / 42.16
+1.10% LoRA 43.40 / 20.20 / 35.20 44.72 / 21.58 / 41.84
+AdaLoRA 44.35 / 21.13 / 36.13 44.96 / 21.77 / 42.09
+0.26% LoRA 43.18 / 19.89 / 34.92 43.95 / 20.91 / 40.98
+AdaLoRA 43.55 / 20.17 / 35.20 44.39 / 21.28 / 41.50
+0.13% LoRA 42.81 / 19.68 / 34.73 43.68 / 20.63 / 40.71
+AdaLoRA 43.29 / 19.95 / 35.04 43.94 / 20.83 / 40.96
+Models and Datasets. To provide a comparison with the state-of-the-art in natural language gener-
+ation (NLG) tasks, we apply AdaLoRA to fine-tune a BART-large model (Lewis et al., 2019). We
+evaluate model performance on two datasets: XSum (Narayan et al., 2018) and CNN/DailyMail
+(Hermann et al., 2015).
+Implementation Details. Similarly as DeBERTav3-base, we apply low-rank/SVD-based adaptation
+to every weight matrix of both encoder and decoder layers. We report ROUGE 1/2/L scores (R-1/2/L,
+Lin (2004)). We set the training epochs as 15. For XSum, we set the beam length as 8 and batch size
+8

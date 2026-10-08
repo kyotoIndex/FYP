@@ -1,0 +1,98 @@
+SFT_MASK
+Sparse Update
+STAGE 1
+SFT SVD matrix decomposition
+Sparse 
+Update
+ΔW∊ℛ d x d
+A = A0
+B = B0
+r
+ΔW≈ A0B0
+ΔW
+i
+Train for R1 FL rounds
+LoRA Update
+STAGE 2
+LoRA
+A
+i , B
+i
+Train for R2 FL roundsInitialize LoRA Blocks
+LoRA blocks
+Figure 4: Overview of SLoRA; First server initializes a mask, and clients only update the parameters in the mask.
+Then using SVD, the updates are decomposed into LoRA blocks which will be used as an initialization for Stage 2.
+meet our targets in terms of parameter efficiency,
+one important question is yet to be answered. How
+to preserve this performance but reduce the train-
+ing costs? This is especially important during the
+training because, in cross-device federated learning,
+clients have a limited budget.
+By looking at the cost of FLoRA, we can figure
+out that there are two parameters involved in this
+cost; the number of rounds and the communica-
+tion/computation cost of each round. As a result,
+one way to decrease the cost in Stage 1 is to reduce
+the number of FFT rounds. However, as depicted
+in Fig. 5, the performance of the model at the end
+of Stage 1 directly impacts the performance of the
+final model.
+Another way to make FLoRA more efficient is to
+reduce the data processing and update size transmit-
+ted from clients. Towards this goal, in the follow-
+ing subsection, we propose Primed-LoRA with
+Sparse Fine-tuning or SLoRA, where the clients
+only update a fraction of the parameters in Stage 1
+instead of fully fine-tuning the parameters.
+4.2 Sparse Fine-tuning for priming LoRA
+Sparse Fine-Tuning (SFT) (Ansell et al., 2021; Za-
+ken et al., 2021; Guo et al., 2020) aims to achieve
+parameter efficiency by sparsifying the updates. In
+other words, in WR = W0 + ∆W , the update
+(∆W ) is a set of highly sparse matrices that can be
+stored and transmitted efficiently.
+We opt to employ the approach of Ansell et al.
+(2021), but all the works follow similar ideas. In
+particular, the goal is to find a binary mask such
+that 1’s indicates the position of weights that can
+change in each round. Ansell et al. (2021) proposal
+to generate such mask is to find the top-K most
+important weights based on their contribution in
+FFT. The weights that change the highest – from
+0 50 100 150 200 250 300 350
+Federated Round
+10
+20
+30
+40
+50
+60T est Accuracy (%) #Rounds in Stage1
+10 30 50 70 100
+Figure 5: Impact of the number of federated rounds in
+stage 1 on the final performance of the model after stage
+2 in FLoRA for 20News group dataset on Albert.
+their original pre-trained values – in FFT are the
+ones we should keep training in SFT. As a result,
+the authors add a new warm-up stage where they
+fine-tune the weight for several rounds to detect
+such weights.
+Sparse Fine-tuning in Stage 1.Ansell et al. (2021)
+is designed for the centralized setting where the
+data is located in the same location and can be
+utilized in finding the mask. But, the situation is
+different in the federated setting. The server cannot
+fine-tune the model on the current task because it
+does not have data. Clients can individually train
+the model and come up with personalized masks.
+However, the difference in clients’ masks increases
+the density of the aggregated update and reduces pa-
+rameter efficiency. Alternatively, if the clients want
+to find the important weights together, they require
+to do FFT, which is against our goal of reducing
+the cost and number of FFT communications.
+To solve this problem, we propose the server so
+generate a random data-independent binary mask
+with uniform density for all layers at the beginning
+of training. Then, the clients only train the weights
+using this mask. Thus, the density of the update
+from the server and clients does not change, and

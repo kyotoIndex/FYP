@@ -1,0 +1,69 @@
+            Devices          Heterogeneous LoRA    Matrix B          Matrix A              Local Full Updates
+B0
+B1
+B2
+A0
+A1
+A2
+Client 0
+Client 1
+Client 2
+B0 B2B1
+A0
+A1
+A2
+ΔW0
+ΔW1
+ΔW2
+∑ΔWkm
+r0+r1+r2
+r0
++r1
++r2
+n
+Stacking all
+ Ak along n
+Get the Accurate 
+Aggregation
+Upload
+Local LoRA Matrices
+Stacking all
+ Bk along m
+Update 
+Local 
+Models
+Server
+Figure 3: FLORA workflow. The local LoRA modules are initialized and optimized each round, and
+stacked by the server to obtain the global LoRA modules. The global modules are then sent back to
+clients to update local models.
+In Equation 9, " ⊕" indicates that for A, each subsequent module is vertically stacked below the
+preceding one, whereas for B, each module is horizontally stacked to the right of the one before it.
+We can now formalize our conclusion regarding the aggregation of LoRA modules. The sum of the
+products of K LoRA module pairs is equivalent to the product of their stacked matrices:
+KX
+k=0
+BkAk = (B0 ⊕ ... ⊕ BK)(A0 ⊕ ... ⊕ AK) (10)
+This foundational principle will guide the design ofFL ORA, as it allows for the efficient and effective
+aggregation of local updates without the transmission of entire model parameters.
+3.2 FL ORA: Stacking-based Federated Fine-tuning for Heterogeneous LoRA
+The stacking-based aggregation facilitates not only the accurate aggregation of LoRA modules but
+also inherently supports the heterogeneous LoRA ranks. This approach imposes no constraints on the
+ranks of each local LoRA module as long as each client fine-tunes the same pre-trained model, i.e.,
+they share the same dimension m and n.
+By employing the stacking-based aggregation mechanism, we introduce FLORA, an approach
+designed to facilitate federated fine-tuning of LLMs with heterogeneous LoRA. Let us use a concrete
+example to illustrate the key steps of applying FLORA, where K heterogeneous clients are involved
+in fine-tuning an LLM, and the pre-trained parameters are denoted by W.
+Initialization. The server first disseminates the pre-trained model parameters W to all K clients.
+Then, the clients initialize their local LoRA modules based on the complexity of local data and
+available local resources. The adaptation of LoRA ranks is beyond the scope of this paper, but
+existing work like AdaLoRA [27] can facilitate the rank adjustment.
+Local Fine-tuning. Following initialization, the clients train their local LoRA modules with the
+local data for several iterations. Then, the clients send the local LoRA modules back to the server.
+Note that the clients initialize local LoRA modules each round before local fine-tuning.
+Stacking-based LoRA Aggregation. Upon receiving the heterogeneous LoRA modules from
+participating clients, the server proceeds to aggregate them by stacking all Bk and Ak according to
+Equation 10, resulting in the global A ∈ R(PK
+k=0 rk)×n and B ∈ Rm×(PK
+k=0 rk). The aggregation
+5

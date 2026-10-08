@@ -1,0 +1,56 @@
+Published as a conference paper at ICLR 2024
+differential privacy (DP) (Dwork et al., 2006) techniques can be further employed to provide privacy
+guarantees.
+While there are many existing research results exploring (privacy-preserved) PEFT in the central
+setting, the exploration on how to conduct (privacy-preserved) LoRA in the FL setting is still a pre-
+mature. Directly migrating LoRA methods from the central setting and combining it with FedAvg
+may not achieve the best performance since other sources of interference in the (privacy-preserving)
+FL setting, such as noisy gradients and non-iid distribution of data in the cross-silo setting, can
+play important roles in the optimization process. In real-world LLM applications with privacy con-
+cerns, such as federated fine-tuning (Babakniya et al., 2023) or fine-tuning under differential privacy
+guarantees (Li et al., 2022), the performance of LoRA often suffers deterioration.
+Contributions. In this paper, we identify three discordances in applying LoRA in the privacy-
+preserved FL setting. The first is presented as a mismatched term brought by the joint local updates
+and separate global aggregations on the two sets of low-rank matrices of LoRA. The second discor-
+dance is that if we employ DP-SGD as the differentially private optimizer for training, the injected
+noise can be amplified by the locally “semi-quadratic” nature of LoRA. Lastly, the choice of one
+hyper-parameter of LoRA, the scaling factor α, can significantly affect the convergence and perfor-
+mance of the final model, no matter enforcing DP or not.
+To resolve these discordances, we propose our solution named Federated Freeze A LoRA
+(FFA-LoRA). FFA-LoRA freezes the non-zero initialized low-rank matrices and only perform up-
+date and aggregation on the zero-initialized matrices, only half as many parameters as LoRA. Beside
+FFA-LoRA’s obvious effect of saving half of the communication and computational cost in FL, we
+also provide intuitions on why it can alleviate the three aforementioned discordances. We conduct
+comprehensive experiments to demonstrate the advantages of FFA-LoRA over LoRA in privacy-
+preserving FL, across different tasks, hyper-parameters and privacy protection levels.
+We summarize our contributions as follows:
+• We explore the conditions in privacy-preserved FL that are discordant with LoRA, and provide
+explanations on the potential reasons of this performance degradation.
+• We propose a new method, FFA-LoRA, which tailors LoRA to increase its performance in these
+undesirable but unavoidable conditions in privacy-preserved FL.
+• We conduct extensive experiments to verify thatFFA-LoRA can consistently outperform LoRA.
+2 B ACKGROUND AND RELATED WORKS
+Parameter efficient fine-tuning. The ever-increasing network size of LLMs makes them pro-
+hibitively expensive, if possible at all, to fine-tune directly. To mitigate this problem, parameter-
+efficient fine-tuning (PEFT) methods have been proposed. These methods introduce a small number
+of additional trainable parametersΘ to improve model performance and keep most of the pre-trained
+parameters Φ frozen. The task-specific increment ∆Φ is then encoded into ∆Θ with much smaller
+dimensions. Houlsby et al. (2019) added additional trainable neural modules named adapters to
+each layer of the network. Alternatively, prefix-tuning(Li & Liang, 2021) and prompt-tuning(Lester
+et al., 2021) modify the network by concatenating additional trainable dimensions to input or hidden
+layers of the network. Another series of works (Hu et al., 2021; Yu et al., 2021b) proposed LoRA
+and RGP, using low-rank matrices to approximate or re-parameterize the pre-trained weight matri-
+ces. LoRA is arguably the most popular approach among PEFT methods, it only requires tuning less
+than 1% of the parameters in the full fine-tune approach but achieves comparable performance in a
+wide range of downstream tasks. There are also works (He et al., 2021; Chavan et al., 2023) that
+seek to provide a generalized method that unifies these PEFT methods.
+Federated fine-tuning with LLM. Although fine-tuned LLMs can become backbones for applica-
+tions in different areas, the fine-tuning process still favors large-scale, domain-specific data. How-
+ever, such domain-specific data is typically possessed by multiple parties, with each party’s dataset
+only containing inadequate data to fine-tune models by itself. Furthermore, these parties are often
+prohibited from sharing such data directly with other entities. A common solution for this dilemma is
+federated learning (Kairouz et al., 2021), which allows a set of agents to fine-tune LLMs efficiently
+by sharing their local model updates without explicitly sharing their respective data. Tian et al.
+(2022) proposed FedBERT and performed federated pre-training on the BERT model. Different
+from traditional machine learning models, LLM’s tremendous model size can consume significant
+2

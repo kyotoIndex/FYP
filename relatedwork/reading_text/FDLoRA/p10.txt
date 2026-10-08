@@ -1,0 +1,97 @@
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+Table 5: Comparison of different batch size increasing strategies (𝛼=0.5).
+Method Communication Time Compute Data Average Accuarcy
+Scenario-1 Scenario-2
+Baseline 01×1×78.18 57.95
+Baseline,4×batch size with data parallelism4×𝑁1×4×77.74 56.48
+Baseline,4×batch size with microbatching 04×4×77.72 56.69
+Baseline,4×update 04×4×73.55 55.03
+FDLoRA4× 𝑇
+𝐾 1×4×77.39 55.83
+data processing and model training, while the second employs data
+parallelism with four GPUs. The third baseline increases the batch
+size per GPU by four, resulting in slower training times, while the
+fourth keeps the batch size constant but increases the accumulation
+factor to 4. The results are present in Table 5.
+InScenario-1, the baseline method employing data parallelism
+achieves optimal performance, benefiting from efficient commu-
+nication and compute/data utilization. However, approaches with
+increased batch size or accumulation factor suffer from longer train-
+ing times and lower average accuracy. This suggests that while
+parallelizing data across multiple GPUs can enhance performance,
+overly increasing batch size or accumulation factor may introduce
+bottlenecks in computation and negatively impact model conver-
+gence.
+InScenario-2, larger batch sizes outperform smaller ones in the
+baseline methods, indicating the potential benefits of aggregat-
+ing more data for training. However, an increase in the accumu-
+lation factor leads to performance degradation, highlighting the
+importance of balancing compute resources with training efficiency.
+These findings underscore the complex trade-offs involved in feder-
+ated learning, where optimizing communication and computation
+strategies is essential for achieving optimal model performance
+across diverse scenarios.
+The results demonstrate the intricate interplay between com-
+munication, computation, and model performance in federated
+learning. While certain strategies, such as data parallelism or larger
+batch sizes, may excel in specific scenarios, they may not general-
+ize well across different settings. FDLoRA emerges as a promising
+approach, striking a balance between communication and com-
+putation costs while maintaining competitive performance across
+diverse scenarios, including log anomaly detection and medical
+question answering.
+4.8 RQ7: Advantages of AdaFusion method
+Experiment Settings.To evaluate the advantages of theAdaFusion
+method over other fusion methods, we compared it with three
+baseline methods:1).Random, where weights between 0 and 1 are
+randomly assigned to the personalized LoRA (𝑤 1) and the global
+LoRA (𝑤 2);2).A verage, where the parameters of the two LoRA
+modules are arithmetically averaged (equivalent to 𝑤 1 = 0.5and
+𝑤 2 = 0.5);3).Sum, where the parameters of the two LoRA modules
+are added directly (equivalent to 𝑤 1 = 1.0and 𝑤 2 = 1.0). We
+evaluated the results under differentnon-IIDsettings (e.g., 𝛼=
+{0.1,0.5,1.0}), as shown in Table 6.
+InScenario-1,AdaFusionconsistently outperforms the other fu-
+sion methods across all 𝛼 values. This indicates thatAdaFusion
+effectively adapts to the varying degrees of data heterogeneity,
+achieving superior average accuracy compared to Random, Aver-
+age, and Sum fusion methods. Notably, the robust performance
+ofAdaFusionunderscores its ability to dynamically adjust fusion
+weights based on the characteristics of each client’s data distri-
+bution, leading to enhanced model convergence and predictive
+accuracy.
+However, the performance ofAdaFusioninScenario-2exhibits
+slight fluctuations across different 𝛼 values. WhileAdaFusiongen-
+erally maintains competitive accuracy at𝛼={ 0.1, 0.5}, it is inferior
+to the Sum fusion method at𝛼= 1.0. This discrepancy suggests that
+the efficacy of fusion methods may vary depending on the specific
+characteristics of the FL environment, such as the degree of data
+heterogeneity and the complexity of the learning task. Furthermore,
+it highlights the importance of considering the interplay between
+fusion methods and the inherent properties of the data distribution
+when designing FL algorithms.
+In summary, the results reveal the nuanced performance of fusion
+methods in FL scenarios with varying degrees of data heterogeneity.
+AdaFusion emerges as a robust fusion approach, demonstrating
+superior adaptability and performance inScenario-1across all 𝛼 val-
+ues. Its ability to dynamically adjust fusion weights based on local
+data characteristics enhances model convergence and predictive
+accuracy, making it well-suited for addressing the challenges of
+non-IIDdata distributions in FL. However, further investigation is
+warranted to understand the factors influencing the performance of
+fusion methods in different scenarios and to optimize their efficacy
+for diverse FL applications.
+5 RELATED WORK
+In this section, we briefly review the related work of personalized
+federate learning and parameter-efficient fine-tuning.
+Personalized federate learning (PFL).The primary objective of
+PFL is to address the challenge encountered in conventional fed-
+erated learning, where the global model lacks personalization for
+local tasks or datasets, leading to slow convergence and suboptimal
+performance in heterogeneous data (non-IID) scenarios. PFL tack-
+les this challenge through two key approaches [40]: global model
+personalization and learning personalized model.
+Global model personalization. To address the challenge of FL
+training onnon-IIDdata, the process of personalizing a global model
+globally can be divided into two stages. Firstly, a shared global
+model is trained via FL. Secondly, additional training is performed

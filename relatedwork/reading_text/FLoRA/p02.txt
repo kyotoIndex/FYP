@@ -1,0 +1,97 @@
+Prior work, FedIT, proposed a federated fine-tuning method [25], integrating LoRA with FedAvg [14].
+In each FL round of FedIT, clients fine-tune LoRA modules using their local data and then send
+the fine-tuned modules to the server. The server averages all the local LoRA modules to obtain a
+global LoRA. Since only the weights of the LoRA modules are fine-tuned and communicated, FedIT
+effectively reduces both computation and communication costs.
+However, FedIT faces two key issues. First, the naive averaging of local LoRA modules in
+FedIT introduces noise to the global model update. Specifically, FedIT averages localA and B
+independently, which introduces mathematical errors to the global LoRA. In short,
+The cause of aggregation noise:
+X
+A ×
+X
+B
+| {z }
+FedIT
+̸=
+X
+A × B
+| {z }
+mathematically correct
+.
+We will elaborate on this issue in Section 2 with theoretical analysis. Such an inaccurate aggregation
+will hinder convergence, leading to higher fine-tuning costs. Second, due to the heterogeneous data
+distribution [28; 11] and heterogeneous hardware resources, clients need to adapt LoRA ranks [27]
+according to the system and data heterogeneity. However,FedIT cannot aggregate local LoRAs
+with heterogeneous ranks.
+Introducing Noise
+Homogeneous Only
+Noise-free Aggregation
+Heterogeneous Aggregation
+FedIT:
+Averaging
+FLoRA: 
+Stacking
+B A
+Fine-tuned
+ Parameter
+W’
+m
+n
+r
+rm
+Centralized  LoRA: ΔW = BA
+Federated  LoRA: ΔW = ?
+n
+Pre-trained
+ Parameter
+W
+m
+n
+ΔW
+ΔW =
+ΔW =
+Figure 1: The overview of LoRA, FedIT, and our
+FLORA. The top row shows how LoRA updates the
+model in centralized fine-tuning. The middle and bot-
+tom rows show the global model updating strategies in
+FedIT and our FL ORA respectively.
+In this work, we present FLORA,
+an aggregation-noise-free federated fine-
+tuning method that supports heterogeneous
+LoRAs. Specifically, as shown in Figure 2,
+we propose to stack the local LoRA mod-
+ules Ak and Bk separately to construct the
+global LoRA modules A and B, where Ak
+and Bk denote the corresponding LoRA
+modules on the k-th client. This stack-
+ing method is theoretically proven to be
+accurate for the aggregation of local LoRA
+modules (Section 3.1). Additionally, it
+can naturally accommodate heterogeneous
+LoRA settings (Section 3.2), since stacking
+does not require the local LoRA modules
+to have identical ranks across clients. The
+noise-free aggregation of FLORA accel-
+erates convergence, which will in turn im-
+prove the overall computation and commu-
+nication efficiency of federated fine-tuning.
+Furthermore, FLORA can effectively cater
+to heterogeneous data and computational resources across clients, where heterogeneous ranks are
+applied. Our key contributions are summarized as follows:
+• We propose FLORA, a federated fine-tuning algorithm based on LoRA that can perform
+noise-free aggregation of local LoRA modules. Theoretical analysis shows that FLORA
+eliminates the meaningless intermediate term in the global model update, leading to faster
+convergence and improved performance.
+• The proposed stacking mechanism for aggregating LoRA modules supports heterogeneous
+LoRA ranks across clients, accommodating data and system heterogeneity in realistic
+settings. This encourages the broader participation of clients with heterogeneous data and
+resources in federated fine-tuning.
+• We use FLORA to fine-tune LLaMA, Llama2 [19] and TinyLlama [26] on four benchmarks
+for two downstream tasks. Results show that FLORA surpasses state-of-the-art methods for
+both homogeneous and heterogeneous settings.
+2 Preliminaries
+Fine-tuning LLMs with LoRA. LoRA [9] uses two decomposed low-rank matrices to represent
+the update of the target module:
+W′ = W + ∆W = W + BA, (1)
+2

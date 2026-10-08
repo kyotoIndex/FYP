@@ -1,0 +1,108 @@
+Table 2: Overview of Datasets for Experimental Evaluation
+Dataset Partition Rules # Training
+Samples
+# Test
+Samples
+SST-2 non-i.i.d. 67,349 1,821
+QNLI non-i.i.d. 104,743 5,463
+QQP non-i.i.d. 363,846 40,430
+MNLI non-i.i.d. 392,702 9,815
+GSM-8K i.i.d. 7473 1,319
+MMLU i.i.d. 20,000 2,000
+ing Evaluation (GLUE) datasets [39], encompassing a di-
+verse spectrum of natural language understanding challenges:
+SST-2 for sentiment analysis, QNLI for question-based nat-
+ural language inference, QQP for semantic equivalence, and
+MNLI for multi-genre textual entailment, respectively. Fol-
+lowing the Dirichlet distribution with α = 10, we build
+the non-independent and identically (non-i.i.d.) distributed
+datasets [7]. We fine-tune a 125M-parameter RoBERTa-base
+model [38] with 12 transformer layers on SST-2 and QNLI,
+and a 350M-parameter DeBERTa-Large model [56] with 24
+transformer layers on QQP and MNLI, respectively.
+2) Massive Multitask Understanding aims to test model
+generalization and knowledge transfer by fine-tuning across
+multiple related tasks. We utilize the Massive Multitask Lan-
+guage Understanding (MMLU) datasets [57] for the evalua-
+tion, which is a comprehensive multiple-choice benchmark
+spanning 57 tasks across diverse academic domains. By sam-
+pling 20,000 training and 2,000 test samples from the auxil-
+iary_train subset, we create a dataset that challenges models
+to demonstrate broad knowledge and nuanced reasoning ca-
+pabilities. We fine-tune a 7B-parameter Llama2 model (i.e.,
+Llama2-7B) [15], which is composed of 32 transformer layers,
+on this customized dataset.
+3) Mathematical Reasoning serves as a critical task for
+evaluating the models’ logical reasoning and computational
+reasoning capabilities. We employ the Grade School Math
+(GSM-8K) dataset [59], which is a widely recognized bench-
+mark designed to evaluate models’ elementary mathematical
+reasoning and problem-solving abilities. It comprises 7,473
+training and 1,319 test problems, each requiring multi-step rea-
+soning and arithmetic calculations, reflecting the complexity
+of grade-school mathematics. This dataset challenges models
+to demonstrate logical consistency, numerical computation,
+and interpretive skills essential for advanced mathematical
+understanding. We fine-tune Llama2-7B on this dataset.
+Baselines. To evaluate the effectiveness of LEGEND, we
+adopt two LoRA-based approaches (i.e., naive FedLoRA [20]
+and advanced HetLoRA [27]) and the state-of-the-art FedFT
+approaches (i.e., FedAdapter [10]) as baselines.
+1) FedLoRA integrates LoRA [16] into FedFT, where all
+the devices fine-tune the same local model with the identical
+rank applied to all transformer layers.
+2) HetLoRA is an advanced LoRA-based approach for
+FedFT, which assigns each device with a diverse but appro-
+priate LoRA rank for fine-tuning all transformer layers of its
+local model so as to deal with system heterogeneity.
+3) FedAdapter is the state-of-the-art FedFT approach,
+which introduces Adapters [21] in FedFT and dynamically
+searches for the optimal Adapter configuration to improve
+fine-tuning efficiency.
+Metrics. The following metrics are adopted to evaluate the
+performance of LEGEND and the baselines.
+1) Test Accuracy reflects the accuracy of the models fine-
+tuned by different approaches on the test datasets, measured
+by the proportion of correctly predicted data. Specifically, we
+record the test accuracy of the global model (the model after
+aggregation at the PS) in each round.
+2) Completion time represents the total wall-clock time
+required for fine-tuning a model to achieve a target accuracy.
+For fair comparisons, we set the target accuracy as the mini-
+mum accuracy achieved by the four methods. We record the
+time of each round, summing it up to obtain the completion
+time, and also record the average waiting time to reflect the
+fine-tuning efficiency of different approaches.
+3) Communication Traffic is recorded by summing up the
+traffic for transmitting the trainable parameters between the
+PS and devices during model fine-tuning, which is used to
+measure the communication efficiency of each approach.
+Experimental Parameters. By default, all experiments
+are carried out on our prototype system and run 100 rounds.
+Each device fine-tunes 1 epoch per round using AdamW [33]
+optimizer locally. The learning rate is set as 0.002 and decays
+according to a cosine scheduler. The batch size is fixed at
+4 and the maximum sequence length is set to 512 for all
+experiments.
+6.2 Overall Performance
+Firstly, we conduct sets of experiments to evaluate the per-
+formance of LEGEND and the baselines. The fine-tuning
+processes and the completion time of the general language un-
+derstanding task are presented in Figures 7 and 8, respectively.
+By the results, LEGEND achieves the fastest convergence
+rate, outperforming the other approaches by a significant mar-
+gin on all tasks. By assigning smaller LoRA depths with an
+optimized rank distribution for resource-constrained devices,
+LEGEND effectively enhances fine-tuning performance while
+reducing the time for local fine-tuning. For instance, by Fig-
+ures 7(a) and 8(a), LEGEND takes only 1,479s to achieve
+85% accuracy on SST-2, while FedAdapter, HetLoRA, and
+FedLoRA take 2,412s, 2,503s, and 4,074s, respectively. Com-
+pared to FedAdapter, HetLoRA, and FedLoRA, LEGEND
+provides 1.6×, 1.7×, and 2.8× speedup, respectively. By Fig-
+ures 7(b) and 8(b), LEGEND also outperforms the other base-
+lines in terms of completion time for QNLI. Similarly, Figures
+7(c) and 8(c) show that LEGEND takes 121,156s to achieve
+87% accuracy for QQP, while FedAdapter, HetLoRA, and
+FedLoRA consume 173,375s, 209,196s, and 269,749s, re-
+9

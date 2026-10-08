@@ -1,0 +1,70 @@
+Published as a conference paper at ICLR 2024
+Instead of training the entire weight matrix W0 ∈ Rd×k composing Φ, the updates are performed
+on A ∈ Rr×k and B ∈ Rd×r composing Θ. With r << min(d, k), the number of trainable
+parameters |Θ| is reduced by an order of O(r/ min(d, k)) compared to full fine-tune with size |Φ|.
+In order to recover the performance of raw model at the start of training, and keep the weights
+trainable through back-propagation, A uses random Gaussian initialization, while B is set to zero.
+The product matrix is additionally scaled by a factor α/r. α also has influence on the performance
+of LoRA and is required to be tuned.
+Discordance 1: Data heterogeneity and model-averaging introduce interference to LoRA. The
+performance of vanilla LoRA is negatively affected when faced with cross-silo FL tasks with data
+heterogeneity (Babakniya et al., 2023). Notice that the loss for back-propagation is computed on
+the composition of raw model parameters and the product of A and B (as Equation 1), and LoRA
+performs optimization over A and B jointly on client side. This implies that the problem is approx-
+imately optimized as a locally semi-quadratic problem (suppose the model is locally linear when
+learning rate is small). However, when the server performs aggregation on the server side, A and
+B are averaged separately following vanilla FedAvg McMahan et al. (2017a). The product of the
+averaged A and B involves additional terms that may neither benefit the optimization on the clients’
+loss or FL global loss.
+For example, consider a FL task involving two clients with datasets of a same size. If clients locally
+fine-tune on full parameters and the server aggregates with FedAvg, the new model parameters can
+be represented as the following:
+W + = 1
+2(W1 + W2) = W0 + 1
+2(∆W1 + ∆W2), where Wi = W0 + ∆Wi, i = 1, 2. (2)
+An implicit assumption ensuring the global convergence of FL algorithms is∆Wglobal ≈ 1
+2(∆W1+
+∆W2), where ∆Wglobal is the update assuming the server can access all clients’ dataset directly.
+When the clients use LoRA locally, we can also consider ∆Wi ≈ BiAi. However, after using
+FedAvg to aggregate the trainable low-rank matrices, the server produces
+˜W + = W0 + 1
+2(B1 + B2) × 1
+2(A1 + A2)
+| {z }
+Parameters after aggregation with LoRA + FedAvg
+̸= W0 + 1
+2(B1A1 + B2A2) = W +
+| {z }
+Ideal parameters following model-averaging
+. (3)
+Thus, it is possible for two clients in FL to converge to two different combinations of adaptation
+matrices Bi, Ai, yet when an aggregation such as FedAvg is applied in server, a linear combination
+does not necessarily provide good performance for the specific task. The difference between1
+2(B1+
+B2) × 1
+2(A1 + A2) and 1
+2(∆W1 + ∆W2) may become more significant when i) number of local
+update steps between aggregations is large and ii) the local datasets are different across clients.
+This echoes with the “client-drift” phenomenon discussed by Karimireddy et al. (2020). “Client-
+drift” happens in heterogeneous FL when there is a difference between the average of local loss
+optima of clients and the optimum of the global loss, i.e.P
+i Θ∗
+i ̸= Θ∗
+global. It is caused by the local
+gradient dissimilarity among clients and slows down convergence. Since the parameters in LoRA
+are locally quadratic in construction, they are more prone to “client-drift” than a locally linear task
+such as full-fine-tuning.
+Discordance 2: The noise with DP-SGD can be amplified with LoRA. Although LoRA and DP-
+SGD are the most popular methods in PEFT and privacy-preserved machine learning respectively,
+directly combining them together may not be the optimal choice. The discordance again comes from
+the semi-quadratic structure of LoRA. Consider the parameters after a single DP-SGD update. Even
+if no norm clipping operation is triggered, the parameters are updated as
+W0 + (B + ξB)(A + ξA) = W0 + BA + ξBA + BξA + ξBξA,
+where ξA and ξB consist of the Gaussian noises from DP-SGD. Three terms contain noise and the
+third term, ξBξA, no longer follows a Gaussian distribution. This shows that noise is cascaded after
+the multiplication in LoRA, introducing additional difficulties for convergence in fine-tuning.
+We provide synthetic verification with Figure 1. In this example, W ∈ R1024×1024 and rank r = 8.
+We plot the Frobenius norm of the noise matrices ξBξA and ξW for LoRA and full fine-tuning
+respectively. Due to the multiplication in LoRA by construction, the norm of noise scales quadraticly
+with σ, and is significantly worse that full fine-tune when σ exceeds 0.5.
+4

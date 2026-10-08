@@ -1,0 +1,54 @@
+Published as a conference paper at ICLR 2026
+OptimalFlexLoRA(Large Rank)
+FlexLoRA(Small Rank)
+HETLoRA(Large Rank)
+FLoRA(Large Rank)
+RTEMRPCQQPMethod/Dataset (Acc.)51.02!".$"%&.'(43.87!)&.&*%&(.+)53.88!)+.)"%,.$-FLoRA64.25!&.'*%).,,79.65!).*)%'.$*84.64!'.)&%'.',FlexLoRA(Small Rank)66.90!).+*%).*-86.84!).")%'.-'86.94!'.))%'.'*FlexLoRA(Large Rank)68.35!'.)&%'.&(87.58!'.""%'.()86.86!'.'&%'.'(HETLoRA
+Figure 7: The intuitive convergence trajectories of existing methods and empirical results on three
+datasets in homogeneous settings.
+The results show that FLoRA, while free of aggregation noise, struggles due to random initialization,
+yielding low accuracies of 53.88%, 43.87%, and 51.02% on QQP, MRPC, and RTE. FlexLoRA, by
+contrast, is mainly affected by its rank-dependent SVD-based aggregation noise: at large ranks
+(e.g.,r i = 16) it performs well (86.94% on QQP), but its accuracy drops at smaller ranks (e.g.,
+84.64% atr i = 1). HETLoRA introduces bias through its averaging rule, yet achieves strong
+performance, with 87.58% on MRPC and 68.35% on RTE, suggesting its noise can be no worse than
+FlexLoRA’s. Finally, FlexLoRA incurs heavy computation from repeated SVD, whereas HETLoRA
+uses a lightweight averaging scheme.
+D.5.3 IMPACT OFHYPERPARAMETERS
+Table 9: The impacts of the number of TC and clients’ HR.
+Method
+CoLA Dataset
+TC=100
+HR=1:1:1
+TC=200
+HR=1:1:1
+TC=100
+HR=6:3:1
+FLoRA −4.08−2.07−2.07
+FlexLoRA 13.42−4.73−2.50
+HETLoRA 48.09 50.54 51.04
+Fed-PLoRA 59.38 55.56 58.28
+The Impact of Total Clients and Resource Heterogeneity.We study how the total number of
+clients (TC) and the heterogeneity ratio (HR) of client resources affect performance. Table 9 re-
+ports results on CoLA. Across all configurations, Fed-PLoRA consistently outperforms baselines
+(FLoRA, FlexLoRA, HETLoRA). Increasing TC from 100 to 200 (with balanced HR=1:1:1) slightly
+reduces Fed-PLoRA’s score (59.38% to 55.56%) but still keeps a clear margin over HETLoRA
+(50.54%). When shifting HR from balanced (1:1:1) to skewed (6:3:1, more low-resource clients)
+with TC=100, Fed-PLoRA remains robust (59.38% to 58.28%). These results show that Fed-PLoRA
+scales well with both client population and resource imbalance.
+Table 10: The impacts of the heterogeneous rank setting.
+Method
+CoLA Dataset
+Ranks
+1/2/4
+Ranks
+1/2/16
+Ranks
+1/4/16
+Ranks
+2/8/16
+FLoRA −2.07−2.07−4.08−2.07
+FlexLoRA 1.01 4.16 13.42−3.76
+HETLoRA 47.44 46.70 48.09 49.54
+Fed-PLoRA 58.58 60.26 59.38 60.41
+23

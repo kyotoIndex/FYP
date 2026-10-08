@@ -1,0 +1,138 @@
+0.0 0.5 1.0
+Improvement %
+Uniform
+Heavy-tail-light
+Normal
+Heavy-tail-strongCategory
+0.97
+0.34
+1.04
+0.24
+Answerability Classification
+0.0 0.5 1.0 1.5
+Improvement %
+1.48
+1.50
+0.51
+1.36
+Coreference Resolution
+0.0 0.5 1.0
+Improvement %
+1.25
+0.10
+0.37
+0.46
+Question Rewriting
+0.5
+ 0.0
+Improvement %
+0.22
+-0.94
+0.09
+-0.11
+Keyword Tagging
+0 1 2
+Improvement %
+Uniform
+Heavy-tail-light
+Normal
+Heavy-tail-strongCategory
+1.93
+0.95
+1.09
+2.26
+Overlap Extraction
+0.0 0.5 1.0 1.5
+Improvement %
+0.69
+1.05
+1.37
+1.70
+Data to Text
+2
+ 1
+ 0
+Improvement %
+-1.52
+-1.47
+-2.17
+-2.52
+Word Analogy
+0.00 0.25 0.50
+Improvement %
+0.25
+-0.20
+0.55
+0.44
+Title Generation
+0 1 2
+Improvement %
+Uniform
+Heavy-tail-light
+Normal
+Heavy-tail-strongCategory
+1.16
+1.53
+2.75
+2.14
+Textual Entailment
+0 1 2 3
+Improvement %
+2.44
+1.61
+1.52
+3.60
+Cause Effect Classification
+0.0 0.5 1.0 1.5
+Improvement %
+1.55
+0.84
+1.24
+0.94
+Dialogue Act Recognition
+0 1 2
+Improvement %
+1.17
+2.20
+0.65
+0.89
+Grammar Error Correction
+Figure 7: Task-specific improvements achieved by FlexLoRA in comparison to the homogeneous
+rank implementation of FedIT, across different resource distribution settings.
+0 100 200 300 400 500 600 700 800
+Order
+10−5
+10−4
+10−3
+10−2
+10−1
+singular value
+block 1 singular value
+block 8 singular value
+block 14 singular value
+block 1 error ratio
+block 8 error ratio
+block 14 error ratio
+rank 30 error ratio
+0.0
+0.2
+0.4
+0.6
+0.8
+Error ratio
+0.16
+k_proj under FlexLoRA w/ heavy-tail-strong distribution
+Figure 8: Distribution of singular values and the approximation error ratio between the top i-th
+singular value approximated kproj weights and the actual full-rank kproj weights. The red cross
+denotes the average error for weights with rank 30 of kproj across blocks 1, 8, and 14.
+I Experiment Result for Mixed Task Heterogeneity Scenario
+Table 12 provides the result of standard FedAvg vs FlexLoRA-integrated FedAvg under uniform and
+heavy-tail-light resource distributions. The foundation model includes DataJucier(1.3B) and LLaMA
+3 (8B).
+Table 12: Results of homogeneous LoRA configurations versus FlexLoRA under FedAvg methods.
+The experiments are conducted on both DataJucier (1.3B) and LLaMA-3(8B) models on Dolly-15K.
+DataJucier (1.3B) LLaMA-3 (8B)
+Homo Rank 55.34 ± 0.59 64 .26 ± 0.80
+Uniform 58.56 ± 1.35 64 .93 ± 0.33
+Heavy-tail-light 58.39 ± 1.26 64 .58 ± 0.62
+18

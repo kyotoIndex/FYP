@@ -1,0 +1,175 @@
+Published as a conference paper at ICLR 2025
+A.2 P ROOF OF THEOREM 1
+Proof. Let W (t)
+i = W0 + B(t)
+i A(t)
+i be the model parameters maintained in the i-th client at the
+t-th step. Let IE be the set of global synchronization steps, i.e., IE = {nE | n = 1 , 2, · · · }. If
+t + 1 ∈ I E, which represents the time step for communication, then the one-step update of the
+proposed method for the i-th client can be described as follows:
+ 
+B(t)
+i
+A(t)
+i
+!
+− →
+update of B(t)
+i andA(t)
+i
+ 
+B(t+1)
+i
+A(t+1)
+i
+!
+− →
+if t+1∈IE
+ 
+B(t+1)
+i
+1
+m
+Pm
+j=1 A(t+1)
+j
+!
+.
+For convenience, we denote the parameters in each sub-step above as follows:
+W (t)
+i = W0 + B(t)
+i A(t)
+i ,
+U (t)
+i = W0 + B(t+1)
+i A(t+1)
+i ,
+V (t)
+i = W0 + B(t+1)
+i
+1
+m
+mX
+j=1
+A(t+1)
+j ,
+W (t+1)
+i =
+(
+U (t)
+i if t + 1 /∈ I E,
+V (t)
+i if t + 1 ∈ I E.
+Here, the variable U (t)
+i represents the immediate result of one sub-step update from the parameter of
+the previous sub-step W (t)
+i , and V (t)
+i represents the parameter obtained after communication steps
+(if applicable). Furthermore, we denote the learning rate for the i-th client at the t-th step as ηi,t,
+and the stochastic gradient at step t as follows:
+∇BLi(W (t)
+i , ξi,t) = ∇W Li(W (t)
+i , ξi,t)A(t)
+i
+⊤
+,
+∇ALi(W (t)
+i , ξi,t) = B(t)
+i
+⊤
+∇W Li(W (t)
+i , ξi,t),
+∇BLi(W (t)
+i ) = E[∇BLi(W (t)
+i , ξi,t)],
+∇ALi(W (t)
+i ) = E[∇ALi(W (t)
+i , ξi,t)],
+where ξi,t is the data uniformly chosen from the local data set of client i at step t.
+Next, we apply the inequality from the smoothness Assumption 1 to each sub-step of the one-step
+update for client i. Firstly, by the smoothness of Li, we have:
+Li(U (t)
+i ) ≤ L i(W (t)
+i ) + ⟨U (t)
+i − W (t)
+i , ∇W Li(W (t)
+i )⟩F + L
+2
+U (t)
+i − W (t)
+i
+
+2
+F
+. (13)
+Since
+B(t+1)
+i = B(t)
+i − ηi,t∇BLi(W (t)
+i , ξi,t)
+= B(t)
+i − ηi,t∇W Li(W (t)
+i , ξi,t)A(t)
+i
+⊤
+,
+and
+A(t+1)
+i = A(t)
+i − ηi,t∇ALi(W (t)
+i , ξi,t)
+= A(t)
+i − ηi,tB(t)
+i
+⊤
+∇W Li(W (t)
+i , ξi,t),
+we have:
+U (t)
+i − W (t)
+i
+= B(t+1)
+i A(t+1)
+i − B(t)
+i A(t)
+i
+=
+
+B(t)
+i − ηi,t∇W Li(W (t)
+i , ξi,t)A(t)
+i
+⊤
+
+A(t)
+i − ηi,tB(t)
+i
+⊤
+∇W Li(W (t)
+i , ξi,t)
+
+− B(t)
+i A(t)
+i
+= η2
+i,t∇W Li(W (t)
+i , ξi,t)A(t)
+i
+⊤
+B(t)
+i
+⊤
+∇W Li(W (t)
+i , ξi,t) − ηi,t∇W Li(W (t)
+i , ξi,t)A(t)
+i
+⊤
+A(t)
+i
+− ηi,tB(t)
+i B(t)
+i
+⊤
+∇W Li(W (t)
+i , ξi,t).
+17

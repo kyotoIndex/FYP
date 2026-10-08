@@ -1,0 +1,125 @@
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+3 System Modeling
+3.1 Federated Fine-Tuning System
+We consider a federated fine-tuning system consisting of a central
+server and 𝑣 clients. The server has a global FM 𝚯 initialized with
+pre-trained weights 𝚯0. Each client 𝑖 ∈ [ 𝑣] owns a local dataset
+𝐷𝑖 ∼ P𝑖, where the size of 𝐷𝑖 and the data distribution P𝑖 can vary
+across clients. In federated fine-tuning, clients aim to collaboratively
+fine-tune the global model 𝚯 under the coordination of the server.
+In this work, we focus on transformer-based models [8, 9, 27, 34]
+consisting of 𝑙 transformer blocks {W (1), · · ·, W (𝑙 ) }, and embed-
+ding layers, along with head layers, denoted as W𝑟𝑒𝑠𝑡 . The pre-
+trained model is thus represented as𝚯0 = {W0
+(1), · · ·, W0
+(𝑙 ), W0
+𝑟𝑒𝑠𝑡 }.
+To fine-tune the global model efficiently, we apply the LoRA module
+(denoted as 𝜽 ( 𝑗 )) to the attention weight A ( 𝑗 ) ∈ R𝑑 ×𝑘 within the
+𝑗-th transformer block, where 𝑗 ∈ [ 1, 𝑙], and 𝑑 and 𝑘 represent the
+dimensions of the input and output feature space of attention lay-
+ers, respectively. The idea behind LoRA is to constrain ΔA ( 𝑗 ), the
+update of a pre-trained attention weight matrix A0
+( 𝑗 ), using a low-
+rank decomposition, such that A0
+( 𝑗 ) +ΔA ( 𝑗 ) = A0
+( 𝑗 ) + N ( 𝑗 ) M ( 𝑗 ),
+where N ( 𝑗 ) ∈ R𝑑 ×𝑟 , M ( 𝑗 ) ∈ R𝑟 ×𝑘, and the rank 𝑟 ≪ min(𝑑, 𝑘).
+Without loss of generality for subsequent optimization, we omit
+W𝑟𝑒𝑠𝑡 and define the LoRA modules for 𝚯 as 𝜽 := {𝜽 ( 𝑗 ) } 𝑗 ∈ [𝑙 ]
+with 𝜽 ( 𝑗 ) = {N ( 𝑗 ), M ( 𝑗 ) }.
+In this context, the problem of federated fine-tuning using LoRA
+can be formulated as follows:
+min
+𝜽
+L (𝜽 ) := 1
+𝑣
+𝑣∑︁
+𝑖=1
+L𝑖 (𝜽; 𝚯0), (1)
+where L𝑖 (𝜽; 𝚯0) := E𝑥 ∈𝐷𝑖 [ℓ (𝜽; 𝚯0, 𝑥)] denotes the local objective
+function of client 𝑖, and ℓ (𝜽 𝑖; 𝚯0, 𝑥) is the loss of the model {𝜽, 𝚯0}
+on a datapoint𝑥 sampled from 𝐷𝑖. We assume that clients download
+the pre-trained weights 𝚯0 from the server prior to fine-tuning and
+have sufficient memory capacity to store the model parameters.
+Ideally, the classic FedAvg algorithm [20] can be employed to solve
+this problem in a distributed manner. In FedAvg, at round 𝑡, clients
+download the global trainable model parameters 𝜽 𝑡 maintained
+by the server and update it using their local datasets to minimize
+their local objectives. Clients then upload their model updates to
+the server, which aggregates the updates to compute 𝜽 𝑡 +1 for the
+next round of fine-tuning. However, in practice, the large memory
+requirements for fine-tuning FMs, coupled with the heterogeneity
+of clients’ memory capacities, prevent some clients from accommo-
+dating the memory cost necessary for locally optimizing 𝜽.
+3.2 On-Device GPU Memory Consumption of
+LoRA-based Fine-Tuning
+FM fine-tuning requires substantial on-device GPU memory, pri-
+marily due to the complexity of the transformer model architecture.
+In federated settings with memory-limited clients, understanding
+the memory footprint of a FM fine-tuning task is crucial for design-
+ing memory-efficient approaches. Let C denotes the total memory
+consumption for a LoRA-based FM fine-tuning process. It can be
+represented as C = C𝑝 + C𝑜 + C𝑎 + C𝑐, where C𝑝, C𝑜, C𝑎 and C𝑐 rep-
+resent the memory consumption of model parameters, optimizers,
+activations and the CUDA context, respectively.
+(1) Model parameters include all weights and biases used during
+fine-tuning, encompassing both trainable and frozen parameters.
+Based on the federated fine-tuning problem formulation in (1), the
+memory consumption for storing model parameters in bytes can
+be expressed as C𝑝 := 𝜑 ({𝜽, 𝚯0}) where 𝜑 is defined as 𝜑 (𝒛) =
+𝜂𝑁 𝑤𝑒𝑖𝑔ℎ𝑡 (𝒛) + 𝜂𝑁𝑏𝑖𝑎𝑠 (𝒛). Here, 𝑁𝑤𝑒𝑖𝑔ℎ𝑡 (·) and 𝑁𝑏𝑖𝑎𝑠 (·) are the
+number of weights and bias in the model 𝒛, and 𝜂 is the number of
+bytes per parameter, which is determined by the precision (e.g., 2
+bytes for 16-bit precision).
+(2) Modern gradient-based optimizers like Adam [15] are widely
+used in FM fine-tuning. They maintain state information such as
+first-order and second-order gradient estimates for each trainable
+parameter. Consequently, the memory consumption for optimizer
+states scales linearly with the number of trainable model parameters
+and can be approximated as C𝑜 := 𝑏𝜁 𝜑(𝜽 ), where 𝜁 represents the
+number of optimizer states and 𝑏 is the batch size.
+(3) Unlike optimizer states, activation memory in transformer
+model fine-tuning grows non-linearly with the number of train-
+able parameters [1]. We distinguish between dynamic activations,
+which can be discarded by freezing certain parameters, and static
+activations, retained due to non-linear functions like GELU, Lay-
+erNorm, and Softmax (see Supplement A.1-A.4 for details). We
+calculate the size of dynamic and static activations for each trans-
+former block in {𝜽, 𝚯0}, when pre-trained weights 𝚯0 are frozen
+and the LoRA modules 𝜽 are trainable. As a result, the memory con-
+sumption for storing activations during the update of 𝜽 is given by:
+C𝑎 := 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑑
+( 𝑗 ) + 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑠
+( 𝑗 ), where 𝜎𝑑
+( 𝑗 ) and 𝜎𝑠
+( 𝑗 ) represents
+the size of dynamic and static activations for the 𝑗-th block.
+(4) Finally, the memory consumption of the CUDA context in-
+cludes GPU kernel launches, memory management, and other oper-
+ational resources. This component highly depends on the environ-
+ment, machine, and configuration, thus, we treat C𝑐 as a constant.
+Overall, the total memory consumption C is formulated as,
+C = 𝜑 ({𝜽, 𝚯0}) + 𝑏𝜁 𝜑(𝜽 ) + 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑑
+( 𝑗 )
++ 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑠
+( 𝑗 ) + C𝑐 .
+(2)
+This indicates that reducing the size of 𝜽 can further lower the
+memory cost, similar to existing methods [ 3, 6, 29] that reduce
+the ranks of LoRA modules to save memory cost. However, this
+saving is limited. As shown in Figure.1(b), the overall memory cost
+is primarily dominated by activations. Reducing the ranks of LoRA
+modules has a minimal impact on the size of both dynamic and
+static activations.
+3.3 Reducing Memory Consumption with
+Partial LoRA Allocation
+To save GPU memory consumption, the primary contributor—activation
+memory cost—should be reduced. In fact, we can eliminate the need
+to store the dynamic activations for a transformer block by freezing
+its LoRA modules, as the entire block is frozen in this case. This is
+why FedRA [24], which randomly freezes LoRA modules in some

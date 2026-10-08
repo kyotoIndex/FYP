@@ -1,0 +1,101 @@
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+0 1 2 3 4 5 6 7
+Number of Parameters 1e9
+Trainable Non-Trainable
+0.003B
+6.7B
+Figure 4: Trainable Parameters vs Non-Trainable Parameters.
+trillion tokens. Despite having a smaller parameter scale (7 billion
+parameters), it has demonstrated superior performance on various
+benchmarks, even outperforming GPT-3 (175 billion parameters)
+[16]. LLaMA2-7B may be a suitable choice for researchers and star-
+tups with resource constraints due to its compact parameter size.
+Then, we implement LoRA2 to significantly decrease computational
+and storage costs, while yielding performance comparable to a fully
+fine-tuned model. As shown in Figure 4, we compared the number
+of trainable parameters and the total number of parameters. The
+trainable parameters are only about0 .03𝐵, which is only ∼ 5%of
+the total parameters. Finally, we fine-tuning the LLaMA2-7B with
+FDLoRA framework. The details of the settings are as follows:
+For the inner optimization, each client’s local LLM was fine-
+tuned by LoRA with its local training set for 3 epochs with the
+learning rate 𝑙𝑟= 0.0002, batch size 𝑏= 1. The optimizer is
+PagedAdamW32bit 3 with the momentum𝑚= 0.9, learning rate de-
+cay 𝜂= 0.1, and weight decay 𝛾= 0.01. For the outer optimization,
+we set the learning rate 𝑙𝑟= 0.001, momentum 𝑚= 0.5, and the to-
+tal communication across all clients 𝑇= 30. For the adaptive fusion
+function, we set the max inference step is 5, and the regularization
+factor𝜆 (𝑖) =0.05in client𝑖.
+Evaluation Metrics.For theScenario-1, we use theF1 scoreto
+evaluate the accuracy of the log-based anomaly detection task. For
+theScenario-2, we compare the output to the groundtruth answer,
+and the accuracy of an individual data example is considered true
+if the model output matches the groundtruth. To facilitate clarity
+and consistency in our descriptions, we will use the termaccuracy
+uniformly in the subsequent sections.
+4.2 RQ1: Performance on different scenarios
+Experiment Settings.The performance of FDLoRA is compared
+with baseline methods on four datasets. We set the client number
+𝑁= 5, the local update epochs 𝐾= 3, the batch size 𝐵= 1, and the
+total communication round 𝑇= 30. Each client is assigned an equal
+number of samples, and the training and testing sets are split with
+a ratio of 8:2 for each client. The results are present in Table 3.
+FDLoRA emerges as the standout performer, consistently exhibit-
+ing the highest mean accuracy across both scenarios and varying
+values of 𝛼. This indicates FDLoRA’s robustness and effectiveness
+2https://huggingface.co/docs/peft/index
+3https://huggingface.co/docs/bitsandbytes/main/reference/optim/adamw
+in mitigating the challenges associated withnon-IIDdata distri-
+bution. The comparative analysis also reveals interesting trends
+regarding the impact of class imbalance on model performance. As
+𝛼 increases, denoting reduced class imbalance, all methods demon-
+strate improved performance, suggesting that models find it easier
+to learn with more balanced class distributions. However, the extent
+of improvement varies among methods, with FDLoRA consistently
+outperforming others. These findings underscore the importance of
+employing tailored federated learning approaches like FDLoRA to
+optimize model performance in scenarios characterized bynon-IID
+data distributions. Furthermore, the reported standard deviations
+highlight the variability in performance across multiple runs, em-
+phasizing the need for robustness in federated learning algorithms
+to ensure consistent results in real-world applications.
+In summary, the FDLoRA offers several advantages, including
+high performance, global collaboration capabilities, model robust-
+ness, and data privacy protection. These benefits make FDLoRA a
+powerful solution for FL problems and promote better cooperation
+among all parties involved.
+4.3 RQ2: Performance with varies
+communication round
+Experiment Settings.To evaluate the performance of varying
+communication rounds (𝑇 ), we increase𝑇 from 0 to 30. The number
+of clients is set to 𝑁 =3, 5 and 7, with a fixed number of local update
+iterations (𝐾= 3), and the batch size 𝐵= 1. The results are shown
+in Figure 5.
+It’s clear that as the number of communication rounds increases,
+there is a consistent improvement in average accuracy across dif-
+ferent scenarios, particularly when considering different numbers
+of clients. This consistency in performance regardless of the num-
+ber of clients suggests that the effect of communication rounds on
+accuracy is robust and generalizable across different scales of client
+populations. For example, when comparing the results across differ-
+ent values of 𝑁 (e.g. 𝑁= 3, 𝑁= 5, 𝑁= 10), we observe that in each
+case there is a noticeable trend of improving average accuracy as
+the number of communication rounds increases. This suggests that
+the collaborative nature of PFL, facilitated by increased communi-
+cation rounds, consistently leads to improved model performance,
+regardless of the number of participating clients.
+This consistency highlights the importance of communication
+rounds as a fundamental aspect of PFL, enabling effective coordi-
+nation and aggregation of decentralized model updates across a
+wide range of client populations. It suggests that, regardless of the
+specific deployment scenario or the size of the FL system, increas-
+ing the number of communication rounds can generally lead to
+improved model convergence and accuracy, thus emphasizing its
+importance in the FL paradigm.
+4.4 RQ3: Performance with varies
+communication frequency
+Experiment Settings.In practical scenarios, the communication
+overhead between clients can be significant, influenced by factors
+such as regional network conditions and heterogeneous hardware.
+Doing communication and aggregation operations at the end of
+each training iteration (i.e., when 𝐾= 1) may be the sub-optimal

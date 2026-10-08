@@ -1,0 +1,65 @@
+{0.05,0.1,0.25} for FedLoRA and from {0.1,0.25,0.5,1.0} for all other methods. The batch size
+is set to B= 128 . For DP-SGD, we set the target failure probability to δ= 10 −5 and fix the clipping
+norm at C= 2 . The differential privacy budget ϵ is computed using Opacus [37]. All experiments
+were run on RTX Pro 6000 GPUs. Additional details are provided in Appendix I. Unless otherwise
+specified, all experiments follow the settings described in Section 5 and Appendix I.
+Table 2: Comparison on MNLI under
+DP-SGD (ϵ= 3).
+Method MNLI (m) MNLI (mm)
+Proposed (FD) 79.15±0.2380.03±0.40
+Proposed (HVP) 80.29±0.8481.29±0.80
+For the proposed AS-LoRA, the warm-up ratio is set to 0.1.
+The temperature parameters are set to T 0 = 2.0, Tmin =
+0.2, and γ= 0.95 . While the proposed scoring function
+provides a theoretically grounded criterion, direct Hessian
+computation is computationally prohibitive at the scale of
+large pretrained models. To make the curvature-aware score
+practical, we consider two approximation strategies, Hessian-
+Vector Products (HVP) [38] and Finite-Difference (FD) [ 39] estimation, which are described in
+Appendix B. As shown in Table 2, HVP-based scoring achieves better performance, whereas FD-
+based scoring yields competitive results without explicitly forming or storing the Hessian matrix. We
+adopt the FD-based criterion in all subsequent experiments, as it preserves the curvature-aware nature
+of the proposed score while maintaining practical computational cost.
+Baselines.We compare our method with the following baselines, which directly align with the design
+objective of AS-LoRA. Methods that address only the aggregation error [22, 40, 41] are excluded
+from comparison, as they have been shown to suffer significant performance degradation under DP
+noise [16].
+FedLoRA[13]: BothAandBare locally trained and independently aggregated at the server.
+FFA-LoRA[14]:Ais frozen, and onlyBis locally trained and aggregated.
+RoLoRA[ 15]: In odd-numbered rounds, A is frozen and only B is locally trained and aggregated.
+In even-numbered rounds,Bis frozen and onlyAis locally trained and aggregated.
+Table 3: Performance comparison on the GLUE benchmark [42] under different privacy budgets.
+DP Budget Method QNLI MNLI (m) MNLI (mm) SST-2 QQP SNLI A VG
+ϵ= 3
+FedLoRA 72.43 ±10.5663.76±8.2464.98±8.6591.37±1.6367.86±10.4778.19±2.0473.10±10.36
+FFA-LoRA 68.18±11.7265.06±5.4067.51±5.3491.00±0.9875.79 ±1.2877.91±7.4974.24±8.70
+RoLoRA 65.02±13.3269.15 ±4.5071.02 ±3.9391.37 ±0.6372.86±1.2182.22 ±1.4975.27 ±8.36
+Proposed81.06±1.3479.15±0.2380.03±0.4092.86±0.4478.51±0.3885.23±0.7782.81±4.93
+ϵ= 1
+FedLoRA 55.72±1.4058.03±8.0559.37±8.9457.57±0.3765.72±9.9074.79±1.6361.87±6.56
+FFA-LoRA71.95±7.9262.70 ±7.6765.04 ±7.7279.27 ±11.7171.00±2.4181.37 ±1.5771.89 ±6.56
+RoLoRA 53.85±5.3459.91±10.6661.37±10.7362.99±13.4373.10 ±1.5980.97±0.7965.37±9.26
+Proposed 71.52 ±12.5076.71±0.9277.54±0.7780.76±14.0874.94±1.7884.32±0.6477.63±4.10
+Table 4: Performance comparison on SQuAD benchmarks [ 35, 36],CIFAR-100 [43] and Tiny-
+imageNet [44] under different privacy budgets.
+DP Budget Method Question Answering Image Classification
+SQuAD v1.1 (EM) SQuAD v1.1 (F1) SQuAD v2.0 (EM) SQuAD v2.0 (F1) CIFAR-100 Tiny-ImageNet
+ϵ= 3
+FFA-LoRA 72.30 ±3.5282.83 ±2.8355.90 ±3.6659.92 ±3.9387.37±0.2685.50 ±0.15
+RoLoRA 69.75±2.7080.63±2.3053.58±1.2256.88±1.1687.75 ±0.4084.62±0.13
+Proposed73.98±1.3683.99±1.1760.59±2.9764.23±3.6289.55±0.2086.66±0.32
+ϵ= 1
+FFA-LoRA 70.42 ±3.9181.24 ±3.2654.33 ±3.9158.58 ±4.1684.79 ±0.2383.52 ±0.26
+RoLoRA 61.69±3.8173.94±3.1051.48±1.4753.59±1.8084.64±0.3882.34±0.14
+Proposed72.78±1.5083.23±1.3758.09±2.5761.64±3.1685.62±0.2483.71±0.13
+Comparison results.All results are reported as mean ± standard deviation over 4 runs with different
+seeds. Best results are shown inboldand second-best results are underlined. Table 3 reports the
+performance on the GLUE benchmark [42] under different privacy budgets. The proposed method
+consistently outperforms all baselines across tasks. Under a privacy budget of ϵ= 3 , AS-LoRA
+achieves the best average score of 82.81, outperforming RoLoRA ( 75.27) by + 7.54 percentage
+points (pp). Under a budget of ϵ= 1 , where training instability is more severe, AS-LoRA attains
+77.64, surpassing FFA-LoRA (71.89) by +5.74 pp. In particular, significant improvements are
+observed on MNLI (mm) (+12.50 pp over FFA-LoRA) and consistent gains across SNLI and QQP.
+As shown in Table 4, these improvements extend beyond classification tasks. On SQuAD, AS-LoRA
+achieves higher performance across both v1.1 and v2.0 metrics, e.g., +1.35 EM and +1.96 F1 over
+7

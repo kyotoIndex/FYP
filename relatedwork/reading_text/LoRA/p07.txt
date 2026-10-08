@@ -1,0 +1,47 @@
+Model & Method # Trainable E2E NLG Challenge
+Parameters BLEU NIST MET ROUGE-L CIDEr
+GPT-2 M (FT)* 354.92M 68.2 8.62 46.2 71.0 2.47
+GPT-2 M (AdapterL)* 0.37M 66.3 8.41 45.0 69.8 2.40
+GPT-2 M (AdapterL)* 11.09M 68.9 8.71 46.1 71.3 2.47
+GPT-2 M (AdapterH) 11.09M 67.3±.6 8.50±.07 46.0±.2 70.7±.2 2.44±.01
+GPT-2 M (FTTop2)* 25.19M 68.1 8.59 46.0 70.8 2.41
+GPT-2 M (PreLayer)* 0.35M 69.7 8.81 46.1 71.4 2.49
+GPT-2 M (LoRA) 0.35M 70.4±.1 8.85±.02 46.8±.2 71.8±.1 2.53±.02
+GPT-2 L (FT)* 774.03M 68.5 8.78 46.0 69.9 2.45
+GPT-2 L (AdapterL) 0.88M 69.1±.1 8.68±.03 46.3±.0 71.4±.2 2.49±.0
+GPT-2 L (AdapterL) 23.00M 68.9±.3 8.70±.04 46.1±.1 71.3±.2 2.45±.02
+GPT-2 L (PreLayer)* 0.77M 70.3 8.85 46.2 71.7 2.47
+GPT-2 L (LoRA) 0.77M 70.4±.1 8.89±.02 46.8±.2 72.0±.2 2.47±.02
+Table 3: GPT-2 medium (M) and large (L) with different adaptation methods on the E2E NLG
+Challenge. For all metrics, higher is better. LoRA outperforms several baselines with comparable
+or fewer trainable parameters. Conﬁdence intervals are shown for experiments we ran. * indicates
+numbers published in prior works.
+5.2 R OBERTA BASE /LARGE
+RoBERTa (Liu et al., 2019) optimized the pre-training recipe originally proposed in BERT (Devlin
+et al., 2019a) and boosted the latter’s task performance without introducing many more trainable
+parameters. While RoBERTa has been overtaken by much larger models on NLP leaderboards
+such as the GLUE benchmark (Wang et al., 2019) in recent years, it remains a competitive and
+popular pre-trained model for its size among practitioners. We take the pre-trained RoBERTa base
+(125M) and RoBERTa large (355M) from the HuggingFace Transformers library (Wolf et al., 2020)
+and evaluate the performance of different efﬁcient adaptation approaches on tasks from the GLUE
+benchmark. We also replicate Houlsby et al. (2019) and Pfeiffer et al. (2021) according to their
+setup. To ensure a fair comparison, we make two crucial changes to how we evaluate LoRA when
+comparing with adapters. First, we use the same batch size for all tasks and use a sequence length
+of 128 to match the adapter baselines. Second, we initialize the model to the pre-trained model for
+MRPC, RTE, and STS-B, not a model already adapted to MNLI like the ﬁne-tuning baseline. Runs
+following this more restricted setup from Houlsby et al. (2019) are labeled with †. The result is
+presented in Table 2 (Top Three Sections). See Section D.1 for details on the hyperparameters used.
+5.3 D EBERTA XXL
+DeBERTa (He et al., 2021) is a more recent variant of BERT that is trained on a much larger
+scale and performs very competitively on benchmarks such as GLUE (Wang et al., 2019) and Su-
+perGLUE (Wang et al., 2020). We evaluate if LoRA can still match the performance of a fully
+ﬁne-tuned DeBERTa XXL (1.5B) on GLUE. The result is presented in Table 2 (Bottom Section).
+See Section D.2 for details on the hyperparameters used.
+5.4 GPT-2 MEDIUM /LARGE
+Having shown that LoRA can be a competitive alternative to full ﬁne-tuning on NLU, we hope to
+answer if LoRA still prevails on NLG models, such as GPT-2 medium and large (Radford et al.,
+b). We keep our setup as close as possible to Li & Liang (2021) for a direct comparison. Due
+to space constraint, we only present our result on E2E NLG Challenge (Table 3) in this section.
+See Section F.1 for results on WebNLG (Gardent et al., 2017) and DART (Nan et al., 2020). We
+include a list of the hyperparameters used in Section D.3.
+7

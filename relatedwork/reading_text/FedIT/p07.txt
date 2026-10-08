@@ -1,0 +1,50 @@
+3.3 Parameter Efficiency in Federated Instruction Tuning
+Taking into account the limited computational capabilities of local devices, which are unable to support
+full fine-tuning of a large language model, it is crucial to implement a parameter-efficient fine-tuning
+strategy that leverages local computational resources. For a weight matrix W0 ∈ Rd×k belonging to a
+large pre-trained LLM, the method we adopt, Low-Rank Adaptation (LoRA) method, freezes W0 and
+constrains its update ∆W by representing it using a low-rank decompositionW0 +∆ W = W0 + BA,
+where B ∈ Rd×r, A ∈ Rr×k are two trainable parameters, and the rank r ≪ min(d, k). For a linear
+layer h = W0x, the modified forward pass is given by:
+h = W0x + BAx
+Compared to fully fine-tuning the LLM, LoRA considerably decreases the number of trainable
+parameters. Please refer to Section 4.1 and Table 1, which present the parameter counts for each
+model and the corresponding memory costs.
+Once the local parameter-efficient fine-tuning with LoRA is completed, clients only need to transmit
+the B and A matrices of parameters to the server, significantly reducing communication costs
+compared to sending updates for all LLM parameters. Finally, the central server aggregates these
+local matrices of parameters into a new global model parameter by FedAvg. Notably, LoRA does not
+introduce any additional latency of inference compared to fully fine-tuning the model when deployed
+in production, as we can explicitly compute, store W0 + BA, and conduct inference as usual.
+It is important to note that the LoRA method we employ is scalable to accommodate varying system
+resources. If a specific client’s communication or computational resources are significantly lower
+than others, it can adjust its LoRA configurations by reducing the number of matrix W0 elements,
+which will be decomposed into low-rank A, B. Alternatively, it can also opt to decrease the rank r of
+A and B. Optimizing the aggregation process in the presence of substantial system heterogeneity
+within the FL framework, where different clients have distinct LoRA configurations, is an intriguing
+research topic to explore further.
+3.4 Shepherd: A GitHub Platform for FedIT Support
+We introduce Shepherd7, a lightweight framework designed to implement Federated Parameter-
+Efficient Instruction Learning. Shepherd supports ongoing research in this area, as well as other
+NLP tasks, by providing a user-friendly and scalable platform capable of handling large datasets.
+The framework allows for seamless integration of innovative algorithms and configurations and is
+compatible with a range of recent popular large language models, such as Stanford Alpaca [ 75],
+Vicuna [11], Pythia [5], Dolly 8, Baize [88], and Koala [24], among others. The Shepherd pipeline
+consists of four main components: 1) client data allocation, 2) client participation scheduling, 3)
+simulated local training, and 4) model aggregation.
+Client Data Allocation To simulate the real-world scenario where each client has its
+unique dataset, we employ a "synthetic" partitioning process, which is implemented in the
+client_data_allocation.py module. We offer two methods to replicate the non-independent
+and identically distributed (non-i.i.d) nature of the clients’ datasets. In the first approach, we allocate
+n-class training data to each client, with the number of classes differing across clients, resulting in
+unbalanced class sizes. Despite this imbalance, the volume of data in each client’s dataset is roughly
+equivalent. The second approach is similar to the first but stands out by having significantly varying
+data volumes across each client’s dataset.
+Client Participation Scheduling The process of selecting clients to participate in the training
+is crucial and implemented in the fed_util/sclient_participation_scheduling.py module.
+Our vanilla version of Shepherd employs a random selection approach, and we aim to enhance the
+client selection strategy with efficiency-driven methods that address data and system heterogeneity,
+such as those proposed in [37, 95].
+7https://github.com/JayZhang42/FederatedGPT-Shepherd
+8https://github.com/databrickslabs/dolly
+7

@@ -1,0 +1,54 @@
+Published as a conference paper at ICLR 2025
+Yang et al., 2024; Qi et al., 2024; Cho et al., 2023; Byun & Lee, 2024; Chen et al., 2024; Sun et al.,
+2024b; Lin et al., 2024; Wu et al., 2024; Wang et al., 2024b). Among these, LoRA-based methods
+have become increasingly popular, leveraging the assumption that over-parameterized models have a
+low intrinsic dimension (Li et al., 2018; Aghajanyan et al., 2020). A pre-trained model can be shared
+and utilized to create multiple small LoRA modules tailored for different tasks, making them more
+effective and flexible. Moreover, this simple design allows us to merge the trainable matrices with
+the frozen weights during deployment, introducing no inference latency. Given these advantages,
+we focus on LoRA-based methods in this work.
+2.2 L ORA IN FEDERATED LEARNING
+Low-Rank Adaptation (LoRA) (Hu et al., 2022), which introduces low-rank adaptation matrices to
+simulate gradient updates while keeping the pre-trained model weights frozen, has recently gained
+significant attention due to its efficiency, effectiveness, and flexibility (Hayou et al., 2024; Liu et al.,
+2024; Kopiczko et al., 2024; Wang et al., 2024a). With this trait, LoRA can be utilized to mitigate the
+communication overhead in FL, which primarily relies on the size of model update parameters. Yi
+et al. (2023) propose FedLoRA, incorporating LoRA in FL to increase model fine-tuning efficiency.
+Liu et al. (2023) introduce DP-LoRA, ensuring differential privacy in FL for LLMs with minimal
+communication overhead. Yang et al. (2024) propose a dual-personalizing adapter (FedDPA), and
+Qi et al. (2024) introduce FDLoRA. Both adopt the similar idea where each client contains a per-
+sonalized LoRA module and a global LoRA module to capture personalized and global knowledge,
+respectively.
+Another line of such work is heterogeneous LoRA. For example, Cho et al. (2023) introduce het-
+erogeneous LoRA, where they deploy heterogeneous ranks across clients, aggregate the heteroge-
+neous LoRA modules through zero-padding, and redistribute the LoRA modules heterogeneously
+through truncation. However, this simple zero-padding strategy can make the training process unsta-
+ble (Byun & Lee, 2024). To solve this issue, Byun & Lee (2024) propose a replication-based strategy
+for aggregating rank-heterogeneous LoRA. Chen et al. (2024) propose Rank-Based LoRA Aggrega-
+tion (RBLA) that performs a weighted aggregation for heterogeneous LoRA structures. Wang et al.
+(2024b) introduce a stacking-based aggregation method for heterogeneous LoRA.
+The most related work to ours is Federated Freeze-A LoRA (FFA-LoRA) (Sun et al., 2024b), which
+fixes the randomly initialized non-zeroA matrices and only fine-tunes the zero-initializedB matrices
+to further halve the communication cost. However, since some matrices are fixed, the learning ability
+of LoRA is impaired, resulting in suboptimal performance (Zhang et al., 2023). In contrast, we
+propose Federated Share-A LoRA (FedSA-LoRA), where both A and B matrices are trainable and
+only the A matrices are shared with the server for aggregation.
+3 M OTIVATING EXAMPLE
+Preliminary Building upon the hypothesis that updates to the weights during the fine-tuning ex-
+hibit a low “intrinsic rank”, LoRA (Hu et al., 2022) proposes using the product of two low-rank ma-
+trices to update the pre-trained weights incrementally. For a pre-trained weight matrix W0 ∈ Rk×d,
+LoRA models the weight update ∆W ∈ Rk×d utilizing a low-rank decomposition, expressed as
+BA, where B ∈ Rk×r and A ∈ Rr×d represent two low-rank matrices, with r ≪ min(k, d). Dur-
+ing training, W0 is frozen and does not receive gradient updates, while A and B contain trainable
+parameters. Consequently, the fine-tuned weight W ′ can be represented as: W ′ = W0 + BA. The
+matrix A is initialized with random Gaussian distribution, while B is initially set to zero, resulting
+in ∆W = BA being zero at the start of training.
+To analyze the role of learned A and B matrices, let’s consider a simple example analogous to a
+single network layer with least-squares linear regression task. Specifically, suppose there is a pre-
+trained linear model weight W0 ∈ Rk×d. With this model held constant, our goal is regressing
+(xt, yt) pairs where yt is given by:
+yt = Wtxt,
+with Wt = W0 + ∆W . In LoRA, the target ∆W is modeled by a low rank update to the pre-trained
+W0, i.e., W ′ = W0 + BA:
+ˆy = (W0 + BA)xt,
+4

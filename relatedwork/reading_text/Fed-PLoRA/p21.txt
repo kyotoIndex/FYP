@@ -1,0 +1,53 @@
+Published as a conference paper at ICLR 2026
+Table 6: Evaluation results on IID and non-IID Dolly-15K datasets with OPT-1.3B model.
+Method Dolly-15K (Rouge-L)
+IID non-IID
+Untuned Model 40.02
+Homogeneous FedIT (Rank=R) 60.05 59.37
+FedIT (Rank=R/2) 59.75 59.07
+Heterogeneous
+R= 32
+Avg Rank=13
+FLoRA 40.01 40.01
+FlexLoRA 57.40 48.82
+HETLoRA 59.38 58.36
+Fed-PLoRA 60.07 59.69
+by assigning each client data from only 1 out of 7 distinct tasks. Our method, Fed-PLoRA, con-
+sistently outperforms all baseline approaches under both data and resource heterogeneity. Notably,
+Fed-PLoRA surpasses FlexLoRA in the non-IID setting by a large margin of +10.87%, highlighting
+the critical impact of initialization noise in federated fine-tuning. Moreover, Fed-PLoRA even out-
+performs the homogeneous case with a full rank32, achieving gains of +0.02% and +0.32% under
+IID and non-IID conditions, respectively. This suggests that our parallel one-rank LoRA modules
+offer greater flexibility than conventional high-rank LoRA, and can potentially lead to better over-
+all performance. These results further demonstrate the effectiveness of Fed-PLoRA in mitigating
+initialization and aggregation noise via its parallelized design.
+D.3 RESULTS ONMEDICALDATASETS
+Table 7: Evaluation results on medical datasets with Mistral-7B-v0.3 model.
+Method PubMedQA MedMcQA MedQA CareQA Avg
+Untuned Model 55.77 38.43 40.92 41.28 44.10
+Homogeneous FedIT (Rank=R) 70.60 41.16 46.19 47.35 51.32
+FedIT (Rank=R/2) 68.60 41.19 46.19 46.55 50.63
+Heterogeneous
+R= 8
+Avg Rank=3
+FLoRA 55.80 40.30 45.70 46.10 46.98
+FlexLoRA 58.40 41.1646.2646.26 48.02
+HETLoRA 69.80 41.2346.2646.10 50.85
+Fed-PLoRA 70.20 41.5046.1146.85 51.16
+Table 7 presents the main results (in accuracy) on medical and financial datasets. It is noteworthy
+that due to the inherent capabilities of the LLMs employed and the potential domain shift between
+the training and test sets, the observed performance gaps among different federated methods remain
+relatively small. Fed-PLoRA demonstrates improvements over FLoRA, achieving accuracy gains
+of +14.40% on PubMedQA, +1.20% on MedMcQA, +0.75% on CareQA, +12.29% on FPB, and
++13.15% on TFNS. However, when compared to FlexLoRA and HETLoRA on the MedQA dataset
+and to FLoRA on the FIQA dataset, our method shows slight accuracy drops. This may be attributed
+to the nature of these domain-specific instruction fine-tuning tasks with large LLMs requiring only
+a small LoRA rank. In such scenarios, the initialization noise in FlexLoRA and HETLoRA can be
+relatively small.
+D.4 RESULTS ONMATH DATASETS
+Table 8 summarizes the performance of various federated fine-tuning methods across seven MATH
+sub-categories. The baseline (untuned model) exhibits limited reasoning capability across most cat-
+egories, with overall average accuracy remaining below 10%. Under homogeneous settings, FedIT
+with full rank (R) yields consistent gains over theR/2configuration across all sub-tasks, demon-
+strating the benefit of maintaining richer update capacity during global aggregation.
+21

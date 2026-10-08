@@ -1,0 +1,107 @@
+Communication-Efﬁcient Learning of Deep Networks from Decentralized Data
+Federated Learning Ideal problems for federated learn-
+ing have the following properties: 1) Training on real-world
+data from mobile devices provides a distinct advantage over
+training on proxy data that is generally available in the data
+center. 2) This data is privacy sensitive or large in size (com-
+pared to the size of the model), so it is preferable not to log
+it to the data center purely for the purpose of model training
+(in service of the focused collection principle). 3) For super-
+vised tasks, labels on the data can be inferred naturally from
+user interaction.
+Many models that power intelligent behavior on mobile
+devices ﬁt the above criteria. As two examples, we con-
+sider image classiﬁcation, for example predicting which
+photos are most likely to be viewed multiple times in the
+future, or shared; and language models, which can be used
+to improve voice recognition and text entry on touch-screen
+keyboards by improving decoding, next-word-prediction,
+and even predicting whole replies [10]. The potential train-
+ing data for both these tasks (all the photos a user takes and
+everything they type on their mobile keyboard, including
+passwords, URLs, messages, etc.) can be privacy sensitive.
+The distributions from which these examples are drawn are
+also likely to differ substantially from easily available proxy
+datasets: the use of language in chat and text messages is
+generally much different than standard language corpora,
+e.g., Wikipedia and other web documents; the photos people
+take on their phone are likely quite different than typical
+Flickr photos. And ﬁnally, the labels for these problems are
+directly available: entered text is self-labeled for learning
+a language model, and photo labels can be deﬁned by natu-
+ral user interaction with their photo app (which photos are
+deleted, shared, or viewed).
+Both of these tasks are well-suited to learning a neural net-
+work. For image classiﬁcation feed-forward deep networks,
+and in particular convolutional networks, are well-known
+to provide state-of-the-art results [ 26, 25]. For language
+modeling tasks recurrent neural networks, and in particular
+LSTMs, have achieved state-of-the-art results [20, 5, 22].
+Privacy Federated learning has distinct privacy advan-
+tages compared to data center training on persisted data.
+Holding even an “anonymized” dataset can still put user
+privacy at risk via joins with other data [ 37]. In contrast,
+the information transmitted for federated learning is the
+minimal update necessary to improve a particular model
+(naturally, the strength of the privacy beneﬁt depends on the
+content of the updates).1 The updates themselves can (and
+should) be ephemeral. They will never contain more infor-
+1For example, if the update is the total gradient of the loss on
+all of the local data, and the features are a sparse bag-of-words,
+then the non-zero gradients reveal exactly which words the user
+has entered on the device. In contrast, the sum of many gradients
+for a dense model such as a CNN offers a harder target for attackers
+seeking information about individual training instances (though
+attacks are still possible).
+mation than the raw training data (by the data processing
+inequality), and will generally contain much less. Further,
+the source of the updates is not needed by the aggregation
+algorithm, so updates can be transmitted without identifying
+meta-data over a mix network such as Tor [7] or via a trusted
+third party. We brieﬂy discuss the possibility of combining
+federated learning with secure multiparty computation and
+differential privacy at the end of the paper.
+Federated Optimization We refer to the optimization
+problem implicit in federated learning as federated optimiza-
+tion, drawing a connection (and contrast) to distributed opti-
+mization. Federated optimization has several key properties
+that differentiate it from a typical distributed optimization
+problem:
+• Non-IID The training data on a given client is typically
+based on the usage of the mobile device by a particular
+user, and hence any particular user’s local dataset will
+not be representative of the population distribution.
+• Unbalanced Similarly, some users will make much
+heavier use of the service or app than others, leading
+to varying amounts of local training data.
+• Massively distributed We expect the number of
+clients participating in an optimization to be much
+larger than the average number of examples per client.
+• Limited communication Mobile devices are fre-
+quently ofﬂine or on slow or expensive connections.
+In this work, our emphasis is on the non-IID and unbalanced
+properties of the optimization, as well as the critical nature
+of the communication constraints. A deployed federated
+optimization system must also address a myriad of practical
+issues: client datasets that change as data is added and
+deleted; client availability that correlates with the local data
+distribution in complex ways (e.g., phones from speakers
+of American English will likely be plugged in at different
+times than speakers of British English); and clients that
+never respond or send corrupted updates.
+These issues are beyond the scope of the current work;
+instead, we use a controlled environment that is suitable
+for experiments, but still addresses the key issues of client
+availability and unbalanced and non-IID data. We assume
+a synchronous update scheme that proceeds in rounds of
+communication. There is a ﬁxed set of K clients, each
+with a ﬁxed local dataset. At the beginning of each round,
+a random fraction C of clients is selected, and the server
+sends the current global algorithm state to each of these
+clients (e.g., the current model parameters). We only select
+a fraction of clients for efﬁciency, as our experiments show
+diminishing returns for adding more clients beyond a certain
+point. Each selected client then performs local computation
+based on the global state and its local dataset, and sends an
+update to the server. The server then applies these updates
+to its global state, and the process repeats.

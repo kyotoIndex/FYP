@@ -1,0 +1,62 @@
+effect of this difference on model performance, we assess the performance of FlexLoRA in a con-
+trolled environment using homogeneous LoRA ranks and compare it to the standard FL aggregation
+scheme. Figure 6(a) presents the test loss trajectories for FedIT with and without the FlexLoRA
+enhancement, both utilizing a homogeneous rank of 8. The loss curves for the standard FedIT and
+FedIT with FlexLoRA closely align, suggesting comparable performance. In a nutshell, we empiri-
+cally demonstrate that under homogeneous conditions, FlexLoRA’s aggregation does not negatively
+impact model performance compared to traditional methods. Besides, it’s worth noting that the test
+loss for FedIT with a homogeneous rank of 200 is significantly lower, underscoring the benefits of
+higher rank configurations and evidencing our Theorem 1.
+SVD v.s. LoRA Rank. To gain further insight into the effect of SVD, we calculate and sort the
+singular values of the global LoRA weights from largest to smallest. We focus on specific layers
+where LoRA is applied within the transformer blocks 1, 8, and 14 (each block includes one attention
+layer and one FFN layer). Figure 6(b) displays the scale of singular values and the error ratio between
+the global LoRA weights approximated by the top i singular values and the full-rank global LoRA
+weights in the FedIT setting with a heavy-tail-strong resource distribution. The approximation error
+is quantified as the norm of the difference between the approximated and full-rank weights. The error
+curves for qproj layers across all transformer blocks nearly overlap. With the weight approximated
+from the top 30 ranks, the error ratio is as low as 0.16, suggesting the approximated weights are in
+close proximity to the actual full-rank weights, lending empirical support to our Assumption 2.
+4.6 Scalability Study
+Larger Model Size and Lower Degree of Task Heterogeneity.While the aforementioned exper-
+iments with 1.3B LLM and meta-task dataset split effectively showcases FlexLoRA’s capabilities
+against baselines in a highly heterogeneous cross-device environment, real-world settings may be
+relaxed involving fewer clients with a mixture of tasks and larger LLM. To better evaluate FlexLoRA’s
+performance in such scenarios, we expanded our study to include settings where each client manages
+not just one specific “meta” task but a variety of different tasks. We use Dolly-15K dataset [9], which
+supports instruction tuning and includes 8 tasks in total. We distributed this dataset among 200 clients
+using a Dirichlet distribution with α = 0.5 to simulate the non-IID data distributions. Moreover,
+we also incorporate the most cutting-edge LLaMA-3 [37] with 8B parameter size as our foundation
+model to assess FlexLoRA’s effectiveness with advanced, larger-scale models.
+Table 12 in Appendix I illustrates FlexLoRA’s efficacy under both smaller and larger foundation mod-
+els within the mixture of task settings. Compared with LLaMA-3 (8B), finetuning on DataJucier(1.3B)
+demonstrates more generalization improvement for unseen clients. This enhanced performance when
+using the smaller DataJuicer model suggests that FlexLoRA is particularly effective for foundation
+models that are scalable to edge devices. Such ability is instrumental in maximizing the utility and
+efficiency of smaller models in resource-constrained environments.
+Table 4: Convergence round and FL cost per
+round for different LoRA ranks.
+R Cost R Cost all
+Homo Rank 48 1.001x ≈ 100%
+Heavy-Tail (L) 24 1.014x ≈ 50.6%
+Uniform 15 1.061x ≈ 33.1%
+System Costs. We empirically demonstrate that in-
+creasing the rank improves overall efficiency. The
+experiment is conducted on the Dolly 15K dataset
+and the DataJuicer 1.3B model, with the same FL
+setting as Table 12. We summarize the results in Ta-
+ble 4, where the “R” indicates the number of rounds
+to reach a loss of 2, approximately 75% progress to
+convergence. The “Cost R” stands for per-round FL
+cost in terms of the average model parameters com-
+pared with the foundation model parameters, as both
+the local training and communication cost positively correlated to the rank value in FlexLoRA (as
+analyzed in Sec. 3.3). The “Cost all” indicates total cost calculated as multiply of R and Cost R, and
+by setting the result of “Homo Rank” as the baseline. From the results, we can see that FlexLoRA
+achieves faster convergence with slightly increased parameter percentages under heterogeneous
+resource distributions. For the overall efficiency, “Heavy-Tail-Light” has a total reduction of 49.4%,
+and “Uniform” has 66.9%, indicating good scalability of FlexLoRA.
+Effect of Larger Client Number. We designed an experiment to empirically validate Theorem
+1 and demonstrate how FlexLoRA performs with varied client numbers. We use subsets of 10,
+50, and 100 clients from a pool of 200 clients on Dolly-15K dataset and DataJuicer (1.3B), with
+9

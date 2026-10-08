@@ -1,0 +1,35 @@
+Figure 12: RoBERTa-Large accuracies on QQP, MNLI, QNLI, and RTE with specific uplink commu-
+nication budget. It involves 3 clients using rank 4. Error bars reflect standard deviations.
+Communication Cost LoRA FFA-LoRA RoLoRA
+187.5 KB TypeW v, Wq Wv, Wq Wv, Wq
+Index{21, . . . ,23} {18, . . . ,23} {18, . . . ,23}
+250 KB TypeW v, Wq Wv, Wq Wv, Wq
+Index{20, . . . ,23} {16, . . . ,23} {16, . . . ,23}
+Table 14: The selected layer set attached with LoRA modules for the setup of Figure 12
+A5.8 Language Generation Tasks
+Model, Datasets and Metrics.We evaluate the performance of three federated finetuning methods
+with the model Llama-2-7B [ 35], on two datasets: CodeAlpaca [ 4] for coding tasks, and Alpaca
+[33] for general instruction-following tasks. Using HumanEval [ 5] as the metric for CodeAlpaca,
+we assess the model’s ability to generate accurate code solutions. For Alpaca, we employ MMLU
+(Massive Multitask Language Understanding) [18] to evaluate the model’s performance across diverse
+domains. This provides an assessment of Llama-2-7B’s coding proficiency, and general language
+capabilities when finetuning in the federated setting. We show the setup in Table 17.
+ResultsTable 18 presents the evaluation results of the Llama-2-7B model using three methods,
+across two tasks: HumanEval, and MMLU. The metrics reported include the average and standard
+deviation of performance over five seeds, with 50 clients involved. The results show that RoLoRA
+achieves the highest scores across most metrics, demonstrating slightly improved performance
+compared to LoRA and FFA-LoRA. The improvements are more evident in certain subcategories of
+the MMLU dataset.
+A5.9 Communication and Time Cost Comparison
+Table 19 compares the communication cost and time cost in a 50-client setting on MNLI task.
+RoLoRA and FFA-LoRA have the lowest communication and time costs.
+A5.10 Privacy-preserving FL
+Beyond robustness, practical FL often requires privacy-preserving mechanisms, most notably cryp-
+tographic approaches such as secure aggregation [ 3] or homomorphic encryption [ 19, 8, 7], and
+statistical protections like differential privacy (DP) [14, 41]. While RoLoRA was not explicitly de-
+signed with privacy mechanisms such as differential privacy, we recognize that its ability to mitigate
+inexactness through alternating optimization and aggregation may help mitigate a key challenge
+for DP-aware federated learning, where inexact model updates can be particularly problematic. In
+Table 20, we itegrated NbAFL [ 41] with ϵ= 10 and δ= 1e−6 in a 3-client setting. RoLoRA
+outperform others across two tasks.
+45

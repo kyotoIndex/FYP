@@ -1,0 +1,73 @@
+Published as a conference paper at ICLR 2026
+Rank=8(a) LoRAFLOPs Reduction
+…
+……
+Rank=2Rank=1
+Reduction: 11.77×10!FLOPSReduction: 1.96×10!FLOPS
+Rank=8
+…
+……
+Rank=2Rank=1
+Increase: 0.07Seconds / 100 Tokens
+(b) Throughput Increase
+Increase: 0.12 Seconds / 100 Tokens
+Rank=8
+…
+……
+Rank=2Rank=1
+Reduction:23.44 GB
+Reduction:3.90 GB
+(c) Communication Volume Reduction
+15.70×10!FLOPS 0.86Seconds / 100 Tokens
+31.25GB
+Rank=8
+…
+……
+Rank=2Rank=1
+Reduction:1.15%
+Reduction:1.34%
+(d) Averaged Accuracy Reduction on Finance Dataset
+52.19%
+Figure 9: Visualization on the efficiency of the rank-based method.
+d= 8192is the hidden dimension. Since the backward pass roughly doubles the compute cost, the
+total per-token FLOPs for each LoRA module becomes6rd. The total LoRA FLOPs per training
+step can thus be estimated as6rd×batch size×sequence length×number of LoRA modules. For
+instance, with a sequence length of512,32transformer layers,2target modules per layer, result in
+total64LoRA modules, the total becomes6×r×8192×4×512×64 = 196,608×rFLOPs.
+This value increases linearly with rank. On the training dataset, in order to train one epoch with
+the full dataset, it requires approximately10,000steps with this batch size (i.e., 4), such that the
+total FLOPs introduced by LoRA modules under rank settingsr= 8,2, and1are respectively
+1.57×10 6 ×10,000 = 1.57×10 10,3.93×10 5 ×10,000 = 3.93×10 9, and1.97×10 5 ×10,000 =
+1.97×10 9 FLOPs per epoch for the LLaMA-3.1-8B model. We visualize the FLOPs reductions for
+three levels of rank settings in Figure 9 (a).
+To assess the training efficiency under different LoRA rank settings, we measure the throughput in
+terms of seconds per 100 tokens. The actual wall-clock times for the whole training process in our
+setting are 3.07, 2.84, and 2.41 days under rank settingsr= 8,2, and1, respectively. The experi-
+mental and hardware settings are reported in Sections C.1, C.2. This results in throughput values of
+approximately0.864,0.799, and0.678seconds per 100 tokens, respectively. These measurements
+demonstrate that reducing the rank leads to improved computational efficiency during training. We
+visualize the throughput increase for three levels of rank settings in Figure 9 (b).
+To estimate the communication volume for one training epoch, we assume that only the LoRA pa-
+rameters are transmitted every 10 steps. With 10,000 steps per epoch and transmission frequency
+every 10 steps, there are 1,000 transmissions in total. Each transmission involves sending and re-
+ceiving128rdLoRA module parameters, whereris the LoRA rank andd= 8192is the hidden
+size. Assumingfloat32precision (4 bytes per parameter), this yields a total communication vol-
+ume of512,000rdbytes per epoch. For ranksr= 1,2, and8, the resulting communication costs
+are approximately 3.91 GB, 7.81 GB, and 31.25 GB, respectively. We visualize the communication
+volume reductions for three levels of rank settings in Figure 9 (c).
+From the resource consumption perspective, the rank-based method provides a practical solution for
+efficient federated fine-tuning of LLMs, as evidenced by the reduction in LoRA module FLOPs and
+communication volume, as well as improved training throughput. Although the rank-based approach
+is not specifically designed for memory savings, our method is orthogonal to a wide range of existing
+memory-efficient techniques and can be easily combined with them (as discussed in Section B).
+These resource consumption reductions make low-rank configurations particularly practical for de-
+ployment in heterogeneous federated settings. However, as shown in Figure 9 (d), we provide an
+average performance comparison on Finance datasets under three levels of rank settings. The av-
+erage accuracies are 52.19%, 51.04%, and 50.05% for ranksr= 8,2, and1, respectively. This
+demonstrates that different LoRA rank settings lead to a noticeable performance gap, where even
+a 1% drop in accuracy is considered significant and typical in LLM instruction fine-tuning tasks
+on domain-specific downstream datasets. This observation motivates the design of our proposed
+method, Fed-PLoRA, which aims to incorporate clients experiencing degraded performance under
+low-rank configurations into a heterogeneous-rank federated training process and improve the over-
+all performance of the global model.
+30

@@ -1,0 +1,54 @@
+{
+  "date_hkt": "2026-10-08",
+  "stage": "full_scale_mechanism_experiment",
+  "seeds": [
+    1201,
+    1301,
+    1401,
+    1501,
+    1601
+  ],
+  "methods": [
+    "hetsa",
+    "repair_half",
+    "repair_full",
+    "slow_a",
+    "local_only",
+    "fixed_a_local_b"
+  ],
+  "clients": 20,
+  "selected_clients": 10,
+  "samples_per_client": 512,
+  "rounds": 30,
+  "repair_strengths": [
+    0.5,
+    1.0
+  ],
+  "ridge_relative": 0.001,
+  "slow_a_warmup": 3,
+  "slow_a_period": 3,
+  "fixed_hyperparameters": true,
+  "endpoint": "mean client holdout accuracy rounds 26-30",
+  "files": [
+    {
+      "path": "F:\\FYP\\pcla_experiments\\scripts\\run_hetsa_research_matrix.py",
+      "sha256": "70a661b6bdce233771c5685f0797c6e880f2a7c1ff5ce67aacd0fe4ffeab3736"
+    },
+    {
+      "path": "F:\\FYP\\pcla_experiments\\scripts\\run_hetsa_research.py",
+      "sha256": "12c1ce1d2123f53aa0be036d68950a26730fb927a7e9b490f37332b0534627c7"
+    },
+    {
+      "path": "F:\\FYP\\pcla_experiments\\src\\hetsa_research.py",
+      "sha256": "2a6905d8595d5366da9bbbcf6cc6f1a0af98237854491b1dfb74583189620dbd"
+    },
+    {
+      "path": "F:\\FYP\\pcla_experiments\\src\\fedhello_sst2.py",
+      "sha256": "d22d5a3e58c6ce38e3484f907038bcc722cd41899b339cdf145919ac287d1caf"
+    },
+    {
+      "path": "F:\\FYP\\pcla_experiments\\configs\\hetsa_lora_confirm_extension_v1.json",
+      "sha256": "aa86a7c3b22c8f530b8542a85ea6a2636ac768a9e22ad49a997453ff6449fe19"
+    }
+  ]
+}

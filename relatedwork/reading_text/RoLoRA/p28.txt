@@ -1,0 +1,221 @@
+Letr 1 =∥x 1,1∥2 andr 2 =x ⊤
+1,1x1,2. We have
+E
+"
+(x⊤
+1,1(αx1,1 +βx 1,2))2
+∥x1,1∥2
+#
+=E
+(αr1 +βr 2)2
+r1
+
+(151)
+=E
+ α2r2
+1 +β 2r2
+2 + 2αβr1r2
+r1
+
+(152)
+=E
+
+α2r1
+
++E
+ β2r2
+2
+r1
+
++E[2αβr 2](153)
+where E
+
+α2r1
+
+=α 2E
+
+∥x1,1∥2
+=α 2m, and E[2αβr 2] = 2αβE[r 2] = 2αβE
+
+x⊤
+1,1x1,2
+
+= 0
+because x1,1 and x1,2 are independent standard Gaussian vectors. Then we analyze E
+h
+β2r2
+2
+r1
+i
+=
+β2E
+h
+r2
+2
+r1
+i
+. Condition onx 1,1,
+E[r 2|x1,1] =E
+
+x⊤
+1,1x1,2|x1,1
+
+=x ⊤
+1,1E[x 1,2] = 0(154)
+and Var(r2|x1,1) =∥x 1,1∥2 =r 1, thus
+r2|x1,1 =x ⊤
+1,1x1,2|x1,1 ∼ N(0, r 1)(155)
+Then we obtain
+E
+
+r2
+2|x1,1
+
+=r 1 (156)
+Therefore E
+h
+r2
+2
+r1
+|x1,1
+i
+=
+E[r2
+2 |x1,1]
+r1
+= 1. We take total expectation E
+h
+r2
+2
+r1
+i
+=E
+h
+E
+h
+r2
+2
+r1
+|x1,1
+ii
+= 1.
+Summarizing,
+E
+((X1a)⊤(X1a∗))2
+∥X1a∥2
+
+=E
+(αr1 +βr 2)2
+r1
+
+(157)
+=E
+
+α2r1
+
++E
+ β2r2
+2
+r1
+
++E[2αβr 2](158)
+=α 2m+β 2 (159)
+E
+
+u⊤
+1 u1
+
+= 1
+N2 E
+((X1a)⊤(X1a∗))2
+∥X1a∥2
+
+(160)
+= α2m+ (1−α 2)
+N2 (161)
+Expected value of u⊤
+2 u2 We haveu⊤
+2 u2 =z 2
+2∥X1a∥2 where z2 = s2+···+sN
+N is independent of
+pair(X 1a∗,X 1a). To computeE
+
+z2
+2∥X1a∥2
+, first we condition onz 2 to obtain,
+E
+
+z2
+2∥X1a∥2|z2
+
+=z 2
+2E
+
+∥X1a∥2
+=z 2
+2m(162)
+Then we take total expectationE
+
+z2
+2∥X1a∥2
+=E
+
+E
+
+z2
+2∥X1a∥2|z2
+
+=E
+
+z2
+2m
+
+=mE
+
+z2
+2
+
+.
+E
+
+z2
+2
+
+=E
+(s2 +· · ·+s N)2
+N2
+
+(163)
+= 1
+N2 E
+
+
+NX
+i=2
+s2
+i +
+NX
+i=1,j=1
+i̸=j
+sisj
+
+ (164)
+= 1
+N2
+
+
+NX
+i=2
+E
+
+s2
+i
+
++
+NX
+i=1,j=1
+i̸=j
+E[s isj]
+
+ (165)
+28

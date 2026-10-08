@@ -1,0 +1,61 @@
+Published as a conference paper at ICLR 2025
+Pretrained
+weights
+(a) LoRA
+Pretrained
+weights
+(b) FFA-LoRA
+Pretrained
+weights
+(c) FedSA-LoRA (Ours)
+frozen
+trainable - global
+trainable - local
+Figure 1: The illustration of (a) LoRA, (b) FFA-LoRA, and (c) FedSA-LoRA. In LoRA, both A
+and B matrices are trainable and shared with the server for aggregation. In FFA-LoRA, only B
+matrices are trainable and shared with the server for aggregation, while A matrices are fixed after
+initialization. In FedSA-LoRA, both A and B matrices are trainable, but only A matrices are shared
+with the server for aggregation while B matrices are kept locally.
+different tasks, making them more effective and flexible. Moreover, this simple design allows us to
+merge the trainable matrices with the frozen weights during deployment, introducing no inference
+latency. Given these advantages, we focus on LoRA-based methods in this work.
+However, aggregating LoRA matrices A and B in FL setting poses a key problem. Directly aggre-
+gating the A and B matrices on the server and then broadcasting them to each client may introduce
+aggregation errors. Specifically, in an FL task with m clients, each client’s model update is rep-
+resented by two low-rank matrices Ai and Bi introduced by LoRA. After server aggregation and
+broadcast, the model update of each client is:
+1
+m(B1 + B2 + · · · + Bm) 1
+m(A1 + A2 + · · · + Am), (1)
+which is different from the “ideal” model update, i.e., 1
+m(B1A1 + B2A2 + · · · + BmAm). 1
+To solve this problem, some methods have been explored (Sun et al., 2024b; Wang et al., 2024b).
+For example, Sun et al. (2024b) propose Federated Freeze-A LoRA (FFA-LoRA), which freezes the
+A matrices and only updates and aggregates the B matrices, as illustrated in Figure 1(b). Thus, the
+local update of each client under FFA-LoRA is 1
+m(B1 + B2 + · · · + Bm)A0, where A0 denotes the
+initialized and fixed weights. They point out that this term is equal to the “ideal” model update intro-
+duced by FFA-LoRA, i.e., 1
+m(B1A0+B2A0+· · ·+BmA0). However, fixingA matrices can impair
+the learning ability of LoRA and result in suboptimal performance (Zhang et al., 2023). Meanwhile,
+many works have demonstrated that a uniform model update for all clients is not optimal, especially
+under the non-IID scenario (Zhao et al., 2018; Zhu et al., 2021; Li et al., 2022), which motivates the
+development of personalized FL (T Dinh et al., 2020; Collins et al., 2021; Xu et al., 2023). To this
+end, we aim to explore a better way to combine LoRA and FL in this work and move beyond the
+constraint that the model update of each client should be the same.
+To achieve this, we start by analyzing the distinct roles of the learned A and B matrices when com-
+bining LoRA with FL, resulting in Lemma 1. This lemma suggests that when combing LoRA with
+FL, A matrices are responsible for learning general knowledge while B matrices focus on capturing
+client-specific knowledge. To verify this empirically, we locally fine-tuned a RoBERTa-large model
+(Liu et al., 2019) with LoRA (Hu et al., 2022) on the RTE task from the GLUE benchmark (Wang
+et al., 2018) with three clients under different levels of data heterogeneity. The results, illustrated in
+Figure 2, show that the learned A matrices are more similar across clients than the B matrices, and
+with increased data heterogeneity, the similarity of B matrices between different clients decreases.
+These results demonstrate our argument that A matrices are used to learn general knowledge while
+B matrices focus on modeling client-specific knowledge.
+Based on our findings, we introduce the Federated Share-A Low-Rank Adaptation (FedSA-LoRA)
+method in this work. Similar to LoRA (Hu et al., 2022), we utilize two trainable low-rank matrices,
+denoted as A and B, to model the weight updates during local training. However, only the A
+matrices are shared with the server for aggregation, as illustrated in Figure 1(c). Then, the model
+1Refer to Section A.3 in Appendix for more explanations about the derived aggregation errors.
+2

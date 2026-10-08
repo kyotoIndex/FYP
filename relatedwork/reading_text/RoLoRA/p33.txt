@@ -1,0 +1,64 @@
+The third term of the numerator is canceled sincePa ∗ = (Id −a ∗(a∗)⊤)a∗ = 0. Thus,
+∥Pat+1∥ ≤ ∥Pat∥|1−2η ¯b⊤¯b|
+∥at −2η(a t¯b⊤¯b−a ∗¯b∗⊤ ¯b)∥ (216)
+Letδ t =|sinθ(a ∗,a t)|. Equation (214) becomes:
+δt+1 ≤δ t |1−2η ¯b⊤¯b|
+∥at −2η(a t¯b⊤¯b−a ∗¯b∗⊤ ¯b)∥ (217)
+=δ t
+|1−2η ¯b⊤¯b|
+∥at(1−2η ¯b⊤¯b) + 2ηa∗¯b∗⊤ ¯b∥ (218)
+=δ tC(219)
+ObviouslyC≥0. We drop the superscripttwhen it is clear from context. Note that we have
+C2 = |1−2η ¯b⊤¯b|2
+∥a(1−2η ¯b⊤¯b) + 2ηa∗¯b∗⊤ ¯b∥2 (220)
+= |1−2η ¯b⊤¯b|2
+(1−2η ¯b⊤¯b)2a⊤a+ 4η 2(¯b∗⊤ ¯b)2 + 4η(1−2η ¯b⊤¯b)a⊤a∗¯b∗⊤ ¯b (221)
+= |1−2η ¯b⊤¯b|2
+(1−2η ¯b⊤¯b)2 + 4η2(¯b∗⊤ ¯b)2 + 4η(1−2η ¯b⊤¯b)a⊤a∗¯b∗⊤ ¯b (222)
+Recall that ¯b= ¯b∗a∗⊤
+a= ¯b∗ cosθ(a ∗,a), (222) becomes:
+C2 = |1−2η ¯b⊤¯b|2
+(1−2η ¯b⊤¯b)2 + 4η2(¯b∗⊤ ¯b)2 + 4η(1−2η ¯b⊤¯b)a⊤a∗¯b∗⊤ ¯b (223)
+= |1−2η ¯b⊤¯b|2
+1 + 4η2¯b⊤¯b(¯b∗⊤ ¯b∗ − ¯b⊤¯b) (224)
+≤(1−2η ¯b⊤¯b)2 (225)
+= (1−2η∥ ¯b∥2)2 (226)
+where (225) holds because ¯b∗⊤
+¯b∗ − ¯b⊤¯b= (1−cos 2 θ(a∗,a)) ¯b∗⊤
+¯b∗ ≥0 . Equation (226)
+implies C≤1−2η∥ ¯b∥2 if 2η∥¯b∥2 ≤1 , which can be ensured by choosing a proper step size
+η≤ 1
+2L2
+max
+≤ 1
+2∥¯b∥2 . Now by the assumption thatδ t ≤δ t−1 ≤ · · · ≤δ 0,
+C≤1−2η∥ ¯b∥2 (227)
+= 1−2ηcos 2 θ(a∗,a)∥ ¯b∗∥2 (228)
+= 1−2η(1−(δ t)2)∥¯b∗∥2 (229)
+≤1−2η(1−(δ 0)2)∥¯b∗∥2 (230)
+Summarizing, we obtainδ t+1 ≤δ tC≤δ t(1−2η(1−(δ 0)2)∥¯b∗∥2).
+Proposition A3.17.(FFA-LoRA lower bound) Suppose we are in the setting described in Section A3.5.
+For any set of ground truth parameters (a∗,{b ∗
+i }N
+i=1), initialization a0, initial angle distance δ0 ∈
+(0,1) , we apply Freezing-A scheme to obtain a shared global model ( a0,b F F A), where bF F A =
+b∗a∗⊤a0. The global loss is
+1
+N
+NX
+i=1
+li(a0,b F F A) =γ 2 +∥ ¯b∗∥2δ2
+0 (231)
+Proof. Through single step of minimization on bi and corresponding aggregation, the minimum of
+the global objective is reached by FFA-LoRA.b F F A is obtained through:
+bi = b∗
+i a∗⊤a0
+a0⊤
+a0 =b ∗
+i a∗⊤a0 (232)
+bF F A = 1
+N
+NX
+i=1
+bi = ¯b∗a∗⊤a0 (233)
+33

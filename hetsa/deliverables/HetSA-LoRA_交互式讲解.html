@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用矩阵乘法和可交互示例演示 HetSA-LoRA 的异构层更新与客户端个性化。">
+  <title>HetSA-LoRA · 算法交互演示</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f6f3;
+      --surface: #fff;
+      --ink: #1b2e3b;
+      --muted: #64737b;
+      --line: #dce4e1;
+      --teal: #167b72;
+      --teal-dark: #105d57;
+      --teal-pale: #e5f2ef;
+      --blue: #526e91;
+      --blue-pale: #eaf0f6;
+      --orange: #b96e32;
+      --orange-pale: #f8ecdf;
+      --red: #9f4e47;
+      --red-pale: #f7e9e7;
+      --shadow: 0 20px 55px rgba(26, 48, 61, .08);
+      font-family: "Aptos", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); line-height: 1.55; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #d18a49; outline-offset: 3px; }
+    .topbar { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 0 max(22px, calc((100vw - 1120px) / 2)); border-bottom: 1px solid var(--line); background: rgba(255,255,255,.72); }
+    .brand-mark { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 5px var(--teal-pale); }
+    .brand { font-size: 13px; font-weight: 700; letter-spacing: .03em; }
+    .topbar-tag { margin-left: auto; color: var(--muted); font-size: 12px; }
+    main { width: min(1080px, calc(100% - 36px)); margin: 0 auto; }
+    .hero { padding: 54px 0 31px; }
+    .eyebrow { color: var(--teal-dark); font-size: 12px; font-weight: 800; letter-spacing: .1em; }
+    h1 { max-width: 800px; margin: 10px 0 13px; font-size: clamp(33px, 5vw, 54px); line-height: 1.12; letter-spacing: -.04em; }
+    .hero p { max-width: 720px; margin: 0; color: var(--muted); font-size: 17px; }
+    .formula-intro { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .formula-chip { padding: 9px 13px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.75); font-size: 14px; }
+    .formula-chip b { color: var(--teal-dark); }
+    .simulator { margin: 16px 0 30px; padding: clamp(18px, 3vw, 30px); border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
+    .sim-head { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+    .sim-head h2 { margin: 0; font-size: clamp(23px, 3vw, 30px); line-height: 1.2; }
+    .sim-head p { max-width: 440px; margin: 7px 0 0; color: var(--muted); font-size: 14px; }
+    .toy-label { flex: 0 0 auto; padding: 6px 9px; border-radius: 999px; background: var(--orange-pale); color: #74471f; font-size: 11px; font-weight: 700; }
+    .control-grid { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 16px; margin-bottom: 18px; }
+    fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+    legend, .control-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .segmented { display: flex; flex-wrap: wrap; gap: 6px; }
+    .choice { min-height: 38px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 9px; background: #fff; cursor: pointer; font-size: 12px; transition: background .18s, border-color .18s, color .18s; }
+    .choice[aria-pressed="true"] { border-color: var(--teal); background: var(--teal-pale); color: var(--teal-dark); font-weight: 700; }
+    .mode-choice { flex: 1 1 140px; }
+    .layer-area { padding: 15px 0 17px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .layer-caption { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }
+    .layer-caption strong { font-size: 13px; }
+    .layer-caption span { color: var(--muted); font-size: 12px; }
+    .layer-stack { display: grid; grid-template-columns: repeat(12, minmax(28px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .layer { min-height: 38px; display: grid; place-items: center; border-radius: 7px; background: #edf0ef; color: #7a878c; font-size: 11px; font-variant-numeric: tabular-nums; transition: background .2s, color .2s, transform .2s; }
+    .layer.active { background: var(--teal-pale); color: var(--teal-dark); font-weight: 700; }
+    .layer-summary { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+    .local-factors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; padding: 18px 0; }
+    .factor-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 12px; font-size: 12px; }
+    .factor-row strong { color: var(--ink); }
+    .factor { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .factor em { color: var(--blue); font-style: normal; }
+    .factor b { color: var(--orange); font-weight: 700; }
+    .matrix-section { padding-top: 5px; }
+    .matrix-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin: 7px 0 5px; }
+    .matrix-title h3 { margin: 0; font-size: 18px; }
+    .matrix-title span { color: var(--muted); font-size: 12px; }
+    .math-line { margin: 0 0 17px; color: var(--muted); font-size: 13px; }
+    .matrix-equation { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 14px 0 20px; }
+    .matrix-unit { min-width: 112px; text-align: center; }
+    .matrix-name { margin-bottom: 8px; color: var(--muted); font-size: 11px; }
+    .matrix-grid { display: grid; gap: 4px; width: fit-content; margin: 0 auto; }
+    .matrix-grid.two { grid-template-columns: repeat(2, 52px); }
+    .matrix-grid.one { grid-template-columns: 52px; }
+    .matrix-cell { display: grid; place-items: center; min-height: 42px; border-radius: 7px; font-size: 14px; font-variant-numeric: tabular-nums; transition: background .2s, color .2s; }
+    .matrix-cell.positive { background: var(--teal-pale); color: var(--teal-dark); }
+    .matrix-cell.negative { background: var(--red-pale); color: var(--red); }
+    .matrix-cell.neutral { background: #edf0ef; color: var(--muted); }
+    .operator { color: var(--orange); font-size: 23px; font-weight: 500; }
+    .matrix-note { width: 100%; margin: 0; color: var(--muted); text-align: center; font-size: 12px; }
+    .input-output { display: grid; grid-template-columns: minmax(230px, .85fr) minmax(300px, 1.15fr); gap: 28px; align-items: center; padding: 19px 0 4px; border-top: 1px solid var(--line); }
+    .input-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 13px; font-weight: 700; }
+    .input-title output { color: var(--teal-dark); font-variant-numeric: tabular-nums; }
+    .input-ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+    input[type="range"] { width: 100%; margin: 8px 0 5px; accent-color: var(--teal); }
+    .input-vector { margin: 7px 0 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .prediction h4 { margin: 0 0 9px; font-size: 13px; }
+    .prob-row { display: grid; grid-template-columns: 45px minmax(70px,1fr) 48px; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px; }
+    .prob-row strong { text-align: right; font-variant-numeric: tabular-nums; }
+    .bar-track { height: 11px; overflow: hidden; border-radius: 999px; background: #edf0ef; }
+    .bar-fill { width: 0; height: 100%; border-radius: inherit; background: var(--teal); transition: width .32s ease; }
+    .prob-row.tech .bar-fill { background: var(--blue); }
+    .prediction-text { min-height: 22px; margin: 10px 0 0; color: var(--teal-dark); font-size: 12px; font-weight: 700; }
+    .flow-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .flow-step { display: grid; grid-template-columns: 27px 1fr; gap: 9px; align-items: start; }
+    .step-number { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: var(--blue-pale); color: var(--blue); font-size: 12px; font-weight: 700; }
+    .flow-step b { display: block; margin-bottom: 2px; font-size: 12px; }
+    .flow-step span { display: block; color: var(--muted); font-size: 11px; }
+    .footnote { margin: 23px 0 0; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    @media (max-width: 760px) {
+      main { width: min(100% - 24px, 620px); }
+      .topbar { padding: 0 14px; }
+      .hero { padding-top: 36px; }
+      .sim-head { display: block; }
+      .toy-label { display: inline-block; margin-top: 12px; }
+      .control-grid { grid-template-columns: 1fr; gap: 13px; }
+      .local-factors { grid-template-columns: 1fr; gap: 8px; }
+      .input-output { grid-template-columns: 1fr; gap: 20px; }
+      .flow-steps { grid-template-columns: 1fr; gap: 12px; }
+      .matrix-equation { gap: 8px; }
+      .matrix-unit { min-width: 88px; }
+      .matrix-grid.two { grid-template-columns: repeat(2, 44px); }
+      .matrix-grid.one { grid-template-columns: 44px; }
+      .matrix-cell { min-height: 38px; font-size: 12px; }
+      .layer-stack { gap: 3px; }
+      .layer { min-height: 34px; font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand">HetSA-LoRA</span>
+    <span class="topbar-tag">算法交互演示</span>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="eyebrow">从矩阵乘法开始</div>
+      <h1 id="page-title">一个共享矩阵，<br>一块客户端自己的更新</h1>
+      <p>用一个两维小例子，沿着 LoRA 的矩阵乘法走一遍 HetSA-LoRA：设备按资源更新不同深度，服务器平均 A，每个客户端保留自己的 B。</p>
+      <div class="formula-intro" aria-label="核心计算式">
+        <div class="formula-chip">线性层：<b>z = W₀x</b></div>
+        <div class="formula-chip">LoRA 更新：<b>ΔW = BA</b></div>
+        <div class="formula-chip">客户端预测：<b>z = (W₀ + BA)x</b></div>
+      </div>
+    </section>
+
+    <section class="simulator" aria-labelledby="sim-title">
+      <div class="sim-head">
+        <div>
+          <h2 id="sim-title">动手看一次更新</h2>
+          <p>切换设备深度、聚合规则和客户端，再拖动输入，矩阵与输出会同步变化。</p>
+        </div>
+        <span class="toy-label">教学用小数值 · 非模型实测</span>
+      </div>
+
+      <div class="control-grid">
+        <fieldset>
+          <legend>客户端资源 · 本轮更新层数</legend>
+          <div class="segmented" role="group" aria-label="选择可训练层数">
+            <button class="choice" type="button" data-depth="6" aria-pressed="true">低 · 6 层</button>
+            <button class="choice" type="button" data-depth="9" aria-pressed="false">中 · 9 层</button>
+            <button class="choice" type="button" data-depth="12" aria-pressed="false">高 · 12 层</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>服务器聚合 · 看 B 怎样影响个性化</legend>
+          <div class="segmented" role="group" aria-label="选择聚合规则">
+            <button class="choice mode-choice" type="button" data-mode="hetsa" aria-pressed="true">HetSA：平均 A，B 留本地</button>
+            <button class="choice mode-choice" type="button" data-mode="average" aria-pressed="false">对照：A、B 都平均</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>查看客户端</legend>
+          <div class="segmented" role="group" aria-label="选择客户端">
+            <button class="choice" type="button" data-client="0" aria-pressed="true">客户端 1 · 体育</button>
+            <button class="choice" type="button" data-client="1" aria-pressed="false">客户端 2 · 科技</button>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="layer-area">
+        <div class="layer-caption">
+          <strong>12 层模型中的本轮更新范围</strong>
+          <span id="depth-summary">低资源：更新最深的 6 层</span>
+        </div>
+        <ol class="layer-stack" id="layer-stack" aria-label="12 层模型的更新范围"></ol>
+        <p class="layer-summary" id="layer-summary" aria-live="polite">本轮更新第 7–12 层；每个激活层都训练本地 A 和 B。</p>
+      </div>
+
+      <div class="local-factors" aria-label="两个客户端本地训练后的 LoRA 因子">
+        <div class="factor-row"><strong>客户端 1</strong><span class="factor"><em>A₁ = [1.00, 0.00]</em></span><span class="factor"><b>B₁ = [1.00, −1.00]ᵀ</b></span></div>
+        <div class="factor-row"><strong>客户端 2</strong><span class="factor"><em>A₂ = [0.00, 1.00]</em></span><span class="factor"><b>B₂ = [−1.00, 1.00]ᵀ</b></span></div>
+      </div>
+
+      <div class="matrix-section">
+        <div class="matrix-title">
+          <h3>把因子乘回权重矩阵</h3>
+          <span id="mode-summary" aria-live="polite">服务器发送平均 A；客户端 1 继续使用自己的 B₁。</span>
+        </div>
+        <p class="math-line">两个客户端的 A 汇总为 A* = [0.50, 0.50]。LoRA 降低可训练参数量：先把 x 压到 rank 1，再由 B 映射成分类分数。</p>
+
+        <div class="matrix-equation" aria-label="LoRA 矩阵乘法：B 乘 A 得到权重更新矩阵">
+          <div class="matrix-unit">
+            <div class="matrix-name" id="b-title">B₁ · 2 × 1</div>
+            <div class="matrix-grid one" id="matrix-b" role="img" aria-label="B 矩阵"></div>
+          </div>
+          <span class="operator" aria-hidden="true">×</span>
+          <div class="matrix-unit">
+            <div class="matrix-name">A* · 1 × 2</div>
+            <div class="matrix-grid two" id="matrix-a" role="img" aria-label="A 矩阵"></div>
+          </div>
+          <span class="operator" aria-hidden="true">=</span>
+          <div class="matrix-unit">
+            <div class="matrix-name">ΔW = BA · 2 × 2</div>
+            <div class="matrix-grid two" id="matrix-delta" role="img" aria-label="LoRA 权重更新矩阵"></div>
+          </div>
+          <p class="matrix-note">基底矩阵 W₀ = [[0.20, 0.00], [0.00, 0.20]]　·　rank = 1 示例（实际实验 rank = 16）</p>
+        </div>
+
+        <div class="input-output">
+          <div>
+            <label class="input-title" for="input-mix">
+              <span>输入向量 x 的方向</span>
+              <output id="input-label" for="input-mix">偏向体育</output>
+            </label>
+            <div class="input-ends"><span>体育特征</span><span>科技特征</span></div>
+            <input id="input-mix" type="range" min="0" max="100" step="1" value="0" aria-label="调整输入向量在体育和科技特征间的比例">
+            <p class="input-vector" id="input-vector">x = [1.00, 0.00]</p>
+          </div>
+
+          <div class="prediction" aria-live="polite">
+            <h4>经过 W₀ + ΔW 后的分类输出</h4>
+            <div class="prob-row sport">
+              <span>体育</span>
+              <div class="bar-track" aria-hidden="true"><div class="bar-fill" id="bar-sport"></div></div>
+              <strong id="prob-sport">—</strong>
+            </div>
+            <div class="prob-row tech">
+              <span>科技</span>
+              <div class="bar-track" aria-hidden="true"><div class="bar-fill" id="bar-tech"></div></div>
+              <strong id="prob-tech">—</strong>
+            </div>
+            <p class="prediction-text" id="prediction-text">预测结果将在这里显示。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-steps" aria-label="HetSA-LoRA 更新流程">
+        <div class="flow-step">
+          <span class="step-number">1</span>
+          <div><b>客户端本地更新</b><span>按资源预算，在最深的 q 层训练本地 Aₖ 和 Bₖ。</span></div>
+        </div>
+        <div class="flow-step">
+          <span class="step-number">2</span>
+          <div><b>服务器汇总</b><span id="flow-aggregation">只接收并平均 Aₖ；Bₖ 留在各客户端。</span></div>
+        </div>
+        <div class="flow-step">
+          <span class="step-number">3</span>
+          <div><b>个性化预测</b><span>客户端组合共享 A* 与自己的 Bₖ，形成 BA 更新。</span></div>
+        </div>
+      </div>
+
+      <p class="footnote">矩阵与分类输出是用于看清运算过程的教学示例，不代表训练结果。真实 HetSA-LoRA 每个客户端按能力更新最深的 6、9 或 12 层，并在这些层训练 A、B；服务器平均 A，客户端持续保留 B。</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const root = document.querySelector(".simulator");
+      const input = document.getElementById("input-mix");
+      const state = { depth: 6, mode: "hetsa", client: 0 };
+      const localA = [[1, 0], [0, 1]];
+      const localB = [[1, -1], [-1, 1]];
+      const sharedA = [
+        (localA[0][0] + localA[1][0]) / 2,
+        (localA[0][1] + localA[1][1]) / 2
+      ];
+      const sharedB = [
+        (localB[0][0] + localB[1][0]) / 2,
+        (localB[0][1] + localB[1][1]) / 2
+      ];
+
+      function fmt(value) {
+        const rounded = Math.abs(value) < 0.005 ? 0 : value;
+        return (rounded < 0 ? "−" : "+") + Math.abs(rounded).toFixed(2);
+      }
+
+      function tone(value) {
+        if (value > 0.005) return "positive";
+        if (value < -0.005) return "negative";
+        return "neutral";
+      }
+
+      function renderMatrix(element, values, columns, label) {
+        element.className = "matrix-grid " + (columns === 1 ? "one" : "two");
+        element.setAttribute("aria-label", label + "：" + values.map(function (v) { return Number(v).toFixed(2); }).join("，"));
+        element.innerHTML = values.map(function (value) {
+          return '<span class="matrix-cell ' + tone(value) + '" aria-hidden="true">' + fmt(value) + "</span>";
+        }).join("");
+      }
+
+      function updateLayers() {
+        const stack = document.getElementById("layer-stack");
+        const firstActive = 12 - state.depth + 1;
+        const layers = [];
+        for (let layer = 1; layer <= 12; layer += 1) {
+          const active = layer >= firstActive;
+          layers.push('<li class="layer' + (active ? " active" : "") + '" aria-label="第 ' + layer + " 层，" + (active ? "本轮更新" : "本轮冻结") + '">' + layer + "</li>");
+        }
+        stack.innerHTML = layers.join("");
+        document.getElementById("depth-summary").textContent =
+          (state.depth === 6 ? "低资源" : state.depth === 9 ? "中资源" : "高资源") +
+          "：更新最深的 " + state.depth + " 层";
+        document.getElementById("layer-summary").textContent =
+          "本轮更新第 " + firstActive + "–12 层；每个激活层都训练本地 A 和 B。";
+      }
+
+      function updateControls() {
+        root.querySelectorAll("[data-depth]").forEach(function (button) {
+          button.setAttribute("aria-pressed", String(Number(button.dataset.depth) === state.depth));
+        });
+        root.querySelectorAll("[data-mode]").forEach(function (button) {
+          button.setAttribute("aria-pressed", String(button.dataset.mode === state.mode));
+        });
+        root.querySelectorAll("[data-client]").forEach(function (button) {
+          button.setAttribute("aria-pressed", String(Number(button.dataset.client) === state.client));
+        });
+      }
+
+      function updateSimulation() {
+        const clientB = localB[state.client];
+        const useLocalB = state.mode === "hetsa";
+        const b = useLocalB ? clientB : sharedB;
+        const delta = [b[0] * sharedA[0], b[0] * sharedA[1], b[1] * sharedA[0], b[1] * sharedA[1]];
+        const blend = Number(input.value) / 100;
+        const x = [1 - blend, blend];
+        const deltaX = [
+          delta[0] * x[0] + delta[1] * x[1],
+          delta[2] * x[0] + delta[3] * x[1]
+        ];
+        const baseLogits = [0.2 * x[0], 0.2 * x[1]];
+        const logits = [baseLogits[0] + deltaX[0], baseLogits[1] + deltaX[1]];
+        const exps = [Math.exp(logits[0]), Math.exp(logits[1])];
+        const total = exps[0] + exps[1];
+        const probabilities = [exps[0] / total, exps[1] / total];
+        const predicted = probabilities[0] >= probabilities[1] ? "体育" : "科技";
+
+        document.getElementById("b-title").textContent = useLocalB
+          ? "B" + (state.client + 1) + " · 2 × 1"
+          : "平均 B · 2 × 1";
+        renderMatrix(document.getElementById("matrix-a"), sharedA, 2, "共享 A 星");
+        renderMatrix(document.getElementById("matrix-b"), b, 1, useLocalB ? "客户端本地 B" : "客户端共享平均 B");
+        renderMatrix(document.getElementById("matrix-delta"), delta, 2, "更新矩阵 ΔW");
+
+        document.getElementById("mode-summary").textContent = useLocalB
+          ? "服务器发送平均 A；客户端 " + (state.client + 1) + " 继续使用自己的 B" + (state.client + 1) + "。"
+          : "对照模式把 A、B 都平均；相反方向的本地 B 在这里相互抵消。";
+        document.getElementById("flow-aggregation").textContent = useLocalB
+          ? "只接收并平均 Aₖ；Bₖ 留在各客户端。"
+          : "对照模式将 Aₖ、Bₖ 都平均，客户端共用平均后的因子。";
+
+        document.getElementById("input-label").textContent =
+          blend < 0.34 ? "偏向体育" : blend > 0.66 ? "偏向科技" : "两类混合";
+        document.getElementById("input-vector").textContent =
+          "x = [" + x[0].toFixed(2) + ", " + x[1].toFixed(2) + "]　·　z = [" +
+          logits[0].toFixed(2) + ", " + logits[1].toFixed(2) + "]";
+        document.getElementById("bar-sport").style.width = (probabilities[0] * 100).toFixed(1) + "%";
+        document.getElementById("bar-tech").style.width = (probabilities[1] * 100).toFixed(1) + "%";
+        document.getElementById("prob-sport").textContent = (probabilities[0] * 100).toFixed(1) + "%";
+        document.getElementById("prob-tech").textContent = (probabilities[1] * 100).toFixed(1) + "%";
+        document.getElementById("prediction-text").textContent =
+          "客户端 " + (state.client + 1) + " · 预测：" + predicted +
+          "　|　ΔW x = [" + deltaX[0].toFixed(2) + ", " + deltaX[1].toFixed(2) + "]";
+      }
+
+      root.addEventListener("click", function (event) {
+        const button = event.target.closest("button[data-depth], button[data-mode], button[data-client]");
+        if (!button) return;
+        if (button.dataset.depth) {
+          state.depth = Number(button.dataset.depth);
+          updateLayers();
+        } else if (button.dataset.mode) {
+          state.mode = button.dataset.mode;
+        } else if (button.dataset.client) {
+          state.client = Number(button.dataset.client);
+          input.value = state.client === 0 ? "0" : "100";
+        }
+        updateControls();
+        updateSimulation();
+      });
+
+      input.addEventListener("input", updateSimulation);
+      updateLayers();
+      updateControls();
+      updateSimulation();
+    }());
+  </script>
+</body>
+</html>

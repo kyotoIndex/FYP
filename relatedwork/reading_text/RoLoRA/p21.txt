@@ -1,0 +1,104 @@
+where ϵ′ = ϵ2
+(1−ϵ0)(1−ϵ1) and p0 = 2 exp (dlog(1 + 2
+ϵ0
+)−c 3ϵ2
+2m) + exp (−c1ϵ2
+1m
+K4 ). Using a union
+bound overi∈[N], we have
+P
+( N\
+i=1
+∥˜bi −g∥ ≤ϵ ′∥(Id −aa ⊤)a∗b∗⊤
+∥op
+)
+≥1−N p 0.(35)
+Next we bound∥ ¯b−g∥where ¯bis the average of{b i}N
+i=1.
+∥¯b−g∥=∥ 1
+N
+NX
+i=1
+(˜bi −g)∥(36)
+≤ 1
+N
+NX
+i=1
+∥˜bi −g∥(37)
+≤ϵ ′∥(Id −aa ⊤)a∗b∗⊤
+∥op (38)
+=ϵ ′∥(Id −aa ⊤)a∗∥ · ∥b∗⊤
+∥(39)
+=ϵ ′δt∥b∗∥(40)
+with probability 1−N p 0. (37) follows by Jensen’s inequality. (39) follows since ∥uv⊤∥op =
+∥u∥ · ∥v∥. (40) follows sinceδ t =∥(I d −aa ⊤)a∗∥.
+If m= Ω(q) , where q= max( log(N)
+[min(ϵ1,ϵ2)]2 ,
+dlog( 2
+ϵ0 )
+ϵ2
+2
+), then 1−N p 0 >1−exp(−Cq)>1−q −10
+for large absolute constantC. Then with probability at least1−q −10,
+∥¯b−g∥ ≤ϵ ′δt∥b∗∥(41)
+Lemma A3.10.Let a=a t. Let δt =∥(I d −a ∗a∗⊤
+)a∥=∥(I d −aa ⊤)a∗∥ denote the angle
+distance between a∗ and a. Then for N m= Ω(
+dlog( 2
+ϵ0 )
+ϵ2
+3
+) and q= max( log(N)
+[min(ϵ1,ϵ2)]2 ,
+dlog( 2
+ϵ0 )
+ϵ2
+2
+), with
+probability at least1−2q −10,
+∥∇al(a, ¯b)−E[∇ al(a, ¯b)]∥ ≤2˜ϵ((ϵ′)2 +ϵ ′)δt∥b∗∥2 (42)
+where˜ϵ= ϵ3
+1−ϵ0
+, andϵ ′ = ϵ2
+(1−ϵ0)(1−ϵ1), forϵ 0, ϵ1, ϵ2, ϵ3 ∈(0,1).
+Proof. Based on the loss function l(a,b) = 1
+N
+PN
+i=1 li(a,b) = 1
+N m
+PN
+i=1∥Xia∗b∗⊤
+−X iab⊤∥2,
+we bound the expected gradient with respect to a and the deviation from it. The gradient with respect
+toaand its expectation are computed as:
+∇al(a, ¯b) = 2
+N m
+NX
+i=1
+(X⊤
+i Xia¯b⊤¯b−X ⊤
+i Yi¯b)(43)
+= 2
+N m
+NX
+i=1
+(X⊤
+i Xia¯b⊤¯b−X ⊤
+i Xia∗b∗⊤
+¯b)(44)
+= 2
+N m
+NX
+i=1
+X⊤
+i Xi(a¯b⊤ −a ∗b∗⊤
+)¯b(45)
+E[∇al(a, ¯b)] = 2
+N m
+NX
+i=1
+m(a¯b⊤ −a ∗b∗⊤
+)¯b(46)
+= 2(a¯b⊤ −a ∗b∗⊤
+)¯b(47)
+21

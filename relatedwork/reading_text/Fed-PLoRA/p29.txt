@@ -1,0 +1,222 @@
+Published as a conference paper at ICLR 2026
+The aggregation noise is then the difference between these two global updates. We use the formula-
+tion consistent with the main paper, which is∥∆W t
+∗ −∆W t
+Fed-PLoRA∥F :
+N t
+Fed-PLoRA Agg =
+∆W t
+∗ −∆W t
+Fed-PLoRA
+
+F
+=
+
+RX
+j=1
+1
+|Qt
+(j)|2
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) −
+RX
+j=1
+
+ 1
+|Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+
+F
+=
+
+RX
+j=1
+1
+|Qt
+(j)|2
+
+
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) − |Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+
+F
+LetT ′
+j be the term inside the parenthesis for modulej:
+T ′
+j =
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) − |Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+We can expand the double summation:
+X
+i1∈Qt
+(j)
+X
+i2∈Qt
+(j)
+Bt
+i1,(j)At
+i2,(j) =
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j) +
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j)
+Substituting this back intoT ′
+j:
+T ′
+j =
+
+
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j) +
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j)
+
+ − |Qt
+(j)|
+X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+=
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j) −
+
+|Qt
+(j)| −1
+ X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+So the aggregation noise can also be expressed by substituting this form ofT ′
+j:
+N t
+Fed-PLoRA Agg =
+
+RX
+j=1
+1
+|Qt
+(j)|2
+
+
+X
+i1,i2∈Qt
+(j)
+i1̸=i2
+Bt
+i1,(j)At
+i2,(j) −
+
+|Qt
+(j)| −1
+ X
+k∈Qt
+(j)
+Bt
+k,(j)At
+k,(j)
+
+
+
+F
+This noise termT ′
+j (and thus the overall noise) becomes zero if, for each modulej, the condition
+1
+|Qt
+(j) |
+P
+k∈Qt
+(j)
+(Bt
+k,(j) − B
+t
+(j))(At
+k,(j) − A
+t
+(j)) =0holds, which typically occurs when client up-
+dates{B t
+k,(j) ,A t
+k,(j) }for a given modulejare highly similar or aligned across clientsk∈ Q t
+(j).
+F ADDITIONALSTUDIES
+F.1 EFFICIENCY OFRANK-BASEDFEDERATEDFINE-TUNINGMETHOD
+In this section, we demonstrate the efficiency of the rank-based method for resource-constrained
+devices by analyzing the FLOPs of LoRA modules, overall training throughput, and communication
+costs under different rank settings. We use the LLaMA-3.1-8B model on the Finance dataset as a
+representative case (detailed dataset description is shown in Section C.1), with a hidden size of8192,
+a batch size of4, and assuming float32 precision, where each parameter occupies4bytes.
+To compute the FLOPs introduced by LoRA modules, we begin with the forward computationz=
+BAx, which requires2r(d in+d out)operations per token, whereris the LoRA rank andd in =d out =
+29

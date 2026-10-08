@@ -1,0 +1,49 @@
+Published as a conference paper at ICLR 2026
+The Impact of Client Rank Settings.We evaluate how different distributions of LoRA ranks across
+clients influence performance, with results on CoLA shown in Table 10. Rank configurations tested
+include{1, 2, 4},{1, 2, 16},{1, 4, 16}, and{2, 8, 16}, under the same settings as the main exper-
+iments. Fed-PLoRA consistently achieves the highest Matthews Correlation scores, outperforming
+FLoRA, FlexLoRA, and HETLoRA across all cases. For example, Fed-PLoRA attains 58.58%
+with ranks 1/2/4 and 60.41% with ranks 2/8/16, demonstrating strong robustness and adaptability to
+heterogeneous client resources.
+Table 11: Performance and resource usage of different methods under extremely large global model
+rank.
+Method CoLAMatthews Corr.SST-2AccuracyMRPCAccuracyRTEAccuracyClient FLOPsGFLOPSServer FLOPsMFLOPS Throughputseconds / 100 tokensUplink/DownlinkMB / Round
+Homogeneous FedIT (Rank=R)62.94 91.97 88.72 73.28 695.50 5.89 2.33 430.08/430.08
+HeterogeneousR= 128max(ri) = 16Avg Rank =7
+FLoRA −4.98 70.52 31.51 52.70 202.40 74.94 0.89 23.52/235.20FlexLoRA 1.43 50.91 68.38 53.42 202.37 620.20 0.89 23.52/23.52HETLoRA 47.65 71.62 80.88 59.56 202.37 1.71 0.89 23.52/23.52Fed-PLoRA55.43 72.82 85.04 70.36 202.37 1.71 0.89 23.52/129.36
+The Impact of Extremely Large Global RankRon Learning Efficiency.We evaluate the effect
+of increasing the global model rank to 128 while capping local ranks at 16 to reflect realistic resource
+constraints. Experiments are conducted on four GLUE tasks under the IID setting with a batch size
+of 16. Input sequence length is set to 128 for CoLA and SST-2, and 256 for MRPC and RTE.
+Client-side FLOPS (including initialization and LoRA operations) are averaged over all clients and
+rounds on a per-sample basis. Server-side FLOPS measure aggregation costs. Throughput is re-
+ported as the average seconds to process 100 training tokens on clients. Communication volume
+denotes uplink and downlink per round per client in MB under 32-bit precision.
+As shown in Table 11, Fed-PLoRA consistently outperforms other heterogeneous baselines under
+this extremeR. Client-side FLOPS and throughput remain identical across methods since all use the
+same model structure and simulated hardware. On the server side, Fed-PLoRA matches HETLoRA’s
+efficiency by aggregating one-rank modules independently. Uplink costs are equally low across all
+methods, as only trainable LoRA modules are transmitted. The main trade-off is in downlink cost,
+which scales withRand equals that of FedIT. However, excessively largeRis rarely practical under
+heterogeneous constraints and may even cause divergence, as observed for FLoRA and FlexLoRA
+on CoLA. Since LoRA is designed for parameter efficiency, settingRclose to the hidden dimension
+provides little benefit and often harms stability.
+D.5.4 THEIMPACT OFDIFFERENTCONFIGURATIONS OFPLORA
+We evaluate how the rank size of individual PLoRA modules influences performance. Specifically,
+we compare our default one-rank design (Fed-PLoRA (Parallel One-Rank)) with a two-rank variant
+(Fed-PLoRA (Parallel Two-Rank)), both configured to yield the same total effective LoRA rank
+across clients with heterogeneous rank settings (2, 8, 16). The one-rank configuration achieves
+a slightly higher Matthews Correlation score (60.41%) than the two-rank configuration (59.35%).
+This result supports our design choice.
+D.5.5 THEIMPACTS OFDROPOUT
+Table 12: The impacts of dropout in the PLoRA.
+Method
+Dolly-15K (Rouge-L)
+Rank: 1/8/32
+IID non-IID
+Fed-PLoRA (Unfold, w/ Dropout)60.07 59.70
+Fed-PLoRA 60.07 59.69
+We investigate the impact of applying LoRA dropout within the Fed-PLoRA framework. Typi-
+cally, dropout layers are utilized for regularization before input features pass into LoRA modules
+24

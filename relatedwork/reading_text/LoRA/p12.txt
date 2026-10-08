@@ -1,0 +1,97 @@
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+1
+5
+10
+15
+20
+25
+30
+34
+39
+44
+49
+54
+59
+j
+1
+8
+16
+24
+32
+40
+48
+56 i
+Wq
+1
+5
+10
+15
+20
+25
+30
+34
+39
+44
+49
+54
+59
+j
+(Ar = 64, A′r = 64, i, j)
+Wv
+1
+5
+10
+15
+20
+25
+30
+34
+39
+44
+49
+54
+59
+j
+Random Gaussian
+Figure 4: Left and Middle: Normalized subspace similarity between the column vectors of Ar=64
+from two random seeds, for both ∆Wq and ∆Wv in the 48-th layer. Right: the same heat-map
+between the column vectors of two random Gaussian matrices. See Section H.1 for other layers.
+how “large” is ∆W comparing to its corresponding directions in W ? This can shed light on the
+underlying mechanism for adapting pre-trained language models.
+To answer these questions, we project W onto the r-dimensional subspace of ∆W by comput-
+ing U⊤W V⊤, with U/V being the left/right singular-vector matrix of ∆W . Then, we com-
+pare the Frobenius norm between ∥U⊤W V⊤∥F and∥W∥F . As a comparison, we also compute
+∥U⊤W V⊤∥F by replacing U, V with the top r singular vectors of W or a random matrix.
+r = 4 r = 64
+∆Wq Wq Random ∆Wq Wq Random
+||U⊤WqV⊤||F = 0.32 21.67 0.02 1.90 37.71 0.33
+||Wq||F = 61.95 ||∆Wq||F = 6.91 ||∆Wq||F = 3.57
+Table 7: The Frobenius norm of U⊤WqV⊤ where U and V are the left/right top r singular vector
+directions of either (1) ∆Wq, (2) Wq, or (3) a random matrix. The weight matrices are taken from
+the 48th layer of GPT-3.
+We draw several conclusions from Table 7. First, ∆W has a stronger correlation with W compared
+to a random matrix, indicating that ∆W ampliﬁes some features that are already in W . Second,
+instead of repeating the top singular directions of W , ∆W only ampliﬁes directions that are not
+emphasized in W . Third, the ampliﬁcation factor is rather huge: 21.5≈ 6.91/0.32 for r = 4 .
+See Section H.4 for why r = 64 has a smaller ampliﬁcation factor. We also provide a visualization
+in Section H.3 for how the correlation changes as we include more top singular directions fromWq.
+This suggests that the low-rank adaptation matrix potentially ampliﬁes the important features for
+speciﬁc downstream tasks that were learned but not emphasized in the general pre-training model.
+8 C ONCLUSION AND FUTURE WORK
+Fine-tuning enormous language models is prohibitively expensive in terms of the hardware required
+and the storage/switching cost for hosting independent instances for different tasks. We propose
+LoRA, an efﬁcient adaptation strategy that neither introduces inference latency nor reduces input
+sequence length while retaining high model quality. Importantly, it allows for quick task-switching
+when deployed as a service by sharing the vast majority of the model parameters. While we focused
+on Transformer language models, the proposed principles are generally applicable to any neural
+networks with dense layers.
+There are many directions for future works. 1) LoRA can be combined with other efﬁcient adapta-
+tion methods, potentially providing orthogonal improvement. 2) The mechanism behind ﬁne-tuning
+or LoRA is far from clear – how are features learned during pre-training transformed to do well
+on downstream tasks? We believe that LoRA makes it more tractable to answer this than full ﬁne-
+12

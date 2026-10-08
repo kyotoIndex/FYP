@@ -1,0 +1,126 @@
+Published as a conference paper at ICLR 2025
+E∥∇Li(W (t)
+i ; ξi,t)∥2 ≤ G2, for all i = 1, · · · , m and t = 0, · · · , T − 1. Here T denotes the total
+number of every client’s training steps.
+Assumption 3. Let W (t)
+i = W0 + B(t)
+i A(t)
+i represent the model parameters for thei-th client at the
+t-th step. There exist constants CB > 0, CA > 0, cB > 0, and cA > 0 such that:
+∥B(t)
+i ∥F ≤ CB,
+∥A(t)
+i ∥F ≤ CA,
+⟨A(t)
+i
+⊤
+A(t)
+i , ∇Li(W (t)
+i )⊤∇Li(W (t)
+i )⟩F ≥ cA∥∇Li(W (t)
+i )∥2
+F ,
+⟨B(t)
+i
+⊤
+B(t)
+i , ∇Li(W (t)
+i )⊤∇Li(W (t)
+i )⟩F ≥ cB∥∇Li(W (t)
+i )∥2
+F ,
+for all i = 1, · · · , m and t = 0, · · · , T − 1.
+Assumptions 1 and 2 are widely usedL-smoothness and bounded second moment assumption in FL
+papers (Li et al., 2020c; Yu et al., 2019; Basu et al., 2019). For Assumption 3, according to the def-
+inition of the Frobenius norm ∥A∥F =
+qPm
+i
+Pn
+j |aij|2, we know that the first two inequalities in
+Assumption 3 hold when all parameter values in A(t)
+i and B(t)
+i are finite. If we denote the eigenval-
+ues of A(t)
+i by {λ1, . . . , λK}, then the eigenvalue of(A(t)
+i )⊤A(t)
+i are {λ2
+1, . . . , λ2
+K}. Similarly, if the
+eigenvalues of ∇Li(W (t)
+i ) are {µ1, . . . , µK}, then the eigenvalues of (∇Li(W (t)
+i ))⊤∇Li(W (t)
+i )
+are {µ2
+1, . . . , µ2
+K}. Noting that ⟨A(t)
+i
+⊤
+A(t)
+i , ∇Li(W (t)
+i )⊤∇Li(W (t)
+i )⟩F = P
+k λ2
+kµ2
+k, and
+∥∇Li(W (t)
+i )∥2
+F = P
+k µ2
+k, the third inequality of Assumption 3 holds when there exist a con-
+stant cA such that λ2
+k ≥ cA, ∀k. In other words, the third inequality of Assumption 3 holds when
+all the eigenvalues of A(t)
+i are non-zero (choose cA = min {|λ1|, . . . ,|λK|}). Similarly, the last
+inequality of Assumption 3 holds when all the eigenvalues of B(t)
+i are non-zero. Then we present
+the convergence rate for our method, with the proof provided in Section A.2 in Appendix.
+Theorem 1. Let Assumptions 1, 2, and 3 hold and L, G, CA, CB, cA, cB be defined therein.
+Denote E as the number of local training iterations between two communication rounds. Then, for
+a learning rate η, we have:
+1
+mT
+mX
+i=1
+TX
+t=1
+E
+∇Li(W (t)
+i )
+
+2
+F
+
+≤ 2
+cA + cB
+r
+DM
+T , (6)
+where Li(W (0)) − Li(W ∗) ≤ D, ∀i, and (2C 2
+BE2G2 + 1
+2 G2)η + 3
+2 η4C 2
+AC 2
+BG4L + (CACBG2 +
+3
+2 C 2
+ALG2 + 3
+2 C 2
+BLG2 + 2C 4
+BE2LG2)η2 ≤ M η2.
+According to Theorem 1, we can obtain an O( 1√
+T ) convergence rate towards the stationary solution
+under smooth and non-convex conditions. This convergence rate is comparable to that of traditional
+FedAvg in the non-convex scenario (Yu et al., 2019)
+5 E XPERIMENTS
+In this section, we evaluate and compare the performance of the proposed method with other meth-
+ods on two types of tasks: natural language understanding and natural language generation. For the
+natural language understanding tasks, we use the RoBERTa model (Liu et al., 2019) evaluated on
+the GLUE benchmark (Wang et al., 2018), including MNLI, SST2, QNLI, QQP, and RTE. For the
+natural language generation tasks, we employ the LLaMA model (Touvron et al., 2023) evaluated on
+the GSM8K dataset (Cobbe et al., 2021). Our implementation is based on the FederatedScope-LLM
+library (Kuang et al., 2023). The experiments for LoRA-based methods are conducted on NVIDIA
+GeForce RTX 4090 and 3090 GPUs, while the rsLoRA-based and VeRA-based methods are car-
+ried out on NVIDIA L40S GPUs. All experiments are performed with half-precision enabled for
+efficiency. For the main results in Table 1, they are based on multiple runs to report the mean and
+standard deviation, while other results in our paper are based on a single run.
+7

@@ -1,0 +1,87 @@
+A3.2 Auxiliary
+Definition A3.1(Sub-Gaussian Norm).The sub-Gaussian norm of a random variable ξ, denoted as
+∥ξ∥ψ2, is defined as:
+∥ξ∥ψ2 = inf{t >0 :E[exp(ξ 2/t2)]≤2}.
+A random variable is said to besub-Gaussianif its sub-Gaussian norm is finite. Gaussian random
+variables are sub-Gaussian. The sub-Gaussian norm of a standard Gaussian random variable ξ∼
+N(0,1)is∥ξ∥ ψ2 =
+p
+8/3.
+Definition A3.2(Sub-Exponential Norm).The sub-exponential norm of a random variable ξ, denoted
+as∥ξ∥ ψ1, is defined as:
+∥ξ∥ψ1 = inf{t >0 :E[exp(|ξ|/t)]≤2}.
+A random variable is said to besub-exponentialif its sub-exponential norm is finite.
+Lemma A3.3(The product of sub-Gaussians is sub-exponential).Let ξ and υ be sub-Gaussian
+random variables. Thenξυis sub-exponential. Moreover,
+∥ξυ∥ ψ1 ≤ ∥ξ∥ ψ2 · ∥υ∥ψ2
+Lemma A3.4(Sum of independent sub-Gaussians).Let X1,· · ·, X N be independent mean-zero
+sub-Gaussian random variables. ThenPN
+i=1 Xi is also sub-Gaussian with
+
+NX
+i=1
+Xi
+
+2
+ψ2
+≤C
+NX
+i=1
+∥Xi∥2
+ψ2 ,
+whereCis some absolute constant.
+Proof.See proof of Lemma 2.6.1 of [37].
+Corollary A3.5.For random vector x∈R d with entries being independent standard Gaussian
+random variables, the inner producta ⊤xis sub-Gaussian for any fixeda∈R d, and
+a⊤x
+
+ψ2
+≤C ′∥a∥
+whereC ′ is some absolute constant.
+Proof. Note that a⊤x= Pd
+i=1 aiξi, where ξi ∼ N(0,1) is the i-th entry of the random vector
+x. Choose C to be the absolute constant specified in Lemma A3.4 for standard Gaussian random
+variables, and setC ′ =
+p
+8C/3. We have
+a⊤x
+2
+ψ2
+≤C
+NX
+i=1
+∥aiξi∥2
+ψ2
+(a)
+=C
+NX
+i=1
+a2
+i ∥ξi∥2
+ψ2
+(b)
+= 8
+3 ·C∥a∥2 ⇒
+a⊤x
+
+ψ2
+≤
+r
+8C
+3 ∥a∥=C ′∥a∥.
+Step (a) makes use of the homogeneity of the sub-Gaussian norm, and step (b) uses the fact that
+∥ξ∥ψ2 =
+p
+8/3forξ∼ N(0,1).
+Definition A3.6( ϵ-net).Consider a subset A ⊆R d in the d-dimensional Euclidean space. Let ϵ >0 .
+A subset N ⊆ A is called an ϵ-net of A if every point of A is within a distance ϵ of some point in N ,
+i.e.,
+∀x∈ A,∃x ′ ∈ N,∥x−x ′∥ ≤ϵ.
+Lemma A3.7(Computing the operator norm on a net).Let a∈R d and ϵ∈[0,1) . Then, for any
+ϵ-netNof the sphereS d−1, we have
+∥a∥ ≤ 1
+1−ϵ sup
+x∈N
+⟨a,x⟩
+Proof.See proof of Lemma 4.4.1 of [37].
+18

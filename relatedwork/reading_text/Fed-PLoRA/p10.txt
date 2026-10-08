@@ -1,0 +1,57 @@
+Published as a conference paper at ICLR 2026
+(Select-N-Drop and Select-N-Fold) outperform the deterministic ones, since randomness ensures
+that all global PLoRA modules are eventually updated. Select-N-Fold achieves the highest perfor-
+mance by additionally reusing the latest unselected modules during local training.
+Communication and Computational Efficiency.Figure 5 shows the accuracy of four heteroge-
+neous methods on the IID QQP dataset with respect to communication (uplink and downlink) cost
+and computation (wall-clock training time) cost. Overall, Fed-PLoRA achieves higher communica-
+tion efficiency although it incurs additionalR−r i downlink cost compared to others. Both Fed-
+PLoRA and HETLoRA achieve good computational efficiency as they are lightweight. FlexLoRA
+incurs substantial computational overhead due to the use of SVD, nearly doubling the training time.
+A detailed overhead analysis is given inAppendix Section F .2.
+5 RELATEDWORK
+LoRA-based FFT has recently emerged as a popular paradigm for adapting LLMs while pre-
+serving data privacy Zhang et al. (2023); Babakniya et al. (2023); Sun et al. (2024); Za-
+wad et al. (2025). Early approaches such as FedIT Zhang et al. (2023) and FFA-LoRA Sun
+et al. (2024) combine LoRA with FedAvg or modify update sharing to mitigate aggre-
+gation noise, but they assume homogeneous client resources. Other work like FedSA-
+LoRA Guo et al. (2024) explores selective aggregation, yet still under homogeneous settings.
+Figure 5: Training efficiency of Fed-
+PLoRA.
+To address resource heterogeneity, several methods allow
+clients to fine-tune with different LoRA ranks. HET-
+LoRA Cho et al. (2024) aggregates heterogeneous updates
+through zero-padding and truncation, FLoRA Wang et al.
+(2024) stacks full-weight updates before reinitialization,
+and FlexLoRA Bai et al. (2024) applies SVD-based ag-
+gregation with truncation. While effective to some extent,
+these approaches introduce substantial initialization or ag-
+gregation noise, degrading global performance.
+The use of multiple parallel LoRA modules has been ex-
+plored, for enhancing model capacity in centralized train-
+ing, e.g., Capaboost Haobo et al. (2024) and MELoRA Ren
+et al. (2024) rather than addressing the unique challenges
+of federated settings. In contrast, our work designs PLoRA
+as a mechanism to mitigate initialization and aggregation
+noise under heterogeneous FFT.
+Finally, other efficiency-oriented techniques such as quan-
+tization Frantar et al. (2022); Lin et al. (2024), zeroth-order
+optimization Xu et al. (2024); Zhang et al. (2024a), and
+system-level methods like activation checkpointing Chen et al. (2016) provide complementary di-
+rections for resource-efficient training. These are orthogonal to our design and could be combined
+with Fed-PLoRA in future work. Due to the limited space, we provide a comprehensive literature
+review inAppendix Section B.
+6 CONCLUSION
+In this paper, we introduced Fed-PLoRA, a novel heterogeneous FFT framework designed to tackle
+the fundamental challenges of initialization and aggregation noise in LoRA-based fine-tuning.
+By leveraging PLoRA’s parallel one-rank modules together with the Select-N-Fold strategy, Fed-
+PLoRA aligns client updates more effectively and preserves consistency under resource heterogene-
+ity. We conducted a unified analysis of initialization and aggregation noise of our method, comparing
+with state-of-the-art heterogeneous LoRA-based FFT methods. Through extensive experiments on
+multiple tasks, we justified the effectiveness of PLoRA and Select-N-Fold and showed that Fed-
+PLoRA consistently outperforms existing state-of-the-art methods in both accuracy and efficiency.
+PLoRA’s parallelization design opens new opportunities for integration with other LoRA-like meth-
+ods, potentially extending its benefits beyond the current framework. In the future, we will work on
+further reducing the noise that arises during the aggregation of low-rank adaptations and investigat-
+ing how parallelization can be leveraged to better align model updates under data heterogeneity.
+10

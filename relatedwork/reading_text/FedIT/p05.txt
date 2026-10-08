@@ -1,0 +1,56 @@
+FL Training Process
+A1, B1 An,Bn
+C1 C2 Cn
+……
+A2,B2
+ Client local instructions
+Client local LLM
+Model update by LORA module (A, B)
+Task: Open_qaInstruction: What happens when the sun goes down?
+Response:When the sun sets, the evening starts.Context: “ ”
+Heterogeneous Instructions
+Instruction: Please summarize what Linkedindoes.Response: Linkedinis a social platform that business…Context:“LinkedIn (/lɪŋktˈɪn/) is a business and…”
+Server 
+…Instruction: Why mobile is bad for humanResponse:We are always engaged one phone whichis not good.Context:“ ”
+Task: Brainstorming Task: Summarization 
+Figure 1: The framework of Federated Instruction Tuning (FedIT)
+Algorithm 1 Federated Instruction Turning (FedIT)
+Initialization: each client’s initial global large language model with parametersw and a lightweight
+adapter with parameters ∆w(0), client index subset M = ∅, K communication rounds, k = 0,
+Training
+while k ≤ K do
+Server updates M using specific strategies ▷ Select clients for local training
+for n ∈ M in parallel do ▷ Parameter-efficient finetuning on local instructions dataset
+Client freeze the LLM and update the adapter weights with ∆w(k)
+∆w(k+1)
+n ← InstructionTuning(∆w(k)
+n )
+end For
+∆w(k+1) ← Aggregate(∆w(k+1)
+n ) for n ∈ M ▷ Aggregate the adapters at Server
+k ← k + 1
+end while
+Outcome (m, θt
+g):
+Derive the final adapter with parameters ∆w(K) and the global LLM with parameters w
+InstructGPT paper [ 62]. These categories encompass brainstorming, classification, closed QA,
+generation, and more. To emulate an FL environment with ten clients, we partitioned the entire
+Databricks-dolly-15k dataset into ten shards using a widely adopted partitioning method [30, 36, 94],
+with each shard assigned to an individual client. The category distribution for each client’s instruction
+dataset is illustrated in Figure 2a. As is evident in the figure, each user’s dataset contains imbalanced
+categories of instructions, with some categories absent entirely. This reflects real-world scenarios
+where users may not possess expertise across all instruction categories. In the absence of FedIT, due
+to the challenges associated with collecting sensitive instruction data, the model can only be trained
+on the local instruction dataset of each user, as depicted in the left subfigure of Figure 2b. However,
+by implementing our FedIT approach, the model can be trained on the local instruction datasets of all
+clients, as illustrated in the right subfigure of Figure 2b. As a result, FedIT allows for instruction
+tuning on a dataset with enhanced diversity, and a larger number of data points, encompassing
+the complete Databricks-dolly-15k dataset. The distribution of this dataset is shown in the right
+subfigure of Figure 2b. Comprising eight unique categories with varying numbers of instructions,
+this dataset offers increased diversity, allowing the model to be more generalized and applicable to a
+wider array of tasks compared to training solely on each client’s local instruction dataset with limited
+categories and quantity.
+In addition to task categories, language diversity adds a new dimension of heterogeneity to Federated
+Instruction Tuning. In real-world applications, LLMs are typically designed for multilingual capabili-
+ties to cater to users from diverse regions and countries who speak various languages. Addressing
+5

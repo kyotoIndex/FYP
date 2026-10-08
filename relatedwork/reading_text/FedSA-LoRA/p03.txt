@@ -1,0 +1,55 @@
+Published as a conference paper at ICLR 2025
+update of client i after server aggregation and broadcast is:
+Bi
+1
+m(A1 + A2 + · · · + Am), (2)
+where the first partBi is responsible for capturing client-specific knowledge while the second part is
+used to model general knowledge. By sharing the A matrices that learn general knowledge with the
+server for aggregation, while keeping the B matrices that capture client-specific knowledge locally
+during training, the learning abilities of LoRA combined with FL can be enhanced. Note that this
+method differs from previous works (Sun et al., 2024b; Wang et al., 2024b) that require each client
+to share a uniform model update. Instead, it allows for different model updates, placing it in the
+realm of personalized FL (T Dinh et al., 2020; Collins et al., 2021; Xu et al., 2023), which is more
+efficient under the non-IID scenario (Zhao et al., 2018; Zhu et al., 2021; Li et al., 2022).
+Moreover, we delve into the relationship between the learnedA and B matrices in other LoRA vari-
+ants, such as rsLoRA (Kalajdzievski, 2023) and VeRA (Kopiczko et al., 2024). The observations,
+illustrated in Figures 5 and 6 in Appendix, demonstrate a similar phenomenon to LoRA. Build-
+ing upon these insights, we extend our FedSA-LoRA method to these LoRA variants, resulting in
+FedSA-rsLoRA and FedSA-VeRA. By extending the proposed method to other LoRA variants, we
+establish a general paradigm for integrating LoRA with FL, offering guidance for future work on
+subsequent LoRA variants combined with FL.
+We summarize our contributions as follows:
+• We investigate the relationship between learnedA and B matrices in LoRA and other LoRA
+variants (e.g., rsLoRA and VeRA) across different clients, delineating their distinct roles.
+Specifically, A matrices are responsible for learning general knowledge, while B matrices
+focus on capturing client-specific knowledge.
+• Building upon our findings, we establish a general paradigm for integrating LoRA with
+FL. Specifically, we introduce Federated Share-A LoRA (FedSA-LoRA), where both A
+and B matrices are trainable, but only the A matrices are shared with the server for aggre-
+gation. We then generalize the FedSA-LoRA framework to other LoRA variants, resulting
+in FedSA-rsLoRA and FedSA-VeRA.
+• Extensive experimental results demonstrate the superiority of the proposed FedSA-LoRA,
+FedSA-rsLoRA, and FedSA-VeRA compared to other methods.
+2 R ELATED WORK
+2.1 F EDERATED LEARNING
+Federated Learning (FL) (McMahan et al., 2017; Li et al., 2020a; Zhang et al., 2021; Kairouz et al.,
+2021), a commonly used distributed learning method for tasks requiring privacy, has gained signifi-
+cant attention in recent years. However, its application faces challenges due to the non-IID nature of
+distributed datasets, resulting in accuracy discrepancies compared to centralized training. Numerous
+works (Li et al., 2020b; Xu et al., 2023; Yan et al., 2023; Chan et al., 2024; Xu et al., 2024; Zeng
+et al., 2024) have been proposed to mitigate this performance degradation, including optimizing lo-
+cal learning (Li et al., 2020b), optimizing server aggregation (Zeng et al., 2024), and personalized FL
+(Xu et al., 2023). Recently, some studies demonstrate that fine-tuning pre-trained models, especially
+Pre-trained Language Models (PLMs), through FL suffers less from the non-IID issue (Qu et al.,
+2022; Chen et al., 2023; Nguyen et al., 2023; Weller et al., 2022). The experimental results in (Weller
+et al., 2022) show that when applying PLMs, even the vanilla FedAvg can achieve performance
+comparable to centralized training. However, these large-scale PLMs usually introduce significant
+communication overheads in FL scenarios, leading to slow and impractical federated training in
+real-world applications. Additionally, local clients are often constrained by limited computational
+capacity and memory, making the local fine-tuning of PLMs challenging. To enable fine-tuning
+of PLMs in an FL system with limited resources, various Parameter-Efficient Fine-Tuning (PEFT)
+techniques have been explored, such as adapter-tuning-based methods (Houlsby et al., 2019; Zhang
+et al., 2024b), prompt-tuning-based methods (Li & Liang, 2021; Guo et al., 2023b; Che et al., 2023;
+Guo et al., 2023a; Qiu et al., 2024; Li et al., 2024; Deng et al., 2024; Sun et al., 2024a; Cui et al.,
+2024; Cao et al., 2024), and LoRA-based methods (Hu et al., 2022; Yi et al., 2023; Liu et al., 2023;
+3

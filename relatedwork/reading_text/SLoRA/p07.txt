@@ -1,0 +1,102 @@
+Centralized LDA( =1000)
+ LDA( =0.1)
+ Pathological
+Data Distribution
+20
+30
+40
+50
+60
+70
+80
+90
+100T est Accuracy (%)
+FFT LoRA Pfeiffer Holusby BitFit
+(a) News Category dataset on Albert
+Centralized LDA( =1000)
+ LDA( =0.1)
+ Pathological
+Data Distribution
+20
+30
+40
+50
+60
+70
+80
+90
+100T est Accuracy (%)
+FFT LoRA Pfeiffer Holusby BitFit (b) News Category dataset on DistilBERT
+Figure 6: Performance of PEFT methods in the settings and data distributions for News Category dataset.
+to smaller update sizes, and here we consider two
+different sizes. The density of the smaller update
+is approximately similar to BitFit’s. To explore the
+impact of model size, we have included a larger
+update size with a higher density as well.
+Also, for the LoRA algorithm, we can add the
+blocks in all the dense layers, but here we only
+select the 4 dense layers in the multi-head attention
+layer, similar to the original paper. LoRA has an
+extra α parameter which we set to be equal to r.
+6 Evaluation
+6.1 Data Heterogeneity
+Fig. 3 and 6 show the impact of data heterogeneity
+on the performance of two models, DistilBERT
+and Albert, trained on 20News and News cate-
+gory datasets. The gap between the PEFT and FFT
+grows in all four settings by making the data more
+non-IID. This phenomenon indicates the necessity
+of a new PEFT algorithm tailored for FL.
+6.2 Update Size
+Table 2 shows the impact of update size for the
+20News group dataset on the Albert model on the
+final performance of the global model. As expected,
+larger update sizes can help the performance and
+give a model with higher accuracy. But, the prob-
+lem with this approach is that now the update size
+and communication cost of training would also in-
+crease, which is not desired.
+6.3 Performance of SLoRA
+We propose an algorithm called SLoRA which in-
+cludes two stages. First, clients collaboratively
+update the model using SFT techniques. Then, the
+final update is used to generate the initialization for
+stage 2, which is LoRA. Therefore, we compare
+our method with stage 1 without stage 2 and stage
+Table 2: Impact of update density of different PEFT
+methods on the performance for the 20News group
+dataset on Albert.
+Data DensityLoRA HolusbyPfeiffer
+Distribution (%) (%) % (%)
+Centralized 10 65.9 66 66.5
+1 65.5 66.3 66.2
+α = 0.1 10 61.4 53.1 58
+1 54.9 51.6 56.89
+Pathological 10 40.2 38.8 21.1
+1 9 13.22 18.6
+2 only, which we call SFT and LoRA, respectively.
+Through this comparison, we aim to evaluate the
+extent of improvement achieved by SLoRA in con-
+trast to the individual utilization of each stage.
+Here, we only consider pathologically non-IID
+data distribution as discussed earlier in this setting;
+PEFT causes a significant drop in its performance.
+For our proposed method SLoRA, we train the
+model in Stage 1 using an update sparsity of 10%
+to have a good model performance at Stage 1 that
+can be utilized at Stage 2, yet with a minimal cost.
+In Stage 2, for both SLoRA and FLoRA, we add
+the LoRA module by utilizing the SVD decom-
+posed model update from Stage 1 with a higher
+target update sparsity, as discussed in Section 4.2.
+Specifically, the LoRA modules are added to each
+dense layer in the model, except for the embed-
+ding and classification layers. For the dense layers
+within the multi-head attention (MHA) block and
+the feed-forward block, we incorporate the parallel
+module with an assigned value of r = 10. Addi-
+tionally, we use r = 18 for the pre-classification
+layer to achieve a better SVD decomposition in
+the last layer. The size of the added module is
+0.14M parameters compared to 11.7M parame-
+ters of the original Albert model representing only

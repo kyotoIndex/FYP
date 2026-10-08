@@ -1,0 +1,48 @@
+MNLI (m) and MNLI (mm), suggesting that the aggregation rule for mode selection can meaningfully
+affect the quality of the selected modes. We adopt uniform averaging as the default aggregation strat-
+egy throughout this paper. Even with this simple aggregation, AS-LoRA outperforms prior federated
+LoRA methods; further gains are expected when combined with more sophisticated aggregation rules
+including majority rule, weighted aggregation.
+Figure 8: (a): Comparison under varying dirichlet distribution α∈ {0.1,0.5,1.0} on the MNLI
+dataset. (b): Comparison under varying LoRA rank r∈ {4,8,16} on the MNLI dataset. The number
+of clients is fixed atK= 3under DP-SGD (ϵ= 6).
+J.4 Effect of LoRA rank and data distribution
+In Figure 8(a), the proposed method consistently achieves the best performance across all α values
+and shows larger gains at smaller α. This suggests stronger robustness under highly heterogeneous
+settings. The advantage of the proposed method is maintained across all heterogeneity levels. In
+Figure 8(b), performance generally improves as the LoRA rank increases. The proposed method
+consistently outperforms the baselines across all rank settings and maintains its advantage even at
+low ranks. Notably, the performance improvement of FFA-LoRA is more pronounced than that
+of RoLoRA as the rank increases, suggesting that FFA-LoRA benefits more from the increased
+expressive capacity provided by larger ranks.
+J.5 Communication and memory overhead analysis
+We analyze the additional overhead introduced by AS-LoRA. Let Mn denote the set of LoRA
+modules in Transformer layern. We define
+PA =
+NX
+n=1
+X
+m∈Mn
+rdin,m(n), P B =
+NX
+n=1
+X
+m∈Mn
+rdout,m(n),
+where PA and PB denote the number of trainable parameters in the A and B LoRA components,
+respectively. FedLoRA communicates PA +P B parameters per client per round, whereas FFA-LoRA
+communicates PB, and RoLoRA communicates either PA or PB. AS-LoRA also communicates only
+one active component per layer and therefore has the same order of parameter communication as
+alternating methods.
+The additional communication of AS-LoRA comes only from the score and mode information. In our
+implementation, all LoRA modules within the same Transformer layer share one layer-level mode
+decision. Thus, each client uploads two scalar scores per Transformer layer, and the server broadcasts
+one binary mode indicator per layer. The additional uplink and downlink costs are therefore N
+floating-point values and N bits per round, respectively. For a 24-layer backbone, this corresponds to
+only 24 FP32 values, or 96 bytes, per client per round, which is less than 0.02% of the active LoRA
+parameter communication when the hidden dimension is 1024.
+J.6 Computational overhead analysis
+We analyze the computational overhead of the proposed curvature-based scoring and present practical
+strategies to overcome it. We note that ∥˜g∥2 is obtained as a byproduct of the standard backward pass
+and incurs no additional computation.
+29

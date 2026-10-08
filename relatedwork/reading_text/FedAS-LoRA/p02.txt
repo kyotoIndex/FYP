@@ -1,0 +1,104 @@
+2
+2 4 8 16
+LoRA rank r
+86.0
+86.5
+87.0
+87.5Accuracy (%)
+Share-A/Local-B Share-B/Local-A
+Fig. 1: Accuracy gap between Share-A/Local-B and Share-
+B/Local-A on the MNLI-m task under label-balanced input
+skew. The federated system includes 3 clients with full
+participation and 500 training rounds.
+side assignment is not globally optimal, since the appro-
+priate shared factor depends on whether a common rank-r
+input-side or output-side space yields a smaller aggregate
+projection residual across clients.
+Based on this insight, we propose Federated Adaptive Fac-
+tor Sharing Low-Rank Adaptation (FedAS-LoRA) frame-
+work, as illustrated in Fig. 2. FedAS-LoRA adaptively
+selects the shared factor before training instead of hard-
+coding the same policy. To guide this selection, we design
+a Rank-Aware Shared-Subspace Sufficiency (RSS) metric
+using sequence-level representations extracted from a frozen
+LLM backbone. RSS compares the second-order variation
+captured by a global rank-rinput subspace with that cap-
+tured by the corresponding client-specific subspaces. When
+the RSS deficit exceeds the calibrated threshold, FedAS-
+LoRA treats the global rank-rinput subspace as insufficient
+and selects Share-B/Local-A; otherwise, it selects Share-
+A/Local-B. We further establish that FedAS-LoRA con-
+verges to a stationary neighborhood under arbitrary client
+participation.
+Our main contributions are summarized as follows:
+•We provide the first projection-based comparison be-
+tween Share-A/Local-B and Share-B/Local-A in feder-
+ated LoRA. We reveal that Share-A/Local-B and Share-
+B/Local-A yield input-side and output-side projection
+residuals, respectively, which explains why fixed shar-
+ing strategies are not suitable for all federated settings.
+•Based on this insight, we design an RSS metric to effi-
+ciently determine the shared factor before training. With
+RSS, we propose FedAS-LoRA, which adapts different
+federated settings to enhance fine-tuning performance.
+•We prove the convergence of FedAS-LoRA under
+arbitrary client participation, extending the analysis
+beyond the full-participation setting. For either Share-
+A/Local-B or Share-B/Local-A strategy, we prove that
+the corresponding iterates converge to a stationary
+neighborhood.
+•Extensive experiments on diverse natural language
+tasks demonstrate the superiority of FedAS-LoRA over
+other methods, and validate the effectiveness of RSS-
+based adaptive sharing side selection.
+II. RELATEDWORK
+A. Federated Parameter-Efficient Fine-Tuning
+Parameter-efficient fine-tuning (PEFT) reduces the com-
+putation, memory, and communication costs of adapting
+pretrained models in federated learning. Existing studies
+apply prompt tuning and other compact trainable modules
+while keeping the pretrained backbone frozen Che et al.
+[2023], Sun et al. [2024a], Guo et al. [2024]. Low-rank
+adaptation (LoRA) represents each weight update with two
+low-rank factors, making it suitable for federated fine-tuning
+with limited client resources.
+Existing federated LoRA methods mainly address per-
+sonalization, resource heterogeneity, and aggregation er-
+ror Yang et al. [2025], Koo et al. [2025], Byun and
+Lee [2025], Shen et al. [2025]. FedDPA maintains global
+and personalized adapters to capture shared and client-
+specific knowledge Yang et al. [2024]. HetLoRA supports
+resource-heterogeneous clients through rank self-pruning
+and sparsity-weighted aggregation Cho et al. [2024], while
+FlexLoRA and FLoRA aggregate LoRA modules with dif-
+ferent ranks through reconstruction or stacking Bai et al.
+[2024], Wang et al. [2024]. FedEx-LoRA instead corrects
+the mismatch between factor-wise averaging and direct av-
+eraging of the resulting updates Singhal et al. [2025]. These
+methods determine shared and personalized components at
+the adapter level, or improve the aggregation of heteroge-
+neous LoRA updates.
+B. LoRA Factor Asymmetry and Factor-Wise Federated Ag-
+gregation
+The two LoRA factors can exhibit different optimization
+and representation behaviors. LoRA-FA freezesAand trains
+onlyBto reduce the memory cost of fine-tuning Zhang et al.
+[2023], whereas LoRA+ assigns different learning rates to
+the two factors Hayou et al. [2024]. Zhu et al. interpret
+Aas extracting input features andBas mapping these
+features to the output space Zhu et al. [2024]. HydraLoRA
+further adopts an asymmetric architecture with a sharedA
+and multipleBexperts Tian et al. [2024]. These studies
+establish factor asymmetry in centralized fine-tuning, but do
+not consider the division of shared and client-specific factors
+in federated learning.
+Factor-wise handling has also been explored in federated
+LoRA Chen et al. [2026], Wang et al. [2026], Xu et al.
+[2025]. FFA-LoRA fixes a common randomly initializedA
+and trains and aggregatesBSun et al. [2024b]. FedSA-
+LoRA trains both factors, sharesA, and retainsBlocally
+for personalization Guo et al. [2025]. RoLoRA alternates
+the optimization of the two factors during federated train-
+ing Chen et al. [2025], while FedRot-LoRA aligns client
+factors through orthogonal transformations before aggrega-
+tion Zhang et al. [2026]. Although these methods assign

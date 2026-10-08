@@ -1,0 +1,43 @@
+Published as a conference paper at ICLR 2024
+in Table 7. For FFA-LoRA, the performance using η that scales with α is consistent across the
+wide range of α. However for LoRA, the same relationship does not hold, and the performance of
+LoRA degrades drastically when α changes. Additional grid-search shows that LoRA still is able to
+converge with high accuracy with adequate learning rate, but finding an optimal learning rate given
+α is in general arduous. We note that the optimal η for α = 256 is the same for both FFA-LoRA
+and LoRA, consistent with our discussion in Section 4.
+Method α = 2 α = 8 α = 16 α = 64 α = 256
+LoRA (best LR) 91.78% 91.36% 92.11% 91.50% 91.23%
+LoRA (LR scaling) 71.88% 91.36% 92.11% 50.96% 49.46%
+FFA-LoRA (LR scaling) 91.31% 91.62% 91.9% 91.17% 92.46%
+Table 7: Experiment with different scaling factor α.
+A.7 C OMPUTER VISION EXPERIMENTS
+For context, we provide performance reported on huggingface as baseline. A centralized, fine-tuned
+model has an accuracy of 0.8539.
+We first report the results in our centralized experimental setting in the table below.In this case
+there is no significant performance discrepancy between the two methods, implying that FFA-LoRA
+and vanilla has similar performance without consideration of DP and FL. This also aligns with our
+observations in previous experiments.
+In terms of the federated case, we first report the iid setting. It can be seen that compared to LoRA,
+FFA-LoRA has both (a) better convergence and (b) less fluctuations in training. The findings align
+with our findings in language-related tasks, showing that the properties of LoRA being discussed in
+our paper are not limited to language tasks only.
+Method Baseline Cen. LoRA Cen. FFA-LoRA FL iid LoRA FL non-iid FFA-LoRA
+Accuracy 85.39% 86.18% 85.83% 81.33% 82.10%
+Table 8: Performance of FFA-LoRA in vision transformer evaluated on Food-101 dataset.
+A.8 D IFFERENT MATRIX INITIALIZATION FOR A
+Since our proposed FFA-LoRAsets A as fixed throughout the fine-tuning process, a natural question
+would be regarding the initialization of A. We know that for a zero-initialized A matrix, neither
+LoRA nor FFA-LoRA are able to train any meaningful results. However, suppose that we have A to
+be full rank (which is also satisfied for any random initialization in general), there are a number of
+different initialization that we could utilize.
+In the majority of this paper, we consider the same initialization as LoRA. Apart from Kaiming
+initialization, we consider orthogonal random initialization and using the top r singular vectors of
+W0 as matrix A. We provide some initial results in Table 9, it can be seen from the plot that matrix
+with orthogonal initialization seems to perform slightly better than the existing approach. However,
+the performance gap is not significant enough for a definitive answer.
+Method QNLI mean QNLI variance
+Kaiming Init. 91.84% 0.38%
+Orthogonal Init. 92.16% 0.83%
+SVD Init. 91.50% 0.59%
+Table 9: Performance of algorithm under similar conditions and different initialization on matrixA.
+17

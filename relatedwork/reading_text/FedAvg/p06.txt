@@ -1,0 +1,112 @@
+Communication-Efﬁcient Learning of Deep Networks from Decentralized Data
+Table 1: Effect of the client fractionC on the MNIST 2NN
+withE = 1 and CNN with E = 5 . Note C = 0.0 corre-
+sponds to one client per round; since we use 100 clients for
+the MNIST data, the rows correspond to 1, 10 20, 50, and
+100 clients. Each table entry gives the number of rounds
+of communication necessary to achieve a test-set accuracy
+of 97% for the 2NN and 99% for the CNN, along with the
+speedup relative to the C = 0 baseline. Five runs with
+the large batch size did not reach the target accuracy in the
+allowed time.
+2NN IID NON-IID
+C B =∞ B = 10 B =∞ B = 10
+0.0 1455 316 4278 3275
+0.1 1474 (1.0×) 87 (3.6×) 1796 (2.4×) 664 (4.9×)
+0.2 1658 (0.9×) 77 (4.1×) 1528 (2.8×) 619 (5.3×)
+0.5 — (—) 75 (4.2×) — (—) 443 (7.4×)
+1.0 — (—) 70 (4.5×) — (—) 380 (8.6×)
+CNN , E = 5
+0.0 387 50 1181 956
+0.1 339 (1.1×) 18 (2.8×) 1100 (1.1×) 206 (4.6×)
+0.2 337 (1.1×) 18 (2.8×) 978 (1.2×) 200 (4.8×)
+0.5 164 (2.4×) 18 (2.8×) 1067 (1.1×) 261 (3.7×)
+1.0 246 (1.6×) 16 (3.1×) — (—) 97 (9.9×)
+all prior rounds. We then calculate the number of rounds
+where the curve crosses the target accuracy, using linear
+interpolation between the discrete points forming the curve.
+This is perhaps best understood by reference to Figure 2,
+where the gray lines show the targets.
+WithB = ∞ (for MNIST processing all 600 client ex-
+amples as a single batch per round), there is only a small
+advantage in increasing the client fraction. Using the smaller
+batch sizeB = 10 shows a signiﬁcant improvement in using
+C ≥ 0.1, especially in the non-IID case. Based on these
+results, for most of the remainder of our experiments we
+ﬁxC = 0.1, which strikes a good balance between com-
+putational efﬁciency and convergence rate. Comparing the
+number of rounds for theB = ∞ andB = 10 columns in
+Table 1 shows a dramatic speedup, which we investigate
+next.
+Increasing computation per client In this section, we
+ﬁxC = 0.1, and add more computation per client on each
+round, either decreasingB, increasingE, or both. Figure 2
+demonstrates that adding more local SGD updates per round
+can produce a dramatic decrease in communication costs,
+and Table 2 quantiﬁes these speedups. The expected number
+of updates per client per round is u = ( E[nk]/B)E =
+nE/(KB ), where the expectation is over the draw of a
+random client k. We order the rows in each section of
+Table 2 by this statistic. We see that increasingu by varying
+bothE andB is effective. As long as B is large enough
+to take full advantage of available parallelism on the client
+hardware, there is essentially no cost in computation time
+for lowering it, and so in practice this should be the ﬁrst
+parameter tuned.
+Table 2: Number of communication rounds to reach a target
+accuracy for FedAvg, versus FedSGD (ﬁrst row,E = 1
+andB = ∞). The u column gives u = En/(KB ), the
+expected number of updates per round.
+MNIST CNN , 99% ACCURACY
+CNN E B u IID N ON-IID
+FE DSGD 1 ∞ 1 626 483
+FE DAV G 5 ∞ 5 179 (3.5×) 1000 (0.5×)
+FE DAV G 1 50 12 65 (9.6×) 600 (0.8×)
+FE DAV G 20 ∞ 20 234 (2.7×) 672 (0.7×)
+FE DAV G 1 10 60 34 (18.4×) 350 (1.4×)
+FE DAV G 5 50 60 29 (21.6×) 334 (1.4×)
+FE DAV G 20 50 240 32 (19.6×) 426 (1.1×)
+FE DAV G 5 10 300 20 (31.3×) 229 (2.1×)
+FE DAV G 20 10 1200 18 (34.8×) 173 (2.8×)
+SHAKESPEARE LSTM , 54% ACCURACY
+LSTM E B u IID N ON-IID
+FE DSGD 1 ∞ 1.0 2488 3906
+FE DAV G 1 50 1.5 1635 (1.5×) 549 (7.1×)
+FE DAV G 5 ∞ 5.0 613 (4.1×) 597 (6.5×)
+FE DAV G 1 10 7.4 460 (5.4×) 164 (23.8×)
+FE DAV G 5 50 7.4 401 (6.2×) 152 (25.7×)
+FE DAV G 5 10 37.1 192 (13.0×) 41 (95.3×)
+For the IID partition of the MNIST data, using more compu-
+tation per client decreases the number of rounds to reach the
+target accuracy by 35× for the CNN and 46× for the 2NN
+(see Table 4 in Appendix A for details for the 2NN). The
+speedups for the pathologically partitioned non-IID data are
+smaller, but still substantial (2.8 – 3.7×). It is impressive
+that averaging provides any advantage (vs. actually diverg-
+ing) when we naively average the parameters of models
+trained on entirely different pairs of digits. Thus, we view
+this as strong evidence for the robustness of this approach.
+The unbalanced and non-IID distribution of the Shakespeare
+(by role in the play) is much more representative of the kind
+of data distribution we expect for real-world applications.
+Encouragingly, for this problem learning on the non-IID and
+unbalanced data is actually much easier (a 95× speedup vs
+13× for the balanced IID data); we conjecture this is largely
+due to the fact some roles have relatively large local datasets,
+which makes increased local training particularly valuable.
+For all three model classes, FedAvg converges to a higher
+level of test-set accuracy than the baseline FedSGD mod-
+els. This trend continues even if the lines are extended
+beyond the plotted ranges. For example, for the CNN the
+B = ∞,E = 1 FedSGD model eventually reaches 99.22%
+accuracy after 1200 rounds (and had not improved further
+after 6000 rounds), while the B = 10,E = 20 FedAvg
+model reaches an accuracy of 99.44% after 300 rounds. We
+conjecture that in addition to lowering communication costs,
+model averaging produces a regularization beneﬁt similar
+to that achieved by dropout [36].
+We are primarily concerned with generalization perfor-
+mance, but FedAvg is effective at optimizing the training
+loss as well, even beyond the point where test-set accuracy
+plateaus. We observed similar behavior for all three model
+classes, and present plots for the MNIST CNN in Figure 6

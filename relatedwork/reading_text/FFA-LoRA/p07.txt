@@ -1,0 +1,56 @@
+Published as a conference paper at ICLR 2024
+Our experiments are organized as follows: We provide the overall performance comparison of
+FFA-LoRA and LoRA in Section 5.1 (Table 1, 3). Questions regarding the critical factors of con-
+vergence are answered in Section 5.2 (Table 2, 4, 7). The evaluation on language generation tasks
+are provided in Section 5.3.
+We note that our results do not exactly match the centralized PEFT results presented in (Hu
+et al., 2021) and (Yu et al., 2021a) due to the additional introduction of federated communica-
+tion/aggregation and data heterogeneity in our setup. Our experiments with LoRA is able to match
+LoRA’s performance reported in (Hu et al., 2021) in the centralized setting.
+5.1 P ERFORMANCE OF FFA-L ORA AND LORA IN LANGUAGE UNDERSTANDING TASKS
+Our experiments on language understanding tasks are based on RoBERTa-Large (355M) (Liu et al.,
+2019), a popular choice that has been widely adopted in many research studies for its robustness and
+versatility. We start from a pre-trained model available from the HuggingFace library.
+All our experiments with LoRA and FFA-LoRA are run in a 3-client cross-silo federated set-
+ting. Data on clients are randomly split among all clients sampled to fit certain proportions
+to ensure strong data heterogeneity. For the heterogeneous setting, we split data based on
+their labels, we use [0.1, 0.9], [0.9, 0.1], [0.5, 0.5] data split for binary classification tasks and
+[0.9, 0.05, 0.05], [0.05, 0.9, 0.05], [0.05, 0.05, 0.9] for three-class classification tasks. In order to
+make a fair comparison, we keep the batch-size B = 200 and total communication round to 1000,
+the local update steps to 10, the same across all experiments. All experiments use the same SGD
+(DP-SGD for the experiments with privacy guarantees) optimizer, all the transformer-related hyper-
+parameters such as sequence length lseq = 128, are kept to be consistent with previous studies (Hu
+et al., 2021). The classification head of the LM is frozen after initialization, and we add adapters to
+both the attention layers and the feed-forward layers and choose a scaling factor α = 8 for LoRA.
+The same scaling factor α is applied to FFA-LoRA for the sake of consistency, although it is not
+needed as stated in Section 4.
+Experiments with differential privacy guarantees. We report the best result from a set of ex-
+periments run with learning rate η ∈ { 0.01, 0.02, 0.05, 0.1} for LoRA and η ∈ { 0.1, 0.2, 0.5, 1}
+for FFA-LoRA. The batch-size and total number of update steps are kept to be the same across
+different tasks. We fix the rank r = 8 for both algorithms. In terms of privacy parameters, we use
+δ = 1e − 5 and three different choices of privacy budgetϵ ∈ {6, 3, 1}. Given the sampling rate, total
+step number and privacy requirement ϵ, δ, we use the privacy accountant from Opacus (Yousefpour
+et al., 2021) to calculate the noise scale σ for all our experiments. The optimal clipping threshold is
+determined from a grid search of C ∈ {2, 5, 10}. The results are presented in Table 1. To ensure the
+privacy guarantees have been met in our experiments, we refer to Section A.5 in the appendix for
+technical analysis.
+The introduction of DP significantly degrades algorithm performance across every task for both
+FFA-LoRA and LoRA, yet FFA-LoRA offers better performance with and without privacy. We note
+that the biggest performance gap occurs in the MNLI task, which is a three-class classification task
+with the strongest level of data heterogeneity across agents. This performance gap demonstrates that
+FFA-LoRA is more suitable for tasks where heterogeneity is strong.
+Priv. Budget Method MNLI
+(matched)
+MNLI
+(mismatched) SST-2 QQP QNLI
+Non Private LoRA 82.03±10.7 82.50±10.9 94.32±2.1 83.51±3.3 88.95±6.7
+FFA-LoRA 85.05±1.1 85.62±1.0 94.32±1.7 84.35±0.6 90.35±1.9
+ϵ = 6 LoRA 39.46±14.3 39.69±14.8 93.70±0.5 82.11±1.0 84.99±1.1
+FFA-LoRA 78.81±0.8 80.00±0.7 93.73±0.3 83.31±0.4 87.27±1.0
+ϵ = 3 LoRA 35.82±8.9 35.85±9.1 93.32±0.5 82.08±0.7 83.94±0.6
+FFA-LoRA 77.42±0.8 78.69±0.8 93.59±0.3 83.03±0.4 86.18±1.7
+ϵ = 1 LoRA 33.80±1.6 33.80±1.5 92.14±0.6 81.28±0.7 78.93±6.8
+FFA-LoRA 75.05±1.3 76.50±1.3 92.46±0.5 82.50±0.4 81.53±1.4
+Table 1: Experiments of FFA-LoRA and LoRA with differential privacy guarantees, accuracy (%)
+evaluated across 20 runs with mean and standard deviation.
+7

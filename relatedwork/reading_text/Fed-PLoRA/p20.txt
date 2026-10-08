@@ -1,0 +1,51 @@
+Published as a conference paper at ICLR 2026
+datasetsversion 3.6.0, andpeftversion 0.9.0 for LoRA and QLoRA functionalities. Exper-
+iments were conducted using CUDA 12.4. All experiments were carried out on a server equipped
+with an AMD EPYC 7763 64-Core Processor, 1.0 TB of system RAM, and 8×NVIDIA RTX
+A6000 GPUs. The total GPU hours for running all the experiments are over 5,000.
+C.3 OTHEREXPERIMENTALSETTINGS
+The experiments illustrated in Figure 7 are conducted on the QQP, MRPC, and RTE datasets using
+a BERT-based model. A key aspect of this setup is the use of a homogeneous LoRA rank across
+all clients (i.e., every client uses the same rank). Two distinct homogeneous rank configurations
+are evaluated: a ’Large Rank’ setup with a uniform rank of 16 per client, and a ’Small Rank’ setup
+with a uniform rank of 1 per client. These FL experiments involved a total of 100 clients, with
+10% of clients participating in each training round. The training is conducted for a total of 150
+rounds. In Figure 2, we report the average cosine similarities calculated for LoRAAmatrices on
+the Query target module of Layer 1. These calculations are based on experiments performed on the
+RTE dataset, with a non-IID data distribution achieved by assigning data from only one category to
+each client.
+D ADDITIONALEXPERIMENTALRESULTS
+D.1 RESULTS ON NON-IID GLUE DATASET
+Table 5: Evaluation results on GLUE datasets under a non-IID setting (Dirichletα= 0.01).
+Method CoLA SST-2 MRPC QQP QNLI RTE AvgMatthews Corr. Acc. Acc. Acc. Acc. Acc.
+Untuned Model 1.20 49.08 31.61 63.09 49.95 52.70 41.27
+Homogeneous FedIT (Rank=R) 56.27 90.25 85.29 87.07 87.07 64.62 78.28
+FedIT (Rank=R/2) 51.80 90.25 79.31 84.23 88.01 61.42 75.67
+Heterogeneous
+R= 16
+Avg Rank=7
+FLoRA −2.07 88.97 68.38 38.75 47.37 47.29 48.18
+FlexLoRA 38.51 90.25 68.39 79.91 70.98 53.79 66.97
+HETLoRA 40.08 89.97 76.35 81.71 85.96 58.12 72.03
+Fed-PLoRA 52.33 90.71 79.65 84.79 88.01 61.01 76.08
+Table 5 presents evaluation results on the GLUE dataset under a non-IID setting, where client data
+distributions are skewed using a Dirichlet distribution withα= 0.01, representing a highly im-
+balanced and extreme case. In this challenging scenario, our method Fed-PLoRA consistently out-
+performs all baselines. Compared to FLoRA, Fed-PLoRA yields substantial gains of +54.40% on
+CoLA and +11.27% on MRPC, underscoring the limitations of FLoRA’s random initialization and
+emphasizing the benefit of a more carefully designed initialization strategy in our method. Compared
+to FlexLoRA, Fed-PLoRA achieves a notable improvement of +17.03% on QNLI and +0.46% on
+SST-2. Although FlexLoRA leverages SVD to derive representative low-rank matrices, it remains
+susceptible to information loss, which can lead to significant initialization and aggregation noise,
+especially when some clients operate with much lower ranks than the global configuration and un-
+der non-IID cases. When compared to HETLoRA, Fed-PLoRA improves performance by +3.08%
+on QQP and +2.89% on RTE. These gains come from Fed-PLoRA’s more effective handling of
+initialization and aggregation noise, which HETLoRA introduces through zero-padding and rank
+truncation. Furthermore, Fed-PLoRA surpasses FedIT with a fixed rank of 8 by an average of
++0.41%, despite using a lower average rank of 7. This demonstrates the efficiency and adaptability
+of our approach that incorporate all resource-constrained clients into training with zero initialization
+noise and low aggregation noise.
+D.2 RESULTS ONDOLLY-15K DATASET
+Table 6 presents the main results on the Dolly-15K dataset. We report Rouge-L scores of the fine-
+tuned global model under both IID and non-IID settings, where the non-IID scenario is simulated
+20

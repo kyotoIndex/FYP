@@ -1,0 +1,61 @@
+Published as a conference paper at ICLR 2023
+To answer this question, we propose a new method –AdaLoRA (Adaptive Low-Rank Adaptation),
+which dynamically allocates the parameter budget among weight matrices during LoRA-alike fine-
+tuning. Specifically, AdaLoRA adjusts the rank of incremental matrices to control their budget.
+Critical incremental matrices are assigned with high rank such that they can capture more fine-grained
+and task-specific information. Less importance ones are pruned to have lower rank to prevent
+overfitting and save the computational budget. There are some methods to control the rank of matrices
+in the existing literature of matrix approximation (Cai et al., 2010; Koltchinskii et al., 2011; Toh &
+Yun, 2010). Most of them directly compute singular value decomposition (SVD) of a matrix and
+then truncate the smallest singular values. Such an operation can manipulate the rank explicitly
+and, more importantly, minimize the difference between the resulting matrix and the original matrix.
+However, for fine-tuning large models, it becomes prohibitively expensive to iteratively apply SVD
+for a large number of high-dimensional weight matrices. Therefore, instead of computing SVD
+exactly, we parameterize ∆ as ∆ = P ΛQ to mimic SVD. The diagonal matrix Λ contains singular
+values while the orthogonal matrices P and Q represent left/right singular vectors of ∆. To regularize
+the orthogonality of P and Q, an additional penalty is added to training loss. Such a parameterization
+avoids the intensive computations of SVD. Besides, another advantage is that we only need to drop the
+unimportant singular values while the singular vectors are maintained. This preserves the possibility
+of future recovery and stabilizes the training. See a detailed comparison to LoRA in Section 3.
+Based on our SVD parameterization, AdaLoRA dynamically adjusts the rank of ∆ = P ΛQ by
+importance scoring. Specifically, we divide the incremental matrix P ΛQ into triplets, where each
+triplet Gi contains the i-th singular value and the corresponding singular vectors. To quantify the
+importance of triplets, we propose a novel importance metric, which takes account of the contribution
+of every entry in Gi to the model performance (Sanh et al., 2020; Liang et al., 2021; Zhang et al.,
+2022). Triplets with low importance scores are granted low priority and hence the singular values are
+zeroed out. Triplets with high importance are retained for fine-tuning. Moreover, we also propose
+a global budget scheduler to facilitate the training. In particular, we start from an initial parameter
+budget, which is slightly higher than the final budget, and then gradually reduce it until matching
+the target. Such a scheduler can improve the training stability and model performance. Please see
+Section 3 for a detailed description of our importance metric and budget scheduler.
+We conduct extensive experiments on a wide range of tasks and models to demonstrate the effec-
+tiveness of AdaLoRA. Specifically, we evaluate the performance using DeBERTaV3-base (He et al.,
+2021a) on natural language understanding (GLUE, Wang et al. (2019)) and question answering
+(SQuADv1, Rajpurkar et al. (2016) and SQuADv2, Rajpurkar et al. (2018)) datasets. We also apply
+our methods to BART-large (Lewis et al., 2019) and evaluate the performance on natural language
+generation (XSum, Narayan et al. (2018) and CNN/DailyMail, Hermann et al. (2015)) tasks. We
+show AdaLoRA consistently outperforms the baseline, especially under low budget settings. For
+example, with less than 0.1% trainable parameters of full fine-tuning, AdaLoRA achieves a 1.2% F1
+improvement on the SQuAD2.0 dataset compared with state-of-the-art approaches.
+2 B ACKGROUND
+Transformer-based Models. A typical transformer model consists of L stacked blocks, where each
+block contains two submodules: a multi-head attention (MHA) and a fully connected FFN. Given the
+input sequence X ∈ Rn×d, MHA performs the attention function in parallel h heads:
+MHA (X) = Concat(head1, ..., headh)Wo, headi = Softmax
+
+XW qi(XW ki)⊤/
+p
+dh
+
+XW vi ,
+where Wo ∈ Rd×d is an output projection and Wqi , Wki , Wvi ∈ Rd×dh are query, key and value
+projections of head i. dh is typically set to d/h. The other important module is a FFN which consists
+of two linear transformations with a ReLU activation in between: FFN(X) = ReLU(XW f1 +
+b1)Wf2 + b2, where Wf1 ∈ Rd×dm and Wf2 ∈ Rdm×d. Finally, a residual connection is used
+followed by a layer normalization (Ba et al., 2016).
+Low Rank Adaptation. LoRA (Hu et al., 2022) models the incremental update of the pre-trained
+weights by the product of two small matrices. For h = W (0)x, the modified forward pass is:
+h = W (0)x + ∆x = W (0)x + BAx, (2)
+where W (0), ∆ ∈ Rd1×d2, A ∈ Rr×d2 and B ∈ Rd1×r with r ≪ { d1, d2}. A typically adopts a
+random Gaussion initialization while B is initialized with zero to have ∆ = 0 at the beginning of
+3

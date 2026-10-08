@@ -1,0 +1,45 @@
+Published as a conference paper at ICLR 2023
+Table 12: Detailed budget setup for summarization tasks.
+# Params Houlsby Adapter Pfeiffer Adapter LoRA AdaLoRA
+d d r b (T )/¯r(T )/r
+0.65% 32 64 8 576 / 8 / 12
+0.32% 16 32 4 288 / 4 / 6
+0.16% 8 16 2 144 / 2 / 4
+0.08% 4 8 1 72 / 1 / 2
+E.2 T RAINING DETAILS
+We set the batch size as 16. We select the learning rate from {8 × 10−5, 5 × 10−5, 3 × 10−5, 1 ×
+10−4, 3 × 10−4, 5 × 10−4, 8 × 10−4, 1 × 10−3} and pick the best-performing learning rate for every
+method. The configuration of AdaLoRA is listed in the following table.
+Table 13: Hyper-parameter setup of AdaLoRA for summarization tasks.
+Dataset learning rate batch size # epochs γ t i ∆T tf
+XSum 5 × 10−4 64 25 0.1 6000 100 50000
+CNN/DailyMail 5 × 10−4 32 15 0.1 5000 100 85000
+F A BLATION STUDY FOR LORA
+As mentioned in Section 4, we find that the performance of LoRA can be further improved when
+applying it to every weight matrix, compared to fine-tuning Wq and Wv only (Hu et al., 2022). This
+observation aligns with the empirical results of He et al. (2022). In Table 14, we follow the same
+training configuration as Section 4.1 and present an ablation study to illustrate this point.
+Table 14: We compare the fine-tuning performance when apply LoRA to every weight matrix or
+Wq, Wv only. The parameter budget is fixed as 0.3M. We report accuracy for QQP and MRPC,
+accuracy(m) for MNLI, and average correlation for STS-B.
+MNLI QQP CoLA RTE QNLI SST-2 MRPC STS-B
+LoRA (Wq, Wk) 89.80 90.48 67.04 83.75 93.69 94.84 90.20 91.05
+LoRA (all) 90.30 91.61 68.71 85.56 94.31 94.95 90.44 91.68
+G O RTHOGONAL REGULARIZATION
+To verify the effectiveness of (4), we plot ∥P ⊤P − I∥2
+F and ∥QQ⊤ − I∥2
+F to show whether P and Q
+are regularized to be orthogonal. We fine-tune a DeBERTaV3-base model on SST-2 with AdaLoRA
+and follow the same training configuration as Section 4.1. We set γ as 0.1 and plot the two terms
+along the training horizon. From Figure 4, we can see that two regularization terms can be optimized
+to a very small value (e.g., 0.001) at the beginning of training. Therefore, both P and Q can be
+enforced to be orthogonal quickly during the initial warm-up of AdaLoRA. It ensures that the triplets
+are not dependent with each other.
+H C OMPARISON OF TRAINING COST
+We compare the training cost between AdaLoRA and LoRA in the following table. We use two
+methods to fine-tune DeBERTaV3-base on a single NVIDIA V100 GPU. We do training only and set
+hyperparameters, e.g., batch size and training epochs, the same as in Section 4.
+Table 15 shows that AdaLoRA incurs 11% additional training time on MNLI and 16% on SQuADv2
+under different budgets. The memory footprint of two methods are quite close. Such results
+demonstrate that AdaLoRA does not incur significant training overheads. The reason behind is that
+16

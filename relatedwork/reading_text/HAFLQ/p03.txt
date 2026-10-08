@@ -1,0 +1,223 @@
+3
+QPLLM
++
+QPLLM
+B
++
+QPLLM
++
++
++
++
+Importance 
+Score (IS)
+0 1 2
+0 1 2
+0 1 2
+0 1 2
+0 1 2
+0 1 2 012
+012
+01
+2
+012
+012
+012
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+Step 1: Cloud Model Broadcast Step 2: Local Model Training (Two Schemes) Step 4: Dequantization and 
+Global Aggregation
+: Frozen 
+Parameters
+B
+B
+A
+A
+l
+d
+r
+r
+r
+l
+d
+d
+l
+r
+r
+r
+Client 1
+Client 2
+Client 3
+Cloud Server
+0
+0 2
+0 1 2
+012
+0
+2
+0
+Importance-Based 
+Parameter Freezing 
+Scheme (Section IV)
+Importance-Based  
+Parameter Truncation 
+Scheme (Section IV)
+Client 1 Client 1
+Client 2 Client 2
+Client 3Client 3
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+Quantized Pre-trained 
+LLM (QPLLM)
+Transformer Block (TB)
+QPLLM
+TB1 (INT8)
+TB2 (INT8)
+TB3 (INT8)
+QPLLM
+TB1 (INT8)
+TB2 (INT8)
+TB3 (FP32)
+QPLLM
+TB1 (FP32)
+TB2 (FP32)
+TB3 (FP32)
+or
+0
++
+0 1 2 0
+1
+2
+Cloud Server
++
+0 1 2 0
+1
+2
+B
+A
+PLLM
+PLLM
+A
+Base Station
+Base Station
+Salience-Driven Adaptive 
+LLM Quantization
+(Section III)
+Adaptive LoRA 
+Aggregation (Section VI)
+INT16
+INT16
+INT16
+INT8
+INT8
+INT4
+FP32
+FP32
+FP32
+FP32
+FP32
+FP32
+Quantization 
+(Client Side)
+Importance-Aware 
+Bandwidth-Adaptive 
+Communication 
+Quantization (Section V)
+Dequantiza-
+tion (Server 
+Side)
+Limited 
+Bandwidth
+Step 3: Quantized 
+Parameters Upload
+Fig. 1: HAFLQ framework.
+II. S YSTEM MODEL
+As shown in Fig. 1, our proposed HAFLQ framework
+consists of a cloud server, a base station, and a set ofK clients,
+denoted as K = {1, 2, · · · , K}. Each client and the cloud
+server have a LoRA based LLM, where the parameters of the
+original pre-trained LLM are frozen, and only the incorporated
+low-rank decomposition matrices are trainable. Each client
+k ∈ K has a local dataset Dk = {(xi, yi)}Dk
+i=1, where xi is the
+ith input data sample, yi is the corresponding labeled output,
+and Dk is the number of data samples. Each client connects to
+the base station via wireless channels to transmit parameters
+to the cloud server.
+A. Cloud LoRA Parameter Broadcast
+The updated model parameters of the LoRA-based LLM
+are handled differently at the cloud server and the clients
+to address their respective computational and memory con-
+straints. Specifically, the cloud server retains the pre-trained
+model weights Wpre ∈ Rd×l in full precision, while the clients
+use a quantized version of the pre-trained weights, denoted as
+Wpre,q ∈ Rd×l. For the cloud server, the model parameters
+can be expressed as
+Wserver = Wpre + ∆W = Wpre + BA. (1)
+For the client, the model parameters can be expressed as
+Wclient = Wpre,q + ∆W = Wpre,q + BA, (2)
+where ∆W ∈ Rd×l is the trainable matrix. The low-rank
+decomposition of ∆W is given by ∆W = BA, where B ∈
+Rd×r and A ∈ Rr×l are low-rank matrices. Here, d and l
+are the dimensions of the model’s weight matrix, and r is the
+rank of the low-rank approximation, which is typically much
+smaller than both d and l.
+For different clients k, the LoRA rank is denoted as rk. In
+our importance-based parameter truncation scheme, the client
+LoRA rank rk is selected from the range [rmin, rmax]. In our
+proposed importance-based parameter freezing scheme, rank
+rk is set to be equal to rmax. Regardless of the scheme used, the
+LoRA rank of the global model at the cloud server is denoted
+as rg, where rg = rmax.
+During each communication round, the cloud server broad-
+casts the LoRA parameters, which are the low-rank matrices
+Bg and Ag, to all clients k ∈ K . Taking the communication
+round t as an example, these parameters are denoted as
+Θ(t)
+LoRA = {B(t)
+g , A(t)
+g }, (3)
+where B(t)
+g ∈ Rd×rg and A(t)
+g ∈ Rrg×l.
+B. Local Model Training and Global Aggregation
+In each communication round, the selected set of clients K
+receives the LoRA parameters Θ(t)
+LoRA broadcasted by the cloud
+server. Each client k ∈ K then begins local model training
+using its local dataset Dk. In this process, clients keep the pre-
+trained model weights Wpre frozen. They initialize their local
+LoRA parameters Bt
+k and At
+k with the received Θ(t)
+LoRA and
+optimize these parameters by minimizing a local loss function.
+After completing local training, clients adaptively quan-
+tize their updated LoRA parameters, {B(t+1)
+k , A(t+1)
+k }, into
+{B(t+1)
+k,q , A(t+1)
+k,q } before uploading them to the cloud server.
+Unlike traditional fixed or uniform quantization methods, our
+proposed importance-aware bandwidth-adaptive quantization
+adjusts the precision of each parameter based on its importance
+and the client’s bandwidth constraints. This ensures that the
+most critical rank-1 matrices are prioritized for transmission
+with higher precision, optimizing bandwidth utilization and

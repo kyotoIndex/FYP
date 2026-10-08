@@ -1,0 +1,63 @@
+not only accommodates heterogeneous LoRA ranks effectively but also sustains robust training
+performance compared to baseline methods. It efficiently facilitates the participation of devices with
+varied computational capacities in heterogeneous federated fine-tuning tasks. Additionally, FLORA
+can be seamlessly integrated with AdaLoRA [27], which dynamically adjusts the LoRA rank using
+on the clients, the results are presented in Appendix A.
+(e) Llama2 - MT-bench
+(a) TinyLlama - MMLU (b) Llama - MMLU
+(c) TinyLlama - MT-bench (d) Llama - MT-bench
+Figure 5: The impact of the scaling factor on
+FL ORA. The x-axis is the scaling factor, and the
+y-axis represents the MMLU accuracy for (a)-(b)
+and the MT-bench score for (c)-(d). The results of
+Llama2 are in Appendix A.
+The Impact of Scaling Factor. The scaling
+factor, denoted as pk in Equation 12, plays a piv-
+otal role in the efficacy of FL [21]. We conduct
+experiments investigating how varying scaling
+factors influence the performance of FLORA.
+Given that the default scaling factor is set to 0.1
+for all clients, assuming 10 clients with equal
+local dataset sizes as per Equation 12, we ex-
+plored the effects of alternative scaling factors,
+namely 0.01, 0.05, and 0.2. The results are sum-
+marized in Figure 5. The results do not reveal
+a clear pattern or optimal scaling factor for fed-
+erated fine-tuning across different settings. The
+efficacy of a specific scaling factor appears to
+be contingent upon the dataset, task, and model
+in use. For example, when fine-tuning TinyL-
+lama on the Dolly dataset, a lower scaling fac-
+tor of 0.01 yields the highest accuracy, signif-
+icantly outperforming the 0.1 and 0.2 scaling
+factors. Conversely, the model fine-tuned on
+Wizard dataset demonstrates a preference for a
+higher scaling factor of 0.2, achieving the best
+performance, whereas the lowest scaling factor
+of 0.01 was the least effective. In the case of
+the Llama model, larger scaling factors consis-
+tently facilitated better fine-tuning performance.
+Applying FLORA to Dolly and Alpaca shows
+the optimal performance with a scaling factor of 0.2. These observations suggest that the choice
+of an appropriate scaling factor is highly dependent on specific datasets and model characteristics,
+underscoring the necessity for a tailored approach in federated fine-tuning.
+The Impact of Heterogeneous LoRA Ranks. Although the above results demonstrate FLORA
+effectively enables the federated fine-tuning with heterogeneous LoRA, it is worth further investigating
+how the federated fine-tuning improves the local models with various ranks. Motivated by this, we
+evaluate MT-bench scores for local models with LoRA ranks of 64, 32, 16, 8, and 4, presenting
+the results in Figure 4. Global model scores are shown in red bars, while local models are in blue,
+with deeper shades indicating higher ranks. The results show that the global model outperforms all
+local models, except for a case with the TinyLlama model fine-tuned on the Wizard dataset, where
+the client with rank 32 slightly exceeds the global model. This demonstrates FLORA’s ability to
+synthesize knowledge from diverse clients effectively.
+Regarding the LoRA rank’s impact, a rank of 8 consistently yields strong performance across
+various models and datasets. However, performance diverges at extreme ranks; for instance, the
+TinyLlama model fine-tuned on Wizzard with the LoRA rank of 64 underperforms the ones with
+smaller ranks, but the Llama model with the rank of 64 excels the counterparts with smaller ranks.
+This also demonstrates the heterogeneous rank deployment across clients is a realistic setting. These
+observations suggest a potential positive correlation between optimal LoRA rank and model capacity,
+motivating further exploration in future research.
+5 Discussion
+The Communication Overhead of FLORA. As discussed in Section 3, the server needs to send
+global LoRA modules to the clients in FLORA, potentially raising concerns about increased commu-
+8

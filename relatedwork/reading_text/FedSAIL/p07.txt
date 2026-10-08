@@ -1,0 +1,58 @@
+3 FedSAIL
+In Section 2, we demonstrate that parameter similarity alone is an unreliable proxy for client agreement,
+whereas the action geometry retains a robust and task-conditioned structure. Motivated by these, we propose
+Federated Subspace-Guided Action-Informed Learning(FedSAIL). Instead of directly averaging adapter
+weights, FedSAIL extracts and shares the dominant right subspace of the input-aware action matrix. This
+allows the server to compute a basis-invariant geometric consensus to regularize local training, while keeping
+both LoRA factors and client-specific residual directions strictly local.
+3.1 Local Action Subspace Extraction
+To capture input-conditioned action geometry while keeping raw data local, in our approach, each client
+k estimates the uncentered second moment of its layer-input hidden states. After that, we apply shrinkage
+toward a scaled identity matrix to improve the conditioning of this estimation and stabilize subsequent spectral
+computations:
+Sk = 1
+nk
+nkX
+i=1
+hk,ih⊤
+k,i, bΣk = (1−γ)S k +γ tr(Sk)
+p Ip.(4)
+where nk is the number of local layer-input hidden states andγ∈(0,1) determines the shrinkage level. Since
+constructing and sharing the full q×p action matrix bGk is computationally inefficient, we instead form a
+compact equivalent:
+bCk = (B ⊤
+k Bk)1/2AkbΣ
+1/2
+k ∈R rL×p.(5)
+SincebC⊤
+kbCk = bG⊤
+k bGk, the compact matrixbCk has the same right singular subspaces and singular values
+as the input-aware action matrix bGk. Client k then isolates the highest-energy geometric directions by
+computing an orthonormal basis Qk = TopEigs(bC⊤
+kbCk) for the leading rank-s eigenspace, alongside its
+corresponding eigenvalues λk ∈R s
++. By sharing this subspace representation, the server captures the
+dominant directions of the input-weighted actions without requiring clients to synchronize their raw weight
+matrices.
+3.2 Server Aggregation and Personalized Feedback
+Upon receiving the local uploads, aggregating these subspaces presents a geometric alignment problem:
+directly averaging eigenvectors is ill-posed due to sign and basis-rotation ambiguities. Our approach resolves
+this by reconstructing a stabilized, trace-normalized rank- s action Gram matrix for each client, and then
+aggregating them strictly as positive-semidefinite (PSD) matrices:
+cMk = Qk diag(λk)Q⊤
+k
+1⊤λk +ε 0
+, cM=
+KX
+k=1
+nkP
+j nj
+cMk.(6)
+Here, ε0 >0 acts as a numerical stabilizer. The trace normalization is a critical design choice: it controls
+for varying top-s action magnitudes across heterogeneous clients, ensuring that clients with larger absolute
+updates do not disproportionately dominate the geometric consensus. The server then extracts the top-
+s eigenspace of the aggregated Gram matrix, bV= TopEig s(cM), and broadcasts the global projector
+bP= bVbV⊤.
+Armed with this global geometric consensus, clients resume training their personalized adapters. Rather than
+overwriting local weights, FedSAIL introduces a penalty that regularizes the local update toward the shared
+7

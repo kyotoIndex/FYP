@@ -1,0 +1,60 @@
+1 2 3 4 5 6 7 8
+Ordered right-singular direction j
+0
+0.25
+0.50
+0.75
+1.00Fraction of total energy
+96.83%
+(a) Action energy
+1 2 3 4 5 6 7 8
+Ordered right-singular direction j
+0
+0.25
+0.50
+0.75
+1.00Projector Dice
+(b) Cross-client agreement
+1 2 3 4 5 6 7 8
+Ordered right-singular direction j
+0
+0.25
+0.50
+0.75
+1.00Held-out energy fraction
+(c) Leave-one-client-out capture
+Observed Matched random orientation
+Figure 6: Ordered-direction diagnostics on RoBERTa-base/RTE with independent initialization and LoRA
+rank eight. Panels show (a) evaluation action energy fraction, (b) cross-client rank-one projector Dice, and (c)
+LOO action-energy capture. Metrics are averaged across partitions, layers, projections, and client pairs.
+and 0.1593 for the full numerical-rank space (note that these rank-normalized overlaps do not measure
+captured energy). To examine individual directions, Figure 6 evaluates all eight components separately. For
+each direction, we construct a leave-one-client-out (LOO) projector using the leading eigenvector of the
+mean calibration projector from the other two clients; LOO capture then measures the fraction of held-out
+evaluation action energy retained by this projector. As a control baseline, we replace the right singular basis
+of (B⊤
+k Bk)1/2Ak with a uniformly sampled orthonormal basis while preserving its singular spectrum and
+local moments (averaged over 200 draws per seed, partition, layer, and projection). The leading direction
+substantially outperforms this control in both Dice agreement (0.811 vs. 0.248) and LOO capture (0.832 vs.
+0.528), showing consistent positive gains across all seed means. In contrast, directions 2 through 8 perform
+below control on average across both metrics. These diagnostic findings confirm that cross-client agreement
+is strongly concentrated in the leading direction. We note that direction-wise LOO captures are non-additive
+and serve as diagnostic insights rather than guarantees of downstream aggregation performance.
+B.4 Task, domain, and layer dependence in GPT-2
+For Figure 3, Sdt denotes the mean fixed-top-1 action-subspace Dice in each of the four pair classes. There
+are 4 pairs in S11 and 8 each in S10, S01, and S00. We first average within each class, then compute the
+balanced factorial contrasts
+Ctask = 1
+2 (S11 +S 01 −S 10 −S 00), C domain = 1
+2 (S11 +S 10 −S 01 −S 00),(8)
+which give each pair class equal weight. A positive Ctask indicates greater agreement between same-task
+clients after averaging equally over same-domain and different-domain pairs. The comparison S01 −S 10 =
+Ctask −C domain asks the stronger question of whether task-related differences exceed domain-related
+differences. Its sign describes their relative strength; a negative value can coexist with a positive task contrast.
+At s= 1 , task contrasts are positive and exceed domain contrasts under both initialization conditions in all
+three token regions (Table 9). Different-task pairs nevertheless retain mean Dice of approximately 0.65–0.67.
+Task dependence therefore appears as a difference within partly shared geometry, not as orthogonality between
+tasks. In the layerwise curves, this difference is most pronounced in later content and decision layers. Early
+decision layers remain highly aligned even across tasks. These depth-dependent patterns motivate a layerwise
+sharing criterion; the effects of actually disabling guidance are tested separately in Appendix F.
+18

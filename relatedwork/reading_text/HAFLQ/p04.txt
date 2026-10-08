@@ -1,0 +1,114 @@
+4
+minimizing performance degradation in heterogeneous envi-
+ronments.
+Upon receiving updates, the cloud server dequantizes the
+parameters back to {B(t+1)
+k,dq , A(t+1)
+k,dq } and aggregates them
+using our proposed Adaptive Rank-1 Matrix-Level Aggrega-
+tion method. This approach aggregates only the updated and
+important rank-1 matrices, avoiding information dilution and
+accelerating convergence compared to traditional zero-padding
+methods. These innovations enable the HAFLQ framework to
+achieve efficient communication, scalability, and high perfor-
+mance in federated learning.
+C. Wireless Communication Model
+1) Uplink Communication: In our HAFLQ framework,
+each communication round is of fixed duration T and each
+client k is allocated a limited bandwidth Bk. Consequently, the
+number of bits that a client can transmit in a given communica-
+tion round is constrained. To characterize the wireless uplink
+between a client and the base station, we adopt a channel
+model that accounts for path loss, shadowing, and small-scale
+fading.
+a) OFDMA-based Multi-User Access: When multiple
+clients are scheduled to transmit concurrently, an orthogo-
+nal frequency division multiple access (OFDMA) scheme is
+adopted to avoid inter-client interference. We let C denote
+the set of available subchannels, where each subchannel has
+identical bandwidth B0. Then, a binary channel assignment
+vector ρk = [ ρk,1, ρk,2, . . . , ρk,|C|] can be defined for client
+k, where ρk,c = 1 indicates that subchannel c is allocated to
+client k. The constraints
+X
+c∈C
+ρk,c = 1, ∀k ∈ K, (4)
+X
+k∈K
+ρk,c ≤ 1, ∀c ∈ C , (5)
+ensure that each client is assigned exactly one subchannel and
+each subchannel is shared by at most one client in a given
+round. Since all subchannels have equal bandwidth B0, the
+bandwidth allocated to client k is Bk = B0 for all k ∈ K.
+b) Channel Gain and Path Loss: We consider a common
+urban scenario where client k has no line-of-sight (NLoS) to
+the base station [21] and the path loss is modeled as
+P Lk = 32.4 + 20 log10(f) + 30 log10(dk), (6)
+where f is the carrier frequency and dk is the distance between
+client k and the base station.
+Incorporating shadowing and small-scale fading effects, the
+overall channel gain hk is given by
+hk = 10−P Lk/10 ψk χk, (7)
+where the large-scale shadowing effect is modeled as
+ψk = 10ξk/10, ξ k ∼ N (0, σ2), (8)
+and the small-scale Rayleigh fading component is
+χk = |g|2, with g ∼ CN (0, 1). (9)
+Here, N (0, σ2) denotes a real-valued Gaussian distribution
+with zero mean and variance σ2, and CN (0, 1) denotes a
+circularly symmetric complex Gaussian distribution with zero
+mean and unit variance.
+c) Signal-to-Noise Ratio and Data Rate: Assuming that
+each client transmits with power Pk, the Signal-to-Noise Ratio
+(SNR) at the base station for client k is given by
+γk = Pk hk
+N bs
+0 Bk
+, (10)
+where N bs
+0 is the noise power spectral density (PSD) at the
+base station side. Under the Shannon capacity formulation,
+the achievable uplink data rate [22] of client k is
+Rk = Bk log2 (1 + γk) . (11)
+Thus, during the uplink phase of a communication round,
+which lasts for Tul, the total number of bits that client k can
+transmit is
+Mk = TulRk. (12)
+d) Parameter Transmission: In each round, client k
+transmits its updated LoRA parameters, which together occupy
+Sk bits. Since the available bit budget per round is limited
+by (12), we require
+Sk ≤ Mk, (13)
+for successful transmission.
+2) Downlink Communication: In the proposed HAFLQ
+framework, we assume that the base station broadcasts the
+global LoRA parameters Θ(t)
+LoRA = {B(t)
+g , A(t)
+g } to all clients
+in full precision using shared channels. Given the low-rank
+nature of LoRA parameters, their dimensions are significantly
+smaller compared to the full model parameters, resulting in
+low communication overhead. Additionally, the high transmit
+power of the base station ensures that these parameters can
+be reliably delivered to all clients, even under varying channel
+conditions.
+III. S ALIENCE -D RIVEN ADAPTIVE LLM Q UANTIZATION
+In wireless FL systems, clients often have varying compu-
+tational capabilities due to differences in hardware resources
+such as GPU memory and processing power. Deploying LLMs
+across such heterogeneous clients requires computation re-
+source optimization, particularly GPU memory and compu-
+tation.
+To address this, we propose an adaptive quantization ap-
+proach for LLMs that customizes the quantization level based
+on each client’s computational capability. Our method lever-
+ages a salience metric to assess the importance of transformer
+blocks, enabling selective quantization. Important transformer
+blocks, identified as having higher salience, are preserved in
+full precision to maintain model performance, while less im-
+portant blocks are quantized to lower precision. The proportion
+of blocks quantized depends on the GPU memory available to
+the client. Clients with limited GPU memory quantize a larger
+proportion of transformer blocks to fit within their memory
+constraints, while clients with greater GPU memory retain
+more blocks in full precision to maximize model performance.

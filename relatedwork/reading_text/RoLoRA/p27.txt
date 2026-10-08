@@ -1,0 +1,125 @@
+A3.4.1 Proof of Proposition 5.5
+Proof.We start by fixinga 0 and updatingb i to minimize the objective. Leta=a 0. We obtain
+b⊤
+i = a⊤X⊤
+i Xia∗b∗⊤
+a⊤X⊤
+i Xia (139)
+(bF F A)⊤ = 1
+N
+NX
+i=1
+a⊤X⊤
+i Xia∗b∗⊤
+a⊤X⊤
+i Xia (140)
+let ¯b=b F F A. We aim to compute the expected value of 1
+N
+PN
+i=1
+1
+m ∥Xia∗b∗⊤
+−X ia¯b⊤∥2 where
+the expectation is over all the randomness in theX i. We define
+si = a⊤X⊤
+i Xia∗
+a⊤X⊤
+i Xia = (Xia)⊤(Xia∗)
+∥Xia∥2 (141)
+so that ¯b= 1
+N
+PN
+i=1 sib∗ = ¯sb∗. For eachi, the norm becomes
+∥Xia∗b∗⊤
+−X ia¯b⊤∥2 =∥(X ia∗ −¯sXia)b∗⊤
+∥2 (142)
+=∥X ia∗ −¯sXia∥2∥b∗∥2 (143)
+using the fact that ∥uv⊤∥2 =∥u∥ 2∥v∥2 for vectors u and v. Therefore, E[ 1
+N
+PN
+i=1
+1
+m ∥Xia∗b∗⊤
+−
+Xia¯b⊤∥2]is reduced toE[ 1
+N
+PN
+i=1
+1
+m ∥Xia∗ −X ia∥2]· ∥b ∗∥2.
+Since each entry of Xi is independently and identically distributed according to a standard Gaussian
+distribution, both a∗ and a are unit vectors, the vectors Xia∗ and Xia are N(0,I m). The cross-
+covariance isαI m whereα=a ⊤a∗.
+By linearity, we can show that 1
+N
+PN
+i=1
+1
+m ∥Xia∗ −¯sXia∥2 has the same expectation as 1
+m ∥X1a∗ −
+¯sX1a∥2 because all (Xia∗,X ia) are i.i.d. pairs. Let z1 = s1
+N and z2 = s2+···+sN
+N , we have
+∥X1a∗ −z 1X1a−z 2X1a∥2. Letv=X 1a∗,u 1 =z 1X1aandu 2 =z 2X1a. Thus,
+∥X1a∗ −z 1X1a−z 2X1a∥2 =∥v−u 1 −u 2∥2 (144)
+=v ⊤v+u ⊤
+1 u1 +u ⊤
+2 u2 −2v ⊤u1 −2v ⊤u2 + 2u⊤
+1 u2 (145)
+Now we compute the expectation term by term.
+Expected value ofv ⊤vWe haveE[v ⊤v] =E[∥X 1a∗∥2] =m.
+Expected value ofu ⊤
+1 u1 We have
+u⊤
+1 u1 =z 2
+1∥X1a∥2 (146)
+= s2
+1
+N2 ∥X1a∥2 (147)
+= 1
+N2
+((X1a)⊤(X1a∗))2
+∥X1a∥4 ∥X1a∥2 (148)
+= 1
+N2
+((X1a)⊤(X1a∗))2
+∥X1a∥2 (149)
+Note that (X1a∗,X 1a) is a correlated Gaussian pair with correlation α=a ⊤a∗. Without loss of
+generality, we assume a=e 1 thus a∗ =αe 1 +
+√
+1−α 2e2, where e1 and e2 are standard basis
+vectors in Rd. So we can get X1a=X 1e1 =x 1,1, where x1,1 denotes the first column of X1.
+Accordingly X1a∗ =αX 1e1 +
+√
+1−α 2X1e2 =αx 1,1 +
+√
+1−α 2x1,2 where x1,2 denotes the
+second column of X1. Therefore (149) can be written as 1
+N 2
+(x⊤
+1,1(αx1,1+βx1,2))2
+∥x1,1∥2 . Now we take
+expectation of it.
+E
+ 1
+N2
+((X1a)⊤(X1a∗))2
+∥X1a∥2
+
+=E
+"
+1
+N2
+(x⊤
+1,1(αx1,1 +βx 1,2))2
+∥x1,1∥2
+#
+= 1
+N2 E
+"
+(x⊤
+1,1(αx1,1 +βx 1,2))2
+∥x1,1∥2
+#
+(150)
+27

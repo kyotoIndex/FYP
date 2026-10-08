@@ -1,0 +1,56 @@
+Appendix
+We provide an outline of how we organize the appendix in below:
+Implementation details of our experiments:
+• Appendix A: Implementation details for the experiments shown in Figure 1 related to the
+zero-shot test loss of naive FedIT with LoRA rank of 1, 8, and 200, including an "extreme
+heavy tail" scenario.
+• Appendix E: General experimental details, including hyperparameter settings, cross-task
+splitter details, and the choice of layers for applying LoRA.
+• Appendix K:Provides details about the computational infrastructure and cost associated with
+the experiments mentioned in the document.
+Algorithm, proof and analysis of FlexLoRA:
+• Appendix B: The pseudocode for FlexLoRA’s algorithm in a federated learning context,
+detailing the process from initialization, client sampling, local updates, to server updates.
+• Appendix C: Proof of Theorem 1, providing a mathematical derivation of the bounds on
+generalization error under specific assumptions.
+• Appendix D: Analysis of efficiency improvements from LoRA under different ranks, de-
+tailing the trainable parameters, memory costs, and efficiency gains compared with full
+finetuning.
+More experimental results including:
+• Appendix F: Statistics of the Table 2, including 1. Percentage of improvement w/ FlexLoRA
+vs w/o FlexLoRA 2. significant test results comparing FlexLoRA with its baselines across
+different resource distribution types.
+• Appendix G: More results on task-specific performance improvements of global models
+trained with FlexLoRA, particularly in natural language tasks.
+• Appendix H: Additional results on the effect of SVD, including the distribution of singular
+values and the approximation error ratio.
+• Appendix I: Results on the efficacy of FlexLoRA result under a mixture of task setting.
+• Appendix J: Discusses the single client’s performance impact of different LoRA ranks,
+showcasing how performance improves with higher LoRA ranks across various NLP tasks.
+A Implementation of Figure 1
+For the experiments in Figure 1, we plotted the zero-shot test loss of naive FedIT with LoRA rank
+equal to 1, 8, and 200. For the experiment of FedIT with FlexLoRA, we adopt an “extreme heavy tail”
+scenario where all the clients have a LoRA rank of 200 except one with a LoRA rank of 8. All the
+hyperparameters and FL experiment settings are the same as the experiments in Table 2.
+B The Algorithm of FlexLoRA
+We summarize the Pseudocode of FlexLoRA in Algorithms 1 and 2.
+C Proof of Theorem 1
+Let Hn denote the function space with its elements parameterized by Wg and the distance metric ∆
+is defined as:
+∆(W i
+g − W i′
+g )
+= 1
+n Ex,y∼Di
+h
+X
+(f(W i
+g; x, y) −
+X
+f(W i′
+g ; x, y)
+
+i
+,
+(1)
+13

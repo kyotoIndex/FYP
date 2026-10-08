@@ -1,0 +1,54 @@
+Published as a conference paper at ICLR 2024
+5.2 A BLATION STUDY
+Although FFA-LoRA is shown to be effective under federated settings and with private guarantees,
+previous works have also provided studies on the impact of the other hyper-parameters in LoRA
+algorithm. In order to provide a more comprehensive evaluation of the three discordances discussed
+in Section 3, we still need to answer the following questions:
+• How does data heterogeneity affect performance of FFA-LoRA and LoRA?
+• What is the impact of adapter parameter budget ( r) for FFA-LoRA and the relationship
+between adapter parameter budget (r) and privacy budget (ϵ) of DP-SGD?
+• How do FFA-LoRA and LoRA behave when we choose different α for scaling?
+• How does different initialization on A affect performance?
+We answer the questions above with the following experiments.
+How does data heterogeneity affect performance of FFA-LoRA and LoRA? Our discussion in
+Section 3 stated that LoRA is not compatible with FedAvg when there is strong heterogeneity among
+clients. For verification, we consider the four tasks with both homogeneous and heterogeneous data,
+and provide the experiment results below. The severe heterogeneity case corresponds to the data
+distribution provided in Section 5.1, while data is split with [0.15, 0.85], [0.85, 0.15], [0.5, 0.5] and
+[0.6, 0.2, 0.2], [0.2, 0.6, 0.2], [0.2, 0.2, 0.6] respectively in the mild heterogeneity configuration.
+Data Dist. Method MNLI
+(matched)
+MNLI
+(mismatched) SST2 QQP QNLI
+i.i.d. LoRA 86.90 87.15 94.42 84.47 91.38
+FFA-LoRA 87.13 87.21 95.14 86.31 92.64
+mild het. LoRA 87.01 87.33 93.55 84.41 91.36
+FFA-LoRA 87.04 87.36 94.10 85.33 91.62
+severe het. LoRA 82.03 82.50 94.32 83.51 88.95
+FFA-LoRA 85.05 85.62 94.32 84.35 90.35
+Table 2: Prediction accuracy ( %) comparison between i.i.d. and non-i.i.d. data distribution.
+It is evident that FFA-LoRA behaves better than LoRA in both i.i.d. and non-i.i.d. settings, but the
+performance is similar in the privacy-free setting.
+What is the impact of adapter parameter budget ( r) for FFA-LoRA and the relationship be-
+tween adapter parameter budget (r) and privacy budget (ϵ) of DP-SGD?
+We first evaluate the performance ofFFA-LoRA and LoRA without the consideration of privacy, we
+use the mild heterogeneity data distribution and keep the batch-size and total number of update steps
+to be the same across different tasks. We experiment with rank r ∈ {2, 4, 8, 16} on four tasks, and
+report the best accuracy.
+The results are shown in Table 3. From the subspace similarity discussions in LoRA, we note that
+increasing rank does not necessarily increase information from the gradients, similar observations
+can be found in our experiments. Based on the results, we can see that FFA-LoRA has better
+performance in the majority of tasks, regardless of the trainable parameter number. In fact, due to
+the reduction of trainable parameters in FFA-LoRA, we should compare between FFA-LoRA and
+LoRA with the same parameter budget (i.e. compare FFA-LoRA r = 16 with LoRA r = 8). In this
+case, the advantage of FFA-LoRA over LoRA becomes more apparent.
+Although there have been multiple studies on the performance of LoRA with DP, the relationship
+between rank r and privacy budget ϵ is unclear. We present the experiments below and compare
+the impact of rank r on FFA-LoRA versus LoRA on the QNLI dataset. We use a privacy budget of
+ϵ ∈ {6, 3, 1} with rank r ∈ {2, 4, 8, 16}. The results are shown in Table 4.
+In our experiments, we find that as the privacy requirements gets stronger, the performance differ-
+ence of LoRA between different rank r becomes more and more apparent, yet for FFA-LoRA, the
+algorithm is still able to output relatively stable performance on a wide range of rank selections.
+How do FFA-LoRA and LoRA behave when we choose different α for scaling? As mentioned
+previously, LoRA requires a good scaling factor α in order to achieve a good performance. It has
+8

@@ -1,0 +1,63 @@
+Published as a conference paper at ICLR 2023
+training. We further denoteAi∗ as the i-th row ofA, B∗i as the i-th column ofB, and Gi = {Ai∗, B∗i}
+as the i-th doublet. Hu et al. (2022) only apply LoRA to query and value projections (i.e, Wq and
+Wv) in the MHAs. He et al. (2022) extend it to weight matrices of FFNs (i.e, Wf1 and Wf2), leading
+to the performance improvement . Meanwhile, they propose a unified view of various efficient tuning
+methods including adapter tuning, prefix tuning and LoRA.
+3 A DALORA M ETHOD
+Our method contains two important components: (i) SVD-based adaptation, which formulates
+the incremental matrices in the form of singular value decomposition; (ii) Importance-aware rank
+allocation, which prunes redundant singular values based on our newly-designed importance metric.
+3.1 SVD-B ASED ADAPTATION
+As mentioned in Section 1, we propose to parameterize the incremental updates of the pre-trained
+weight matrices in the form of singular value decomposition:
+W = W (0) + ∆ = W (0) + P ΛQ, (3)
+where P ∈ Rd1×r and Q ∈ Rr×d2 represent the left/right singular vectors of ∆ and the diagonal
+matrix Λ ∈ Rr×r contains the singular values {λi}1≤i≤r with r ≪ min(d1, d2). We further denote
+Gi = {P∗i, λi, Qi∗} as the triplet containing the i-th singular value and vectors. In practice, since
+Λ is diagonal, we only need to save it as a vector in Rr. Λ is initialized with zero while P and Q
+adopt a random Gaussian initialization to ensure ∆ = 0 at the beginning of training. To enforce the
+orthogonality of P and Q, i.e., P ⊤P = QQ⊤ = I, we utilize the following regularizer2:
+R(P, Q) = ∥P ⊤P − I∥2
+F + ∥QQ⊤ − I∥2
+F. (4)
+In our method, Λ is iteratively pruned to adjust the rank after each gradient decent step. As mentioned
+in Section 1, one can directly compute SVD for every ∆ to manipulate singular values. The
+computational complexity, however, is O(min(d1, d2)d1d2). It becomes extremely expensive to
+iteratively apply SVD for a large number of high-dimensional incremental matrices. In contrast, our
+parameterization avoids intensive SVD computation, greatly releasing the computational overhead.
+We remark that one can also apply structured pruning to LoRA to control the rank (i.e., pruneBA
+doublet-wise in (1)), whereas it has the following disadvantages. First, when a doublet is measured as
+unimportant, we have to prune all of its elements. It makes scarcely possible to reactivate the pruned
+doublets as their entries are all zeroed out and not trained. In contrast, AdaLoRA only masks out
+the singular values based on (3) while the singular vectors are always maintained. It preserves the
+potential of future recovery for the triplets dropped by mistake. Second, A and B of LoRA are not
+orthogonal, meaning the doublets can be dependent with each other. Discarding the doublets can
+incur larger variation from the original matrix than truncating the smallest singular values. Therefore,
+the incremental matrices are often altered dramatically after each step of rank allocation, which
+causes training instability and even hurts generalization. To demonstrate this point, we present an
+ablation study in Section 4.4, which compares AdaLoRA with structured pruning for LoRA.
+3.2 I MPORTANCE -AWARE RANK ALLOCATION
+We apply the SVD-based adaptation (3) to every weight matrix including Wq, Wk, Wv, Wf1 and
+Wf2 of each transformer layer. In order to control the budget, we iteratively prune singular values
+in correspondence to their importance score during the training. For clear reference, we use k to
+index the incremental matrix, i.e., ∆k = PkΛkQk for k = 1 , . . . , n, where n is the number of
+adapted weight matrices. We denote the i-th triplet of ∆k as Gk,i = {Pk,∗i, λk,i, Qk,i∗} and its
+importance score as Sk,i. We further denote the parameter sets P = {Pk}n
+k=1, E = {Λk}n
+k=1,
+Q = {Qk}n
+k=1 and training cost as C(P, E, Q). With the regularization (4), the training objective
+is given by L(P, E, Q) = C(P, E, Q) + γPn
+k=1 R(Pk, Qk), where γ > 0 is the regularization
+coefficient. At the t-th step, we first take a stochastic gradient step to update P (t)
+k , Λ(t)
+k and Q(t)
+k for
+k = 1, . . . , n. Specifically, for Λ(t)
+k
+˜Λ(t)
+k = Λ(t)
+k − η∇Λk L(P(t), E(t), Q(t)), (5)
+2We present the experiments in Appendix G to verify the effectiveness of the regularization.
+4

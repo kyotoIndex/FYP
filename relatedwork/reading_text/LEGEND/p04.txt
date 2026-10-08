@@ -1,0 +1,107 @@
+B A LoRA layers B A
+r8 r11 ... 
+LoRA rank distribution 
+#11 #0 ... Inputs Outputs 
+LoRA depth 
+#8 
+... 
+... #3 
+B AB A
+r0
+#4 ... #7 
+B AB A
+r3 r4 r7
+... ... 
+Shallow Medium Deep 
+ᴪ᯦␧ᓜ 
+Figure 2: Fine-tuning RoBERTa at different positions.
+1) Fine-tuning LoRA layers added to only the transformer
+layers at the deep position achieves comparable performance
+to vanilla LoRA. For example, as shown in Figure 3(a),
+Layers-D achieves comparable final accuracy ( i.e., 93.1%)
+to Layers-A (94.3%), with only fine-tuning a third of LoRA
+layers in Layers-A (i.e., less computing resource). In addition,
+compared with Layers-S and Layers-M, Layers-D improves
+the final model accuracy by 6.4% and 1.3%, respectively.
+2) Fine-tuning LoRA layers added to only the transformer
+layers at deep position speeds up the fine-tuning process. For
+instance, by Figure 3(b), Layers-D achieves 2.1×, 1.6×, and
+1.2× speedup compared to Layers-A, Layers-S, and Layers-
+M, respectively. This is because Layers-D greatly shortens
+the backpropagation process from 12 transformer layers to 4
+transformer layers, reducing the fine-tuning time.
+By the results, the LoRA position will greatly affect fine-
+tuning performance and resource consumption, while adding
+LoRA layers to a fixed number of transformer layers at the
+deep position can save resource cost with satisfactory fine-
+tuning performance. Our conclusion is consistent with the
+relevant conclusions that layers at the deep position are more
+important than those at the shallow position [10, 12, 26].
+2.3 Importance of LoRA Depth
+In addition to the results of adding LoRA layers to partial
+transformer layers at deep position, we further explore the
+impact of the number of transformer layers at deep position
+to add extra LoRA layers (called LoRA depth) on fine-tuning
+performance. In general, LoRA depth is closely related to
+fine-tuning performance and resource consumption. Specifi-
+cally, the larger LoRA depth means fine-tuning more layers at
+deep positions to enhance fine-tuning performance but leads
+to a longer backpropagation process (i.e., slower convergence
+rate). Although the smaller LoRA depth can shorten the back-
+propagation process to speed up the fine-tuning process, it
+constrains the number of tunable transformer layers and thus
+restricts the task-fitting capability of the LM. Therefore, it
+is critical and non-negligible to determine the appropriate
+LoRA depth for achieving the trade-off between fine-tuning
+performance and resource consumption.
+To illustrate the impact of the LoRA depth, we conduct a
+set of experiments for fine-tuning RoBERTa on SST-2 with
+different LoRA depths (from 1 to 12) and rank of 8. We can
+draw the following conclusions from Figure 4:
+1) As LoRA depth increases, resource consumption (e.g.,
+8 59095Test accuracy (%)R
+oBERTa on SST-2 
+Layers-A  Layers-S Layers-M  Layers-D
+(a) Test accuracy
+8
+8.406 9.705 1.304 2.80406080100Per-batch Latency (ms)R
+oBERTa on SST-2 
+Layers-A  Layers-S  Layers-M  Layers-D (b) Per-batch latency
+Figure 3: The impact of LoRA position.
+1 2 3 4 5 6 7 8 9 1 0111202468 Accuracy Loss (%)  Per-batch Latency (ms)L
+oRA depths4 06080100
+(a) Accuracy loss & Per-batch latency
+1 2 3 4 5 6 7 8 9 1 011121.01.52.0Memory(GB)L
+oRA depths (b) Memory usage
+Figure 4: The impact of LoRA depth.
+memory usage) increases almost linearly, resulting in slow
+convergence rate. For example, by Figures 4(a) and 4(b), with
+each additional LoRA layer, the per-batch latency increases
+by approximately 5ms, and the memory usage increases by
+approximately 107MB. Compared with LoRA depth of 1, fine-
+tuning RoBERTa with depth of 12 results in a 252% increase
+in per-batch latency and 221% growth in memory usage.
+2) The fine-tuning performance improves with the increase
+of LoRA depth, but the magnitude of the improvement dimin-
+ishes gradually. For instance, by Figure 4(a), compared to the
+LoRA depth of 3, fine-tuning RoBERTa with LoRA depths of
+6 and 9 exhibit improvements of 0.6% and 0.9% in accuracy,
+respectively. As LoRA depth increases from 1 to 3, the final
+model performance improves by 5.3%, but only 1.4% from
+LoRA depth of 3 to 12.
+By the results, carefully determining LoRA depth is critical
+to improve fine-tuning performance while saving computing
+and communication resources. Moreover, to deal with system
+heterogeneity, LEGEND assigns different LoRA depths for
+heterogeneous devices to adapt their capabilities. The devices
+with strong computing and communication capabilities are
+assigned with larger LoRA depths, while those with lower
+computing and communication capabilities are assigned with
+smaller LoRA depths, so as to reduce waiting time and further
+improve fine-tuning efficiency.
+2.4 Importance of LoRA Rank Distribution
+We further explore the impact of rank distribution on fine-
+tuning performance. In general, the rank of LoRA layer is
+closely related to the model capacity, and increasing rank is
+essential for better performance [40, 41]. Given a fixed total
+4

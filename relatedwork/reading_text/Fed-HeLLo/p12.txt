@@ -1,0 +1,111 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 12
+TABLE IX
+JUSTIFICATION OF FIM-HLA WITH DIFFERENT TRAINING STRATEGIES .
+Dataset/Model CIFAR-100/ViT-base
+Metric Accuracy (%) ↑
+Methods/DH IID 20/1.0 10/1.0 Avg
+Proxy Data-1 84.02 77.27 69.95 77.08
+Proxy Data-2 3.24 3.14 3.32 3.23
+Fed-HeLLo 87.11 84.64 79.76 79.03
+TABLE X
+JUSTIFICATION OF FIM-HLA WITH WIKIPEDIA PROXY DATASET .
+Dataset/Model DomainNet121/ViT-base
+Metric Accuracy (%) ↑
+Methods/DH IID 25/1 15/1 Avg
+HETLoRA 64.26 48.92 35.34 49.50
+FedRA 68.53 55.64 51.07 58.41
+Fed-HeLLo-Wikipedia 68.65 57.74 52.94 59.78
+Fed-HeLLo 68.98 58.01 53.74 60.24
+GD-HLA slightly outperforming Exclusive Learning in most
+settings. RGD-HLA (black) and FIM-HLA (green) perform
+well but lag behind Fed-HeLLo in the more extreme Non-IID
+scenarios. The overall average accuracy further underscores
+the superiority of Fed-HeLLo, as it consistently surpasses other
+methods across different data heterogeneity levels.
+In the chart on the right, Fed-HeLLo again demonstrates
+strong performance across Non-IID settings, especially in the
+“10/1.0” and “20/1.0” scenarios, where it achieves 64.27% and
+67.10%, respectively. Straggler Learning continues to perform
+poorly, particularly in the “2/1.0” setting, where it falls to
+11.65%. Exclusive Learning and GD-HLA show moderate
+improvements over Straggler Learning, but they still fall short
+of Fed-HeLLo’s performance. RGD-HLA exhibits competitive
+performance, especially in the “10/1.0” setting, which indi-
+cates the stable training is important for the extreme Non-IID
+cases. The average F1 scores indicate that Fed-HeLLo is not
+only robust but also adaptable to varying degrees of client
+and data heterogeneity, maintaining high F1 scores across the
+board. Across both datasets, Fed-HeLLo consistently outper-
+forms the other methods in nearly every Non-IID setting,
+as well as in the overall average metrics, demonstrating its
+effectiveness in FL with heterogeneous clients.
+4) Justification of FIM-HLA: Training Strategy: In FIM-
+HLA, we assume that the server holds a small proxy dataset.
+Ideally, the server could directly use this proxy dataset to
+improve the global model performance, making FIM-HLA
+unnecessary. To demonstrate that a small proxy dataset alone
+cannot significantly enhance fine-tuning performance and to
+justify the need for FIM-HLA, we conduct two additional
+experiments on CIFAR-100 dataset, named Proxy Data-1 and
+Proxy Data-2. All experiments sample 10 out of 100 clients
+with a RoC of 1:1:1. In the first experiment, we implement
+Fed-HeLLo but with the server acting as an additional client
+with sufficient computational capability to fine-tune all LoRA
+layers using the proxy dataset. In the second experiment, we
+implement Fed-HeLLo but with the server using the proxy
+data to fine-tune the global model after aggregation at each
+round. The accuracy results for both experiments are reported
+in Table IX. We observe that both proxy data-based global
+model fine-tuning methods result in unfavorable performance
+compared to FIM-HLA. For Proxy Data-1, there are consistent
+performance drops compared to Fed-HeLLo. This may be due
+to the server updates trained on proxy data being included in
+the model updates each round, causing the model to overfit
+to the proxy data and leading to suboptimal performance. For
+Proxy Data-2 , where the server fine-tunes the global model
+using proxy data after each aggregation round, the overfitting
+issue becomes even more severe, resulting in poor performance
+across all data distributions. Proxy Dataset from Wikipedia:
+To further assess the sensitivity of the proxy data, we manually
+collect a dataset from Wikipedia 1 for DomainNet-121 dataset.
+Specifically, we use each category name as a keyword, search
+for it on Wikipedia, and download the first image that appears,
+resulting in a small proxy dataset of 121 images (one per
+category). In Table X, we present the experimental results
+using a 10/100 clients setting with a RoC of 1:1:1. For
+Fed-HeLLo, we use 1,000 random test data samples from
+DomainNet-121, which are excluded from all other training
+and evaluation. For Fed-HeLLo-Wikipedia, we utilize the
+proxy dataset collected from Wikipedia, following the same
+training conditions as Fed-HeLLo. In terms of results, Fed-
+HeLLo consistently outperforms all other methods across all
+scenarios, achieving the highest accuracy in the IID (68.98%),
+25/1 Non-IID (58.01%), and 15/1 Non-IID (53.74%) settings,
+with an overall average accuracy of 60.24%. Fed-HeLLo-
+Wikipedia closely follows, particularly in the IID (68.65%)
+and 25/1 Non-IID (57.74%) settings, but with a slightly
+lower average accuracy of 59.78%. This drop is possibly due
+to the proxy data from Wikipedia lacking domain diversity
+like DomainNet-121 and having fewer samples. FedRA falls
+behind in all scenarios, with an average accuracy of 58.41%,
+while HETLoRA performs the worst, particularly in Non-IID
+scenarios, leading to the lowest overall average accuracy of
+49.50%.
+V. L IMITATIONS AND POTENTIAL FUTURE WORKS
+Privacy Preserving. While our work leverages the inherent
+privacy-preserving nature of FL by ensuring that client data
+remains local and is not shared with the server or other clients,
+potential vulnerabilities still exist. For example, FL remains
+susceptible to privacy attacks such as model inversion [18],
+where adversaries attempt to reconstruct client data from
+model updates. Techniques like differential privacy [17] and
+secure aggregation [5] can be integrated into our framework
+to mitigate the vulnerability.
+Memory Constraint. Additionally, the storage of interme-
+diate activations is still challenging to resource-constrained
+clients. Activation saving techniques, such as sparsifica-
+tion [44] and pruning [71], can be integrated to reduce
+storage overhead while maintaining training stability. Future
+work can explore adaptive activation compression strategies
+to dynamically adjust compression levels based on available
+1https://www.wikipedia.org/

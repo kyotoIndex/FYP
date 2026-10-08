@@ -1,0 +1,36 @@
+Table 5: Layer selection performance on DDDT. We report averaged held-out accuracy (%, mean± sample
+std.) at round64and total communication cost, including selector overhead.
+FedSAIL variant Accuracy (%) Comm. (MiB) Saving (%)
+Full90.033±0.225 96.094–
+Selection,τ= 0.6 90.133±0.038 77.589 19.26
+Selection,τ= 0.7 89.908±0.800 58.904 38.70
+in unshared layers. Appendix F provides the selection rule, complete threshold sweep, and communication
+accounting.
+5 Conclusion
+In this paper, we demonstrate that high parameter similarity in federated LoRA often reflects common
+initialization rather than genuine task learning. By shifting the focus from weight space to input-aware
+action space, we identify a robust, task-conditioned structure that genuinely generalizes across heterogeneous
+clients. Leveraging this geometric insight, we introduce FedSAIL. Instead of enforcing rigid parameter
+synchronization, FedSAIL aligns clients through a basis-invariant spectral consensus, providing regularization
+while preserving local coefficients and residual directions. Extensive evaluations confirm that FedSAIL
+consistently outperforms existing federated LoRA baselines. Additionally, by measuring layer-wise subspace
+agreement, our framework can use warmup-based selection to suspend communication at deeper layers with
+low cross-client agreement, reducing payload costs significantly while retaining comparable mean predictive
+accuracy. Ultimately, we establish that effective federated fine-tuning must be data-driven: by anchoring
+consensus in local input distributions, it ensures clients collaborate where tasks align and diverge where
+personalization is essential.
+AI use statement
+We used generative AI tools to provide feedback on the experimental methodology and to assist with
+interpreting results. We also used these tools to revise manuscript and figures. The authors take responsibility
+for the final content, including AI-assisted text, analyses, and figures.
+Ethics statement
+This work focuses on algorithmic design in federated learning and utilizes standard, publicly available
+datasets. The research does not involve human subjects, sensitive personal information, or proprietary data.
+Consequently, this paper does not present any specific ethical issues or potential for negative societal impact.
+Reproducibility statement
+Algorithm 1 details the core FedSAIL framework. To ensure full reproducibility, comprehensive exper-
+imental details—including dataset construction, client partitioning, hyperparameter configurations, and
+exact communication accounting—are provided in Appendices B through F. Furthermore, the core im-
+plementation of FedSAIL, along with numerical tests and baseline methods, is anonymously available at
+https://anonymous.4open.science/r/FedSAIL-4A7C/.
+11

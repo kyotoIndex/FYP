@@ -1,0 +1,46 @@
+Client num Methods SST-2 QNLI MNLI QQP RTE
+LoRA95.64 92.04 85.85 86.16 82.19
+3 FFA-LoRA 94.91 90.11 84.06 85.48 80.86
+RoloRA 95.60 91.62 85.66 86.16 82.19
+LoRA 94.27 86.91 81.22 82.07 46.21
+20 FFA-LoRA 93.92 89.58 80.51 82.62 57.76
+RoloRA 94.84 90.77 85.13 85.10 81.23
+LoRA 93.23 82.57 58.96 76.96 49.10
+50 FFA-LoRA 92.32 85.15 62.79 77.78 53.07
+RoloRA 94.61 89.83 85.15 85.55 72.92
+Table 8: Results with RoBERTa-Large models with varying client numbers (3, 20, 50) using rank-2
+LoRA modules in federated setting, maintaining a constant sample count during fine-tuning.
+Client num Methods MNLI QQP
+LoRA 79.72±0.3883.66±0.02
+20 FFA-LoRA 80±0.4784.08±0.31
+RoLoRA 85.91±0.63 86.37±0.09
+LoRA 70.84±4.6379.75±0.31
+50 FFA-LoRA 74.47±1.5780.65±0.31
+RoLoRA 85.46±0.08 86.15±0.26
+Table 9: Results with RoBERTa-Large models in 20-client and 50-client setting using rank-32 LoRA
+adapters.
+10-Client SettingIn Table 10, we provide results for 10-client setting with rank-4 adapter. The
+results show that RoLoRA still outperform other methods. In the 10-client setting, RoLoRA’s
+performance gain over other methods falls between the gains observed in the 3-client and 20-client
+settings.
+MNLI QQP QNLI
+LoRA 81.48±2.1984.1±0.1487.73±0.67
+FFA-LoRA 83.19±0.6484.35±0.0689.88±0.13
+RoLoRA 84.95±0.8 95.25±0.39 90.3±0.76
+Table 10: Results with RoBERTa-Large model with 10 clients using rank-4 LoRA adapters, running
+for 150 rounds in total.
+FLoRA vs. RoLoRATable 11 shows a comparison between FLoRA and RoLoRA. In the 3-client
+setting, we ran 500 rounds and scaled rounds down proportionally with more clients to keep the
+total sample budget fixed. RoLoRA consistently outperforms FLoRA across tasks and client counts.
+While FLoRA eventually converges (e.g., 83.3% on MNLI after 4000 rounds), it does so much more
+slowly, highlighting RoLoRA’s faster convergence and better scalability.
+Finetuning Dynamics within 100 RoundsFigure 8 presents the 100-round extension of Figure 3,
+where RoLoRA consistently converges faster and achieves the highest accuracy.
+We want to clarify that Figure 3 focuses on comparing convergence under a fixed sample budget
+rather than full convergence, and Table 1 shows that this budget suffices for all methods when using 3
+clients. However, as shown in Figure 3, with 50 clients, only RoLoRA fully converges, underscoring
+its efficiency in low-resource settings.
+A5.4 Effect of Number of LoRA Parameters
+In Table 12, we include the details about layers attached with LoRA adapters for different budget of
+finetuning parameters, for each dataset.
+42

@@ -1,0 +1,110 @@
+15
+LoRA ranksr∈ {2,4,8,16}. For each setting, RSS is com-
+puted before federated training, while the empirical winner
+is determined by comparing the test accuracies obtained at
+the best validation rounds of the two sharing strategies.
+Across the 38 evaluated settings, the RSS decision agrees
+with the empirically better sharing strategy in all 33 cases
+with a strict accuracy difference. The remaining five cases
+are marked as empirical ties in Table VIII. The preferred
+sharing side also changes with the data partition and LoRA
+rank. For example, QNLI and MNLI favor Share-A/Local-B
+under the evaluated IID settings, whereas Share-B/Local-A
+is preferred in most of their Dirichlet settings. For MNLI
+under Dirichletα= 1, the preferred strategy further changes
+from Share-B/Local-A atr= 4to Share-A/Local-B at
+r= 8. Similarly, SST-2 favors Share-A/Local-B under IID
+partitions but mainly favors Share-B/Local-A under the non-
+IID partitions. These results support the use of a partition-
+and rank-aware selection rule instead of a fixed sharing
+policy. RSS should nevertheless be interpreted as a sharing-
+side selector rather than an estimator of the final accuracy
+gap between the two strategies.
+Alignment with the training objective.:Table VIII
+compares the RSS decision with the final test-accuracy
+preference of the two fixed sharing strategies. We further
+examine whether the decision direction of RSS agrees with
+their relative behavior under the actual training objective.
+For visual illustration, we randomly sample several evaluated
+settings and compare their RSS decision margins with the
+corresponding training losses of Share-A/Local-B and Share-
+B/Local-A.
+For rankr, we define the relative RSS decision margin as
+mRSS(r) = τ(r)−∆(r)
+τ(r) + ∆(r) .(48)
+Since RSS selects Share-A/Local-B when∆(r)≤τ(r),
+a positivem RSS(r)favors Share-A/Local-B, whereas a
+negative value favors Share-B/Local-A. We also define the
+relative training-loss advantage as
+mloss = LB −L A
+LB +L A
+,(49)
+whereL A andL B denote the training losses obtained by
+Share-A/Local-B and Share-B/Local-A, respectively. Ac-
+cordingly,m loss >0means that Share-A/Local-B attains
+a lower training loss, whilem loss <0means that Share-
+B/Local-A attains a lower training loss.
+As shown in Fig. 3, all sampled cases lie in either the
+upper-right or lower-left quadrant. Thus, the sharing side
+Method MNLI-m MNLI-mm SST-2 QNLI QQP RTE
+LoRA 1E-2 1E-2 2E-2 1E-2 1E-2 1E-2
+FFA-LoRA 5E-2 5E-2 5E-2 2E-2 5E-2 2E-2
+FedDPA-LoRA 1E-2 1E-2 1E-2 5E-2 5E-2 1E-2
+FedSA-LoRA 2E-2 2E-2 1E-2 5E-3 2E-2 1E-2
+FedAS-LoRA 2E-2 2E-2 1E-2 5E-3 2E-2 1E-2
+TABLE V: Learning rates used for LoRA-based methods on
+the GLUE benchmark.
+Method MNLI-m MNLI-mm SST-2 QNLI QQP RTE
+rsLoRA 5E-3 5E-3 1E-2 2E-3 5E-3 2E-3
+FFA-rsLoRA 2E-2 2E-2 2E-2 1E-2 2E-2 1E-2
+FedDPA-rsLoRA 5E-3 5E-3 1E-2 1E-3 5E-3 1E-2
+FedSA-rsLoRA 5E-3 5E-3 5E-3 1E-3 2E-3 2E-3
+FedAS-rsLoRA 5E-3 5E-3 5E-3 1E-3 2E-3 2E-3
+TABLE VI: Learning rates used for rsLoRA-based methods
+on the GLUE benchmark.
+Method Position
+MNLI-
+m
+MNLI-
+mm SST-2 QNLI QQP RTE
+VeRA VeRA 1E-2 1E-2 2E-2 2E-3 2E-3 1E-2
+Head 6E-3 6E-3 2E-3 3E-4 3E-4 2E-4
+FFA-VeRA VeRA 2E-2 2E-2 1E-2 1E-2 1E-2 1E-2
+Head 2E-3 2E-3 6E-3 2E-4 6E-3 2E-4
+FedDPA-VeRA VeRA 1E-2 1E-2 1E-2 2E-3 2E-2 1E-2
+Head 6E-3 6E-3 6E-3 3E-4 2E-3 2E-4
+FedSA-VeRA VeRA 2E-3 2E-3 1E-2 1E-2 2E-3 1E-2
+Head 3E-5 3E-5 3E-4 3E-4 3E-4 1E-4
+FedAS-VeRA VeRA 2E-3 2E-3 1E-2 1E-2 2E-3 1E-2
+Head 3E-5 3E-5 3E-4 3E-4 3E-4 1E-4
+TABLE VII: Learning rates used for VeRA-based methods
+on the GLUE benchmark.
+selected by RSS also attains the lower training loss in these
+cases. This result provides additional evidence that the RSS
+decision is consistent with the optimization behavior of the
+two sharing strategies under the actual task objective.
+This directional agreement provides empirical support for
+the residual-based selection principle in Theorem 1. The
+theorem shows that the preferred sharing side is determined
+by which shared-subspace constraint yields the smaller ag-
+gregate projection residual. RSS translates this principle into
+a training-free decision rule by assessing whether the com-
+mon rank-rinput-side subspace required by Share-A/Local-
+B is sufficient for the client representations. When this
+subspace is sufficient, RSS favors Share-A/Local-B; other-
+wise, it favors Share-B/Local-A. The consistent training-loss
+preference therefore indicates that RSS identifies the sharing
+constraint that better fits the client data under the actual task
+objective. This result supports RSS as a practical proxy for
+the residual-based sharing-side preference characterized in
+Theorem VIII.
+Scalability Analysis under Uniform and Non-Uniform Client
+Sampling
+To further evaluate scalability, we increase the number
+of clients toN= 50under uniform and non-uniform
+sampling. As shown in Table IX, FedAS-LoRA achieves
+the highest accuracy on QNLI, SST-2, and MNLI-m under
+both sampling settings. Compared with FedSA-LoRA, its
+average accuracy is higher by 0.85 and 0.76 percentage
+points under uniform and non-uniform sampling, respec-
+tively. These results show that selecting the sharing side

@@ -1,0 +1,74 @@
+federated fine-tuning of LLMs to navigate between the extremes of task-specific optimization and
+generalization to unseen clients and tasks.
+3.2 Aggregation with Heterogeneous Ranks
+Traditional FL methods like FedAvg aggregate local LoRA weights by computing a weighted
+average of the decomposed matrices A and B as Bg = ( Pm
+i=1 niBi
+l)/(Pm
+i=1 ni), A g =
+(Pm
+i=1 niAi
+l)/(Pm
+i=1 ni), where Bg, Ag are the global LoRA decomposed matrices, and Bi
+l , Ai
+l
+are the local LoRA decomposed matrices of i-th client, ni is the size of the i-th client’s local training
+dataset, m is the number of FL clients. However, this scheme is restricted by the lowest LoRA rank
+among participating clients for aggregation compatibility, which makes it hard to capture the full
+diversity of client contributions and fully utilize ample client resources.
+FlexLoRA takes a different yet simple approach to enable decomposed matrix with different LoRA
+ranks to be mixed together. Specifically, it first forms a low-rank approximation of the LoRA matrix
+for each client, W i
+l , before computing the weighted average: Wg = (P niW i
+l )/(Pm
+i=1 ni) =
+(P nisBi
+l Ai
+l)/(Pm
+i=1 ni).
+After the weighted average with heterogeneous LoRA ranks, the resulting global LoRA weight Wg is
+decomposed using SVD. Then the SVD components U, Σ, V are redistributed to clients in a low-rank
+approximation that preserves as much information of Wg as possible meanwhile based on clients’
+local resources characterized by ri:
+SVD(Wg) = UΣV T , W i
+g = U[:, : ri]Σ[: ri, : ri]V [: ri, :]T ≈ Wg,
+where U, Σ, and V T are the SVD components of Wg, the ri within [] indicates the indexing operator
+of each client to select their singular vectors corresponding to top ri singular values. As a result,
+client i receives the aggregated knowledge W i
+g from server and incorporates W i
+g into its local LoRA
+weight W i
+l = sBi
+l Ai
+l with Bi
+l = U[:, : ri]Σ[: ri, : ri]/s, and Ai
+l = V [: ri, :]T .
+The local training then proceeds as similar to those in standard FL approaches, using W i
+l as the local
+weights to be tuned. This aforementioned process is repeated until convergence is achieved or a
+predetermined number of rounds is completed.
+3.3 Maximizing Local Rank with Local Resources
+To fully utilize the local resource of a local client, we adhere to the principle of allocating the highest
+feasible rank given a client’s resource budget, which is motivated by our empirical finding that larger
+ranks generally yield better generalization. Figure 1 demonstrates that models trained with uniformly
+higher ranks outperform those with lower ranks under conventional parameter-average aggregation
+schemes. For single-client performances, the zero-shot performance is also boosted in the majority
+of the cases. The Table 13 and Figure 9 from Appendix J show that performance improves with
+higher LoRA ranks uniformly regardless of the tasks assigned to each client. While there might be an
+ideal LoRA rank that maximizes a single client’s performance—potentially as high as 200—practical
+resource limitations may necessitate settling for a lower rank, such as 8. Therefore, we adopt the
+principle of setting the rank to be as large as possible to completely utilize the resources in FlexLoRA,
+which is easy to implement and under low risk of overfitting as Occam’s razor suggests.
+In Appendix B, the overall procedure of FlexLoRA and its core function of server update are
+summarized in Algorithm 1 and Algorithm 2 respectively. FlexLoRA optimally leverages the inherent
+characteristics of LoRA, boosting model generalization effectively by increasing local ranks, while
+without sacrificing overall training efficiency. Compared to FedAvg and homogeneous rank-based
+FL methods, FlexLoRA incorporates a lightweight SVD procedure, but the overhead from SVD is
+negligible compared to the local LLM training procedure. Moreover, the SVD is performed only once
+per round and is independent of client numbers. Notably, FlexLoRA enables heterogeneous ranks
+without the need for any additional hyperparameter tuning. As we empirically demonstrate in Table 4,
+the improved convergence rate, thanks to larger ranks, more than compensates for the extra overhead
+introduced by training on more parameters per round, resulting in a net gain in overall efficiency
+and a reduced overall time to completion. These features enhance its efficiency and scalability in
+cross-device FL settings where thousands or millions of devices are involved.
+4

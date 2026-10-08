@@ -1,0 +1,63 @@
+Figure 1: Comparison of update patterns in FedLoRA, FFA-LoRA, RoLoRA, and the proposed
+Adaptive Selection LoRA (AS-LoRA).
+partitions. Several remedies have since been proposed to alleviate those issues.FFA-LoRA[ 14]
+freezes A and trains only B,RoLoRA[ 15] alternates updates between A and B across rounds, and
+FedSVD[ 16] also trains only B while applying a server-side Singular Value Decomposition (SVD).
+Yet all of them adopt structurally simple update strategies that impose thesame mode on every layer
+and followtemporally static patterns, which overlook both the structural asymmetry between A and
+B, and the round-wise variation of their relative importance. This motivates an adaptive framework
+in which the active LoRA component is selected per layer and per round, as depicted in Figure 1.
+Table 1: Performance comparison of fixed al-
+ternating LoRA optimization schedules on 3
+GLUE tasks. Best results are shown inbold
+and second-best results are underlined.
+Schedule MNLI (m) MNLI (mm) SST-2 QQP
+BA[15]81.1781.96 92.09 84.45
+BAA80.26 81.2092.8984.21
+BBA81.10 81.9892.30 84.45
+BBAA80.78 81.55 92.66 84.49
+In fact, prior work [17] shows that the two low-rank
+matrices contribute asymmetrically to the optimiza-
+tion process across training stages, owing to their
+different initialization schemes and structural char-
+acteristics. To examine whether this asymmetry can
+be handled by simple fixed schedules, we conduct
+preliminary experiments that compare several al-
+ternating patterns including BA, BBA, and BAA, as
+shown in Table 1. No single schedule attains the
+best performance across all tasks, which indicates
+that fixed and heuristic alternating schedules are in-
+herently suboptimal, and that the choice of which low-rank component to optimize should instead be
+made adaptively according to current training dynamics. Consistent with this observation, the active
+LoRA component selected by our proposed AS-LoRA varies dynamically across both layers and
+communication rounds throughout training, as illustrated in Figure 2, which presents a representative
+trajectory whose full details are deferred to Appendix J.
+Building on those observations, we propose AS-LoRA (Adaptive Selection LoRA), and the main
+contributions of this paper are summarized as follows.
+Figure 2: Selection of LoRA components
+with AS-LoRA (ours) on QNLI across lay-
+ers/rounds. Different layers favor different
+components, and the preferred component
+varies across rounds, supporting the need for
+adaptive selection.
+Layer-wise adaptive LoRA optimization.To the
+best of our knowledge, this is the first work that
+extends alternating LoRA optimization to a adap-
+tive selection framework. We further prove that
+this layer-wise freedom eliminates the irreducible
+reconstruction-error floor that any layer-tied schedule
+must incur.
+Round-wise adaptive mode selection.We intro-
+duce a temporally adaptive mechanism that updates
+the selected LoRA component across communication
+rounds based on EMA-smoothed historical scores,
+which allows the model to adjust its optimization
+strategy as training progresses.
+Curvature-aware scoring function.We design a
+scoring function derived from a second-order approx-
+imation of the loss, which captures curvature-aware
+component importance. We prove that this score-driven selection accelerates convergence with a
+quantifiable gain over fixed schedules and implicitly biases solutions toward flatter minima, which we
+further verify empirically through loss-landscape and sharpness analyses. To handle the channel-wise
+gradient outliers that are characteristic of LoRA [18], we further apply a Gaussian random projection
+2

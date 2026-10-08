@@ -1,0 +1,47 @@
+Table 3: The performance of FL ORA + AdaLoRA. AdaLoRA can reduce the rank while preserving
+the fine-tuning effectiveness.
+Foundation Fine-tuning Sum of MT-bench
+model algorithm local ranks score
+TinyLlama FLORA 160 3.13
+FLORA+AdaLoRA 120 3.14
+Llama FLORA 160 4.21
+FLORA+AdaLoRA 131 4.10
+Llama2 FLORA 160 4.17
+FLORA+AdaLoRA 140 4.25
+Table 4: Compare FL ORA with baselines in Llama2.
+Strategy Fine-tuning Wizard ShareGPTalgorithm
+Centralized LoRA 4.24 3.99
+Homo FedIT 4.03 3.87
+FL ORA 4.22 3.96
+Heter Zero-padding 4.01 3.70
+FL ORA 4.17 3.91
+A.3 Supplementary Experiment Results
+Integrating FLORA with AdaLoRA All the observations about the impact of rank on the model
+performance, despite being influenced by data heterogeneity, still manage to reveal the importance of
+selecting an appropriate LoRA rank for a specific task. Thus, some algorithms such as AdaLoRA [27]
+are designed to adaptively adjust the LoRA rank to optimize the model performance and save
+computational resources. With our support for heterogeneous LoRA, we can flexibly utilize AdaLoRA
+with adaptive LoRA ranks. We conducted corresponding experiments to demonstrate that we can
+use AdaLoRA to further improve the efficiency of federated fine-tuning. We implement AdaLoRA
+on each client to adjust LoRA modules during local fine-tuning. The results are shown in Table 3.
+The "Sum of local ranks" column means the sum of all local LoRA rank values after fine-tuning.
+Since our FLORA does not adjust the rank, its value is 160, the same as the initial value. On the
+other hand, AdaLoRA dynamically adjusts the rank to maximize training effectiveness and minimize
+rank values to save resources. From Table Table 3, we can see that AdaLoRA on TinyLlama and
+Llama reduced the sum of local ranks to 120 and 131 from 160 respectively. We further conclude
+that FL ORA+AdaLoRA can further reduce the trainable parameter count while ensuring comparable
+or even improved performance compared to simply using LoRA on the clients. Our support for such
+rank adaptation further demonstrates the effectiveness and applicability of the FLORA approach.
+Experiment results of Llama2. Due to the inherently strong performance of Llama2, the im-
+provement in the QA dataset is not significant. Therefore, we fine-tuned Llama2 using the Wizard
+and ShareGPT datasets. Overall, Llama2 exhibits similar experimental results to Tinyllama and
+Llama. Table 4 shows the comparison between FLORA and our baselines. In the homogeneous and
+heterogeneous settings, the MT-bench scores of Wizard and ShareGPT all surpass those in FedIT
+and Zero-padding. As for the impact of scaling factors in Figure 7, Llama2 has a similar trend to the
+Llama-7b model, in which higher scaling factors exhibit better fine-tuning performance.
+B Convergence Analysis
+In this section, we demonstrate the convergence of FLORA following the standard convergence
+analysis in [11]. The FedAvg algorithm exhibits convergence to the global optimum at a rate of
+O(1/T ) for non-IID (independent and identically distributed) data under full client participation.
+This convergence is based on four assumptions mentioned in [11]:
+13

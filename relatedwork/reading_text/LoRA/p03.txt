@@ -1,0 +1,63 @@
+During full ﬁne-tuning, the model is initialized to pre-trained weights Φ0 and updated to Φ0 + ∆Φ
+by repeatedly following the gradient to maximize the conditional language modeling objective:
+max
+Φ
+∑
+(x,y)∈Z
+|y|∑
+t=1
+log (PΦ(yt|x, y<t)) (1)
+One of the main drawbacks for full ﬁne-tuning is that foreach downstream task, we learn a different
+set of parameters ∆Φ whose dimension|∆Φ| equals|Φ0|. Thus, if the pre-trained model is large
+(such as GPT-3 with |Φ0| ≈175 Billion), storing and deploying many independent instances of
+ﬁne-tuned models can be challenging, if at all feasible.
+In this paper, we adopt a more parameter-efﬁcient approach, where the task-speciﬁc parameter
+increment ∆Φ = ∆Φ(Θ) is further encoded by a much smaller-sized set of parameters Θ with
+|Θ|≪| Φ0|. The task of ﬁnding∆Φ thus becomes optimizing over Θ:
+max
+Θ
+∑
+(x,y)∈Z
+|y|∑
+t=1
+log
+(
+pΦ0+∆Φ(Θ)(yt|x, y<t)
+)
+(2)
+In the subsequent sections, we propose to use a low-rank representation to encode ∆Φ that is both
+compute- and memory-efﬁcient. When the pre-trained model is GPT-3 175B, the number of train-
+able parameters|Θ| can be as small as 0.01% of|Φ0|.
+3 A REN ’T EXISTING SOLUTIONS GOOD ENOUGH ?
+The problem we set out to tackle is by no means new. Since the inception of transfer learning, dozens
+of works have sought to make model adaptation more parameter- and compute-efﬁcient. See Sec-
+tion 6 for a survey of some of the well-known works. Using language modeling as an example, there
+are two prominent strategies when it comes to efﬁcient adaptations: adding adapter layers (Houlsby
+et al., 2019; Rebufﬁ et al., 2017; Pfeiffer et al., 2021; R¨uckl´e et al., 2020) or optimizing some forms
+of the input layer activations (Li & Liang, 2021; Lester et al., 2021; Hambardzumyan et al., 2020;
+Liu et al., 2021). However, both strategies have their limitations, especially in a large-scale and
+latency-sensitive production scenario.
+Adapter Layers Introduce Inference Latency There are many variants of adapters. We focus
+on the original design by Houlsby et al. (2019) which has two adapter layers per Transformer block
+and a more recent one by Lin et al. (2020) which has only one per block but with an additional
+LayerNorm (Ba et al., 2016). While one can reduce the overall latency by pruning layers or exploit-
+ing multi-task settings (R ¨uckl´e et al., 2020; Pfeiffer et al., 2021), there is no direct ways to bypass
+the extra compute in adapter layers. This seems like a non-issue since adapter layers are designed
+to have few parameters (sometimes <1% of the original model) by having a small bottleneck di-
+mension, which limits the FLOPs they can add. However, large neural networks rely on hardware
+parallelism to keep the latency low, and adapter layers have to be processed sequentially. This makes
+a difference in the online inference setting where the batch size is typically as small as one. In a
+generic scenario without model parallelism, such as running inference on GPT-2 (Radford et al., b)
+medium on a single GPU, we see a noticeable increase in latency when using adapters, even with a
+very small bottleneck dimension (Table 1).
+This problem gets worse when we need to shard the model as done in Shoeybi et al. (2020); Lep-
+ikhin et al. (2020), because the additional depth requires more synchronous GPU operations such as
+AllReduce and Broadcast, unless we store the adapter parameters redundantly many times.
+Directly Optimizing the Prompt is Hard The other direction, as exempliﬁed by preﬁx tuning (Li
+& Liang, 2021), faces a different challenge. We observe that preﬁx tuning is difﬁcult to optimize
+and that its performance changes non-monotonically in trainable parameters, conﬁrming similar
+observations in the original paper. More fundamentally, reserving a part of the sequence length for
+adaptation necessarily reduces the sequence length available to process a downstream task, which
+we suspect makes tuning the prompt less performant compared to other methods. We defer the study
+on task performance to Section 5.
+3

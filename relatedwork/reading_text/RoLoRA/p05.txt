@@ -1,0 +1,79 @@
+weights corresponding to rankr= 1. In this setting, we model the local data ofi-th client such that
+Yi =X ia∗b∗⊤
+(5)
+for some ground truth LoRA weights a∗ ∈R d (a unit vector) and b∗ ∈R d. We consider the
+following objective
+min
+a∈Rd,b∈Rd
+1
+N
+NX
+i=1
+li(a,b)(6)
+where the local loss is li(a,b) = 1
+m ∥Xia∗b∗⊤
+−X iab⊤∥2. Each Xi is assumed to be a Gaussian
+random matrix, where each entry is independently and identically distributed according to a standard
+Gaussian distribution.
+We remind the reader that Section 1.2 provides a summary of mathematical notations and also point
+to Table 5 in Appendix A3.1 for a summary of the symbols used throughout the theoretical analysis.
+Results.In this section, we assume homogeneous clients where there is a single target model as
+in (5). In the linear model case, we modify RoLoRA from Algorithm 1 to Algorithm 2, employing
+alternating minimization for b (line 5) and gradient descent for a (line 9). Details are described
+in Algorithm 2 in Appendix. We note that the analysis of the alternating minimization-gradient
+descent algorithm is inspired by [9, 31, 36] for a different setting of MLRL. See further discussion in
+Appendix A2.
+We aim to show that the training procedure described in Algorithm 2 learns the target model (a∗,b ∗)
+by showing the angle distance (Definition 4.2) between a and a∗ is decreasing in each iteration.
+Since b is solved exactly at each iteration via local minimization, it is always optimal with respect to
+the current a. This allows us to isolate and analyze the convergence behavior of a using the angle
+distance, eliminating the potential impact of insufficient local updates of b on the convergence of a.
+First, we make typical assumptions on the ground truthb ∗ and formally define the angle distance.
+Assumption 4.1.There existsL max <∞(known a priori), s.t.∥b ∗∥ ≤L max.
+Definition 4.2.(Angle Distance) For two unit vectors a,a ∗ ∈R d, the angle distance between a and
+a∗ is defined as
+|sinθ(a,a ∗)|=∥(I d −aa ⊤)a∗∥(7)
+whereI d −aa ⊤ is the projection operator to the direction orthogonal toa.
+Let δt =∥(I d −a ∗a∗⊤
+)at∥=∥(I d −a tat⊤
+)a∗∥ denote the angle distance between a∗ and at of
+t-th iteration. We initialize a0 such that |sinθ(a ∗,a 0)|=δ 0, where 0< δ 0 <1 , and b0 is zero. All
+clients obtain the same initialization for parameters. Now we are ready to state our main results.
+Lemma 4.3.Let δt =∥(I d −a ∗a∗⊤
+)at∥ be the angle distance between a∗ and at of t-th iteration.
+Assume that Assumption 4.1 holds and δt ≤δ t−1 ≤ · · · ≤δ 0. Let m be the number of samples for
+each updating step, let auxiliary error thresholds ϵ′ = ϵ2
+(1−ϵ0)(1−ϵ1) ,˜ϵ= ϵ3
+1−ϵ0
+for ϵ0, ϵ1, ϵ2, ϵ3 ∈
+(0,1) , if m= Ω(q) for q= max
+
+log(N)
+[min(ϵ1,ϵ2)]2 ,
+dlog( 2
+ϵ0 )
+ϵ2
+2
+
+, and auxiliary error thresholds are small
+such thatϵ ′,˜ϵ < 1−(δ0)2
+16 , for anytandη≤ 1
+L2max
+, then we have,
+δt+1 ≤δ t
+q
+1−η(1−δ 02
+)∥b∗∥2 (8)
+with probability at least1−2q −10.
+Theorem 4.5 follows by recursively applying Lemma 4.3 and taking a union bound over allt∈[T].
+Remark4.4.The decreasing angle assumption in Lemma 4.3 is a technical tool to simplify the
+proof. In Theorem 4.5, this condition is not required: the inductive hypothesis inherently enforces the
+necessary bounds on angles, bypassing the need for explicit monotonicity.
+Theorem 4.5.(Convergence of RoLoRA for linear regressor) Suppose we are in the setting described
+in Section 4.1 and apply Algorithm 2 for optimization. Given a random initial a0, an initial angle
+distance δ0 ∈(0,1) , we set step size η≤ 1
+L2max
+and the number of iterations T≥ 2
+c(1−(δ0)2) log( δ0
+ϵ ),
+5

@@ -1,0 +1,109 @@
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+4 EV ALUATION
+In this section, we conducted a series of experiments on both log-
+based anomaly detection and medical diagnosis scenarios to answer
+the following research questions:
+• RQ1:How does FDLoRA perform compared to baselines
+under different federation setups?
+• RQ2:How does the communication round affect accuracy?
+• RQ3:How does the communication frequency affect accu-
+racy?
+• RQ4:How does the asynchronous update frequency affect
+accuracy?
+• RQ5:How effective are combine both personalized LoRA
+and global LoRA?
+• RQ6:How to balance communication and computation costs?
+• RQ7:What are the advantages of the AdaFusion compared
+with other implementations?
+4.1 Experiment Setup
+Dataset.To evaluate our approach and baselines on different sce-
+narios. We select two scenarios including both system log analy-
+sis and medical diagnosis. Specifically, we utilize three public log
+datasets from LogHub [54]: BGL [32], Spirit [37], and Thunderbird
+[32] in the system log analysis. For medical diagnosis, we employ
+the bio-medicine dataset 1. The statistic of data in both scenarios is
+present in Table 2.
+Characteristics.InScenario-1, three datasets exhibit varying
+sample sizes, ranging from 10,000 samples each. The input length
+distributions within these datasets vary significantly, indicating
+diverse data characteristics and potential challenges in handling
+inputs of different lengths. InScenario-2, five datasets are utilized,
+with the number of samples ranging from 500 to 2,000. Similarly,
+these datasets display diverse input length distributions, reflect-
+ing the heterogeneity present in federated learning settings. The
+analysis demonstrates the necessity of addressing the diverse data
+characteristics present in federated learning scenarios to achieve
+robust model performance.
+Data Preprocessing.In log analysis (Scenario-1), our primary fo-
+cus is on the task of log-based anomaly detection. First, the unstruc-
+tured logs within each dataset are formatted using the log parsing
+method. Then, the formatted logs are sorted based on timestamps
+and sequences are generated using fixed-size sliding windows (de-
+fault is 50). Following the existing work [34], we retain only the log
+content sequence, which excludes information such as timestamps.
+Finally, a conversation template (see appendix) is constructed to
+guide the LLM in determining whether the log content sequence is
+an anomaly. In bio-medicine (Scenario-2), we refer to the templates
+for instructions and conversation prompts in [9].
+Moreover, we employ the Dirichletnon-IIDsetting, a popular
+utilized framework in contemporary FL research [28, 30]. Within
+this framework, the data for each participating client is generated
+from a Dirichlet distribution denoted as 𝐷𝑖𝑟(𝛼) . The parameter 𝛼
+governs the shape of the distribution; as it increases, the degree
+of class imbalance within each client’s dataset diminishes. Conse-
+quently, the Dirichletnon-IIDsetting enables us to evaluate the
+1https://huggingface.co/datasets/AdaptLLM/medicine-tasks
+Table 2: Statistic of dataset used in the experiments.
+Scenario Dataset #Samples Input length
+distribution
+Scenario-1
+BGL 10,000 78~5,478
+Spirt 10,000 78~1,628
+Thunderbird 10,000 145~1,828
+Scenario-2
+ChemProt 500 2,690~4,690
+MPQ 610 816~2,050
+PubMedQA 1,000 413~2,940
+RCT 2,000 1,810~3,530
+USMLE 1,270 73~3,560
+performance of our methodologies across a diverse array ofnon-
+IIDscenarios, thereby providing insights into their robustness and
+adaptability. Unless otherwise specified, the default value for 𝛼 is
+assumed to be0.5in the following experiments.
+Finally, each client’s local data is further divided into training
+and testing sets in a ratio of 8:2. Consequently, the testing set is
+stored locally by each client, following the same distribution as the
+local training set.
+Baseline.To verify the effectiveness of FDLoRA, we compare it
+with six baselines. The details of each algorithm are as follows:
+• Local:Each client’s local LLM was trained with its local
+training set independently.
+• FedA VG [31]was a popular FL algorithm that aggregates
+model parameters by weighted averaging. The basic idea of
+FedAvg is to upload the parameters of local models to the
+server, where the server computes the average of all model
+parameters and sends this average back to all local devices.
+This process can be iterated many times until convergence
+is achieved.
+• FedKD [45]was a communication-efficient federated learning
+method, that utilizes adaptive mutual knowledge distillation
+and dynamic gradient compression.
+• FedAMP [23]introduced federated attentive message pass-
+ing to foster collaborations among clients with similar data
+in federated learning. Convergence proofs for convex and
+non-convex models are established. Additionally, a heuristic
+method enhances FedAMP’s performance with deep neural
+networks.
+• FedRep [10]presented a novel federated learning framework,
+emphasizing shared data representation and unique client-
+specific heads, achieving efficient convergence and superior
+performance in heterogeneous federated environments.
+• FedRoD [6]introduced a novel federated learning framework,
+Federated Robust Decoupling, which addressed the challenge
+of balancing generic and personalized model performance.
+By decoupling the model’s dual duties into two prediction
+tasks and leveraging robust loss functions, FedRoD achieved
+state-of-the-art performance.
+Implementation.We have chosen LLaMA2-7B [42] as the back-
+bone of LLM for our evaluation. LLaMA2-7B is an encoder-only
+architecture developed by Meta and has been pre-trained on over 1

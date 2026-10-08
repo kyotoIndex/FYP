@@ -1,0 +1,52 @@
+process of FL ORA can be described as follows:
+A = p0A0 ⊕ p1A1 ⊕ ... ⊕ pKAK, B = B0 ⊕ B1 ⊕ B2 ⊕ ... ⊕ BK
+Ak ∈ Rrk×n, Bk ∈ Rm×rk , A ∈ R(PK
+k=0 rk)×n, B ∈ Rm×(PK
+k=0 rk),
+(11)
+where pk represents the scaling factor for each local update, determined by the relative size of the
+local data to the global data:
+pk = len(Dk)
+len(PK
+k=0 Dk)
+. (12)
+Note that the scaling factor pk should be only applied to one of Ak and Bk to avoid squaring the
+factor in the final model updateBA. This method ensures a noise-free aggregation mechanism as
+described in Equation 10.
+Update Local Models. After each round of noise-free aggregation, the server redistributes the
+updated global LoRA modules A and B back to the clients. The clients then proceed to update the
+local models using BA and continue the fine-tuning. Using the stacking approach, the dimensions of
+updated global LoRA modules A and B are larger than those of FedIT, potentially leading to larger
+communication overhead in each round. However, empirical observations indicate that federated
+fine-tuning typically requires only a limited number of communication rounds to achieve satisfactory
+results, as detailed in Section 4. In addition, it is important to note that the LoRA modules A and
+B constitute a small fraction of the overall size of the pre-trained model, which is distributed to
+clients during the initialization phase. Thus, the additional communication overhead of the stacking
+approach is negligible and does not significantly impact the efficiency of federated fine-tuning.
+4 Experiments
+The key features of FLORA are (i) noise-free aggregation and (ii) support for heterogeneous LoRA
+modules. In this section, we verify these key features across various LLM fine-tuning tasks. We
+first study the performance of FLoRA and compare it against FedIT under homogeneous settings
+to demonstrate the advantages of noise-free aggregation [25]. Then, we examine performance in a
+synthetic heterogeneous setup and compare FLORAwith a vanilla zero-padding method. Finally,
+we conduct ablation studies on the scaling factor, the heterogeneity of LoRA ranks, and the extra
+communication overhead of FLoRA.
+4.1 Experiment Setup
+Models, Datasets and Experiment Settings. We employ three Llama-based models with different
+scales in our experiments: TinyLlama with 1.1 billion parameters [26], and the 7 billion parameter
+versions of Llama [ 19] and Llama2 [ 20], evaluating FLORA across different model capacities.
+Following the configurations in the original LoRA paper [9], the LoRA modules are applied to the
+self-attention layers only.
+We use the Databricks-dolly-15k [25] instruction dataset, Alpaca dataset [17], and Wizard dataset [12]
+for the question-answering (QA) task, and Wizard and ShareGPT for the chat assistant task. We
+evaluate the federated fine-tuned models on MMLU [7] for the QA task and MT-bench [29] for the
+chat assistant task, respectively. We sample 10 clients uniformly at random following the non-IID
+setting in FedIT [25]. The other experimental configurations are elaborated in Appendix A.
+Baselines. We compare FLORA with four baselines. (1) FedIT: It is the SOTA federated fine-
+tuning method [25] that integrates LoRA with FedAvg. We only apply FedIT to homogeneous LoRA
+experiments as it does not support heterogeneous LoRA. (2) Zero-padding: It is an approach that
+enables FedIT to support heterogeneous LoRA [3]. It extends all the heterogeneous local ranks to the
+maximum rank among the clients and pads their remaining parts by 0. (3) Centralized Fine-tuning:
+we compare FLORA with centralized LoRA with the same hyperparameters and configurations. (4)
+Standalone: the client fine-tunes the pre-trained model locally without federations.
+6

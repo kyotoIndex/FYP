@@ -1,0 +1,42 @@
+Table 9: Task and domain organization of the fixed rank-1 dominant right direction of Gk. Mean values and
+95%tintervals (in brackets) are averaged over query and value projections.
+Initialization TokensC task Cdomain S01 −S 10
+Common Instruction.224[.207, .240].008[.001, .016].215[.195, .235]
+Common Content.212[.202, .222].047[.042, .052].165[.153, .176]
+Common Decision.242[.221, .263].023[.017, .030].218[.196, .241]
+Independent Instruction.201[.190, .213].011[.003, .018].191[.178, .203]
+Independent Content.201[.192, .211].039[.033, .045].162[.153, .171]
+Independent Decision.237[.222, .252].023[.017, .029].214[.198, .230]
+Table 10: Task-minus-domain contrasts in GPT-2 across projections and retained ranks, averaged over
+replicates and 12 layers. Entries report S01 −S 10 =C task −C domain, with negative values indicating a larger
+domain contrast.QandVdenote query and value.
+Initialization Tokens Projections= 1s= 2s= 3s= 4
+Common Instruction Q.211.246.288.318
+V.220.287.328.356
+Content Q.126.097.016−.061
+V.204.150.016−.067
+Decision Q.210.188.129.083
+V.227.207.144.082
+Independent Instruction Q.191.138.132.129
+V.190.137.123.117
+Content Q.126.079.047.028
+V.199.123.082.052
+Decision Q.210.156.121.092
+V.219.203.148.107
+Projection and retained-rank checks.Table 10 separates query and value and varies the retained analysis
+dimension s on the same rank-4 adapters. The balanced task contrast Ctask, averaged over query and value,
+remains positive in every token region under both initialization schemes for all s∈ {1,2,3,4} . Task-
+conditioned differences therefore remain detectable in larger retained subspaces in this experiment. Under
+independent initialization, S01 −S 10 remains positive for both projections at every tested rank, with all
+seed-level intervals excluding zero; s= 1 gives the largest contrast in each token region. Under common
+initialization, the full content-token subspace (s= 4 ) has a larger domain contrast than task contrast, yielding
+negative S01 −S 10 for both projections. Its projection-averaged task contrast nevertheless remains positive:
+Ctask = 0.190 with a 95% seed-level t interval of [0.183,0.197] . Thus, the reversal concerns the relative
+strength of task and domain structure, while task dependence remains present. The relative contributions vary
+with initialization and retained rank.
+C Personalized GLUE: Training and Evaluation Protocol
+C.1 Tasks, client partitions, and common settings
+We evaluate RTE, SST-2, QNLI, MNLI, and QQP, with a separate three-client federation for each task. MNLI-
+m and MNLI-mm are reported separately, giving six evaluation splits. Training examples are partitioned by a
+label-skew Dirichlet distribution with α∈ {0.5,0.75,1.0} ; smaller α produces stronger label heterogeneity.
+19

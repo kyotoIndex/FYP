@@ -1,0 +1,50 @@
+cosine for the final matrix A reaches 1, whereas under independent initialization, it drops to −0.0003 (with
+the corresponding B cosines at 0.2238 and −0.0016, respectively). Similarly, the final-A rowspace Dice
+coefficient is 1.0000 under common initialization versus 0.0105 under independent initialization. Notably,
+0.0105 coincides with the random baseline expectation of 8/768≈0.0104 for independent rank-8 subspaces
+in 768 dimensions.
+0 3 6 9 11
+0
+0.25
+0.50
+0.75
+1.00
+Mean pairwise projector Dice
+(a) IID
+0 3 6 9 11
+(b) α = 1
+0 3 6 9 11
+(c) α = 0.5
+0 3 6 9 11
+(d) IID
+0 3 6 9 11
+(e) α = 1
+0 3 6 9 11
+(f) α = 0.5
+Transformer layer
+Common initialization Independent initialization
+Ak row space (r = 8) Bk column space (r = 8) Gk dominant right subspace (s = 1)
+Figure 5: Query-projection subspace agreement in RoBERTa-base/RTE. For each initialization group, label
+heterogeneity increases from left to right, withα∈ {0.5,1.0}controlling Dirichlet label skew.
+Figure 5 provides the query-projection counterpart to Figure 2. Both include all 12 layers, with visibly lower
+independent-initialization G agreement at layer 0. At each layer, the three unordered client pairs are averaged
+within seed; the plotted mean and standard deviation are computed across three seeds. Pairs sharing a client
+are not treated as independent replications.
+Table 8: Rank-4A -rowspace Dice for GPT-2, averaged over layers and query/value projections.S11: same
+domain and task, S10: same domain and different tasks, S01: different domains and same task, S00: different
+domains and tasks.
+InitializationS 11 S10 S01 S00
+Common0.9412 0.8288 0.9082 0.8221
+Independent0.0806 0.0383 0.0687 0.0355
+The same initialization dependence is corroborated by the GPT-2 study (Table 8). Here, Sdt identifies pairs
+with same-domain indicator d and same-task indicator t. While independent initialization sharply reduces the
+complete A-rowspace overlap across all pairs, same-task pairs (S11, S01) retain slightly more overlap than
+different-task pairs. Thus, the loss of high absolute agreement in weight space should not be equated with
+the complete absence of task-specific geometry; rather, it demonstrates that raw parameter similarity is too
+fragile to serve as a robust medium for federated sharing.
+B.3 Dominant and complete action-subspace agreement
+Agreement is concentrated in the leading direction.The leading direction captures 96.90% and 96.83%
+of the evaluation action energy under common and independent initialization, respectively, with a calibra-
+tion/evaluation Dice coefficient of 0.9813 in both cases. Under independent initialization, cross-client Dice
+agreement drops sharply as rank increases: 0.8113 for the leading direction, 0.4536 for the top-two subspace,
+17

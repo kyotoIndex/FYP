@@ -1,0 +1,64 @@
+Published as a conference paper at ICLR 2025
+Table 7: The learning rates used for rsLoRA-based methods on the GLUE benchmark.
+Method MNLI-m MNLI-mm SST2 QNLI QQP RTE
+rsLoRA 5E-3 5E-3 1E-2 2E-3 5E-3 2E-3
+FFA-rsLoRA 2E-2 2E-2 2E-2 1E-2 2E-2 1E-2
+FedDPA-reLoRA 5E-3 5E-3 1E-2 1E-3 5E-3 1E-2
+FedSA-rsLoRA 5E-3 5E-3 5E-3 1E-3 2E-3 2E-3
+Table 8: The learning rates used for VeRA-based methods on the GLUE benchmark.
+Method Position MNLI-m MNLI-mm SST2 QNLI QQP RTE
+VeRA VeRA 1E-2 1E-2 2E-2 2E-3 2E-3 1E-2
+Head 6E-3 6E-3 2E-3 3E-4 3E-4 2E-4
+FFA-VeRA VeRA 2E-2 2E-2 1E-2 1E-2 1E-2 1E-2
+Head 2E-3 2E-3 6E-3 2E-4 6E-3 2E-4
+FedDPA-VeRA VeRA 1E-2 1E-2 1E-2 2E-3 2E-2 1E-2
+Head 6E-3 6E-3 6E-3 3E-4 2E-3 2E-4
+FedSA-VeRA VeRA 2E-3 2E-3 1E-2 1E-2 2E-3 1E-2
+Head 3E-5 3E-5 3E-4 3E-4 3E-4 1E-4
+Table 9: Performance of different methods on the GSM8K dataset and example answers generated
+by each method.
+LoRA FFA-LoRA FedSA-LoRA
+Accuracy 46.24 46.32 46.63
+Question: In a student council election, candidate A got 20% of the votes while candidate
+B got 50% more than candidate A’s votes. The rest of the votes was given to
+candidate C. If there were 100 voters, how many votes did candidate C get?
+Output: Candidate A got 20% of
+the votes. That is 20% of
+100 = 20% × 100 = 20 ×
+100 = 2000 votes. Candi-
+date B got 50% more than
+candidate A. That is 50%
+of 2000 = 50% × 2000 =
+50 × 2000 = 10000 votes.
+The rest of the votes was
+given to candidate C. So
+there are 10000 + 2000 =
+12000 votes in total. Can-
+didate C got 10000 votes.
+The answer is 10000. [✘]
+Candidate A got 20% of
+100 = 100 × 20% = 100
+× 20/100 = 20. Candidate
+B got 20% more than can-
+didate A’s votes, which is
+20% + 20% = 40%. 40%
+of 100 = 100× 40% = 100
+× 40/100 = 40. So the two
+candidates together got 20
++ 40 = 60. The rest of the
+votes were given to candi-
+date C. So candidate C got
+100 - 60 = 40. The answer
+is 40. [✘]
+Candidate A got 20% of
+the votes or 20% ∗ 100
+= 20 votes. Then candi-
+date B got 50% more than
+candidate A’s 20 votes so
+50% of 20 is 20 ∗ 50% =
+10. Then candidate B got
+20 + 10 = 30 votes. So
+candidate C got 100 - 20
+- 30 = 50 votes. The an-
+swer is 50. [✔]
+22

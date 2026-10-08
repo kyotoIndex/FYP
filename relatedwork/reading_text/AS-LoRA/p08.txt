@@ -1,0 +1,76 @@
+FFA-LoRA on SQuAD v1.1 under ϵ= 3 . Moreover, the method consistently improves vision
+benchmarks, achieving +2.34 pp on CIFAR-100 and +1.19 pp on Tiny-ImageNet. Extended results
+on LoRA rank and heterogeneity of data distribution can be found in Appendix J.4.
+Table 5: Comparison across mode selection
+granularity.(Per-client: layer-wise and client-wise,
+AS-LoRA: layer-wise and client-tied,Global: layer-
+tied and client-tied)
+DP Budget Method MNLI (m) MNLI (mm) QQP
+ϵ= 3
+Per-client 72.73±2.0773.73±2.2363.18±0.00
+AS-LoRA (ours)79.15±0.2380.03±0.4078.51±0.38
+Global 75.74±2.5376.98±2.4473.61±2.75
+ϵ= 1
+Per-client 34.60±1.7234.53±1.3763.18±0.00
+AS-LoRA (ours)76.71±0.9277.54±0.7774.94±1.78
+Global 72.54±3.8573.79±3.8772.62±3.26
+Granularity of mode selection scope.While
+AS-LoRA performs layer-wise mode selection
+that is shared across all clients, we evaluate
+two alternatives to justify this design choice.
+Both are round-wise adaptive as AS-LoRA,
+but differ in selection granularity.Global
+shares a single mode across all layers and
+clients, whereasPer-clientselects modes in-
+dependently for each layerandeach client.
+As shown in Table 5,Per-client, yields the
+worst performance across all tasks and privacy
+budgets. It is because the aggregated model
+suffers from aggregation error.Globalalso underperforms AS-LoRA. Sharing a single mode across
+all layers prevents the model from exploiting layer-specific dynamics. AS-LoRA strikes the right
+balance, reserving model expressiveness without compromising aggregation stability.
+Table 6: Comparison with FedSVD [ 16] in per-
+formance and aggregation time.
+DP Budget Method Time (s) MNLI (m) MNLI (mm)
+ϵ= 3
+FedSVD(10) 1.00 (33×) 78.16±1.0179.43±1.21
+FedSVD(5) 1.80 (60×) 77.06±1.4779.07±1.10
+FedSVD(1) 5.44 (181×) 78.49±0.8979.75±0.68
+Proposed0.03 (1×) 79.15±0.2380.03±0.40
+ϵ= 1
+FedSVD(10) 1.00 (33×) 74.24±1.4875.69±1.45
+FedSVD(5) 1.80 (60×)76.97±1.2578.16±1.13
+FedSVD(1) 5.44 (181×) 76.62±0.7777.79±0.60
+Proposed0.03 (1×)76.71±0.9277.54±0.77
+Comparison with SVD-based method.Table 6
+compares AS-LoRA withFedSVD[ 16] the rep-
+resentative SVD-based method. FedSVD im-
+proves performance by introducing an additional
+SVD computation at the server. FedSVD(n) ap-
+plies SVD at every n-th communication rounds
+with standard FedAvg used otherwise. Under
+ϵ= 3 , the proposed method achieves the best
+performance while requiring substantially lower
+aggregation time. Under ϵ= 1 , FedSVD (5)
+shows slightly higher performance, but the gap is
+marginal. Moreover, while the proposed method
+relies on the FD-based score, it can scale to heavier approximations (HVP) as shown in Table 2.
+Figure 4: Loss landscape visualization of FFA-LoRA, RoLoRA, and AS-LoRA trained on MNLI
+withT= 100andτ= 10under DP-SGD (ϵ= 3).
+Table 7: Comparison of SAM-style
+perturbation sharpness on MNLI.
+Method PS∆Acc
+FFA-LoRA 0.03608±0.045650.981±1.182
+RoLoRA 0.01972±0.025300.321±0.045
+AS-LoRA0.00992±0.012810.247±0.282
+Sharpness and loss landscape analysis.To empirically val-
+idate Theorem 4, which establishes that AS-LoRA’s curvature-
+penalty score implicitly biases the trajectory toward flatter
+regions of the loss landscape, we measure the SAM-style
+perturbation sharpness P S=L(w+ρˆg)−L(w),ˆg=
+∇L(w)/∥∇L(w)∥, together with the induced accuracy drop
+(∆Acc) [24]. The results in Table 7 indicates that the solution
+found by AS-LoRA is more robust to local perturbations and
+lies in a flatter region of the loss surface. This observation is further supported by the loss landscape
+visualization in Figure 4. Compared with FFA-LoRA and RoLoRA, the contour around the AS-LoRA
+8

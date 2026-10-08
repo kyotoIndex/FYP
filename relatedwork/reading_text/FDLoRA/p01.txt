@@ -1,0 +1,101 @@
+FDLoRA: Personalized Federated Learning of Large Language
+Model via Dual LoRA Tuning
+Yao Lu1†, Jiaxing Qi1†, Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+Sino-German Joint Software Institute, Beihang University, Beijing, China1
+Concordia Institute for Information Systems Engineering, Concordia University, Montreal, Canada2
+ABSTRACT
+Large language models (LLMs) have emerged as important compo-
+nents across various fields, yet their training requires substantial
+computation resources and abundant labeled data. It poses a chal-
+lenge to robustly training LLMs for individual users (clients). To
+tackle this challenge, the intuitive idea is to introduce federated
+learning (FL), which can collaboratively train models on distributed
+private data. However, existing methods suffer from the challenges
+of data heterogeneity, system heterogeneity, and model size, re-
+sulting in suboptimal performance and high costs. In this work,
+we proposed a variant of personalized federated learning (PFL)
+framework, namely FDLoRA, which allows the client to be a single
+device or a cluster and adopts low-rank adaptation (LoRA) tuning.
+FDLoRA sets dual LoRA modules on each client to capture per-
+sonalized and global knowledge, respectively, and only the global
+LoRA module uploads parameters to the central server to aggregate
+cross-client knowledge. Finally, an adaptive fusion approach is em-
+ployed to combine the of the dual LoRAs. This enables FDLoRA to
+make effective use of private data distributed across different clients,
+thereby improving performance on the client without incurring
+high communication and computing costs. We conducted extensive
+experiments in two practice scenarios. The results demonstrate
+that FDLoRA outperforms six baselines in terms of performance,
+stability, robustness, computation cost, and communication cost.
+KEYWORDS
+Personalized Federated Learning, LLM, LoRA Tuning, Low Com-
+munication
+ACM Reference Format:
+Yao Lu1†, Jiaxing Qi1†, Zhongzhi Luan1, Shaohan Huang1, Carol Fung2,
+Hailong Yang1, Depei Qian1 . 2018. FDLoRA: Personalized Federated Learn-
+ing of Large Language Model via Dual LoRA Tuning. InProceedings of
+Make sure to enter the correct conference title from your rights confirma-
+tion emai (Conference acronym ’XX).ACM, New York, NY, USA, 16 pages.
+https://doi.org/XXXXXXX.XXXXXXX
+†These authors contributed equally to this work.
+Corresponding authors:{jiaxingqi, luan.zhongzhi}@buaa.edu.cn.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+©2018 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-XXXX-X/18/06
+https://doi.org/XXXXXXX.XXXXXXX
+1 INTRODUCTION
+Recently, large language models (LLM), such as ChatGPT [46] and
+LLaMA [42], have gained significant attention across various do-
+mains. As LLMs become more prevalent, tailoring them to specific
+tasks becomes increasingly necessary. For example, LLM can be
+customized to analyze local medical data for different institutions
+in the medical scenario [ 36]. This customization often relies on
+supervised fine-tuning (SFT), a process where LLMs are adapted to
+domain-specific data through various techniques [26]. The current
+primary SFT technologies can be categorized into three groups [47]:
+fine-tuning, parameter-efficient fine-tuning (PEFT), and prompt-
+tuning. LoRA has attracted attention for its effectiveness in PEFT.
+By optimizing the rank-decomposition matrix, LoRA can train low-
+rank parameter matrices in LLMs while freezing the original pa-
+rameters (see Section 2). LoRA not only enhances the performance
+of LLMs on domain-specific tasks but also mitigates the need for
+extensive labeled data [19]. This is particularly valuable and effi-
+cient in scenarios where such data and computational resources
+are scarce.
+Let us consider the following scenario: Internet service providers
+(ISPs) collect a large amount of logs to record network activity,
+system events, and potential threats. However, the cost of manually
+analyzing these logs is huge. Recently, there has been a lot of work
+on using LLM to analyze private logs and determine whether an
+anomaly occurs in the system [ 34, 48], which requires manual
+labeling of a large amount of logs. Although the goal of ISPs is to
+use LLM to analyze private logs to improve system reliability, the
+limited number of labeled logs is an obstacle to the effective use of
+the LLM capability. In addition, because log data is very valuable
+and private, ISPs will not share the private logs with each other.
+Therefore, the problem arises:How to take advantage of LLM in
+similar practical application scenarios?
+The integration of FL with LLMs offers a promising opportunity
+for collaborative learning across clients [31, 53]. However, the in-
+herent challenge of data heterogeneity, where the distribution of
+data across clients is non-identically and independently distributed
+(non-IID), poses significant obstacles [ 7, 30]. This often leads to
+suboptimal performance of the global model due to convergence to
+the worst performing client, referred to as the "bucket effect" [3]. To
+address this challenge, recent efforts have combined personalized
+federated learning (PFL) with techniques such as LoRA tuning to
+train personalized local models for each client and mitigate the tra-
+ditional "bucket effect" [47, 51]. The PFL aims to tailor the training
+process to individual clients, taking into account their unique data
+distributions and learning objectives, which allows the model to
+capture not only cross-client knowledge (i.e., global/shared knowl-
+edge) but also client-specific knowledge (i.e., local/personalized
+knowledge). By personalizing the training process, PFL seeks to
+arXiv:2406.07925v2  [cs.DC]  6 Jul 2026

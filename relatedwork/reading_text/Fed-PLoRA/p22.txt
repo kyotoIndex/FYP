@@ -1,0 +1,26 @@
+Published as a conference paper at ICLR 2026
+Table 8: Evaluation of Qwen3-4B-A3B-Instruct-2507 on MATH datasets.
+Method Algebra Counting&Prob. Geometry Inter. Algebra Number Theory PreAlgebra PreCalculusAvg
+Untuned 12.38 5.90 3.75 1.32 5.74 15.61 4.57 7.94
+HomogeneousFedIT (Rank=R)42.20 26.79 19.20 13.73 26.11 42.93 10.98 28.38FedIT (Rank=R/2)36.47 22.57 16.70 11.62 21.48 37.08 12.27 24.62
+HeterogeneousR= 8Avg Rank=4
+FLoRA 12.72 6.75 4.38 1.88 5.37 15.04 2.93 7.94FlexLoRA 38.83 19.62 15.65 9.52 22.03 40.41 10.62 24.88HETLoRA 28.47 12.23 11.69 9.85 17.77 24.79 10.07 18.16Fed-PLoRA43.80 24.89 18.99 14.17 27.77 42.59 12.82 28.96
+Under heterogeneous environments where the average rank is fixed toR= 4, Fed-PLoRA achieves
+the strongest overall results, outperforming FLoRA, FlexLoRA, and HETLoRA with significant im-
+provements in Algebra, Counting & Probability, and Number Theory, where gains exceed +5–15%
+on average. Notably, Fed-PLoRA also maintains competitive accuracy on Geometry and Intermedi-
+ate Algebra, indicating enhanced adaptability even under rank-diverse client configurations.
+D.5 ABLATIONSTUDIES
+D.5.1 COMPARINGSELECT-N-FOLD WITH OTHERSTRATEGIES
+Figure 6: Visualization of rank selection results using different selection strategies.
+Here, we provide a visualization of the rank selection results in Figure 6, comparing Select-N-Fold
+with the Weight Norm and Fixed methods in Figure 4. Overall, random strategies yield a more
+uniform and unbiased distribution across layers.
+D.5.2 EMPIRICALOBSERVATIONS ONINITIALIZATION ANDAGGREGATIONNOISE INSOTA
+METHODS
+As discussed in Section 3.4, existing federated LoRA-based fine-tuning methods suffer from dif-
+ferent levels of initialization and aggregation noise. To isolate these effects, Figure 7 illustrates
+optimization trajectories and empirical results. In this setup, we fix the LoRA rank across clients to
+remove initialization noise for FlexLoRA and HETLoRA, allowing a clearer focus on their aggre-
+gation noise (detailed settings inAppendix Section C.3).
+22

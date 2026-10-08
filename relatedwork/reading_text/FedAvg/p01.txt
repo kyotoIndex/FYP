@@ -1,0 +1,84 @@
+Communication-Efﬁcient Learning of Deep Networks
+from Decentralized Data
+H. Brendan McMahan Eider Moore Daniel Ramage Seth Hampson Blaise Ag ¨uera y Arcas
+Google, Inc., 651 N 34th St., Seattle, W A 98103 USA
+Abstract
+Modern mobile devices have access to a wealth
+of data suitable for learning models, which in turn
+can greatly improve the user experience on the
+device. For example, language models can im-
+prove speech recognition and text entry, and im-
+age models can automatically select good photos.
+However, this rich data is often privacy sensitive,
+large in quantity, or both, which may preclude
+logging to the data center and training there using
+conventional approaches. We advocate an alter-
+native that leaves the training data distributed on
+the mobile devices, and learns a shared model by
+aggregating locally-computed updates. We term
+this decentralized approach Federated Learning.
+We present a practical method for the federated
+learning of deep networks based on iterative
+model averaging, and conduct an extensive empiri-
+cal evaluation, considering ﬁve different model ar-
+chitectures and four datasets. These experiments
+demonstrate the approach is robust to the unbal-
+anced and non-IID data distributions that are a
+deﬁning characteristic of this setting. Commu-
+nication costs are the principal constraint, and
+we show a reduction in required communication
+rounds by 10–100× as compared to synchronized
+stochastic gradient descent.
+1 Introduction
+Increasingly, phones and tablets are the primary computing
+devices for many people [30, 2]. The powerful sensors on
+these devices (including cameras, microphones, and GPS),
+combined with the fact they are frequently carried, means
+they have access to an unprecedented amount of data, much
+of it private in nature. Models learned on such data hold the
+Appearing in Proceedings of the 20th International Conference on
+Artiﬁcial Intelligence and Statistics (AISTATS) 2017, Fort Laud-
+erdale, Flordia, USA. JMLR: W&CP volume 54. Copyright 2017
+by the authors.
+promise of greatly improving usability by powering more
+intelligent applications, but the sensitive nature of the data
+means there are risks and responsibilities to storing it in a
+centralized location.
+We investigate a learning technique that allows users to
+collectively reap the beneﬁts of shared models trained from
+this rich data, without the need to centrally store it. We term
+our approach Federated Learning, since the learning task is
+solved by a loose federation of participating devices (which
+we refer to as clients) which are coordinated by a central
+server. Each client has a local training dataset which is
+never uploaded to the server. Instead, each client computes
+an update to the current global model maintained by the
+server, and only this update is communicated. This is a
+direct application of the principle of focused collection or
+data minimization proposed by the 2012 White House report
+on privacy of consumer data [39]. Since these updates are
+speciﬁc to improving the current model, there is no reason
+to store them once they have been applied.
+A principal advantage of this approach is the decoupling of
+model training from the need for direct access to the raw
+training data. Clearly, some trust of the server coordinat-
+ing the training is still required. However, for applications
+where the training objective can be speciﬁed on the basis
+of data available on each client, federated learning can sig-
+niﬁcantly reduce privacy and security risks by limiting the
+attack surface to only the device, rather than the device and
+the cloud.
+Our primary contributions are 1) the identiﬁcation of the
+problem of training on decentralized data from mobile de-
+vices as an important research direction; 2) the selection of
+a straightforward and practical algorithm that can be applied
+to this setting; and 3) an extensive empirical evaluation of
+the proposed approach. More concretely, we introduce the
+FederatedAveraging algorithm, which combines lo-
+cal stochastic gradient descent (SGD) on each client with
+a server that performs model averaging. We perform ex-
+tensive experiments on this algorithm, demonstrating it is
+robust to unbalanced and non-IID data distributions, and
+can reduce the rounds of communication needed to train a
+deep network on decentralized data by orders of magnitude.
+arXiv:1602.05629v4  [cs.LG]  26 Jan 2023

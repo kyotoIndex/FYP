@@ -1,0 +1,70 @@
+16
+Dataset Splitr RSS metric Accuracy (%) Alignment
+∆(r)τ(r)Decision Share-A Share-B Winner
+QNLI
+IID 42.46413×10 −5 3.91172×10 −5 Share-A92.2690.18Share-AMatch
+84.28222×10 −5 7.07299×10 −5 Share-A91.1290.66Share-AMatch
+Dirichletα= 0.5
+23.01960×10 −5 3.46345×10 −5 Share-A89.4688.84Share-AMatch
+45.89316×10 −5 3.80830×10 −5 Share-B 92.0192.80 Share-BMatch
+87.37366×10 −5 6.79052×10 −5 Share-B 91.1392.94 Share-BMatch
+161.33945×10 −4 1.31365×10 −4 Share-B 89.1289.56 Share-BMatch
+Dirichletα= 1 45.90747×10 −5 3.92434×10 −5 Share-B 93.2894.69 Share-BMatch
+88.31570×10 −5 6.96169×10 −5 Share-B 90.8991.58 Share-BMatch
+QQPDirichletα= 0.5 42.11905×10 −5 1.28376×10 −5 Share-B 85.6886.70 Share-BMatch
+84.14507×10 −5 1.67622×10 −5 Share-B 86.8787.95 Share-BMatch
+SST-2
+IID 43.89196×10 −4 5.07871×10 −4 Share-A96.6596.14Share-AMatch
+84.35904×10 −4 6.02930×10 −4 Share-A96.1095.87Share-AMatch
+Dirichletα= 0.5
+21.45398×10 −3 5.83336×10 −4 Share-B 96.5696.79 Share-BMatch
+41.84450×10 −3 5.25775×10 −4 Share-B96.33 96.33 TieActual tie
+82.20251×10 −3 6.38468×10 −4 Share-B 95.7297.17 Share-BMatch
+163.63222×10 −3 1.01451×10 −3 Share-B95.7395.72TieActual tie
+Dirichletα= 1 41.18446×10 −3 5.79445×10 −4 Share-B97.02 97.02 TieActual tie
+81.43308×10 −3 6.62178×10 −4 Share-B 96.5696.79 Share-BMatch
+MNLI-m
+IID 45.98420×10 −6 1.02906×10 −5 Share-A87.0686.11Share-AMatch
+82.91890×10 −5 4.13822×10 −5 Share-A89.4389.06Share-AMatch
+Dirichletα= 0.5
+21.03136×10 −4 1.11881×10 −5 Share-B 89.6089.63 Share-BMatch
+44.62360×10 −5 9.96230×10 −6 Share-B 90.0490.28 Share-BMatch
+89.33286×10 −5 3.98546×10 −5 Share-B 89.7589.95 Share-BMatch
+168.07826×10 −5 3.45278×10 −5 Share-B 89.0489.73 Share-BMatch
+Dirichletα= 1 41.37597×10 −5 1.02455×10 −5 Share-B 89.5089.62 Share-BMatch
+83.26219×10 −5 3.80408×10 −5 Share-A89.0288.37Share-AMatch
+MNLI-mm
+IID 45.98420×10 −6 1.02906×10 −5 Share-A86.6885.23Share-AMatch
+82.91890×10 −5 4.13822×10 −5 Share-A88.0787.91Share-AMatch
+Dirichletα= 0.5 44.62360×10 −5 9.96230×10 −6 Share-B 88.4789.97 Share-BMatch
+89.33286×10 −5 3.98546×10 −5 Share-B 87.8288.86 Share-BMatch
+Dirichletα= 1 41.37597×10 −5 1.02455×10 −5 Share-B 87.1488.79 Share-BMatch
+83.26219×10 −5 3.80408×10 −5 Share-A90.4489.97Share-AMatch
+RTE
+IID 42.07749×10 −3 3.52261×10 −3 Share-A88.1485.82Share-AMatch
+83.99091×10 −3 5.98761×10 −3 Share-A87.50 87.50 TieActual tie
+Dirichletα= 0.5 41.81187×10 −3 3.83366×10 −3 Share-A88.71 88.71 TieActual tie
+83.63808×10 −3 5.98369×10 −3 Share-A87.7786.34Share-AMatch
+Dirichletα= 1 41.82618×10 −3 3.55810×10 −3 Share-A87.1986.47Share-AMatch
+83.45208×10 −3 5.75546×10 −3 Share-A86.2685.35Share-AMatch
+TABLE VIII: RSS metric values, threshold decisions, and Share-A/Local-B versus Share-B/Local-A accuracies under the
+evaluated three-client settings.
+remains beneficial with a larger client population and uneven
+participation probabilities.
+Results under Structured Input Skew
+We further evaluate the compared methods under two
+structured input-skew partitions while controlling the client
+label distributions. For SST-2, we construct a label-balanced
+input-length-skew partition. Within each sentiment label, the
+samples are ordered according to their input lengths and
+divided into three non-overlapping groups of approximately
+equal size. Each client receives the corresponding length
+group from both sentiment labels. This construction keeps
+the positive and negative label proportions similar across
+clients, while making the client input-length distributions
+different.
+For MNLI, we construct a genre-based partition using
+the genre annotations provided by MultiNLI Williams et al.
+[2018]. The three clients contain premise–hypothesis pairs
+from the telephone, government, and fiction genres, respec-
+tively. We balance the entailment, neutral, and contradiction

@@ -1,0 +1,95 @@
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Table 7: The impact the number of total clients. Experiments
+are conducted on CIFAR-100 with Non-IID (10) settings. Ac-
+curacies are reported.
+Method 50 100 200
+Baseline-MS 40.52 57.63 54.90
+FedRA 26.92 47.98 44.90
+Ours 59.46 63.93 63.50
+Table 8: The impacts of 𝑇IG and 𝑇Agg. Experiments were con-
+ducted on CIFAR-100 under the Non-IID (10) setting. Each
+row varies one hyperparameter while fixing the other.
+Varying Fixed Setting 5 10 20
+𝑇IG 𝑇Agg = 10, |𝐷IG| = 50 63.15 63.93 62.93
+𝑇Agg 𝑇IG = 10, |𝐷IG| = 50 63.24 63.93 63.41
+Local IG Score-based strategy by +4.28% and +5.13% for IID and Non-
+IID, respectively. This highlights the necessity of global information.
+Our method also surpasses the Global IG Score-based method by
++0.35% (IID) and +0.76% (Non-IID), demonstrating that proxy data
+alone is insufficient without local information.
+Aggregation Rules Evaluation. We compare our aggregation
+rules with FedAvg [20] and ComAgg variant with coefficients𝛼𝑡
+( 𝑗 ) =
+𝛽𝑡
+( 𝑗 ) = 1. As shown in Table 6, our method outperforms FedAvg
+by +4.23% in IID and +6.58% in Non-IID settings. The dynamic
+compensation strategy further improves ComAgg by +1.27% on
+average, demonstrating the benefits in mitigating model divergence.
+5.5 Impact of Hyperparameters
+We conduct experiments on CIFAR-100 dataset with the Non-IID
+(10) setting to evaluate the impact of hyperparameters such as the
+number of total clients, aggregation hyperparameters, and the size
+of the local IG dataset.
+The Number of Total Clients. We keep the client sampling
+rate to 10%, and vary the number of total clients to 50, 100, and 200.
+We only compare with Baseline-MS and FedRA, as other methods
+diverge in this Non-IID scenario. As shown in Table 7, our method
+consistently outperforms the baseline methods across all numbers
+of total client settings.
+Hyperparameters 𝑇IG and 𝑇Agg for Aggregation. Our default
+setting is 𝑇IG =10 and 𝑇Agg =10 . Varying 𝑇IG and 𝑇Agg show less
+than 1% fluctuation in accuracy and consistently outperform other
+compared methods (compared in Table 1). Nevertheless, we recom-
+mend selecting these hyperparameters based on the total number
+of clients and the client sampling rate.
+The size of local IG dataset |𝐷IG|. Our default setting uses
+|𝐷IG| = 50. As shown in Table 9, reducing |𝐷IG| to 5 or 10 results
+in only minor performance fluctuations, demonstrating that our
+method places minimal requirements on the size of the IG dataset.
+Since the IG scores are primarily used for model calibration, our
+method generalizes well even when clients have a limited amount
+of local data.
+Figure 6: Accuracy over communication cost on CIFAR-100
+dataset (other methods not shown in the figure diverged).
+Table 9: The impact of the size of local IG dataset |𝐷IG|. Ex-
+periments are conducted on CIFAR-100 under the Non-IID
+(10) setting.
+Fixed Setting 5 10 50
+𝑇Agg = 10, 𝑇IG = 10 62.78 62.60 62.93
+5.6 Computation and Communication
+Efficiency
+We evaluate the computational and communication efficiency of
+our method by observing model accuracy over the cumulative train-
+ing time and total communication cost during training, respectively.
+Compared to FedAvg, our method introduces additional computa-
+tional cost every 𝑇IG rounds for optimizing the LoRA allocation,
+but reduces communication costs for low-resource clients by trans-
+mitting fewer parameters.
+Computational Efficiency.Figure 5 presents the accuracy over
+training time for all methods on the Non-IID CIFAR-100 dataset.
+In this case, our method consistently achieves higher accuracy
+within the same training time (i.e., wall-clock time). Specifically,
+Baseline-EL and Baseline-MH diverge under the extreme Non-IID
+setting due to the lack of data from all the clients. Baseline-MS and
+FedRA do not incur additional computational costs compared to
+FedAvg, and therefore exhibit higher computational efficiency in
+the early stages (as shown in Figure 5, Non-IID 20). However, they
+suffer from accuracy degradation compared to our method due to
+their reliance on heuristic or stochastic LoRA allocation strategies.
+Although our method periodically incurs additional computational
+costs for LoRA allocation optimization, its accuracy gains lead to
+higher overall computational efficiency.
+Communication Efficiency. Figure 6 presents the accuracy
+over communication cost for all methods on the Non-IID CIFAR-100
+dataset. We calculate both uplink and downlink communication
+costs per client during the training. Baseline-EL and Baseline-MH
+diverge but still incur a large amount of communication cost. FedRA
+and Baseline-MS both select a subset of LoRA modules to update
+locally, which also helps reduce the uplink communication costs
+for low-resource clients. Baseline-MS shows slightly higher compu-
+tational efficiency in the early stages, as it enables more layers to
+be trained under the same memory constraint compared to FedRA
+and our method, leading to faster initial convergence. However,
+this benefit diminishes over time, as it restricts training to only the
+last few layers, leaving the earlier layers untouched, which ulti-
+mately results in lower communication efficiency compared to our

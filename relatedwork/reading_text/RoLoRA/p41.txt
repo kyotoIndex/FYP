@@ -1,0 +1,30 @@
+A5 Experiments
+A5.1 Impact of Non-Linearity on RoLoRA
+Across both linear and non-linear settings, all methods perform similarly, with RoLoRA showing mod-
+est improvement in the non-linear case, likely due to its better utilization of the added expressiveness
+from ReLU.
+Figure 7: Comparison of RoLoRA, LoRA, and FFA-LoRA on linear and non-linear networks. While
+overall performance is similar, RoLoRA shows modest gains in the non-linear setting, likely benefiting
+from ReLU’s added expressiveness.
+A5.2 Hyper-parameters for GLUE task
+SST-2 QNLI MNLI QQP RTE
+Total comm. rounds 500 500 500 500 200
+Batch Size 64 32 32 32 32
+Local Epochs 20 20 20 20 20
+Table 6: Hyper-parameters configurations. Note the total communication rounds are for the setting
+with 3 clients. When increasing the number of clients, we decrease the total communication rounds
+accordingly to maintain a constant sample count used during fine-tuning
+We show the hyper-parameter configurations for each dataset in Table 6.
+A5.3 Effect of Number of Clients
+ConfigurationsTable 7 shows the selected layer set attached with LoRA modules for Table 1. We
+present Table 1 with the results of FlexLoRA [2] added in Table 1.
+Layer Attributes SST-2 QNLI MNLI QQP RTE
+P2
+TypeW v, Wq Wv, Wq Wv, Wq Wv, Wq Wv, Wq
+Index{18, . . . ,23} {15, . . . ,23} {15, . . . ,23} {15, . . . ,23} {16, . . . ,23}
+Table 7: The selected layer set attached with LoRA modules for Table 1 and Table 2
+Rank-2 ResultsWe show the effect of number of clients when using rank-2 LoRA modules in
+Table 8.
+Rank-32 ResultsIn Table 9, we provide additional experiments with rank-32 LoRA adapters in the
+20-client and 50-client setting.
+41

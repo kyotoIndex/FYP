@@ -1,0 +1,105 @@
+1
+HAFLQ: Heterogeneous Adaptive Federated LoRA
+Fine-tuned LLM with Quantization
+Yang Su, Na Yan, Yansha Deng, Mischa Dohler, and Robert Schober
+Abstract—Federated fine-tuning of pre-trained Large Lan-
+guage Models (LLMs) enables task-specific adaptation across
+diverse datasets while preserving privacy. However, challenges
+such as high computational and memory demands, heteroge-
+neous client resources, bandwidth constraints, and ineffective
+global aggregation hinder its efficiency. To address these issues,
+we propose HAFLQ (Heterogeneous Adaptive Federated Low-
+Rank Adaptation Fine-tuned LLM with Quantization), a novel
+framework for efficient and scalable federated fine-tuning of
+LLMs in heterogeneous environments. To reduce memory and
+computation demands, we propose a salience-driven adaptive
+LLM quantization framework that evaluates the importance of
+transformer blocks using a salience metric and applies adap-
+tive block-wise quantization accordingly. To handle heteroge-
+neous computational capabilities, we propose an importance-
+based parameter truncation and freezing scheme. To address
+communication bottlenecks, we propose an importance-aware
+bandwidth-adaptive quantization method, which dynamically
+adjusts parameter precision based on importance and bandwidth
+constraints. To improve global model aggregation, we propose an
+adaptive rank-1 matrix-level aggregation strategy, which prevents
+information dilution and accelerates convergence by aggregating
+only updated rank-1 matrices from clients. Experimental results
+on the text classification task demonstrate that HAFLQ reduces
+memory usage by 31%, lowers communication cost by 49%,
+improves accuracy by 50%, and achieves faster convergence
+compared to the baseline method.
+Index Terms—Large Language Model, Low-Rank Adaptation,
+Federated Learning, Quantization.
+I. I NTRODUCTION
+Large Language Models (LLMs) have exhibited exceptional
+performance in understanding and generating natural language
+across a wide range of tasks, including applications in chatbots
+and search engines [2]–[4]. To achieve optimal performance
+on specific tasks, these pre-trained models often require further
+fine-tuning. However, conventional fine-tuning methods are
+typically centralized, involving the collection of raw data on
+a single client, which raises significant privacy concerns. Fed-
+erated Learning (FL), as a privacy-preserving distributed Ma-
+chine Learning (ML) training paradigm [5]–[7], is a promising
+approach to address this issue by enabling collaborative fine-
+tuning across decentralized LLM agents without aggregating
+Yang Su, Na Yan and Yansha Deng are with the Department of Engineer-
+ing, King’s College London, London, WC2R 2LS, U.K. (email: {yang.2.su,
+na.2.yan, yansha.deng }@kcl.ac.uk). (Corresponding author: Yansha Deng).
+This paper will be presented in part at the 2025 IEEE International Conference
+on Communications, to appear [1].
+Mischa Dohler is with the Advanced Technology Group, Ericsson Inc.,
+Silicon Valley, US. (email: mischa.dohler@ericsson.com).
+Robert Schober is with the Institute for Digital Communication, Friedrich-
+Alexander-Universit¨at Erlangen-N¨urnberg, 91052 Erlangen, Germany (e-mail:
+robert.schober@fau.de).
+raw datasets. Integrating FL with LLMs not only addresses
+privacy concerns but also leverages diverse data sources from
+decentralized clients to fine-tune LLMs on specific domains.
+As FL increasingly relies on wireless networks to support
+collaboration across clients, communication has emerged as a
+critical bottleneck in fine-tuning LLMs. Unlike centralized set-
+tings, FL requires frequent transmission of model updates over
+limited-bandwidth connections, posing significant challenges
+for models with billions of parameters, such as LLaMA3-
+8B [8]. Even in half-precision, transmitting these parameters
+demands approximately 16 GB per update, resulting in delays
+that significantly impact training efficiency. Moreover, the
+large parameter size imposes high demands on the client’s
+computational capabilities. For instance, full fine-tuning of
+LLaMA3-8B requires memory for model parameters, opti-
+mizer states (twice the size of the parameters), and gradients
+(equivalent to the size of the parameters). Even with mixed
+precision, it requires at least 64 GB of GPU memory per client,
+posing significant challenges for resource-constrained devices.
+To address these challenges, LLM quantization [9]–[11]
+has been proposed as a solution to alleviate computational
+resource constraints, such as GPU memory usage, in federated
+LLM fine-tuning. The authors in [12] proposed FedPipe, which
+applied low-precision quantization to reduce computational
+resource consumption. However, this approach employs a
+uniform quantization strategy across all clients, overlooking
+the potential heterogeneity in their computational capabilities.
+In practice, clients with powerful GPUs can support full-
+precision LLM fine-tuning without quantization, while aggres-
+sive quantization on such devices may lead to unnecessary per-
+formance loss. Conversely, resource-constrained clients with
+limited GPU memory or computational power can selectively
+apply higher levels of quantization to adapt to their resource
+limitations, highlighting the need for more adaptive strategies.
+In addition to quantization, Parameter-Efficient Fine-Tuning
+(PEFT) methods have been proposed to further alleviate the
+computational and communication challenges in federated
+LLM fine-tuning [13]–[15]. One of the widely used PEFT
+methods is Low-Rank Adaptation (LoRA), which freezes the
+original pre-trained parameters of the LLM and trains a smaller
+number of additional parameters instead [16]. This approach
+significantly reduces computational and storage requirements
+while maintaining a model performance comparable to full
+fine-tuning. The authors in [17] proposed an approach that
+integrates FL with LoRA to enhance the instruction tuning of
+LLMs. This method enables clients to only train and optimize
+the LoRA layers using locally diverse instruction data, reduc-
+ing privacy exposure risks by sharing only the LoRA weights,
+arXiv:2411.06581v2  [cs.LG]  16 May 2025

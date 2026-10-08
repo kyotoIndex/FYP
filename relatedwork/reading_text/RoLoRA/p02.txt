@@ -1,0 +1,49 @@
+Figure 1: (Left) Overview of the RoLoRA framework. (Right) Performance comparison with
+baselines on QQP in a 50-client setting, showing RoLoRA’s superior convergence speed and final
+accuracy.
+SLoRA [1] presents a hybrid approach that combines sparse fine-tuning with LoRA to address data
+heterogeneity in federated settings. Furthermore, FS-LLM [24] presents a framework for fine-tuning
+LLMs in federated environments. However, these studies typically apply the FedA VG algorithm
+directly to LoRA modules, resulting in in-exact model updates: the server average of LoRA-A and
+LoRA-Bdoes not equal the effective adapter.
+To address the issue of in-exact model updates, a few recent works have proposed modifications to
+the down-projection and up-projection components in LoRA. In FlexLoRA [2], the authors propose
+updating these projections with matrix multiplication followed by truncated SVD. A related method
+is also considered in FLoRA [40]. Another approach, by Sun et al., introduces a federated finetuning
+framework named FFA-LoRA [32], which builds on LoRA by freezing the down-projection matrices
+across all clients and updating only the up-projection matrices. They apply differential privacy [13] to
+provide privacy guarantees for clients’ data. With a sufficient number of finetuning parameters, FFA-
+LoRA, using a larger learning rate, can achieve performance comparable to FedA VG of LoRA while
+reducing communication costs by half. However, we observe that with fewer finetuning parameters,
+FFA-LoRA is less robust than FedA VG of LoRA, primarily due to its reduced expressiveness from
+freezing down-projections. In this work, we explore the necessity of learning down-projection
+matrices and propose a federated fine-tuning framework with computational and communication
+advantages.
+We connect the objective of learning down-projection matrices in a federated setting to multitask
+linear representation learning (MLRL), an approach in which a shared low-rank representation is
+jointly learned across multiple tasks. While, to the best of our knowledge, the alternating optimization
+of down- and up-projection matrices has not been explored within the context of LoRA, prior works
+on MLRL [9, 34] have demonstrated the importance of alternately updating low-rank representations
+and task-specific heads, demonstrating the necessity of learning a shared representation. Inspired
+by MLRL, we tackle this challenge by employing alternating optimization for LoRA adapters. We
+theoretically establish that alternating updates to the two components of LoRA, while maintaining a
+common global model, enable effective optimization of down-projections and ensure convergence to
+the global minimizer in a tractable setting.
+1.1 Main Contributions
+• RoLoRA framework.We propose RoLoRA, a robust federated fine-tuning framework
+based on the alternating optimization of LoRA as shown in Figure 1. RoLoRA fully leverages
+the expressiveness of LoRA adapters while keeping the computational and communication
+advantages.
+• Theoretical Insights.We prove that RoLoRA achieves exponential convergence to the
+global optimum for federated linear regression, reaching arbitrarily small errors, whereas
+FFA-LoRA’s fixed down-projections result in suboptimality proportional to the initialization
+error. Simple non-linear model experiments further validate the theoretical importance of
+updating the down-projections in practice. For the case of smooth non-convex loss functions
+we also provide a proof of convergence of our proposed method.
+• Empirical results.Through evaluations on language models (RoBERTa-Large, Llama-2-
+7B) across various tasks (GLUE, HumanEval, MMLU, Commonsense reasoning tasks), we
+demonstrate that RoLoRA maintains robustness against reductions in fine-tuning parameters
+and increases in client numbers compared to prior approaches.
+In summary, RoLoRA outperforms baselines with strong theoretical guarantees and robust perfor-
+mance across tasks and scales. It provides new insights into the role of down-projections, advancing
+2

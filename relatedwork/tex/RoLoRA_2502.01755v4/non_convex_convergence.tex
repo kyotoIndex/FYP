@@ -1,0 +1,197 @@
+\section{Convergence Analysis of Non-Convex Case} \label{app:convergence-non-convex}
+We follow the approach of Li et al.~\cite{Li2020On} to demonstrate the convergence of RoLoRA (Algorithm~\ref{alg:rolora-llm}) in smooth, non-convex landscapes. Assumptions~\ref{assumption1} and~\ref{lipschitz} are standard and commonly employed in the convergence analysis of federated learning. Assumption~\ref{assumption3} is adapted from FedSA-LoRA~\cite{guo2025selective}, which proposes a personalized federated fine-tuning framework that maintains local diversity in $\mathbf{B}$ while aggregating only $\mathbf{A}$ through simultaneous updates of both $\mathbf{A}$ and $\mathbf{B}$. In contrast, our work focuses on a single global model with alternating optimization of $\mathbf{A}$ and $\mathbf{B}$.
+
+In Assumption~\ref{assumption3}, bounding Frobenius norms of $\mathbf{A}$ and $\mathbf{B}$ is a standard weight‑regularity requirement in LoRA fine‑tuning practice, where small rank and scaling factors keep the adapters from exploding. The inner‑product conditions simply posit that each adapter has enough non‑degenerate singular values, requiring that the low-rank updates retain sufficient rank and alignment with local gradient directions. Formally, we require the smallest singular values of $\mathbf{A}_i^{t}$ and $\mathbf{B}_i^{t}$ to be lower bounded by $\sqrt{c_A}$ and $\sqrt{c_B}$.
+
+% Algebraically, if $\{\lambda_1,\dots,\lambda_K \}$ and $\{\mu_1,\dots,\mu_K\}$ are the eigenvalues of $\mathbf{A}_i^{t}$ and $\nabla_{\mathbf{W}} l_i(\mathbf{W}_i^{t})$ then $\langle \mathbf{A}_i^{t\top} \mathbf{A}_i^{t}, \, \nabla_{\mathbf{W}} l_i(\mathbf{W}_i^{t})^{\top} \nabla_{\mathbf{W}} l_i (\mathbf{W}_i^{t}) \rangle_F = \sum_{r=1}^{K} \lambda_k^{2} \mu_k^{2} \ge c_A \|\nabla_{\mathbf{W}} l_i(\mathbf{W}_i^{t})\|_F^{2}$ as long as no $\lambda_k$ vanishes and we choose $c_A = \min_k \lambda_k^{2}$. Similarly, we require $\mathbf{B}_i^{t}$ to maintain sufficient singular values to ensure that its updates are aligned with the local gradient direction, which leads to a corresponding lower bound $c_B$.
+
+
+\begin{assumption}[Bounded Stochastic Gradient] \label{assumption1}
+Let a mini‐batch $
+\mathbf{x}_{i},
+$
+be drawn uniformly at random from client $i$’s dataset, meaning $\mathbb{E}_{\mathbf{x}_{i}} [\nabla_{\mathbf{W}_i}\,l_i\bigl(\mathbf{W}_i,\,\mathbf{x}_{i} \bigr) ]= \nabla_{\mathbf{W}_i}\,l_i\bigl(\mathbf{W}_i\bigr)$. We assume that the expected squared norm of any stochastic gradient is uniformly bounded, that is,
+\[
+\mathbb{E}_{\mathbf{x}_{i}}\!\bigl\|\nabla_{\mathbf{W}}\,l_i\bigl(\mathbf{W},\,\mathbf{x}_{i}\bigr)\bigr\|^2
+\;\le\;G^2
+\]
+where the expectation is over the random draw of the mini-batch $\mathbf{x}_{i}$, and $G>0$ is a constant.
+\end{assumption}
+
+\begin{assumption}[Lipschitz smooth] \label{lipschitz}
+    Loss functions ${l}_1, \cdots, {l}_N$ are all $L$-smooth. For all weights $\mathbf{W}$ and $\mathbf{U}$:
+    \begin{equation}
+        l_i(\mathbf{V}) \leq l_i(\mathbf{W}) + \langle \nabla_{\mathbf{W}} l_i(\mathbf{W}), \mathbf{V}-\mathbf{W} \rangle_F + \frac{L}{2} \|\mathbf{V}-\mathbf{W}\|_F^2, \forall i \in [N] \nonumber
+    \end{equation}
+    
+\end{assumption}
+
+\begin{assumption} \label{assumption3}
+Let $\mathbf{W}_i=\mathbf{W}_0+\mathbf{B}_i\mathbf{A}_i$ represent the model parameters for the $i$-th client. There exist constants $C_B>0$, $C_A>0$, $c_B > 0$, and $c_A > 0$ such that:
+\begin{equation*}
+    \begin{aligned}
+        \|\mathbf{B}_i\|_F &\leq C_B, \\
+        \|\mathbf{A}_i\|_F &\leq C_A, \\
+        \langle {\mathbf{A}_i}{\mathbf{A}_i}^\top, \nabla_{\mathbf{W}} {l}_i(\mathbf{W}_i)\nabla_{\mathbf{W}} {l}_i(\mathbf{W}_i)^{\top}\rangle_F &\geq c_A \|\nabla_{\mathbf{W}} {l}_i(\mathbf{W}_i)\|_F^2, \\
+        \langle {\mathbf{B}_i}^{\top}\mathbf{B}_i, \nabla_{\mathbf{W}}{l}_i(\mathbf{W}_i)^{\top}\nabla_{\mathbf{W}} {l}_i(\mathbf{W}_i)\rangle_F & \geq c_B \|\nabla_{\mathbf{W}} {l}_i(\mathbf{W}_i)\|_F^2,
+    \end{aligned}
+\end{equation*}
+for all $i\in[N]$.
+\end{assumption}
+
+\begin{theorem}[Convergence to the stationary point] \label{convergence-non-convex}
+    Let Assumption ~\ref{assumption1}, ~\ref{lipschitz}, and ~\ref{assumption3} hold. Suppose each client runs $2T$ rounds, each consisting of $Q$ local epochs, using a learning rate $\eta \propto O(1/\sqrt{T})$, then we obtain:
+    \begin{align}
+        \min_{0\leq t\le 2T}  \mathbb{E}[\|\nabla_{\mathbf{W}}l_i(\mathbf{W}^{t})\|_F^2] \leq \frac{ \Delta_i}{2T\eta c_{min}} + \frac{D\eta}{2  c_{min}}
+    \end{align}
+    where $\Delta_i = \mathbb{E}[l_i(\mathbf{W}^{0})] -l_i^*, c_{min} = \min (c_A ,c_B), $ $D$ is chosen such that $ D \eta^2 \geq D_A+ D_B$, and $D_A = L \eta C_A^2 Q^2 G^2 + \frac{1}{2} \eta G^2 + 2L \eta^2 C_A^2 Q^2 G^2 + \frac{L}{2} \eta^2 C_A^4 G^2 ,
+    D_B = L \eta C_B^2 Q^2 G^2 + \frac{1}{2} \eta G^2 + 2L \eta^2 C_B^2 Q^2 G^2 + \frac{L}{2} \eta^2 C_B^4 G^2$.
+\end{theorem}
+
+
+According to Theorem~\ref{convergence-non-convex}, we achieve an $O\left(\frac{1}{\sqrt{T}}\right)$ convergence rate toward a stationary point under smooth, non-convex conditions, matching the convergence rate of FedAVG in the same setting. We follow a similar derivation framework to \cite{guo2025selective}, adopting similar proof techniques, such as applying Assumption~\ref{lipschitz} to the global and local models (Eq.\eqref{eq:lipschitz-1} and Eq.\eqref{eq:lipschitz-2}). However, due to structural differences between our algorithm and that of \cite{guo2025selective}—in particular, our use of alternating optimization rather than simultaneous updates—the derivation diverges in how key gradient bounds are applied and combined. As a result, even though the proof steps are analogous, our final convergence bound depends on $\min(c_A, c_B)$ and features decoupled $\mathbf{A}$- and $\mathbf{B}$-related terms, in contrast to the $c_A + c_B$ dependence along with cross-terms due to the simultaneous updates of $\mathbf{A}$ and $\mathbf{B}$ in \cite{guo2025selective}. Although FedSA-LoRA reports the same $O\left(\frac{1}{\sqrt{T}}\right)$ convergence rate, the two algorithms address fundamentally different FL scenarios: FedSA-LoRA optimizes personalized client models, whereas RoLoRA learns a single shared global model.
+
+\begin{proof}
+    Let $\mathbf{W}^{2t} = \mathbf{W}_0 + \mathbf{A}^t\mathbf{B}^t$ be the global model parameters at the $2t$-th communication round. Let $\mathbf{W}_{i,q}^{2t} = \mathbf{W}_0 + \mathbf{A}^t\mathbf{B}_{i,q}^t$ be the local model parameters of client $i$ at the $q$-th local epoch of the $2t$-th communication round, where each client performs a total of $Q$ local epochs. We define the following for convenience:
+
+    \begin{align}
+       & \text{The $2t$-th communication round:} \nonumber\\ &\quad \quad \quad \quad \mathbf{W}^{2t} = \mathbf{W}_0 + \mathbf{A}^t\mathbf{B}^t \label{w-2t}\\
+        &\text{The $q$-th local epoch of the $2t$-th communication round:} \nonumber \\
+        &\quad \quad \quad \quad  \mathbf{W}_{i,q}^{2t} = \mathbf{W}_0 + \mathbf{A}^t\mathbf{B}_{i,q}^t \label{w-2t-q} \\
+        &\text{The $2t+1$-th communication round:} \nonumber \\
+        &\quad \quad \quad \quad  \mathbf{W}^{2t+1} = \mathbf{W}_0 + \mathbf{A}^t\mathbf{B}^{t+1}    =   \mathbf{W}_0 + \frac{1}{N}\sum_{i=1}^{N}\mathbf{A}^t\mathbf{B}_{i,Q}^{t} \label{w-2t+1} \\
+        &\text{The $q$-th local epoch of the $2t+1$-th communication round:} \nonumber \\
+         &\quad \quad \quad \quad  \mathbf{W}_{i,q}^{2t+1} = \mathbf{W}_0 + \mathbf{A}_{i,q}^t\mathbf{B}^{t+1} \label{w-2t+1-q} \\
+         &\text{The $2t+2$-th communication round:} \nonumber \\
+         &\quad \quad \quad \quad  \mathbf{W}^{2t+2} =  \mathbf{W}_0 + \mathbf{A}^{t+1}\mathbf{B}^{t+1} = \mathbf{W}_0 + \frac{1}{N}\sum_{i=1}^{N}\mathbf{A}_{i,Q}^t\mathbf{B}^{t+1}\label{w-2t+2}  
+    \end{align}
+
+    According to chain rule, 
+    \begin{align}
+       \nabla_{\mathbf{B}} l_i(\mathbf{W}) =  \mathbf{A}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}) \\
+       \nabla_{\mathbf{A}} l_i(\mathbf{W}) =  \nabla_{\mathbf{W}} l_i(\mathbf{W})\mathbf{B}^\top
+    \end{align}
+
+Now we apply Assumption~\ref{lipschitz} to local update of $\mathbf{B}$, and get
+\begin{align}
+    l_i(\mathbf{W}_{i,1}^{2t}) \leq l_i(\mathbf{W}^{2t}) + \langle \mathbf{W}_{i,1}^{2t}- \mathbf{W}^{2t}, \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t})\rangle_F + \frac{L}{2} \| \mathbf{W}_{i,1}^{2t} - \mathbf{W}^{2t} \|_F^2 \label{eq:lipschitz-1}
+\end{align}
+By \eqref{w-2t} and \eqref{w-2t-q}, 
+\begin{align}
+    \mathbf{W}_{i,1}^{2t} - \mathbf{W}^{2t} &= \mathbf{A}^t (\mathbf{B}_{i,1}^t-\mathbf{B}^t) \label{eq:gd-fixA}\\
+    & = -\eta \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t})
+\end{align}
+where $\eta$ is the learning rate. Then
+\begin{align}
+    l_i(\mathbf{W}_{i,1}^{2t}) \leq l_i(\mathbf{W}^{2t}) -\eta \langle \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}), \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t})\rangle_F \nonumber\\+ \frac{L}{2} \eta^2 \|  \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) \|_F^2 \label{update1}
+\end{align}
+Taking expectation of \eqref{update1},
+\begin{align}
+    \mathbb{E}[l_i(\mathbf{W}_{i,1}^{2t})] \leq \mathbb{E}[ l_i(\mathbf{W}^{2t})] - \eta \langle \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t}), \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t})\rangle_F + \frac{L}{2} \eta^2  \mathbb{E}[\|  \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) \|_F^2 ] \label{exp-1}
+\end{align}
+The inner product term is lower bounded such that
+\begin{align}
+    \langle \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t}), \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t})\rangle_F & = \text{Tr}[{\nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t})}^\top \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t})] \\
+    & = \text{Tr}[ \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t}){\nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t})}^\top] \\
+     & =  \langle \mathbf{A}^t {\mathbf{A}^t}^\top , \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t}){\nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t})}^\top \rangle_F\\
+    & \geq  c_A \| \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t})  \|_F^2 \label{eq:ip-1}
+\end{align}
+where \eqref{eq:ip-1} follows by Assumption~\ref{assumption3}. Moreover,
+\begin{align}
+    \frac{L}{2} \eta^2  \mathbb{E}[\|  \mathbf{A}^t {\mathbf{A}^t}^\top \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) \|_F^2 ] &\leq  \frac{L}{2} \eta^2  \mathbb{E}[\| \mathbf{A}^t\|_F^4 \cdot \|\nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t})\|_F^2] \label{quadr-1} \\
+    &  \leq \frac{L}{2} \eta^2  \mathbb{E}[C_A^4 \cdot \|\nabla_{\mathbf{W}}  l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t})\|_F^2] \\
+    & =  \frac{L}{2} \eta^2 C_A^4\mathbb{E}[ \|\nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t})\|_F^2] \\
+    & \leq \frac{L}{2} \eta^2 C_A^4 G^2 \label{quadr-2}
+\end{align}
+where \eqref{quadr-1} follows by Assumption~\ref{assumption3}, \eqref{quadr-2} follows by Assumption~\ref{assumption1}. Combining \eqref{exp-1}, \eqref{eq:ip-1}, and \eqref{quadr-2}, we get
+\begin{align}
+    \mathbb{E}[l_i(\mathbf{W}_{i,1}^{2t})] \leq \mathbb{E}[ l_i(\mathbf{W}^{2t})] - \eta c_A \| \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t})  \|_F^2  + \frac{L}{2} \eta^2 C_A^4 G^2 \label{smooth-1-results}
+\end{align}
+
+Next we apply Assumption~\ref{assumption3} to aggregation step and take expectation on both sides,
+\begin{align}
+     \mathbb{E}[l_i(\mathbf{W}^{2t+1})] \leq \mathbb{E}[l_i(\mathbf{W}^{2t}_{i,1})] + \mathbb{E}[\langle \mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1}, \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t}_{i,1})\rangle_F ]+ \frac{L}{2} \mathbb{E}[ \| \mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1} \|_F^2] \label{eq:lipschitz-2}
+\end{align}
+where 
+\begin{align}
+     \mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1} &= \frac{1}{N}\sum_{j=1}^{N} \mathbf{A}^t \mathbf{B}^t_{j,Q}-\mathbf{A}^t \mathbf{B}^t_{i,1} \label{eq:aggre-fixA}\\
+     & = \frac{1}{N}\sum_{j=1}^{N} \mathbf{A}^t ( \mathbf{B}^t_{j,Q}-\mathbf{B}^t_{i,1})  \label{smooth-2}
+\end{align}
+We have
+\begin{align}
+    \mathbf{B}^t_{j,Q} &= \mathbf{B}^t - \eta \sum_{q=0}^{Q-1} \nabla_{\mathbf{B}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}) \\
+    \mathbf{B}^t_{i,1} &= \mathbf{B}^t - \eta \nabla_{\mathbf{B}} l_i (\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) \\
+    \mathbf{B}^t_{j,Q} - \mathbf{B}^t_{i,1} &= \eta \sum_{q=0}^{Q-1} (\nabla_{\mathbf{B}} l_i (\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{B}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t})) \\
+    & = \eta {\mathbf{A}^t}^\top \sum_{q=0}^{Q-1}(\nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}))
+\end{align}
+Thus,
+\begin{align}
+     \mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1} &= \frac{\eta}{N} \mathbf{A}^t \sum_{j=1}^{N} \sum_{q=0}^{Q-1} (\nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}))
+\end{align}
+Therefore, 
+\begin{align}
+ \left\|\mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1} \right\|_F^2 
+&=  \left\|\frac{\eta}{N}\, \mathbf{A}^t \sum_{j=1}^{N} \sum_{q=0}^{Q-1} \left( \nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}) \right) \right\|_F^2  \\
+&\le \frac{\eta^2}{N^2} \|\mathbf{A}^t\|_F^2 \left\| \sum_{j=1}^{N} \sum_{q=0}^{Q-1} \left( \nabla_{\mathbf{W}} l_i (\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}) \right) \right\|_F^2 \\
+&\le \frac{\eta^2}{N} C_A^2 \sum_{j=1}^{N} \left\| \sum_{q=0}^{Q-1} \left( \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}}l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}) \right) \right\|_F^2 \\
+& \le \frac{\eta^2}{N} C_A^2 Q \sum_{j=1}^{N} \sum_{q=0}^{Q-1} \left\| \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}) \right\|_F^2
+\end{align}
+Taking expectation, 
+\begin{align}
+    \mathbb{E} \left[\left\|\mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1} \right\|_F^2  \right]
+    & \le \frac{\eta^2}{N} C_A^2 Q \sum_{j=1}^{N} \sum_{q=0}^{Q-1} \mathbb{E} \left[ \left\| \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t})) \right\|_F^2 \right]
+\end{align}
+For any matrices $\mathbf{A}$ and $\mathbf{B}$ (or vectors), we have
+\[
+\| \mathbf A - \mathbf B\|_F^{2}
+= \|\mathbf A\|_F^{2} + \|\mathbf B\|_F^{2} - 2\langle \mathbf A, \mathbf B\rangle_F
+\;\le\; \|\mathbf A\|_F^{2} + \|\mathbf B\|_F^{2} + 2\|\mathbf A\|_F\,\|\mathbf B\|_F
+\;\le\; 2\|\mathbf A\|_F^{2} + 2\|\mathbf B\|_F^{2}.
+\]
+Thus,
+\begin{align}
+    &\mathbb{E} \left[ \left\| \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) - \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}) \right\|_F^2 \right] \nonumber\\&\leq 2 \mathbb{E} \left[ \| \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t},\mathbf{x}_{i,1}^{2t}) \|_F^2 \right] + 2 \mathbb{E} \left[  \| \nabla_{\mathbf{W}} l_j(\mathbf{W}^{2t}_{j,q},\mathbf{x}_{j,q}^{2t}) \|_F^2 \right] \\
+    &\leq 4G^2
+\end{align}
+Leading to
+\begin{align}
+    \frac{L}{2} \mathbb{E} \left[\left\|\mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1} \right\|_F^2  \right] \leq 2L \eta^2 C_A^2 Q^2 G^2 \label{quadr-smooth-2}
+\end{align}
+For the inner product term of \eqref{eq:lipschitz-2}, we have
+\begin{align}
+    \mathbb{E} \left[ \langle \mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1}, \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t}_{i,1})\rangle_F \right] & \leq \frac{1}{2\eta} \mathbb{E} \left[ \left\|  \mathbf{W}^{2t+1} - \mathbf{W}^{2t}_{i,1} \right\|_F^2 \right] + \frac{1}{2} \eta \mathbb{E} \left[ \left\| \nabla_{\mathbf{W}} l_i(\mathbf{W}^{2t}_{i,1})  \right\|_F^2 \right] \\
+    & \le L \eta C_A^2 Q^2 G^2 + \frac{1}{2} \eta G^2 \label{ip-smooth-2}
+\end{align}
+Combining \eqref{eq:lipschitz-2}, \eqref{quadr-smooth-2}, and \eqref{ip-smooth-2}, we obtain
+\begin{align}
+    \mathbb{E}[l_i(\mathbf{W}^{2t+1})] \leq \mathbb{E}[l_i(\mathbf{W}^{2t}_{i,1})] + L \eta C_A^2 Q^2 G^2 + \frac{1}{2} \eta G^2  + 2L \eta^2 C_A^2 Q^2 G^2 \label{smooth-2-results}
+\end{align}
+Combining \eqref{smooth-1-results} and \eqref{smooth-2-results}, we derive
+\begin{align}
+   & \eta c_A \| \nabla_{\mathbf{W}}l_i (\mathbf{W}^{2t})\|_F^2 \nonumber\\ 
+   &  \le \mathbb{E}[l_i(\mathbf{W}^{2t})]-\mathbb{E}[l_i(\mathbf{W}^{2t+1})] + L \eta C_A^2 Q^2 G^2 + \frac{1}{2} \eta G^2 + 2L \eta^2 C_A^2 Q^2 G^2 + \frac{L}{2} \eta^2 C_A^4 G^2
+\end{align}
+Analogously, applying the same analysis to the $(2t+1)$-th communication round, which fixes $\mathbf{B}$ and updates $\mathbf{A}$, introduces key modifications to steps such as Eq.\eqref{eq:gd-fixA} and Eq.\eqref{eq:aggre-fixA}, which govern the weight updates. These changes propagate through the subsequent steps that depend on the updated weights. As a result, we obtain
+\begin{align}
+     & \eta c_B \| \nabla_{\mathbf{W}}l_i (\mathbf{W}^{2t+1})\|_F^2 \nonumber\\ 
+   &  \le \mathbb{E}[l_i(\mathbf{W}^{2t})]-\mathbb{E}[l_i(\mathbf{W}^{2t+1})] + L \eta C_B^2 Q^2 G^2 + \frac{1}{2} \eta G^2 + 2L \eta^2 C_B^2 Q^2 G^2 + \frac{L}{2} \eta^2 C_B^4 G^2
+\end{align}
+Add the two inequalities and then sum over $t=0,1,\dots, T-1$, we get
+\begin{align}
+    \sum_{t=0}^{T-1} \eta (c_A \| \nabla_{\mathbf{W}}l_i (\mathbf{W}^{2t})\|_F^2 + c_B \| \nabla_{\mathbf{W}}l_i (\mathbf{W}^{2t+1})\|_F^2  ) \leq \mathbb{E}[l_i(\mathbf{W}^{0})]-\mathbb{E}[l_i(\mathbf{W}^{2T})] +T (D_A+D_B)
+\end{align}
+where
+\begin{align}
+    D_A = L \eta C_A^2 Q^2 G^2 + \frac{1}{2} \eta G^2 + 2L \eta^2 C_A^2 Q^2 G^2 + \frac{L}{2} \eta^2 C_A^4 G^2 \\
+    D_B = L \eta C_B^2 Q^2 G^2 + \frac{1}{2} \eta G^2 + 2L \eta^2 C_B^2 Q^2 G^2 + \frac{L}{2} \eta^2 C_B^4 G^2
+\end{align}
+Assume the per‑client loss is bounded below by $l_i^*$, let 
+\begin{align}
+    \Delta_i = \mathbb{E}[l_i(\mathbf{W}^{0})] -l_i^*, \quad c_{min} = \min (c_A ,c_B), 
+\end{align}
+Choosing $D$ such that $D\eta^2\geq D_A+D_B$, then
+\begin{align}
+    \min_{0\leq t\le 2T}  \mathbb{E}[\|\nabla_{\mathbf{W}}l_i(\mathbf{W}^{t})\|_F^2] \leq \frac{ \Delta_i}{2T\eta c_{min}} + \frac{D\eta}{2  c_{min}}
+\end{align}
+We choose $\eta \propto O(1/\sqrt{T})$ so that the overall convergence rate with a diminishing step size is $ O(1/\sqrt{T})$ which matches the canonical convergence speed of stochastic gradient methods in non‑convex settings.
+\end{proof}

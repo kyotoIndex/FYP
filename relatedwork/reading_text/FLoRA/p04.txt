@@ -1,0 +1,78 @@
+different clients. This intermediate term introduces unexpected noise in the model aggregation. As
+the number of clients increases, this noisy term becomes much larger than the real global updates,
+significantly slowing down the fine-tuning progress. In addition, FedIT applies the scaling factor pk
+to both Ak and Bk, resulting in a p2
+k coefficient for the local model update ∆Wk, exacerbating the
+error in LoRA aggregation. As Figure 2 illustrates, the averaging algorithm in FedIT is an inaccurate
+aggregation method, leading to slower convergence and higher computation costs.
+The other deficiency of FedIT is that it cannot support aggregation on heterogeneous LoRA modules.
+The local data in FL may exhibit significant heterogeneity across clients [28; 11]. If a client configures
+a higher rank than the actual one required by the local data complexity, this may result in overfitting.
+Conversely, if the rank is too small, it may lack the necessary generalization capacity to effectively
+learn from the local dataset (Figure 4). Moreover, the heterogeneous computational resource across
+clients also requires heterogeneous rank deployment, e.g., clients with smaller memory can only
+afford to train LoRA modules with smaller ranks. AdaLoRA [27] has been proposed to adapt LoRA
+ranks based on available computation resources. Therefore, deploying heterogeneous ranks across
+clients is a pressing requirement for accommodation to data and system heterogeneity. However,
+according to Equation 3, FedIT is only able to aggregate LoRA modules with the homogeneous rank.
+3 Proposed Method: FLoRA
+3.1 Stacking-based Noise-free Aggregation
+Motivated by the aforementioned problem, we propose a novel aggregation mechanism that accurately
+computes global model update ∆W by aggregating local LoRA modules and effectively supports
+the heterogeneous LoRA. According to matrix multiplication principles and the model update rule in
+LoRA (i.e., Equation 1), the element at position (x, y) of the model update ∆W is computed as the
+sum of the products of corresponding elements from the x-th column of B and the y-th row of A:
+δxy =
+rX
+i=0
+ayibxi, (7)
+where δxy represents the element at position (x, y) in ∆W. ayi, bxi are the elements at positions
+(y, i) and (x, i) in A and B, respectively. According to Equation 3.1, the model update in LoRA can
+be expressed as the sum of the products of the corresponding rows of A and the columns of B.
+To illustrate this concept further, let us consider a simplified example where the dimensions of LoRA
+modules are given by A ∈ R2×3 and B ∈ R3×2. As described in Equation 8, A and B can be
+decomposed to two sub-matrices with rank r = 1, and the product of A and B then are computed as
+the sum of the products of two respective sub-matrices:
+BA =
+"b00, b01
+b10, b11
+b20, b21
+#
+·
+
+a00, a10, a20
+a01, a11, a21
+
+=
+
+
+b00
+b10
+b20
+
+·[a00, a10, a20]+
+
+
+b01
+b11
+b21
+
+·[a01, a11, a21.] (8)
+To address the aggregation challenge from an alternative perspective, let us consider the scenario
+where we have multiple pairs of LoRA modules,Ak, Bk, optimized by the clients. Each pair satisfies
+the dimensions Ak ∈ Rrk×n and Bk ∈ Rm×rk. Similar to Equation 8, the sum of the products
+of these module pairs is the product of the stacked modules, i.e.,PK
+k=1 BkAk = BA, where B
+represents the stacking of all Bk modules aligned through dimension m and A is the stacking of
+all Ak aligned through dimension n. Figure 2 visually illustrates this concept, where the orange,
+green, and blue rectangles symbolize Ak, Bk, and their respective products. The aggregation of
+three products mirrors the product of the stacked B and A from all Bk and Ak pairs trained by
+clients. This mechanism demonstrates that, in the context of federated fine-tuning, we can achieve a
+noise-free aggregation of local updates by simply stacking the local LoRA modules. This process
+also avoids transmitting the full model parameters, thus reducing communication costs.
+To facilitate our discussion, we introduce the stacking operation symbolized by “⊕" to denote the
+module aggregation as depicted in Figure 2. This operation is mathematically defined as:
+A = A0 ⊕ A1 ⊕ A2, B = B0 ⊕ B1 ⊕ B2,
+Ak ∈ Rrk×n,A ∈ R(r0+r1+r2)×n, Bk ∈ Rm×rk , B ∈ Rm×(r0+r1+r2).
+(9)
+4

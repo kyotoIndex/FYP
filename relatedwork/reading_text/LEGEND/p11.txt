@@ -1,0 +1,92 @@
+0 .51.01.52.0Network traffic (×10 GB)S
+ST-2 
+LEGEND  FedAdapter HetLoRA  FedLoRA
+(a) Traffic to reach 95% accuracy
+1 .01.52.0Network traffic (×10 GB)Q
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Traffic to reach 90% accuracy
+0 .60.81.01.2Network traffic (×102 GB)Q
+QP 
+LEGEND  FedAdapter HetLoRA  FedLoRA (c) Traffic to reach 87% accuracy
+4 5678Network traffic (×10 GB)M
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (d) Traffic to reach 85% accuracy
+Figure 11: Communication traffic of four approaches on general language understanding tasks.
+0 2 04 06 08 01 001015Avg. waiting time (s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA 
+(a) SST-2
+0 2 04 06 08 01 0046810Avg. waiting time (×10s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) QNLI
+0 2 04 06 08 01 0046810Avg. waiting time (×102s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA (c) QQP
+0 2 04 06 08 01 003456Avg. waiting time (×102s)R
+ound 
+LEGEND  FedAdapter HetLoRA  FedLoRA (d) MNLI
+Figure 12: Average waiting time of four approaches on general language understanding tasks.
+5.46GB, and 5.74GB compared with FedAdapter, HetLoRA,
+and FedLoRA, respectively. For QQP, the results in Figure
+11(c) show that LEGEND reduces the total traffic consump-
+tion up to 42.3% when achieving accuracy. Moreover, by Fig-
+ure 11(d), when achieving 85% accuracy for MNLI, LEGEND
+consumes 42GB, while FedAdapter, HetLoRA, and FedLoRA
+consume about 54GB, 60GB, and 69GB, respectively. The
+experimental results underscore the advantages of LEGEND
+in reducing communication costs.
+To demonstrate the effectiveness of LEGEND towards sys-
+tem heterogeneity, we illustrate the average waiting time of
+the four approaches on the four datasets in Figure 12. LEG-
+END achieves the shortest waiting time across all datasets
+by assigning different LoRA depths with reasonable rank
+distribution to heterogeneous devices. For example, by Fig-
+ure 12(a), LEGEND separately improves the average wait-
+ing time by about 11.0%, 19.5%, and 40.2%, compared with
+FedAdapter, HetLoRA, and FedLoRA for SST-2. By Fig-
+ure 12(b), the average waiting time of LEGEND is 38.6s for
+QNLI, while FedAdapter, HetLoRA, and FedLoRA incur av-
+erage waiting time of 50.3s, 57.4s, and 76.7s, respectively.
+LEGEND reduces the average waiting time by about 23.4%,
+32.8%, and 49.7% compared to FedAdapter, HetLoRA, and
+FedLoRA, respectively. Besides, as illustrated by Figure 12(c),
+the average waiting time of LEGEND is 352s for SST-2 while
+FedAdapter, HetLoRA, and FedLoRA incur an average wait-
+ing time of 532s, 623s, and 710s, respectively. Compared with
+FedAdapter, HetLoRA, and FedLoRA, LEGEND reduces the
+average waiting time by about 33.8%, 43.5%, and 50.4%,
+respectively. In addition, by Figure 12(d), LEGEND also out-
+performs FedAdapter, HetLoRA, and FedLoRA, reducing the
+averaging waiting time by 14%, 24%, and 32.7%, respectively.
+LEGEND achieves the least waiting time across all tasks by
+assigning appropriate depth to devices, significantly reducing
+the time for local fine-tuning on resource-constrained devices.
+In contrast, FedLoRA adds LoRA layers to all transformer
+layers of the model, which requires the complete backprop-
+agation process to update all LoRA layers and fast devices
+should be forced to wait for slow ones, leading to prolonged
+waiting time and poor fine-tuning efficiency. HetLoRA im-
+proves FedLoRA by assigning diverse ranks to the devices
+to alleviate the challenge of system heterogeneity but with
+limited success, while FedAdapter speeds up the fine-tuning
+process by selecting the best fine-tuning group from groups
+with different Adapter configurations in each round. These
+experimental results demonstrate the superiority of LEGEND
+in mitigating system heterogeneity.
+6.3 Ablation Study
+There are two key factors in LEGEND, i.e., LoRA depth and
+rank distribution, which are developed to enhance the per-
+formance of FedLoRA. Herein, we conduct several sets of
+ablation experiments on SST-2 and QNLI to validate the ef-
+fectiveness of the two essential factors. We adopt LEGEND,
+LEGEND without LoRA depth (denoted as LEGEND w/o
+LD), LEGEND without rank distribution (denoted as LEG-
+END w/o RD) as the baselines. As illustrated in Figure 13,
+both LoRA depth and rank distribution are essential in LEG-
+END, but they contribute to the system in different ways.
+For instance, by Figures 13(a) and 13(b), LEGEND w/o LD
+achieves similar final test accuracy,e.g., 95.3% on SST-2 and
+91.6% on QNLI, compared with LEGEND, while LEGEND
+w/o RD slightly degrades to 94.6% on SST-2 and 90.5% on
+QNLI, respectively. Besides, by Figure 13(a), when achiev-
+11

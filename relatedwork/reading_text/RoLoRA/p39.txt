@@ -1,0 +1,143 @@
+Taking expectation,
+E
+hW2t+1 −W 2t
+i,1
+2
+F
+i
+≤ η2
+N C2
+AQ
+NX
+j=1
+Q−1X
+q=0
+E
+h∇Wli(W2t,x 2t
+i,1)− ∇ Wlj(W2t
+j,q,x 2t
+j,q))
+2
+F
+i
+(289)
+For any matricesAandB(or vectors), we have
+∥A−B∥2
+F =∥A∥ 2
+F +∥B∥2
+F −2⟨A,B⟩ F ≤ ∥A∥ 2
+F +∥B∥2
+F +2∥A∥F ∥B∥F ≤2∥A∥ 2
+F +2∥B∥2
+F .
+Thus,
+E
+h∇Wli(W2t,x 2t
+i,1)− ∇ Wlj(W2t
+j,q,x 2t
+j,q)
+2
+F
+i
+≤2E
+
+∥∇Wli(W2t,x 2t
+i,1)∥2
+F
+
++ 2E
+
+∥∇Wlj(W2t
+j,q,x 2t
+j,q)∥2
+F
+
+(290)
+≤4G 2 (291)
+Leading to
+L
+2 E
+hW2t+1 −W 2t
+i,1
+2
+F
+i
+≤2Lη 2C2
+AQ2G2 (292)
+For the inner product term of (277), we have
+E
+
+⟨W2t+1 −W 2t
+i,1,∇ Wli(W2t
+i,1)⟩F
+
+≤ 1
+2η E
+hW2t+1 −W 2t
+i,1
+2
+F
+i
++ 1
+2 ηE
+h∇Wli(W2t
+i,1)
+2
+F
+i
+(293)
+≤LηC 2
+AQ2G2 + 1
+2 ηG2 (294)
+Combining (277), (292), and (294), we obtain
+E[li(W2t+1)]≤E[l i(W2t
+i,1)] +LηC 2
+AQ2G2 + 1
+2 ηG2 + 2Lη2C2
+AQ2G2 (295)
+Combining (276) and (295), we derive
+ηcA∥∇Wli(W2t)∥2
+F
+≤E[l i(W2t)]−E[l i(W2t+1)] +LηC 2
+AQ2G2 + 1
+2 ηG2 + 2Lη2C2
+AQ2G2 + L
+2 η2C4
+AG2 (296)
+Analogously, applying the same analysis to the (2t+ 1) -th communication round, which fixes B and
+updates A, introduces key modifications to steps such as Eq.(264) and Eq.(278), which govern the
+weight updates. These changes propagate through the subsequent steps that depend on the updated
+weights. As a result, we obtain
+ηcB∥∇Wli(W2t+1)∥2
+F
+≤E[l i(W2t)]−E[l i(W2t+1)] +LηC 2
+BQ2G2 + 1
+2 ηG2 + 2Lη2C2
+BQ2G2 + L
+2 η2C4
+BG2 (297)
+Add the two inequalities and then sum overt= 0,1, . . . , T−1, we get
+T−1X
+t=0
+η(cA∥∇Wli(W2t)∥2
+F +c B∥∇Wli(W2t+1)∥2
+F )≤E[l i(W0)]−E[l i(W2T )] +T(D A +D B)
+(298)
+where
+DA =LηC 2
+AQ2G2 + 1
+2 ηG2 + 2Lη2C2
+AQ2G2 + L
+2 η2C4
+AG2 (299)
+DB =LηC 2
+BQ2G2 + 1
+2 ηG2 + 2Lη2C2
+BQ2G2 + L
+2 η2C4
+BG2 (300)
+Assume the per-client loss is bounded below byl ∗
+i , let
+∆i =E[l i(W0)]−l ∗
+i , c min = min(cA, cB),(301)
+39

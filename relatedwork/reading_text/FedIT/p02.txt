@@ -1,0 +1,55 @@
+1 Introduction
+Large Language Models (LLMs) have become ubiquitous in natural language processing (NLP)
+[6, 17, 64, 65], where one single model can perform well on various language tasks, including
+established tasks such as text generation, machine translation, and question answering, as well as
+novel application-oriented tasks in human daily life [ 19, 69, 81]. To align LLM to follow human
+intents, instruction-tuning has been proposed by fine-tuning LLM on instruction-following data
+[62, 84, 85]. Though instruction-tuning has demonstrated great effectiveness in improving the zero
+and few-shot generalization capabilities of LLM, its performance on real-world tasks is contingent on
+the quantity, diversity, and quality of the collected instructions [58, 84]. The process of collecting
+these instructions can be expensive [75, 84].
+Beyond the commonly acknowledged constraints of time and labor expenses, the increasing aware-
+ness of data sensitivity highlights a significant challenge in acquiring extensive and high-quality
+instructions [3, 26, 34]. For instance, collecting vast amounts of daily conversations from users is a
+valuable means of providing guidance for LLMs, enabling them to generate authentic and genuine
+responses. However, privacy concerns may hinder users from sharing their conversations, resulting in
+a limited quantity of instructions that are not fully representative of the target population. Likewise,
+many companies treat their instructions as proprietary assets that are closely guarded. They are
+reluctant to share their instructions with external parties, as they often contain confidential and propri-
+etary information that is critical to their success and profitability [27]. For example, pharmaceutical
+companies rely on meticulously-crafted instructions that may include details about the chemical
+composition of new drugs and the results of clinical trials [35]. Hence, the sensitive nature of these
+instructions can pose significant challenges when utilizing traditional centralized approaches for
+instruction tuning.
+We aim to tackle these challenges by exploring the potential of federated learning (FL) as a promising
+solution [56]. This collaborative learning technique enables many clients to learn a shared model
+jointly without sharing their sensitive data. In particular, in our proposed federated instruction-tuning,
+clients initially download a global LLM from a central server and subsequently compute local model
+updates using their respective local instructions. These local updates are then transmitted back to
+the server, where they are aggregated and integrated to update the global LLM. Given that clients
+often have limited computational resources in comparison to traditional centralized training cloud
+servers, which can utilize thousands of GPUs to fully fine-tune all parameters of LLMs, we resort to
+parameter-efficient tuning techniques. This leads to a significant decrease in the computational and
+communication demands, as it reduces the number of trainable parameters on each device.
+Thus, our proposed framework enables efficient utilization of the computational resources available
+on local edge devices, which are commonly accessible, as well as their diverse local instructions. This
+eliminates the need for depending on large cloud servers to fine-tune LLMs. Our major contributions
+are summarized as follows:
+• We make the first attempt to leverage FL for instruction tuning (FedIT) of LLMs. In the
+predominant instruction tuning of LLMs, acquiring access to extensive and high-quality
+instructions can present significant obstacles due to the associated costs and privacy concerns.
+In this work, we show that we are able to circumvent the above-mentioned limitations by
+exploiting the diverse sets of available instructions (especially in cross-device FL where
+the number of clients is of the order of billion) from the users in the FL system. To make
+deploying LLM within an FL setup viable in terms of communication and computation cost,
+we suggest the clients exploit the parameter-efficient tuning (PETuning) methods.
+• A comprehensive study is conducted on the heterogeneity within the FL instruction tuning.
+We employ the GPT-4 auto-evaluation method, which has been widely utilized in related
+research [11, 63], to demonstrate the effectiveness of our FedIT approach in enhancing re-
+sponse quality by leveraging diverse available instructions. We discuss potential avenues for
+future research to improve the FL-based LLM fine-tuning methods for practical deployment.
+• We have developed and released a GitHub repository called Shepherd3, which has been
+designed to provide ease of customization and adaptability, thereby offering benefits for
+future research endeavors in this field.
+3https://github.com/JayZhang42/FederatedGPT-Shepherd
+2

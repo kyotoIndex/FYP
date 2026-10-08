@@ -1,0 +1,109 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 7
+TABLE III
+MAIN RESULTS OF FED-HELL O COMPARED WITH BASELINES ON LEDGAR DATASET.
+Methods
+Model Performance (Macro-F1) Avg Back. Comp.
+Cost (TFLOPs)
+Avg Memory
+Cost (GB)
+Avg Comm.
+Cost (MB/R)
+Avg Training
+Time (Sec/R)IID 20/1.0 10/1.0 Avg
+Straggler - 56.82 51.05 44.05 50.64 1.62 10.61 3.53 6.58
+Exclusive
+RoC
+6:3:1
+61.25 44.72 28.48 44.81 3.25 12.38 4.71 12.99
+HETLoRA 53.00 39.09 26.90 39.66 3.22 12.35 2.87 9.07
+FlexLoRA 29.08 4.08 5.01 12.72 3.22 12.35 57.13 14.91
+FLoRA 0.06 0.04 0.08 0.06 3.22 12.35 5.65 11.62
+FedRA 66.74 61.73 55.71 61.39 2.04 10.57 3.83 10.17
+Fed-HeLLo 67.00 65.58 61.04 64.54 2.04 10.74 3.83 9.83
+Exclusive
+RoC
+1:1:1
+66.17 57.41 13.20 45.59 3.25 12.38 4.71 8.45
+HETLoRA 62.88 54.50 45.78 54.38 3.23 12.36 3.40 7.09
+FlexLoRA 30.95 1.19 1.83 11.32 3.23 12.36 57.66 13.33
+FLoRA 0.08 0.04 0.01 0.04 3.23 12.36 11.53 12.18
+FedRA 66.63 62.61 56.39 61.87 2.45 11.16 4.13 6.54
+Fed-HeLLo 66.75 67.10 64.27 66.04 2.45 11.28 4.13 5.75
+broadcast to all selected clients, resulting in a communication
+cost per round of O(2lRs). In Fed-HeLLo, allocation maps are
+transmitted every TFIM rounds, leading to a total communica-
+tion cost of O(2cRs + lsTFIM
+T ). Since the communication cost
+for FIM scores is negligible, reducing the number of trainable
+LoRA layers decreases the communication cost, demonstrating
+the efficiency and practicality of our method in FL scenarios.
+IV. E XPERIMENTS
+In this section, we evaluate and compare the performance
+of our proposed method, Fed-HeLLo, with other baseline
+methods across various datasets and data distribution settings.
+A. Experimental Settings
+We conduct experiments on both visual and language
+modalities. For visual tasks, we use CIFAR-100 dataset [28]
+and a crafted version of DomainNet dataset [43], referred to as
+DomainNet-121. For language tasks, we use LEDGAR dataset
+from LexGLUE [7] for paragraph classification, as well as
+two instruction fine-tuning datasets: Natural Instruction [49]
+and Dolly-15K [40]. We simulate three levels of data hetero-
+geneity ranging from IID to extreme Non-IID by varying the
+data quantities, labels, or domains of clients. For example, a
+“20/1.0” Non-IID setting means that each client has samples
+from 20 categories, with quantities skewed by a Dirichlet
+distribution with α = 1.0; a “25/D1” Non-IID setting indicates
+that each client has 25 categories and one domain per category.
+For visual tasks, we employ ViT-base [16], a 12-layer
+transformer encoder model designed for image processing.
+For language tasks, we conduct experiments on three mod-
+els. For LEDGAR dataset, we utilize BERT-base [13], a
+12-layer transformer model pre-trained on a comprehensive
+English corpus in a self-supervised manner. For the Natural
+Instruction and Dolly-15K dataset, we use the Llama-like
+model DataJuicer-1B [8] and OPT-1.3B [64] as the pre-trained
+models, respectively. For all these models, LoRA layers are
+applied to both the “query” and “value” modules in each
+transformer layer. The LoRA rank is set to 16 for ViT-base
+and BERT-base, and 8 for DataJuicer-1B and OPT-1.3B. The
+scaling parameter and dropout probability are set to 16 and
+0.1, respectively.
+For evaluation, we use top-1 accuracy for CIFAR-100
+and DomainNet-121, Macro F1 score for LEDGAR [7], and
+Rouge-L score [32] for Natural Instruction and Dolly-15K.
+The batch sizes for local training on CIFAR100, LEDGAR,
+DomainNet-121, Natural Instruction, and Dolly-15K are 128,
+128, 32, 1, and 1, respectively.
+For the FL settings, we consider n = 100 clients for
+classification tasks (CIFAR-100, LEDGAR, and DomainNet-
+121) and n = 50 for instruction fine-tuning tasks (Natural
+Instruction and Dolly-15k) unless otherwise specified. The
+local epoch τ and the number of training rounds T are
+set to 1 and 500 for classification tasks, and 1 and 25 for
+instruction fine-tuning tasks, respectively. At each round, the
+server randomly selects s = 10 clients to perform local fine-
+tuning, using the AdamW optimizer as the local solver.
+We consider two settings for the number of clients. In a
+practical scenario with more low-resource devices, the ratio
+of clients is set to 6:3:1, with each group capable of training
+1
+2, 3
+4, or all LoRA layers, corresponding to three levels of
+resource capabilities. We also consider an evenly distributed
+case (1:1:1 ratio of clients), where clients are divided into
+three resource levels, each capable of training 1
+2, 3
+4, or all
+LoRA layers. For the proxy dataset used in FIM-HLA, we
+randomly sample 100, 50, 1000, 50, and 50 samples from the
+test dataset of CIFAR100, LEDGAR, DomainNet-121, Natural
+Instruction, and Dolly-15K datasets, respectively, and exclude
+these samples throughout the entire process to ensure fairness.
+In classification experiments, we set both TRGD and TFIM to
+50 for Fed-HeLLo, and TRGD=0 and TFIM=1 for FIM-HLA.
+In instruction fine-tuning experiments, we set TRGD=1 and
+TFIM=2 for Fed-HeLLo, and same as before for FIM-HLA.
+B. Baselines
+To demonstrate the effectiveness of Fed-HeLLo, we com-
+pare it with several baselines as follows: Straggler Learning

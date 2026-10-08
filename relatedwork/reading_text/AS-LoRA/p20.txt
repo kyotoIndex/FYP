@@ -1,0 +1,86 @@
+Stochastic gradient and population Hessian.For each block label a∈ {A, B} , let g(n)
+a de-
+note themini-batch stochastic gradientof L with respect to the factor matrix a(n), satisfying
+E[g(n)
+a ] =∇ a(n) L over the random sampling. Concretely, g(n)
+A ∈R r×d and g(n)
+B ∈R d×r are
+matrix-valued. The correspondingdeterministic population Hessian H (n)
+a (W) :=∇ 2
+a(n) L(W)
+acts on the vectorized factor and is treated as a (dima (n))×(dima (n)) matrix throughout (with
+dimA (n) = dimB (n) =rd ). Randomness enters only through g(n)
+a and DP-SGD noise
+Na ∼ N(0, σ 2C 2I) (clipping bound C), and ∇a(n) L and H (n)
+a (W) are deterministic functions
+of W as in the standard convention for second-order SGD/BCD analyses [ 32, 23]. With ∥ · ∥ de-
+noting the Frobenius norm for matrices and the Euclidean norm for vector objects, the per-layer
+block Rayleigh quotient is λ(n)
+a :=⟨g (n)
+a , H(n)
+a g(n)
+a ⟩/∥g(n)
+a ∥2 and the per-layer block-greedy score is
+S(n)
+a :=∥g (n)
+a ∥2 − η
+2 ⟨g(n)
+a , H(n)
+a g(n)
+a ⟩.
+Remark 1(Practical estimation of H (n)
+a g(n)
+a ).All theoretical statements use the population Hessian
+H (n)
+a (W) =∇ 2
+a(n) L(W) . In practice, the curvature term ⟨g(n)
+a , H(n)
+a g(n)
+a ⟩ is computed via a single
+Hessian-vector product on the same mini-batch used for g(n)
+a (Pearlmutter trick) or via a Hutchinson-
+style sketch [54]; the resulting estimation bias is O(σ2
+g/m) and is absorbed into the ηβσ 2
+g noise term
+of Theorem 3 without altering any rate.
+Moore–Penrose pseudoinverse and orthogonal projectors.Several reconstruction-floor and
+subspace-misalignment quantities are stated in terms of the Moore–Penrose pseudoinverse, which
+we briefly recall. For any matrix M∈R p×q, theMoore–Penrose pseudoinverse M † ∈R q×p
+is the unique matrix satisfying the four Penrose conditions M M†M=M , M †M M† =M †,
+(M M†)⊤ =M M †, (M †M) ⊤ =M †M [55]. Three properties are used repeatedly. (i) When M is
+square and invertible, M † =M −1. (ii) When M is row full-rank (the generic case for our LoRA
+factors At(n)∈R r×d with r < d ), M † =M ⊤(M M⊤)−1, and At(n)A t(n)† =I r acts as a right
+inverse. (iii) The two products M M† ∈R p×p and M †M∈R q×q are precisely the orthogonal
+projectors onto col(M)⊆R p and row(M)⊆R q respectively. Operationally, the least-squares
+minimum-norm solution of M x=b is x⋆ =M †b, which is the property used to obtain the closed-
+form FFA-LoRA minimizer in the proof of Theorem 2. All projectors PAt(n) =A t(n)†At(n) used
+in the analysis are of form (iii) and project onto the row-span of the corresponding factor matrix.
+C.3 Assumptions
+First, we collect here all assumptions invoked by the main text. Assumptions 1–4 are the standard
+block / per-layer counterparts of the smoothness, bounded-variance, Hessian-spectrum, and Polyak–
+Łojasiewicz (PL) conditions used in modern SGD/BCD/PL analyses [23, 32]. Strong convexity of the
+Assumption 3 is invoked only on the per-layer reconstruction quadratic, not on the full non-convex
+loss, and the PL condition of Assumption 4 replaces it for end-to-end statements.
+Assumption 1(Block smoothness).Each Lk is L-smooth and block-smooth with constants
+L(n)
+A , L(n)
+B , andβ:= max a,n L(n)
+a .
+Assumption 2(Bounded stochastic variance). E∥g(n)
+a − ∇a(n)L∥2 ≤σ 2
+g for every layer n and block
+labela∈ {A, B}, and per-sample clipping∥g (n)
+a,i ∥ ≤Ca.s.
+Assumption 3(Block strong convexity and Lipschitz Hessian). µ(n)
+a I⪯H (n)
+a ⪯L (n)
+a I, and H is
+LH-Lipschitz.
+Assumption 4(PL condition, non-convex).∥∇L∥ 2 ≥2µ(L − L ⋆)for someµ >0[32].
+C.4 Mathematical Preliminaries
+This appendix collects the standard tools from matrix analysis [ 56], high-dimensional probability
+[57], and convex optimization [58].
+Lemma 1(Norm submultiplicativity and SVD-based reverse bound).For any M∈R p×d and
+X∈R d×m of compatible dimensions (so thatM X∈R p×m is well defined),
+∥M X∥F ≤σ max(X)∥M∥ F ,(10)
+20

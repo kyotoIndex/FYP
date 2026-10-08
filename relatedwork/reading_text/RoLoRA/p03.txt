@@ -1,0 +1,58 @@
+the frontier of parameter-efficient federated learning, while its simple yet effective design ensures
+scalability and communication efficiency.
+1.2 Notations
+We adopt the notation that lower-case letters represent scalar variables, lower-case bold-face letters
+denote column vectors, and upper-case bold-face letters denote matrices. The d×d identity matrix is
+represented by Id. Depending on the context, ∥.∥ denotes the l2 norm of a vector or the Frobenius
+norm of a matrix, ∥.∥op denotes the operator norm of a matrix, |.| denotes the absolute value of a
+scalar, ⊤ denotes matrix or vector transpose. For a numberN,[N] ={1, . . . , N}.
+2 Preliminaries and Related Works
+2.1 LoRA and Its Variants
+Low-Rank Adaptation (LoRA) [ 21] fine-tunes large language models efficiently by keeping the
+original weights fixed and adding small trainable matrices that apply low-rank updates. Specifically,
+for a pre-trained weight matrix W0 ∈R d×d, the update is expressed as W=W 0 +αAB , where
+A∈R d×r and B∈R r×d with r≪d , and only A and B are trained. Many variants of LoRA
+have been developed to further improve efficiency and performance. In Zhang et al. [ 44], the
+authors propose a memory-efficient fine-tuning method, LoRA-FA, which keeps the projection-down
+weight fixed and updates the projection-up weight during fine-tuning. In Zhu et al. [46], the authors
+highlight the asymmetry between the projection-up and projection-down matrices and focus solely
+on comparing the effects of freezing either the projection-up or projection-down matrices. Hao et al.
+[16] introduce the idea of resampling the projection-down matrices, aligning with our observation
+that freezing projection-down matrices negatively impacts a model’s expressiveness. Furthermore,
+LoRA+ [17] explore the distinct roles of projection-up and projection-down matrices, enhancing
+performance by assigning different learning rates to each.
+2.2 LoRA in Federated Setting
+In federated settings, LoRA is practical: clients fine-tune models efficiently with minimal resources,
+and only the small adapter matrices need to be communicated, sharply reducing transmission costs
+compared to full model finetuning. Zhang et al. consider FedA VG of LoRA, named FedIT[ 43].
+Zhang et al. [45] compare multiple PEFT methods in the federated setting, including Adapter[20],
+LoRA[21], Prompt tuning[26] and Bit-Fit[42]. SLoRA[1], which combines sparse finetuning and
+LoRA, is proposed to address the data heterogeneity in federated setting. As discussed before, Sun et
+al. [32] design a federated finetuning framework FFA-LoRA by freezing projection-down matrices
+for all the clients and only updating projection-up matrices. FlexLoRA[2] and FLoRA [40] consider
+clients with heterogeneous-rank LoRA adapters and proposes federated finetuning approaches. After
+we completed our work, we noticed a concurrent study, LoRA-A2 [23], which combines alternating
+optimization with adaptive rank selection for federated finetuning. While their focus is mainly
+empirical, the use of alternating optimization in their algorithm is similar to ours.
+2.3 FedA VG of LoRA Introduces Interference
+Integrating LoRA within a federated setting presents challenges. In such a setup, each of theN clients
+is provided with the pretrained model weights W0, which remain fixed during finetuning. Clients are
+required only to send the updated matrices Bi and Ai to a central server for aggregation. While most
+current studies, such as FedIT[43], SLoRA [1] and FedPETuning [45], commonly apply FedA VG
+directly to these matrices as shown in (2), this approach might not be optimal. The precise update for
+each client’s model,∆Wi, should be calculated as the product of the low-rank matricesA i andB i.
+Consequently, aggregation on the individual matrices leads to inaccurate model aggregation.
+1
+N
+NX
+i=1
+∆Wi = 1
+N (A1B1 +A 2B2 +...+A NBN)(1)
+̸= 1
+N (A1 +A 2 +...+A N) 1
+N (B1 +B 2 +...+B N)(2)
+There are a few options to avoid it.
+Updating B and A by matrix multiplication and truncated-SVD.One approach [ 40, 2] involves
+first computing the product of local matricesBi and Ai to accurately recover ∆Wi. Then, the global
+B and A of next iteration are obtained by performing truncated SVD on the averaged set of ∆Wi.
+3

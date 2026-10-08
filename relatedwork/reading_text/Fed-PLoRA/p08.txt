@@ -1,0 +1,61 @@
+Published as a conference paper at ICLR 2026
+Method Natural Instructions (IID)Natural Instructions (non-IID)
+Untuned Model 33.82+0.25−0.12
+HomogeneousFedIT (Rank=R) 66.88+0.59−0.33 61.28+0.67−0.41
+FedIT (Rank=R/2) 64.52+0.11−0.21 60.57+0.08−0.21
+Heterogeneous
+R= 16Avg Rank=8
+FLoRA 33.82+0−0 33.82+0−0
+FlexLoRA 59.07+2.63−3.24 53.51+5.27−9.30
+HETLoRA 58.07+2.02−1.35 58.84+0.32−0.22
+Fed-PLoRA 64.96+1.63
+−1.01 60.76+0.68
+−0.46
+Table 1: Comparison of Fed-PLoRA with baselines on IID and non-IID Natural Instructions dataset.
+FedIT as the baseline for FFT under homogeneous settings without resource constraints.
+Method CoLA SST-2 MRPC QQP QNLI RTE Avg
+Untuned Model 1.20+0.10−0.05 49.08+0.42−0.37 31.61+0.83−0.55 63.09+0.28−0.31 49.95+0.67−0.52 52.70+0.36−0.44 41.27+0.44−0.37
+Homo. FedIT (Rank=R)61.68+1.26−0.88 92.47+0.19−0.16 87.58+0.41−0.33 86.86+0.04−0.02 89.53+0.84−0.54 68.35+0.24−0.12 81.08+0.50−0.34
+FedIT (Rank=R/2)59.05+2.27−2.63 92.23+0.08−0.15 86.16+0.74−0.49 86.47+0.02−0.03 88.32+1.04−0.77 65.23+0−0 79.58+0.69−0.68
+Hete.R= 16Avg Rank=7
+FLoRA −4.08+2.01−2.42 91.70+0.38−0.19 43.87+24.51−12.26 53.88+8.79−15.13 50.47+2.94−3.10 51.02+2.04−3.73 47.81+6.78−6.14
+FlexLoRA 13.42+15.76−10.37 87.88+0.53−0.84 70.40+1.41−2.02 74.29+1.63−2.54 90.01+0.65−0.41 55.83+0.48−0.60 65.31+3.41−2.80
+HETLoRA 48.09+2.64−1.86 91.74+0.34−0.23 78.59+3.76−1.88 77.53+3.20−2.36 85.30+0.07−0.06 60.04+2.05−1.56 73.55+2.01−1.33
+Fed-PLoRA59.38+0.43−0.7992.35+0.31−0.1586.35+0.41−0.5787.25+2.71−1.46 88.54+1.42−1.74 65.46+0.60−0.4879.89+0.98−0.87
+Table 2: Comparison of Fed-PLoRA with baselines on GLUE benchmark.
+CareQA Arias-Duart et al. (2025). In the math domain, we use MATH Hendrycks et al. (2021) for
+training and evaluation. For IID data settings, we evenly split the dataset across clients. For non-IID
+settings, we apply pathological/Dirichlet data partitioning methods.
+We compare Fed-PLoRA against four baselines. FedIT Zhang et al. (2023) represents a classic
+FFT approach that combines FedAvg with LoRA. Since it is designed for homogeneous LoRA,
+we only apply it in homogeneous experiments, where it serves as the baseline representing FFT
+without resource constraints. For heterogeneous LoRA, we consider FLoRA Wang et al. (2024),
+FlexLoRA Bai et al. (2024), and HETLoRA Cho et al. (2024) (see Section 3.4 for their details).
+For the heterogeneous setting, clients are (by default) evenly divided into three groups with ranks
+(1, rm, R), where the maximumRis set as the optimal rank in homogeneous setting, and the middle
+rankr m ∈(1, R)is chosen so that the average rank⌊ P
+i ri/v⌋is at mostR/2, reflecting realistic
+resource-limited clients. The number of clients across tasks ranges from 50 to 200. In each train-
+ing round, 10% of clients are sampled uniformly at random. The main experimental results are
+reported as the average with upper and lower deviations over three repeat experiments. Additional
+experimental configurations are provided in Appendix C.
+4.1 MAINEXPERIMENTALRESULTS
+Due to page limitations, we present the main results on Natural Instructions (IID and non-IID) with
+Llama-1B, the GLUE benchmark (IID) with BERT-base, and financial datasets (IID) with Llama-
+3.1-8B, while leaving the remaining results on other datasets and non-IID settings in Appendix D.
+Results on Natural Instructions.Table 1 reports averaged Rouge-L scores of the fine-tuned global
+model under both IID and non-IID settings (the latter simulated by assigning 20 out of 613 distinct
+tasks per client). The FedIT results under homogeneous settings show that a larger LoRA rank leads
+to better fine-tuning performance, improving over the untuned model by +33.06% under the IID
+setting and by +27.46% under the non-IID setting on average. Fed-PLoRA consistently outperforms
+heterogeneous baselines. In the IID setting, it achieves average Rouge-L gains of +31.14%, +5.89%,
+and +6.89% over FLoRA, FlexLoRA, and HETLoRA, respectively, highlighting the effectiveness
+in eliminating initialization noise and reducing aggregation noise. We also observe that Fed-PLoRA
+slightly outperforms the homogeneous FedIT with rankR/2by +0.19%. Similar trends appear on
+other datasets, and in some cases Fed-PLoRA even surpasses FedIT with rankR. These effects
+are often more pronounced under non-IID settings. This suggests that Fed-PLoRA’s parallel and
+randomized module updates ensure that allRglobal PLoRA modules are updated by different clients
+across rounds. As a result, rank-wise updates stay aligned across clients, allowing each one-rank
+module to gradually learn consistent features even under data heterogeneity, consistent with our
+observations in Figure 2.
+8

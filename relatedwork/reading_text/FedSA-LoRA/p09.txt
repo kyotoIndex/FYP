@@ -1,0 +1,44 @@
+Published as a conference paper at ICLR 2025
+Table 2: Time and space costs for each method on the RTE and QNLI tasks. # Communication
+round denotes the number of communication rounds to reach the predefined target performance.
+# Trainable Parm. # Per-round Communicated Parm.# Per-round Computation Cost # Communication Round
+RTE QNLI RTE QNLI
+LoRA 1.83M 0.78M 22s 35s 167 397FFA-LoRA 1.44M 0.39M 20s 33s 229 374FedDPA-LoRA 2.62M 0.78M 23s 37s 128 325FedSA-LoRA 1.83M 0.39M 22s 34s 91 224
+5.2 I N-DEPTH ANALYSES
+In this section, we utilize LoRA-based methods to perform in-depth analyses on the natural language
+understanding tasks of QNLI, SST2, and MNLI-m to assess the impact of factors such as data
+heterogeneity, the number of clients, and LoRA rank on model performance.
+5.2.1 E FFECT OF DATA HETEROGENEITY
+To investigate the effect of data heterogeneity on model performance, we model an IID partition
+(Split-1) and two non-IID partitions with Dir (1) and Dir (0.5). The latter two non-IID partitions are
+referred to as moderate non-IID (Split-2) and severe non-IID (Split-3). The training settings are the
+same as in Section 5.1.
+Table 3: Performance comparison on the QNLI, SST2, and MNLI-m tasks with various degrees of
+data heterogeneity.
+Method QNLI SST2 MNLI-m
+Split-1 Split-2 Split-3 Split-1 Split-2 Split-3 Split-1 Split-2 Split-3
+LoRA 92.92 92.44 90.60 95.30 95.53 95.26 88.52 88.35 88.80
+FFA-LoRA 92.68 92.29 91.72 95.87 95.47 94.91 88.15 88.03 88.83
+FedSA-LoRA 92.95 93.32 92.00 96.10 96.24 95.92 89.57 89.71 90.20
+The results are provided in Table 3. From these results, we can observe that the proposed FedSA-
+LoRA consistently outperforms other baselines, demonstrating its adaptability and robustness in
+various heterogeneous data scenarios. Additionally, as data heterogeneity increases, the improve-
+ment of the proposed method also increases. Specifically, FedSA-LoRA improves accuracy by
+0.03%, 0.88%, and 1.84% on the QNLI task from IID to severe non-IID compared with LoRA, and
+by 1.05%, 1.36%, and 1.4% on the MNLI-m task. This indicates that the proposed method is more
+effective when non-IID conditions are more severe. This phenomenon is consistent with Figure 2,
+which shows that with increased data heterogeneity, the similarity of B matrices between different
+clients decreases. Therefore, when the non-IID conditions are more severe, the advantages of keep-
+ing B locally become more pronounced. In this case, the learned B will be less similar, highlighting
+the need for personalization.
+5.2.2 E FFECT OF NUMBER OF CLIENTS
+In Section 5.1, we demonstrated the effectiveness of the proposed method on a small number of
+clients, i.e., three clients. In this section, we show the superiority of FedSA-LoRA compared to
+other baselines on a larger number of clients, i.e., from 10 to 100 clients. Specifically, we use the
+same non-IID split, i.e., Dir (0.5), to divide the data into 10, 20, and 100 clients. The training settings
+are the same as in Section 5.1 and the results are shown in Table 4.
+It can be concluded that FedSA-LoRA not only outperforms other methods with a small number
+of clients (i.e., 3 clients) but also shows superior performance with a large number of clients (i.e.,
+from 10 to 100 clients), demonstrating the adaptability and robustness of the proposed FedSA-LoRA
+across various client numbers.
+9

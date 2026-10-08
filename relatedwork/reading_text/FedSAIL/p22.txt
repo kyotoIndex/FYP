@@ -1,0 +1,38 @@
+E Shared and Local Rank Sensitivity on Personalized GLUE
+A defining architectural advantage of FedSAIL over traditional parameter-averaging methods is its ability to
+decouple the communication payload from the client’s local adapter capacity. In this section, we provide the
+detailed communication accounting and empirical sensitivity analysis for the shared rank (s) and local rank
+(rL).
+Communication accounting.At each adapted module, a client uploads an orthonormal basis of size
+1024×s , s eigenvalues, and a single integer token count, and subsequently receives a 1024×s global
+consensus basis. Assuming float32 precision for bases and eigenvalues and int32 for the count, the total
+bidirectional payload per run is:
+Ctotal(s) = 3(clients)×48(modules)×450(rounds)×4 (2049s+ 1)bytes.(9)
+Each client has 98,304rL trainable LoRA parameters across all24 layers. Under FedSAIL, the communication
+payload (Equation 9) scales exclusively with s and remains completely independent of rL. For a fixed s= 1 ,
+the total communication is 0.4949 GiB, strictly governing the network overhead regardless of how large the
+local adapters grow.
+Experimental setup.To empirically evaluate this decoupling, we conduct two complementary sweeps
+around the default configuration of(r L, s) = (8,1)following the protocol before.
+1. Shared-rank sweep: We vary s∈ {1,2,4,8} while fixing rL = 8 to examine the communication-
+accuracy trade-off.
+2. Local-rank sweep: We vary rL ∈ {2,4,8,16} while fixing s= 1 to examine local capacity scaling
+under a strict communication budget.
+To maintain isolation between variables, we fix the effective unscaled-factor penalty coefficient atβeff = 4 by
+setting the LoRA scaling factor αLoRA = 2rL. Neither the learning rate nor the penalty weight is retuned
+across either sweep. Tables 14 and 15 report the personalized validation accuracy over500 rounds. Replicated
+entries use seeds 123, 124, and 125; we compute the six-split mean within each seed before calculating its
+sample standard deviation across seeds.
+Decoupling geometric alignment from local personalization.The results from the two sweeps illustrate
+the core mechanism of FedSAIL: structural alignment and task fitting utilize different forms of capacity.
+As shown in Table 14, increasing the shared rank s yields only small, non-monotonic changes in accuracy.
+Expanding s from 1 to 4 quadruples the communication payload (from 0.49 GiB to 1.98 GiB) but results
+in heavily diminishing returns in predictive performance. This pattern is qualitatively consistent with our
+diagnostic findings in Section 2.2, where cross-client agreement is concentrated in the leading direction.
+These results support s= 1 as a communication-efficient default, while larger shared ranks offer modest,
+task-dependent gains at increased communication cost.
+Conversely, Table 15 shows that additional local capacity can improve accuracy without increasing the
+message size, although the gains depend on the heterogeneity setting. Clients retain the necessary degrees
+of freedom (rL > s) to model task-specific residuals, while collaborating strictly within a low-dimensional
+(s= 1) consensus geometry.
+22

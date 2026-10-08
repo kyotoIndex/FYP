@@ -1,0 +1,1255 @@
+[
+  {
+    "method": "FedSA-LoRA",
+    "arxiv_id": "2410.01463",
+    "priority": "特别接近",
+    "relation_zh": "HetSA 的共享 A、本地 B 直接基础；须对照贡献边界。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Selective Aggregation for Low-Rank Adaptation in Federated Learning",
+    "authors": [
+      "Guo, Pengxin",
+      "Zeng, Shuang",
+      "Wang, Yanran",
+      "Fan, Huijie",
+      "Wang, Feifei",
+      "Qu, Liangqiong"
+    ],
+    "date": "2024/10/02",
+    "version": "v3",
+    "url": "https://arxiv.org/abs/2410.01463v3",
+    "pdf_url": "https://arxiv.org/pdf/2410.01463v3",
+    "official_metadata": {
+      "citation_title": [
+        "Selective Aggregation for Low-Rank Adaptation in Federated Learning"
+      ],
+      "citation_author": [
+        "Guo, Pengxin",
+        "Zeng, Shuang",
+        "Wang, Yanran",
+        "Fan, Huijie",
+        "Wang, Feifei",
+        "Qu, Liangqiong"
+      ],
+      "citation_date": [
+        "2024/10/02"
+      ],
+      "citation_online_date": [
+        "2025/03/21"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2410.01463"
+      ],
+      "citation_arxiv_id": [
+        "2410.01463"
+      ],
+      "citation_abstract": [
+        "We investigate LoRA in federated learning through the lens of the asymmetry analysis of the learned $A$ and $B$ matrices. In doing so, we uncover that $A$ matrices are responsible for learning general knowledge, while $B$ matrices focus on capturing client-specific knowledge. Based on this finding, we introduce Federated Share-A Low-Rank Adaptation (FedSA-LoRA), which employs two low-rank trainable matrices $A$ and $B$ to model the weight update, but only $A$ matrices are shared with the server for aggregation. Moreover, we delve into the relationship between the learned $A$ and $B$ matrices in other LoRA variants, such as rsLoRA and VeRA, revealing a consistent pattern. Consequently, we extend our FedSA-LoRA method to these LoRA variants, resulting in FedSA-rsLoRA and FedSA-VeRA. In this way, we establish a general paradigm for integrating LoRA with FL, offering guidance for future work on subsequent LoRA variants combined with FL. Extensive experimental results on natural language understanding and generation tasks demonstrate the effectiveness of the proposed method. Our code is available at https://github.com/Pengxin-Guo/FedSA-LoRA."
+      ]
+    },
+    "abstract": "Abstract: We investigate LoRA in federated learning through the lens of the asymmetry analysis of the learned $A$ and $B$ matrices. In doing so, we uncover that $A$ matrices are responsible for learning general knowledge, while $B$ matrices focus on capturing client-specific knowledge. Based on this finding, we introduce Federated Share-A Low-Rank Adaptation (FedSA-LoRA), which employs two low-rank trainable matrices $A$ and $B$ to model the weight update, but only $A$ matrices are shared with the server for aggregation. Moreover, we delve into the relationship between the learned $A$ and $B$ matrices in other LoRA variants, such as rsLoRA and VeRA, revealing a consistent pattern. Consequently, we extend our FedSA-LoRA method to these LoRA variants, resulting in FedSA-rsLoRA and FedSA-VeRA. In this way, we establish a general paradigm for integrating LoRA with FL, offering guidance for future work on subsequent LoRA variants combined with FL. Extensive experimental results on natural language understanding and generation tasks demonstrate the effectiveness of the proposed method. Our code is available at  this https URL .",
+    "pdf_file": "01_closest/FedSA-LoRA_2410.01463v3.pdf",
+    "pdf_bytes": 940931,
+    "pdf_sha256": "74f6bd0b191762489e641d84b892a2eccd2a49ccc5f2c9456e76c696212fa6cc",
+    "tex_url": "https://arxiv.org/src/2410.01463v3",
+    "tex_files": [
+      "tex/FedSA-LoRA_2410.01463v3/appendix.tex",
+      "tex/FedSA-LoRA_2410.01463v3/main.tex",
+      "tex/FedSA-LoRA_2410.01463v3/math_commands.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/FedSA-LoRA_2410.01463v3/main.tex"
+    ],
+    "source_archive": "source_archives/FedSA-LoRA_2410.01463v3.source",
+    "source_sha256": "91fb63a67b3173019fa5a60e0134002f8bccf3ff8ab9cb50c2c4afc1e7966fd0",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-10; selected appendix A.3/A.4/A.7 and theoretical assumptions",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "Fed-HeLLo",
+    "arxiv_id": "2506.12213",
+    "priority": "特别接近",
+    "relation_zh": "按资源与层重要性分配 LoRA 层；PCLA-WL 和异构层预算的直接近邻。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Fed-HeLLo: Efficient Federated Foundation Model Fine-Tuning with Heterogeneous LoRA Allocation",
+    "authors": [
+      "Zhang, Zikai",
+      "Liu, Ping",
+      "Xu, Jiahao",
+      "Hu, Rui"
+    ],
+    "date": "2025/06/13",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2506.12213v1",
+    "pdf_url": "https://arxiv.org/pdf/2506.12213v1",
+    "official_metadata": {
+      "citation_title": [
+        "Fed-HeLLo: Efficient Federated Foundation Model Fine-Tuning with Heterogeneous LoRA Allocation"
+      ],
+      "citation_author": [
+        "Zhang, Zikai",
+        "Liu, Ping",
+        "Xu, Jiahao",
+        "Hu, Rui"
+      ],
+      "citation_date": [
+        "2025/06/13"
+      ],
+      "citation_online_date": [
+        "2025/06/13"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2506.12213"
+      ],
+      "citation_arxiv_id": [
+        "2506.12213"
+      ],
+      "citation_abstract": [
+        "Federated Learning has recently been utilized to collaboratively fine-tune foundation models across multiple clients. Notably, federated low-rank adaptation LoRA-based fine-tuning methods have recently gained attention, which allows clients to fine-tune FMs with a small portion of trainable parameters locally. However, most existing methods do not account for the heterogeneous resources of clients or lack an effective local training strategy to maximize global fine-tuning performance under limited resources. In this work, we propose Fed-HeLLo, a novel federated LoRA-based fine-tuning framework that enables clients to collaboratively fine-tune an FM with different local trainable LoRA layers. To ensure its effectiveness, we develop several heterogeneous LoRA allocation (HLA) strategies that adaptively allocate local trainable LoRA layers based on clients' resource capabilities and the layer importance. Specifically, based on the dynamic layer importance, we design a Fisher Information Matrix score-based HLA that leverages dynamic gradient norm information. To better stabilize the training process, we consider the intrinsic importance of LoRA layers and design a Geometrically-Defined HLA strategy. It shapes the collective distribution of trainable LoRA layers into specific geometric patterns, such as Triangle, Inverted Triangle, Bottleneck, and Uniform. Moreover, we extend GD-HLA into a randomized version, named Randomized Geometrically-Defined HLA, for enhanced model accuracy with randomness. By co-designing the proposed HLA strategies, we incorporate both the dynamic and intrinsic layer importance into the design of our HLA strategy. We evaluate our approach on five datasets under diverse federated LoRA fine-tuning settings, covering three levels of data distribution from IID to extreme Non-IID. Results show that Fed-HeLLo with HLA strategies is both effective and efficient."
+      ]
+    },
+    "abstract": "Abstract: Federated Learning has recently been utilized to collaboratively fine-tune foundation models across multiple clients. Notably, federated low-rank adaptation LoRA-based fine-tuning methods have recently gained attention, which allows clients to fine-tune FMs with a small portion of trainable parameters locally. However, most existing methods do not account for the heterogeneous resources of clients or lack an effective local training strategy to maximize global fine-tuning performance under limited resources. In this work, we propose Fed-HeLLo, a novel federated LoRA-based fine-tuning framework that enables clients to collaboratively fine-tune an FM with different local trainable LoRA layers. To ensure its effectiveness, we develop several heterogeneous LoRA allocation (HLA) strategies that adaptively allocate local trainable LoRA layers based on clients' resource capabilities and the layer importance. Specifically, based on the dynamic layer importance, we design a Fisher Information Matrix score-based HLA that leverages dynamic gradient norm information. To better stabilize the training process, we consider the intrinsic importance of LoRA layers and design a Geometrically-Defined HLA strategy. It shapes the collective distribution of trainable LoRA layers into specific geometric patterns, such as Triangle, Inverted Triangle, Bottleneck, and Uniform. Moreover, we extend GD-HLA into a randomized version, named Randomized Geometrically-Defined HLA, for enhanced model accuracy with randomness. By co-designing the proposed HLA strategies, we incorporate both the dynamic and intrinsic layer importance into the design of our HLA strategy. We evaluate our approach on five datasets under diverse federated LoRA fine-tuning settings, covering three levels of data distribution from IID to extreme Non-IID. Results show that Fed-HeLLo with HLA strategies is both effective and efficient.",
+    "pdf_file": "01_closest/Fed-HeLLo_2506.12213v1.pdf",
+    "pdf_bytes": 987610,
+    "pdf_sha256": "2a37577e0c5ac8184a199980f0b693fce3d0aca2ce0f957e7885777c50e206b7",
+    "tex_url": "https://arxiv.org/src/2506.12213v1",
+    "tex_files": [
+      "tex/Fed-HeLLo_2506.12213v1/arxiv.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/Fed-HeLLo_2506.12213v1/arxiv.tex"
+    ],
+    "source_archive": "source_archives/Fed-HeLLo_2506.12213v1.source",
+    "source_sha256": "39a713a6aa68479b201a7901bec0fcb30d8284e7ebe7b685adec155db5cc2c3c",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-13",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "LEGEND",
+    "arxiv_id": "2412.20004",
+    "priority": "特别接近",
+    "relation_zh": "联合配置 LoRA 深度和秩；对照后层优先与真实设备成本。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Adaptive Parameter-Efficient Federated Fine-Tuning on Heterogeneous Devices",
+    "authors": [
+      "Liu, Jun",
+      "Liao, Yunming",
+      "Xu, Hongli",
+      "Xu, Yang",
+      "Liu, Jianchun",
+      "Qian, Chen"
+    ],
+    "date": "2024/12/28",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2412.20004v1",
+    "pdf_url": "https://arxiv.org/pdf/2412.20004v1",
+    "official_metadata": {
+      "citation_title": [
+        "Adaptive Parameter-Efficient Federated Fine-Tuning on Heterogeneous Devices"
+      ],
+      "citation_author": [
+        "Liu, Jun",
+        "Liao, Yunming",
+        "Xu, Hongli",
+        "Xu, Yang",
+        "Liu, Jianchun",
+        "Qian, Chen"
+      ],
+      "citation_date": [
+        "2024/12/28"
+      ],
+      "citation_online_date": [
+        "2024/12/28"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2412.20004"
+      ],
+      "citation_arxiv_id": [
+        "2412.20004"
+      ],
+      "citation_abstract": [
+        "Federated fine-tuning (FedFT) has been proposed to fine-tune the pre-trained language models in a distributed manner. However, there are two critical challenges for efficient FedFT in practical applications, i.e., resource constraints and system heterogeneity. Existing works rely on parameter-efficient fine-tuning methods, e.g., low-rank adaptation (LoRA), but with major limitations. Herein, based on the inherent characteristics of FedFT, we observe that LoRA layers with higher ranks added close to the output help to save resource consumption while achieving comparable fine-tuning performance. Then we propose a novel LoRA-based FedFT framework, termed LEGEND, which faces the difficulty of determining the number of LoRA layers (called, LoRA depth) and the rank of each LoRA layer (called, rank distribution). We analyze the coupled relationship between LoRA depth and rank distribution, and design an efficient LoRA configuration algorithm for heterogeneous devices, thereby promoting fine-tuning efficiency. Extensive experiments are conducted on a physical platform with 80 commercial devices. The results show that LEGEND can achieve a speedup of 1.5-2.8$\\times$ and save communication costs by about 42.3% when achieving the target accuracy, compared to the advanced solutions."
+      ]
+    },
+    "abstract": "Abstract: Federated fine-tuning (FedFT) has been proposed to fine-tune the pre-trained language models in a distributed manner. However, there are two critical challenges for efficient FedFT in practical applications, i.e., resource constraints and system heterogeneity. Existing works rely on parameter-efficient fine-tuning methods, e.g., low-rank adaptation (LoRA), but with major limitations. Herein, based on the inherent characteristics of FedFT, we observe that LoRA layers with higher ranks added close to the output help to save resource consumption while achieving comparable fine-tuning performance. Then we propose a novel LoRA-based FedFT framework, termed LEGEND, which faces the difficulty of determining the number of LoRA layers (called, LoRA depth) and the rank of each LoRA layer (called, rank distribution). We analyze the coupled relationship between LoRA depth and rank distribution, and design an efficient LoRA configuration algorithm for heterogeneous devices, thereby promoting fine-tuning efficiency. Extensive experiments are conducted on a physical platform with 80 commercial devices. The results show that LEGEND can achieve a speedup of 1.5-2.8$\\times$ and save communication costs by about 42.3% when achieving the target accuracy, compared to the advanced solutions.",
+    "pdf_file": "01_closest/LEGEND_2412.20004v1.pdf",
+    "pdf_bytes": 1052393,
+    "pdf_sha256": "7716ed009190b4867c452f3388f6ecbcc53d5353c37c873915ff58b832dafc49",
+    "tex_url": "https://arxiv.org/src/2412.20004v1",
+    "tex_files": [
+      "tex/LEGEND_2412.20004v1/contents/abstract.tex",
+      "tex/LEGEND_2412.20004v1/contents/conclusion.tex",
+      "tex/LEGEND_2412.20004v1/contents/design.tex",
+      "tex/LEGEND_2412.20004v1/contents/implementation.tex",
+      "tex/LEGEND_2412.20004v1/contents/intro.tex",
+      "tex/LEGEND_2412.20004v1/contents/overview.tex",
+      "tex/LEGEND_2412.20004v1/contents/prelim.tex",
+      "tex/LEGEND_2412.20004v1/contents/related_word.tex",
+      "tex/LEGEND_2412.20004v1/contents/simulation.tex",
+      "tex/LEGEND_2412.20004v1/main.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/LEGEND_2412.20004v1/main.tex"
+    ],
+    "source_archive": "source_archives/LEGEND_2412.20004v1.source",
+    "source_sha256": "d64028b3be0b5d0cdfbffa8b4f674f62abe80eef0e95e4b3d4effc61b39098fa",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-12",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "Fed-pilot",
+    "arxiv_id": "2410.10200",
+    "priority": "特别接近",
+    "relation_zh": "内存约束下的层分配背包优化及异构聚合；对照成本感知选择。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients",
+    "authors": [
+      "Zhang, Zikai",
+      "Hu, Rui",
+      "Liu, Ping",
+      "Xu, Jiahao"
+    ],
+    "date": "2024/10/14",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2410.10200v2",
+    "pdf_url": "https://arxiv.org/pdf/2410.10200v2",
+    "official_metadata": {
+      "citation_title": [
+        "Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients"
+      ],
+      "citation_author": [
+        "Zhang, Zikai",
+        "Hu, Rui",
+        "Liu, Ping",
+        "Xu, Jiahao"
+      ],
+      "citation_date": [
+        "2024/10/14"
+      ],
+      "citation_online_date": [
+        "2025/06/20"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2410.10200"
+      ],
+      "citation_arxiv_id": [
+        "2410.10200"
+      ],
+      "citation_abstract": [
+        "Federated Learning enables the fine-tuning of foundation models (FMs) across distributed clients for specific tasks; however, its scalability is limited by the heterogeneity of client memory capacities. In this work, we propose Fed-pilot, a memory-efficient federated fine-tuning framework. It enables memory-constrained clients to participate in Low-Rank Adaptation (LoRA)-based fine-tuning by training only a subset of LoRA modules locally. Fed-pilot identifies the optimal selection of trainable LoRA modules as a knapsack optimization problem, maximizing model performance under memory constraints for each client. To mitigate inconsistencies arising from heterogeneous module allocations and Non-IID data, Fed-pilot employs a novel aggregation rule that dynamically compensates for under-updated layers. Extensive experiments on five diverse datasets across various heterogeneous data settings demonstrate Fed-pilot's effectiveness and efficiency compared to state-of-the-art methods. To the best of our knowledge, this is the first study on federated fine-tuning of FMs that integrates memory-constrained optimization. The code will be publicly available."
+      ]
+    },
+    "abstract": "Abstract: Federated Learning enables the fine-tuning of foundation models (FMs) across distributed clients for specific tasks; however, its scalability is limited by the heterogeneity of client memory capacities. In this work, we propose Fed-pilot, a memory-efficient federated fine-tuning framework. It enables memory-constrained clients to participate in Low-Rank Adaptation (LoRA)-based fine-tuning by training only a subset of LoRA modules locally. Fed-pilot identifies the optimal selection of trainable LoRA modules as a knapsack optimization problem, maximizing model performance under memory constraints for each client. To mitigate inconsistencies arising from heterogeneous module allocations and Non-IID data, Fed-pilot employs a novel aggregation rule that dynamically compensates for under-updated layers. Extensive experiments on five diverse datasets across various heterogeneous data settings demonstrate Fed-pilot's effectiveness and efficiency compared to state-of-the-art methods. To the best of our knowledge, this is the first study on federated fine-tuning of FMs that integrates memory-constrained optimization. The code will be publicly available.",
+    "pdf_file": "01_closest/Fed-pilot_2410.10200v2.pdf",
+    "pdf_bytes": 2001643,
+    "pdf_sha256": "a492bbac1deb5d7d018727854a9bda13578aba741e60c6358c6f9245f3fceb85",
+    "tex_url": "https://arxiv.org/src/2410.10200v2",
+    "tex_files": [
+      "tex/Fed-pilot_2410.10200v2/main.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/Fed-pilot_2410.10200v2/main.tex"
+    ],
+    "source_archive": "source_archives/Fed-pilot_2410.10200v2.source",
+    "source_sha256": "f59711866b2b53181464cf5b760f14144365a1b136ae403cb0da4fcc4c9b7b3d",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-10; 15-17 resource/implementation settings",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "Fed-PLoRA",
+    "arxiv_id": "2602.16936",
+    "priority": "特别接近",
+    "relation_zh": "并行 rank-1 模块与异构客户端；与组件级 PCLA 的分配单位直接相关。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Heterogeneous Federated Fine-Tuning with Parallel One-Rank Adaptation",
+    "authors": [
+      "Zhang, Zikai",
+      "Hu, Rui",
+      "Xu, Jiahao"
+    ],
+    "date": "2026/02/18",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2602.16936v1",
+    "pdf_url": "https://arxiv.org/pdf/2602.16936v1",
+    "official_metadata": {
+      "citation_title": [
+        "Heterogeneous Federated Fine-Tuning with Parallel One-Rank Adaptation"
+      ],
+      "citation_author": [
+        "Zhang, Zikai",
+        "Hu, Rui",
+        "Xu, Jiahao"
+      ],
+      "citation_date": [
+        "2026/02/18"
+      ],
+      "citation_online_date": [
+        "2026/02/18"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2602.16936"
+      ],
+      "citation_arxiv_id": [
+        "2602.16936"
+      ],
+      "citation_abstract": [
+        "Large Language Models (LLMs) have demonstrated remarkable effectiveness in adapting to downstream tasks through fine-tuning. Federated Learning (FL) extends this capability by enabling collaborative fine-tuning across distributed clients using Low-Rank Adaptation (LoRA), while preserving data privacy by avoiding raw data sharing. However, practical deployments face challenges when clients have heterogeneous resources and thus adopt different LoRA ranks, leading to substantial initialization and aggregation noise that undermines performance. To address these challenges, we propose Fed-PLoRA, a novel lightweight heterogeneous federated fine-tuning (FFT) framework. Fed-PLoRA introduces Parallel One-Rank Adaptation (PLoRA), a new LoRA variant that replaces the classic multi-rank LoRA module with multiple parallel one-rank modules, and a novel Select-N-Fold strategy that folds untrained PLoRA modules into the pre-trained weights before local training, thereby accommodating heterogeneous client resources. We provide a unified analysis of initialization and aggregation noise of Fed-PLoRA and demonstrate how it addresses the limitations of state-of-the-art methods. Extensive experiments on diverse LLM fine-tuning tasks demonstrate that Fed-PLoRA consistently outperforms existing methods in both accuracy and efficiency. The code is available at https://github.com/TNI-playground/Fed-PLoRA."
+      ]
+    },
+    "abstract": "Abstract: Large Language Models (LLMs) have demonstrated remarkable effectiveness in adapting to downstream tasks through fine-tuning. Federated Learning (FL) extends this capability by enabling collaborative fine-tuning across distributed clients using Low-Rank Adaptation (LoRA), while preserving data privacy by avoiding raw data sharing. However, practical deployments face challenges when clients have heterogeneous resources and thus adopt different LoRA ranks, leading to substantial initialization and aggregation noise that undermines performance. To address these challenges, we propose Fed-PLoRA, a novel lightweight heterogeneous federated fine-tuning (FFT) framework. Fed-PLoRA introduces Parallel One-Rank Adaptation (PLoRA), a new LoRA variant that replaces the classic multi-rank LoRA module with multiple parallel one-rank modules, and a novel Select-N-Fold strategy that folds untrained PLoRA modules into the pre-trained weights before local training, thereby accommodating heterogeneous client resources. We provide a unified analysis of initialization and aggregation noise of Fed-PLoRA and demonstrate how it addresses the limitations of state-of-the-art methods. Extensive experiments on diverse LLM fine-tuning tasks demonstrate that Fed-PLoRA consistently outperforms existing methods in both accuracy and efficiency. The code is available at  this https URL .",
+    "pdf_file": "01_closest/Fed-PLoRA_2602.16936v1.pdf",
+    "pdf_bytes": 2672240,
+    "pdf_sha256": "c2c707f61a0e7462cff9442e5233edebe1760e505e20da5dca9074291c937c0b",
+    "tex_url": "https://arxiv.org/src/2602.16936v1",
+    "tex_files": [
+      "tex/Fed-PLoRA_2602.16936v1/main_cameraready.tex",
+      "tex/Fed-PLoRA_2602.16936v1/math_commands.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/Fed-PLoRA_2602.16936v1/main_cameraready.tex"
+    ],
+    "source_archive": "source_archives/Fed-PLoRA_2602.16936v1.source",
+    "source_sha256": "d087d9dc0cbc22b3f6d133a06405c2a033375fded92c54cc817295b74face345",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-10; algorithm on p16",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FedAS-LoRA",
+    "arxiv_id": "2608.09742",
+    "priority": "特别接近",
+    "relation_zh": "比较共享 A 或 B 并自适应选择；检查固定 Share-A 的适用条件。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Rethinking Factor Sharing in Federated LoRA: A Rank-Aware Adaptive Approach",
+    "authors": [
+      "Xu, Xinyi",
+      "Xiao, Bingnan",
+      "Qin, Shuang",
+      "Feng, Gang",
+      "Quek, Tony Q. S."
+    ],
+    "date": "2026/08/10",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2608.09742v1",
+    "pdf_url": "https://arxiv.org/pdf/2608.09742v1",
+    "official_metadata": {
+      "citation_title": [
+        "Rethinking Factor Sharing in Federated LoRA: A Rank-Aware Adaptive Approach"
+      ],
+      "citation_author": [
+        "Xu, Xinyi",
+        "Xiao, Bingnan",
+        "Qin, Shuang",
+        "Feng, Gang",
+        "Quek, Tony Q. S."
+      ],
+      "citation_date": [
+        "2026/08/10"
+      ],
+      "citation_online_date": [
+        "2026/08/10"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2608.09742"
+      ],
+      "citation_arxiv_id": [
+        "2608.09742"
+      ],
+      "citation_abstract": [
+        "Low-rank adaptation (LoRA) represents large language model (LLM) updates with two compact matrix factors, i.e., $A$ and $B$, providing an efficient way to fine-tune large models in federated learning paradigm. Inspired by the asymmetric roles of the LoRA factors, we study whether $A$ should be shared across clients while $B$ remains client-specific (Share-A/Local-B), or whether $B$ should instead be shared while $A$ remains client-specific (Share-B/Local-A). With a least-squares surrogate, we reveal that Share-A/Local-B requires the client-specific LoRA update matrices to use a common rank-$r$ input-side space, whereas Share-B/Local-A requires a common rank-$r$ output-side space. The two strategies therefore incur different projection residuals, indicating that the preferred strategy is the one with the smaller aggregate residual across clients. With this insight, we propose Federated Adaptive Factor Sharing Low-Rank Adaptation (FedAS-LoRA), which selects the sharing side before training to enhance fine-tuning performance. To enable adaptive factor selection before training, we design a Rank-Aware Shared-Subspace Sufficiency (RSS) metric, which effectively assesses whether a shared rank-$r$ input subspace is sufficient for the local data distributions using representations extracted from a frozen LLM backbone. Experiments across different tasks, data distributions, LoRA ranks, and participation settings confirm the effectiveness of RSS and the superior performance of FedAS-LoRA."
+      ]
+    },
+    "abstract": "Abstract: Low-rank adaptation (LoRA) represents large language model (LLM) updates with two compact matrix factors, i.e., $A$ and $B$, providing an efficient way to fine-tune large models in federated learning paradigm. Inspired by the asymmetric roles of the LoRA factors, we study whether $A$ should be shared across clients while $B$ remains client-specific (Share-A/Local-B), or whether $B$ should instead be shared while $A$ remains client-specific (Share-B/Local-A). With a least-squares surrogate, we reveal that Share-A/Local-B requires the client-specific LoRA update matrices to use a common rank-$r$ input-side space, whereas Share-B/Local-A requires a common rank-$r$ output-side space. The two strategies therefore incur different projection residuals, indicating that the preferred strategy is the one with the smaller aggregate residual across clients. With this insight, we propose Federated Adaptive Factor Sharing Low-Rank Adaptation (FedAS-LoRA), which selects the sharing side before training to enhance fine-tuning performance. To enable adaptive factor selection before training, we design a Rank-Aware Shared-Subspace Sufficiency (RSS) metric, which effectively assesses whether a shared rank-$r$ input subspace is sufficient for the local data distributions using representations extracted from a frozen LLM backbone. Experiments across different tasks, data distributions, LoRA ranks, and participation settings confirm the effectiveness of RSS and the superior performance of FedAS-LoRA.",
+    "pdf_file": "01_closest/FedAS-LoRA_2608.09742v1.pdf",
+    "pdf_bytes": 711640,
+    "pdf_sha256": "362640d3c21197b050144c2e814c858c329761e87eee27bda37e4b7c6c34698a",
+    "tex_url": "https://arxiv.org/src/2608.09742v1",
+    "tex_files": [
+      "tex/FedAS-LoRA_2608.09742v1/main_arxiv.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/FedAS-LoRA_2608.09742v1/main_arxiv.tex"
+    ],
+    "source_archive": "source_archives/FedAS-LoRA_2608.09742v1.source",
+    "source_sha256": "8ca23b3c06e50fb353ca714cdf16c13a7d16baf17b1ea62fc57bcd1913405ba2",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-8, 11-12, 14-15; active TeX projection formulas",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FedSAIL",
+    "arxiv_id": "2609.32485",
+    "priority": "特别接近",
+    "relation_zh": "输入感知共享子空间和本地系数；检查共享因子解释与个性化边界。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "What Should Federated LoRA Share? FedSAIL via Input-aware Subspace Alignment",
+    "authors": [
+      "Du, Junye",
+      "He, Shuaida",
+      "Feng, Long"
+    ],
+    "date": "2026/09/26",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2609.32485v1",
+    "pdf_url": "https://arxiv.org/pdf/2609.32485v1",
+    "official_metadata": {
+      "citation_title": [
+        "What Should Federated LoRA Share? FedSAIL via Input-aware Subspace Alignment"
+      ],
+      "citation_author": [
+        "Du, Junye",
+        "He, Shuaida",
+        "Feng, Long"
+      ],
+      "citation_date": [
+        "2026/09/26"
+      ],
+      "citation_online_date": [
+        "2026/09/26"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2609.32485"
+      ],
+      "citation_arxiv_id": [
+        "2609.32485"
+      ],
+      "citation_abstract": [
+        "Federated low-rank adaptation (LoRA) requires identifying an update structure that is shared across heterogeneous clients. Prior work reports strong similarity among trained LoRA projection matrices across clients; however, such agreement may be largely induced by common initialization and collapses toward random overlap under independent initialization. More crucially, relying solely on parameter similarity inherently ignores the influence of local input regime. To uncover a more robust shared structure, we introduce an input-aware action matrix that weights the adapter update by the second-moment statistics of local layer inputs. Empirically, while parameter similarity vanishes, the leading right singular directions of this action matrix remain strongly aligned across clients. This shared geometry preserves task-conditioned differences and naturally varies across network depths. Motivated by these findings, we propose Federated Subspace-Guided Action-Informed Learning (FedSAIL). Instead of averaging weights, FedSAIL estimates a shared action subspace to regularize local training while preserving client-specific coefficients. Across several benchmarks, our approach consistently improves predictive performance over competing federated LoRA methods while reducing communication cost significantly."
+      ]
+    },
+    "abstract": "Abstract: Federated low-rank adaptation (LoRA) requires identifying an update structure that is shared across heterogeneous clients. Prior work reports strong similarity among trained LoRA projection matrices across clients; however, such agreement may be largely induced by common initialization and collapses toward random overlap under independent initialization. More crucially, relying solely on parameter similarity inherently ignores the influence of local input regime. To uncover a more robust shared structure, we introduce an input-aware action matrix that weights the adapter update by the second-moment statistics of local layer inputs. Empirically, while parameter similarity vanishes, the leading right singular directions of this action matrix remain strongly aligned across clients. This shared geometry preserves task-conditioned differences and naturally varies across network depths. Motivated by these findings, we propose Federated Subspace-Guided Action-Informed Learning (FedSAIL). Instead of averaging weights, FedSAIL estimates a shared action subspace to regularize local training while preserving client-specific coefficients. Across several benchmarks, our approach consistently improves predictive performance over competing federated LoRA methods while reducing communication cost significantly.",
+    "pdf_file": "01_closest/FedSAIL_2609.32485v1.pdf",
+    "pdf_bytes": 856028,
+    "pdf_sha256": "8bc7da46981d2d37633752a4b1e3c7f3f03e2b4d402ee5505e0cd21e79426710",
+    "tex_url": "https://arxiv.org/src/2609.32485v1",
+    "tex_files": [
+      "tex/FedSAIL_2609.32485v1/main.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/FedSAIL_2609.32485v1/main.tex"
+    ],
+    "source_archive": "source_archives/FedSAIL_2609.32485v1.source",
+    "source_sha256": "d815c14b5b585ed895e41c1291468019d31074a0d280bb813a0686fc7ce19b81",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-11, 19-21; targeted scans of 22-26; TeX compact/Gram/objective formulas; rendered p21 table",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "AS-LoRA",
+    "arxiv_id": "2605.05769",
+    "priority": "特别接近",
+    "relation_zh": "逐层逐轮自适应选择 A/B 更新因子；这里的 component 不是 PCLA 的 rank-1 组件。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Adaptive Selection of LoRA Components in Privacy-Preserving Federated Learning",
+    "authors": [
+      "Kim, Myoungjun",
+      "Park, Sangwoo",
+      "Han, Yoseob",
+      "Ahn, Jin-Hyun"
+    ],
+    "date": "2026/05/07",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2605.05769v1",
+    "pdf_url": "https://arxiv.org/pdf/2605.05769v1",
+    "official_metadata": {
+      "citation_title": [
+        "Adaptive Selection of LoRA Components in Privacy-Preserving Federated Learning"
+      ],
+      "citation_author": [
+        "Kim, Myoungjun",
+        "Park, Sangwoo",
+        "Han, Yoseob",
+        "Ahn, Jin-Hyun"
+      ],
+      "citation_date": [
+        "2026/05/07"
+      ],
+      "citation_online_date": [
+        "2026/05/07"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2605.05769"
+      ],
+      "citation_arxiv_id": [
+        "2605.05769"
+      ],
+      "citation_abstract": [
+        "Differentially private federated fine-tuning of large models with LoRA suffers from aggregation error caused by LoRA's multiplicative structure, which is further amplified by DP noise and degrades both stability and accuracy. Existing remedies apply a single update mode uniformly across all layers and all communication rounds (or alternate them on a fixed schedule), ignoring both the structural asymmetry between the two LoRA factors and the round-wise dynamics of training. We propose AS-LoRA, an adaptive framework defined by three axes (i) layer-wise freedom, in which each layer independently selects its active component, (ii) round-wise adaptivity, in which the selection updates over communication rounds, and (iii) a curvature-aware score derived from a second-order approximation of the loss. Theoretically, AS-LoRA eliminates the reconstruction-error floor of layer-tied schedules, accelerates convergence, implicitly biases solutions toward flatter minima, and incurs no additional privacy cost. Across GLUE, SQuAD, CIFAR-100, and Tiny-ImageNet under strict DP budgets and non-IID partitions, AS-LoRA improves over the federated LoRA baselines by up to $+7.5$ pp on GLUE and $+12.5$ pp on MNLI-mm for example, while matching or exceeding SVD-based aggregation methods at $33\\text{--}180 \\times$ lower aggregation cost and with negligible communication overhead. Code for the proposed method is available at https://anonymous.4open.science/r/as_lora-F75F/."
+      ]
+    },
+    "abstract": "Abstract: Differentially private federated fine-tuning of large models with LoRA suffers from aggregation error caused by LoRA's multiplicative structure, which is further amplified by DP noise and degrades both stability and accuracy. Existing remedies apply a single update mode uniformly across all layers and all communication rounds (or alternate them on a fixed schedule), ignoring both the structural asymmetry between the two LoRA factors and the round-wise dynamics of training. We propose AS-LoRA, an adaptive framework defined by three axes (i) layer-wise freedom, in which each layer independently selects its active component, (ii) round-wise adaptivity, in which the selection updates over communication rounds, and (iii) a curvature-aware score derived from a second-order approximation of the loss. Theoretically, AS-LoRA eliminates the reconstruction-error floor of layer-tied schedules, accelerates convergence, implicitly biases solutions toward flatter minima, and incurs no additional privacy cost. Across GLUE, SQuAD, CIFAR-100, and Tiny-ImageNet under strict DP budgets and non-IID partitions, AS-LoRA improves over the federated LoRA baselines by up to $+7.5$ pp on GLUE and $+12.5$ pp on MNLI-mm for example, while matching or exceeding SVD-based aggregation methods at $33\\text{--}180 \\times$ lower aggregation cost and with negligible communication overhead. Code for the proposed method is available at  this https URL .",
+    "pdf_file": "01_closest/AS-LoRA_2605.05769v1.pdf",
+    "pdf_bytes": 2087130,
+    "pdf_sha256": "003b272d170690711b01f0140293f4c6b7785b76c8aac1e5c00f0e04d430ffd3",
+    "tex_url": "https://arxiv.org/src/2605.05769v1",
+    "tex_files": [
+      "tex/AS-LoRA_2605.05769v1/a_introduction.tex",
+      "tex/AS-LoRA_2605.05769v1/c_background.tex",
+      "tex/AS-LoRA_2605.05769v1/d_method.tex",
+      "tex/AS-LoRA_2605.05769v1/e_theoretical.tex",
+      "tex/AS-LoRA_2605.05769v1/f_experiments.tex",
+      "tex/AS-LoRA_2605.05769v1/g_conclusion.tex",
+      "tex/AS-LoRA_2605.05769v1/h_appendix.tex",
+      "tex/AS-LoRA_2605.05769v1/main.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/AS-LoRA_2605.05769v1/main.tex"
+    ],
+    "source_archive": "source_archives/AS-LoRA_2605.05769v1.source",
+    "source_sha256": "eef963464e430194b21fdcf33be80cf3ddad45fe8d63d9e2276b4530a16030c3",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-9; appendix proofs not fully audited",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "RoLoRA",
+    "arxiv_id": "2502.01755",
+    "priority": "特别接近",
+    "relation_zh": "交替优化 A/B；对照 PCLA 交替训练机制，不能等同于保留本地 B。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "Robust Federated Finetuning of LLMs via Alternating Optimization of LoRA",
+    "authors": [
+      "Chen, Shuangyi",
+      "Guo, Yuanxin",
+      "Ju, Yue",
+      "Dalal, Harik",
+      "Zhu, Zhongwen",
+      "Khisti, Ashish"
+    ],
+    "date": "2025/02/03",
+    "version": "v4",
+    "url": "https://arxiv.org/abs/2502.01755v4",
+    "pdf_url": "https://arxiv.org/pdf/2502.01755v4",
+    "official_metadata": {
+      "citation_title": [
+        "Robust Federated Finetuning of LLMs via Alternating Optimization of LoRA"
+      ],
+      "citation_author": [
+        "Chen, Shuangyi",
+        "Guo, Yuanxin",
+        "Ju, Yue",
+        "Dalal, Harik",
+        "Zhu, Zhongwen",
+        "Khisti, Ashish"
+      ],
+      "citation_date": [
+        "2025/02/03"
+      ],
+      "citation_online_date": [
+        "2025/10/11"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2502.01755"
+      ],
+      "citation_arxiv_id": [
+        "2502.01755"
+      ],
+      "citation_abstract": [
+        "Parameter-Efficient Fine-Tuning (PEFT) methods like Low-Rank Adaptation (LoRA) optimize federated training by reducing computational and communication costs. We propose RoLoRA, a federated framework using alternating optimization to fine-tune LoRA adapters. Our approach emphasizes the importance of learning up and down projection matrices to enhance expressiveness and robustness. We use both theoretical analysis and extensive experiments to demonstrate the advantages of RoLoRA over prior approaches that either generate imperfect model updates or limit expressiveness of the model. We provide a theoretical analysis on a linear model to highlight the importance of learning both the down-projection and up-projection matrices in LoRA. We validate the insights on a non-linear model and separately provide a convergence proof under general conditions. To bridge theory and practice, we conducted extensive experimental evaluations on language models including RoBERTa-Large, Llama-2-7B on diverse tasks and FL settings to demonstrate the advantages of RoLoRA over other methods."
+      ]
+    },
+    "abstract": "Abstract: Parameter-Efficient Fine-Tuning (PEFT) methods like Low-Rank Adaptation (LoRA) optimize federated training by reducing computational and communication costs. We propose RoLoRA, a federated framework using alternating optimization to fine-tune LoRA adapters. Our approach emphasizes the importance of learning up and down projection matrices to enhance expressiveness and robustness. We use both theoretical analysis and extensive experiments to demonstrate the advantages of RoLoRA over prior approaches that either generate imperfect model updates or limit expressiveness of the model. We provide a theoretical analysis on a linear model to highlight the importance of learning both the down-projection and up-projection matrices in LoRA. We validate the insights on a non-linear model and separately provide a convergence proof under general conditions. To bridge theory and practice, we conducted extensive experimental evaluations on language models including RoBERTa-Large, Llama-2-7B on diverse tasks and FL settings to demonstrate the advantages of RoLoRA over other methods.",
+    "pdf_file": "01_closest/RoLoRA_2502.01755v4.pdf",
+    "pdf_bytes": 7834651,
+    "pdf_sha256": "43a20ffe7ae34b722a689043a0a999717079d6582547acf80768782a7d64d16a",
+    "tex_url": "https://arxiv.org/src/2502.01755v4",
+    "tex_files": [
+      "tex/RoLoRA_2502.01755v4/neurips_2025.tex",
+      "tex/RoLoRA_2502.01755v4/non_convex_convergence.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/RoLoRA_2502.01755v4/neurips_2025.tex"
+    ],
+    "source_archive": "source_archives/RoLoRA_2502.01755v4.source",
+    "source_sha256": "ea8ba428fca6c7d282d86df2c67852ded9de6cd929960cd36eb37995aa14a098",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-10; long appendix not fully read",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FDLoRA",
+    "arxiv_id": "2406.07925",
+    "priority": "特别接近",
+    "relation_zh": "全局与本地双 LoRA 个性化及融合；对照 HetSA 的本地知识保留。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning",
+    "authors": [
+      "Lu, Yao",
+      "QI, Jiaxing",
+      "Luan, Zhongzhi",
+      "Huang, Shaohan",
+      "Fung, Carol",
+      "Yang, Hailong",
+      "Qian, Depei"
+    ],
+    "date": "2024/06/12",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2406.07925v2",
+    "pdf_url": "https://arxiv.org/pdf/2406.07925v2",
+    "official_metadata": {
+      "citation_title": [
+        "FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning"
+      ],
+      "citation_author": [
+        "Lu, Yao",
+        "QI, Jiaxing",
+        "Luan, Zhongzhi",
+        "Huang, Shaohan",
+        "Fung, Carol",
+        "Yang, Hailong",
+        "Qian, Depei"
+      ],
+      "citation_date": [
+        "2024/06/12"
+      ],
+      "citation_online_date": [
+        "2026/07/06"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2406.07925"
+      ],
+      "citation_arxiv_id": [
+        "2406.07925"
+      ],
+      "citation_abstract": [
+        "Large language models (LLMs) have emerged as important components across various fields, yet their training requires substantial computation resources and abundant labeled data. It poses a challenge to robustly training LLMs for individual users (clients). To tackle this challenge, the intuitive idea is to introduce federated learning (FL), which can collaboratively train models on distributed private data. However, existing methods suffer from the challenges of data heterogeneity, system heterogeneity, and model size, resulting in suboptimal performance and high costs. In this work, we proposed a variant of personalized federated learning (PFL) framework, namely FDLoRA, which allows the client to be a single device or a cluster and adopts low-rank adaptation (LoRA) tuning. FDLoRA sets dual LoRA modules on each client to capture personalized and global knowledge, respectively, and only the global LoRA module uploads parameters to the central server to aggregate cross-client knowledge. Finally, an adaptive fusion approach is employed to combine the parameters of the dual LoRAs. This enables FDLoRA to make effective use of private data distributed across different clients, thereby improving performance on the client without incurring high communication and computing costs. We conducted extensive experiments in two practice scenarios. The results demonstrate that FDLoRA outperforms six baselines in terms of performance, stability, robustness, computation cost, and communication cost."
+      ]
+    },
+    "abstract": "Abstract: Large language models (LLMs) have emerged as important components across various fields, yet their training requires substantial computation resources and abundant labeled data. It poses a challenge to robustly training LLMs for individual users (clients). To tackle this challenge, the intuitive idea is to introduce federated learning (FL), which can collaboratively train models on distributed private data. However, existing methods suffer from the challenges of data heterogeneity, system heterogeneity, and model size, resulting in suboptimal performance and high costs. In this work, we proposed a variant of personalized federated learning (PFL) framework, namely FDLoRA, which allows the client to be a single device or a cluster and adopts low-rank adaptation (LoRA) tuning. FDLoRA sets dual LoRA modules on each client to capture personalized and global knowledge, respectively, and only the global LoRA module uploads parameters to the central server to aggregate cross-client knowledge. Finally, an adaptive fusion approach is employed to combine the parameters of the dual LoRAs. This enables FDLoRA to make effective use of private data distributed across different clients, thereby improving performance on the client without incurring high communication and computing costs. We conducted extensive experiments in two practice scenarios. The results demonstrate that FDLoRA outperforms six baselines in terms of performance, stability, robustness, computation cost, and communication cost.",
+    "pdf_file": "01_closest/FDLoRA_2406.07925v2.pdf",
+    "pdf_bytes": 1679276,
+    "pdf_sha256": "b5c75b0fdce7e9285d3591a9b6109cac622869eda27b5d011c63671b37651b0a",
+    "tex_url": "https://arxiv.org/src/2406.07925v2",
+    "tex_files": [
+      "tex/FDLoRA_2406.07925v2/appendix.tex",
+      "tex/FDLoRA_2406.07925v2/sample-sigconf.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/FDLoRA_2406.07925v2/sample-sigconf.tex"
+    ],
+    "source_archive": "source_archives/FDLoRA_2406.07925v2.source",
+    "source_sha256": "344eec262b23eba38da0f90fd91ca7fec542febfd5b9dc31e6f5a37863663775",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-10",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "HetLoRA",
+    "arxiv_id": "2401.06432",
+    "priority": "强相关",
+    "relation_zh": "异构秩、自剪枝和聚合；与异构预算、组件选择相关。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "Heterogeneous LoRA for Federated Fine-tuning of On-Device Foundation Models",
+    "authors": [
+      "Cho, Yae Jee",
+      "Liu, Luyang",
+      "Xu, Zheng",
+      "Fahrezi, Aldi",
+      "Joshi, Gauri"
+    ],
+    "date": "2024/01/12",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2401.06432v2",
+    "pdf_url": "https://arxiv.org/pdf/2401.06432v2",
+    "official_metadata": {
+      "citation_title": [
+        "Heterogeneous LoRA for Federated Fine-tuning of On-Device Foundation Models"
+      ],
+      "citation_author": [
+        "Cho, Yae Jee",
+        "Liu, Luyang",
+        "Xu, Zheng",
+        "Fahrezi, Aldi",
+        "Joshi, Gauri"
+      ],
+      "citation_date": [
+        "2024/01/12"
+      ],
+      "citation_online_date": [
+        "2024/02/20"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2401.06432"
+      ],
+      "citation_arxiv_id": [
+        "2401.06432"
+      ],
+      "citation_abstract": [
+        "Foundation models (FMs) adapt well to specific domains or tasks with fine-tuning, and federated learning (FL) enables the potential for privacy-preserving fine-tuning of the FMs with on-device local data. For federated fine-tuning of FMs, we consider the FMs with small to medium parameter sizes of single digit billion at maximum, referred to as on-device FMs (ODFMs) that can be deployed on devices for inference but can only be fine-tuned with parameter efficient methods. In our work, we tackle the data and system heterogeneity problem of federated fine-tuning of ODFMs by proposing a novel method using heterogeneous low-rank approximations (LoRAs), namely HetLoRA. First, we show that the naive approach of using homogeneous LoRA ranks across devices face a trade-off between overfitting and slow convergence, and thus propose HetLoRA, which allows heterogeneous ranks across client devices and efficiently aggregates and distributes these heterogeneous LoRA modules. By applying rank self-pruning locally and sparsity-weighted aggregation at the server, HetLoRA combines the advantages of high and low-rank LoRAs, which achieves improved convergence speed and final performance compared to homogeneous LoRA. Furthermore, HetLoRA offers enhanced computation efficiency compared to full fine-tuning, making it suitable for federated fine-tuning across heterogeneous devices."
+      ]
+    },
+    "abstract": "Abstract: Foundation models (FMs) adapt well to specific domains or tasks with fine-tuning, and federated learning (FL) enables the potential for privacy-preserving fine-tuning of the FMs with on-device local data. For federated fine-tuning of FMs, we consider the FMs with small to medium parameter sizes of single digit billion at maximum, referred to as on-device FMs (ODFMs) that can be deployed on devices for inference but can only be fine-tuned with parameter efficient methods. In our work, we tackle the data and system heterogeneity problem of federated fine-tuning of ODFMs by proposing a novel method using heterogeneous low-rank approximations (LoRAs), namely HetLoRA. First, we show that the naive approach of using homogeneous LoRA ranks across devices face a trade-off between overfitting and slow convergence, and thus propose HetLoRA, which allows heterogeneous ranks across client devices and efficiently aggregates and distributes these heterogeneous LoRA modules. By applying rank self-pruning locally and sparsity-weighted aggregation at the server, HetLoRA combines the advantages of high and low-rank LoRAs, which achieves improved convergence speed and final performance compared to homogeneous LoRA. Furthermore, HetLoRA offers enhanced computation efficiency compared to full fine-tuning, making it suitable for federated fine-tuning across heterogeneous devices.",
+    "pdf_file": "02_related/HetLoRA_2401.06432v2.pdf",
+    "pdf_bytes": 1488826,
+    "pdf_sha256": "66cd4416925fa9026d7bb513f6a6bfb8110ff077e22c0f9a71b5839c03d4b268",
+    "reading_scope": "PDF 1-8",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FlexLoRA",
+    "arxiv_id": "2402.11505",
+    "priority": "强相关",
+    "relation_zh": "全尺寸更新聚合后 SVD 重分配异构秩；异构聚合对照。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "Federated Fine-tuning of Large Language Models under Heterogeneous Tasks and Client Resources",
+    "authors": [
+      "Bai, Jiamu",
+      "Chen, Daoyuan",
+      "Qian, Bingchen",
+      "Yao, Liuyi",
+      "Li, Yaliang"
+    ],
+    "date": "2024/02/18",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2402.11505v2",
+    "pdf_url": "https://arxiv.org/pdf/2402.11505v2",
+    "official_metadata": {
+      "citation_title": [
+        "Federated Fine-tuning of Large Language Models under Heterogeneous Tasks and Client Resources"
+      ],
+      "citation_author": [
+        "Bai, Jiamu",
+        "Chen, Daoyuan",
+        "Qian, Bingchen",
+        "Yao, Liuyi",
+        "Li, Yaliang"
+      ],
+      "citation_date": [
+        "2024/02/18"
+      ],
+      "citation_online_date": [
+        "2024/05/30"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2402.11505"
+      ],
+      "citation_arxiv_id": [
+        "2402.11505"
+      ],
+      "citation_abstract": [
+        "Federated Learning (FL) has recently been applied to the parameter-efficient fine-tuning of Large Language Models (LLMs). While promising, it raises significant challenges due to the heterogeneous resources and data distributions of clients. This study introduces FlexLoRA, a simple yet effective aggregation scheme for LLM fine-tuning, which mitigates the ``bucket effect'' in traditional FL that restricts the potential of clients with ample resources by tying them to the capabilities of the least-resourced participants. FlexLoRA allows for dynamic adjustment of local LoRA ranks, fostering the development of a global model imbued with broader, less task-specific knowledge. By synthesizing a full-size LoRA weight from individual client contributions and employing Singular Value Decomposition (SVD) for weight redistribution, FlexLoRA fully leverages heterogeneous client resources. Involving thousands of clients performing heterogeneous NLP tasks and client resources, our experiments validate the efficacy of FlexLoRA, with the federated global model achieving consistently better improvement over SOTA FL methods in downstream NLP task performance across various heterogeneous distributions. FlexLoRA's practicality is further underscored by our theoretical analysis and its seamless integration with existing LoRA-based FL methods, offering a path toward cross-device, privacy-preserving federated tuning for LLMs."
+      ]
+    },
+    "abstract": "Abstract: Federated Learning (FL) has recently been applied to the parameter-efficient fine-tuning of Large Language Models (LLMs). While promising, it raises significant challenges due to the heterogeneous resources and data distributions of clients. This study introduces FlexLoRA, a simple yet effective aggregation scheme for LLM fine-tuning, which mitigates the ``bucket effect'' in traditional FL that restricts the potential of clients with ample resources by tying them to the capabilities of the least-resourced participants. FlexLoRA allows for dynamic adjustment of local LoRA ranks, fostering the development of a global model imbued with broader, less task-specific knowledge. By synthesizing a full-size LoRA weight from individual client contributions and employing Singular Value Decomposition (SVD) for weight redistribution, FlexLoRA fully leverages heterogeneous client resources. Involving thousands of clients performing heterogeneous NLP tasks and client resources, our experiments validate the efficacy of FlexLoRA, with the federated global model achieving consistently better improvement over SOTA FL methods in downstream NLP task performance across various heterogeneous distributions. FlexLoRA's practicality is further underscored by our theoretical analysis and its seamless integration with existing LoRA-based FL methods, offering a path toward cross-device, privacy-preserving federated tuning for LLMs.",
+    "pdf_file": "02_related/FlexLoRA_2402.11505v2.pdf",
+    "pdf_bytes": 825345,
+    "pdf_sha256": "872f2d5a852ca2172f0ab66e8bf5660d7fbe7b9ecc0c12527e6963e50c1c5e88",
+    "reading_scope": "PDF 1-9",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FLoRA",
+    "arxiv_id": "2409.05976",
+    "priority": "强相关",
+    "relation_zh": "堆叠聚合异构 LoRA，讨论因子分别平均的聚合误差。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "FLoRA: Federated Fine-Tuning Large Language Models with Heterogeneous Low-Rank Adaptations",
+    "authors": [
+      "Wang, Ziyao",
+      "Shen, Zheyu",
+      "He, Yexiao",
+      "Sun, Guoheng",
+      "Wang, Hongyi",
+      "Lyu, Lingjuan",
+      "Li, Ang"
+    ],
+    "date": "2024/09/09",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2409.05976v1",
+    "pdf_url": "https://arxiv.org/pdf/2409.05976v1",
+    "official_metadata": {
+      "citation_title": [
+        "FLoRA: Federated Fine-Tuning Large Language Models with Heterogeneous Low-Rank Adaptations"
+      ],
+      "citation_author": [
+        "Wang, Ziyao",
+        "Shen, Zheyu",
+        "He, Yexiao",
+        "Sun, Guoheng",
+        "Wang, Hongyi",
+        "Lyu, Lingjuan",
+        "Li, Ang"
+      ],
+      "citation_date": [
+        "2024/09/09"
+      ],
+      "citation_online_date": [
+        "2024/09/09"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2409.05976"
+      ],
+      "citation_arxiv_id": [
+        "2409.05976"
+      ],
+      "citation_abstract": [
+        "The rapid development of Large Language Models (LLMs) has been pivotal in advancing AI, with pre-trained LLMs being adaptable to diverse downstream tasks through fine-tuning. Federated learning (FL) further enhances fine-tuning in a privacy-aware manner by utilizing clients' local data through in-situ computation, eliminating the need for data movement. However, fine-tuning LLMs, given their massive scale of parameters, poses challenges for clients with constrained and heterogeneous resources in FL. Previous methods employed low-rank adaptation (LoRA) for efficient federated fine-tuning but utilized traditional FL aggregation strategies on LoRA adapters. These approaches led to mathematically inaccurate aggregation noise, reducing fine-tuning effectiveness and failing to address heterogeneous LoRAs. In this work, we first highlight the mathematical incorrectness of LoRA aggregation in existing federated fine-tuning methods. We introduce a new approach called FLORA that enables federated fine-tuning on heterogeneous LoRA adapters across clients through a novel stacking-based aggregation method. Our approach is noise-free and seamlessly supports heterogeneous LoRA adapters. Extensive experiments demonstrate FLORA' s superior performance in both homogeneous and heterogeneous settings, surpassing state-of-the-art methods. We envision this work as a milestone for efficient, privacy-preserving, and accurate federated fine-tuning of LLMs. Our code is available at https://github.com/ATP-1010/FederatedLLM."
+      ]
+    },
+    "abstract": "Abstract: The rapid development of Large Language Models (LLMs) has been pivotal in advancing AI, with pre-trained LLMs being adaptable to diverse downstream tasks through fine-tuning. Federated learning (FL) further enhances fine-tuning in a privacy-aware manner by utilizing clients' local data through in-situ computation, eliminating the need for data movement. However, fine-tuning LLMs, given their massive scale of parameters, poses challenges for clients with constrained and heterogeneous resources in FL. Previous methods employed low-rank adaptation (LoRA) for efficient federated fine-tuning but utilized traditional FL aggregation strategies on LoRA adapters. These approaches led to mathematically inaccurate aggregation noise, reducing fine-tuning effectiveness and failing to address heterogeneous LoRAs. In this work, we first highlight the mathematical incorrectness of LoRA aggregation in existing federated fine-tuning methods. We introduce a new approach called FLORA that enables federated fine-tuning on heterogeneous LoRA adapters across clients through a novel stacking-based aggregation method. Our approach is noise-free and seamlessly supports heterogeneous LoRA adapters. Extensive experiments demonstrate FLORA' s superior performance in both homogeneous and heterogeneous settings, surpassing state-of-the-art methods. We envision this work as a milestone for efficient, privacy-preserving, and accurate federated fine-tuning of LLMs. Our code is available at  this https URL .",
+    "pdf_file": "02_related/FLoRA_2409.05976v1.pdf",
+    "pdf_bytes": 2525998,
+    "pdf_sha256": "bf2a952105e6c9db9fdc487ce89cc502296982189afce8cff4cfed861c0e29f3",
+    "reading_scope": "PDF 1-9",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FFA-LoRA",
+    "arxiv_id": "2403.12313",
+    "priority": "强相关",
+    "relation_zh": "冻结 A、训练并共享 B；与共享 A、本地 B 的设计区别。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "Improving LoRA in Privacy-preserving Federated Learning",
+    "authors": [
+      "Sun, Youbang",
+      "Li, Zitao",
+      "Li, Yaliang",
+      "Ding, Bolin"
+    ],
+    "date": "2024/03/18",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2403.12313v1",
+    "pdf_url": "https://arxiv.org/pdf/2403.12313v1",
+    "official_metadata": {
+      "citation_title": [
+        "Improving LoRA in Privacy-preserving Federated Learning"
+      ],
+      "citation_author": [
+        "Sun, Youbang",
+        "Li, Zitao",
+        "Li, Yaliang",
+        "Ding, Bolin"
+      ],
+      "citation_date": [
+        "2024/03/18"
+      ],
+      "citation_online_date": [
+        "2024/03/18"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2403.12313"
+      ],
+      "citation_arxiv_id": [
+        "2403.12313"
+      ],
+      "citation_abstract": [
+        "Low-rank adaptation (LoRA) is one of the most popular task-specific parameter-efficient fine-tuning (PEFT) methods on pre-trained language models for its good performance and computational efficiency. LoRA injects a product of two trainable rank decomposition matrices over the top of each frozen pre-trained model module. However, when applied in the setting of privacy-preserving federated learning (FL), LoRA may become unstable due to the following facts: 1) the effects of data heterogeneity and multi-step local updates are non-negligible, 2) additive noise enforced on updating gradients to guarantee differential privacy (DP) can be amplified and 3) the final performance is susceptible to hyper-parameters. A key factor leading to these phenomena is the discordance between jointly optimizing the two low-rank matrices by local clients and separately aggregating them by the central server. Thus, this paper proposes an efficient and effective version of LoRA, Federated Freeze A LoRA (FFA-LoRA), to alleviate these challenges and further halve the communication cost of federated fine-tuning LLMs. The core idea of FFA-LoRA is to fix the randomly initialized non-zero matrices and only fine-tune the zero-initialized matrices. Compared to LoRA, FFA-LoRA is motivated by practical and theoretical benefits in privacy-preserved FL. Our experiments demonstrate that FFA-LoRA provides more consistent performance with better computational efficiency over vanilla LoRA in various FL tasks."
+      ]
+    },
+    "abstract": "Abstract: Low-rank adaptation (LoRA) is one of the most popular task-specific parameter-efficient fine-tuning (PEFT) methods on pre-trained language models for its good performance and computational efficiency. LoRA injects a product of two trainable rank decomposition matrices over the top of each frozen pre-trained model module. However, when applied in the setting of privacy-preserving federated learning (FL), LoRA may become unstable due to the following facts: 1) the effects of data heterogeneity and multi-step local updates are non-negligible, 2) additive noise enforced on updating gradients to guarantee differential privacy (DP) can be amplified and 3) the final performance is susceptible to hyper-parameters. A key factor leading to these phenomena is the discordance between jointly optimizing the two low-rank matrices by local clients and separately aggregating them by the central server. Thus, this paper proposes an efficient and effective version of LoRA, Federated Freeze A LoRA (FFA-LoRA), to alleviate these challenges and further halve the communication cost of federated fine-tuning LLMs. The core idea of FFA-LoRA is to fix the randomly initialized non-zero matrices and only fine-tune the zero-initialized matrices. Compared to LoRA, FFA-LoRA is motivated by practical and theoretical benefits in privacy-preserved FL. Our experiments demonstrate that FFA-LoRA provides more consistent performance with better computational efficiency over vanilla LoRA in various FL tasks.",
+    "pdf_file": "02_related/FFA-LoRA_2403.12313v1.pdf",
+    "pdf_bytes": 423335,
+    "pdf_sha256": "8c69b08e409ec1751d10268a4c73463aa0b5d93d159086d329da94b2e801ff1c",
+    "reading_scope": "PDF 1-9",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "HAFLQ",
+    "arxiv_id": "2411.06581",
+    "priority": "特别接近",
+    "relation_zh": "重要性感知截断、冻结及仅聚合更新过的 rank-1 矩阵；组件级 PCLA 的直接近邻，另包含异构量化。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "精读核心方法/关键公式/主要实验及定向附录；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "ok",
+    "title": "HAFLQ: Heterogeneous Adaptive Federated LoRA Fine-tuned LLM with Quantization",
+    "authors": [
+      "Su, Yang",
+      "Yan, Na",
+      "Deng, Yansha",
+      "Dohler, Mischa",
+      "Schober, Robert"
+    ],
+    "date": "2024/11/10",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2411.06581v2",
+    "pdf_url": "https://arxiv.org/pdf/2411.06581v2",
+    "official_metadata": {
+      "citation_title": [
+        "HAFLQ: Heterogeneous Adaptive Federated LoRA Fine-tuned LLM with Quantization"
+      ],
+      "citation_author": [
+        "Su, Yang",
+        "Yan, Na",
+        "Deng, Yansha",
+        "Dohler, Mischa",
+        "Schober, Robert"
+      ],
+      "citation_date": [
+        "2024/11/10"
+      ],
+      "citation_online_date": [
+        "2025/05/16"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2411.06581"
+      ],
+      "citation_arxiv_id": [
+        "2411.06581"
+      ],
+      "citation_abstract": [
+        "Federated fine-tuning of pre-trained Large Language Models (LLMs) enables task-specific adaptation across diverse datasets while preserving privacy. However, challenges such as high computational and memory demands, heterogeneous client resources, bandwidth constraints, and ineffective global aggregation hinder its efficiency. To address these issues, we propose HAFLQ (Heterogeneous Adaptive Federated Low-Rank Adaptation Fine-tuned LLM with Quantization), a novel framework for efficient and scalable federated fine-tuning of LLMs in heterogeneous environments. To reduce memory and computation demands, we propose a salience-driven adaptive LLM quantization framework that evaluates the importance of transformer blocks using a salience metric and applies adaptive block-wise quantization accordingly. To handle heterogeneous computational capabilities, we propose an importance-based parameter truncation and freezing scheme. To address communication bottlenecks, we propose an importance-aware bandwidth-adaptive quantization method, which dynamically adjusts parameter precision based on importance and bandwidth constraints. To improve global model aggregation, we propose an adaptive rank-1 matrix-level aggregation strategy, which prevents information dilution and accelerates convergence by aggregating only updated rank-1 matrices from clients. Experimental results on the text classification task demonstrate that HAFLQ reduces memory usage by 31%, lowers communication cost by 49%, improves accuracy by 50%, and achieves faster convergence compared to the baseline method."
+      ]
+    },
+    "abstract": "Abstract: Federated fine-tuning of pre-trained Large Language Models (LLMs) enables task-specific adaptation across diverse datasets while preserving privacy. However, challenges such as high computational and memory demands, heterogeneous client resources, bandwidth constraints, and ineffective global aggregation hinder its efficiency. To address these issues, we propose HAFLQ (Heterogeneous Adaptive Federated Low-Rank Adaptation Fine-tuned LLM with Quantization), a novel framework for efficient and scalable federated fine-tuning of LLMs in heterogeneous environments. To reduce memory and computation demands, we propose a salience-driven adaptive LLM quantization framework that evaluates the importance of transformer blocks using a salience metric and applies adaptive block-wise quantization accordingly. To handle heterogeneous computational capabilities, we propose an importance-based parameter truncation and freezing scheme. To address communication bottlenecks, we propose an importance-aware bandwidth-adaptive quantization method, which dynamically adjusts parameter precision based on importance and bandwidth constraints. To improve global model aggregation, we propose an adaptive rank-1 matrix-level aggregation strategy, which prevents information dilution and accelerates convergence by aggregating only updated rank-1 matrices from clients. Experimental results on the text classification task demonstrate that HAFLQ reduces memory usage by 31%, lowers communication cost by 49%, improves accuracy by 50%, and achieves faster convergence compared to the baseline method.",
+    "pdf_file": "01_closest/HAFLQ_2411.06581v2.pdf",
+    "pdf_bytes": 696824,
+    "pdf_sha256": "f38c06996910c7b2433f941da4af2fc94d8737988d8c300947023052379444bd",
+    "tex_url": "https://arxiv.org/src/2411.06581v2",
+    "tex_files": [
+      "tex/HAFLQ_2411.06581v2/main.tex"
+    ],
+    "tex_main_candidates": [
+      "tex/HAFLQ_2411.06581v2/main.tex"
+    ],
+    "source_archive": "source_archives/HAFLQ_2411.06581v2.source",
+    "source_sha256": "ddb6f85917d52cabbffe8a6abd3167146efd1ca9e6d38971d7621af3882ef67c",
+    "tex_compilation": "未编译；原作者多文件工程，仅下载与安全解包",
+    "reading_scope": "PDF 1-12",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "SLoRA",
+    "arxiv_id": "2308.06522",
+    "priority": "强相关",
+    "relation_zh": "非 IID 下联邦 PEFT 与数据驱动初始化。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models",
+    "authors": [
+      "Babakniya, Sara",
+      "Elkordy, Ahmed Roushdy",
+      "Ezzeldin, Yahya H.",
+      "Liu, Qingfeng",
+      "Song, Kee-Bong",
+      "El-Khamy, Mostafa",
+      "Avestimehr, Salman"
+    ],
+    "date": "2023/08/12",
+    "version": "v1",
+    "url": "https://arxiv.org/abs/2308.06522v1",
+    "pdf_url": "https://arxiv.org/pdf/2308.06522v1",
+    "official_metadata": {
+      "citation_title": [
+        "SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models"
+      ],
+      "citation_author": [
+        "Babakniya, Sara",
+        "Elkordy, Ahmed Roushdy",
+        "Ezzeldin, Yahya H.",
+        "Liu, Qingfeng",
+        "Song, Kee-Bong",
+        "El-Khamy, Mostafa",
+        "Avestimehr, Salman"
+      ],
+      "citation_date": [
+        "2023/08/12"
+      ],
+      "citation_online_date": [
+        "2023/08/12"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2308.06522"
+      ],
+      "citation_arxiv_id": [
+        "2308.06522"
+      ],
+      "citation_abstract": [
+        "Transfer learning via fine-tuning pre-trained transformer models has gained significant success in delivering state-of-the-art results across various NLP tasks. In the absence of centralized data, Federated Learning (FL) can benefit from distributed and private data of the FL edge clients for fine-tuning. However, due to the limited communication, computation, and storage capabilities of edge devices and the huge sizes of popular transformer models, efficient fine-tuning is crucial to make federated training feasible. This work explores the opportunities and challenges associated with applying parameter efficient fine-tuning (PEFT) methods in different FL settings for language tasks. Specifically, our investigation reveals that as the data across users becomes more diverse, the gap between fully fine-tuning the model and employing PEFT methods widens. To bridge this performance gap, we propose a method called SLoRA, which overcomes the key limitations of LoRA in high heterogeneous data scenarios through a novel data-driven initialization technique. Our experimental results demonstrate that SLoRA achieves performance comparable to full fine-tuning, with significant sparse updates with approximately $\\sim 1\\%$ density while reducing training time by up to $90\\%$."
+      ]
+    },
+    "abstract": "Abstract: Transfer learning via fine-tuning pre-trained transformer models has gained significant success in delivering state-of-the-art results across various NLP tasks. In the absence of centralized data, Federated Learning (FL) can benefit from distributed and private data of the FL edge clients for fine-tuning. However, due to the limited communication, computation, and storage capabilities of edge devices and the huge sizes of popular transformer models, efficient fine-tuning is crucial to make federated training feasible. This work explores the opportunities and challenges associated with applying parameter efficient fine-tuning (PEFT) methods in different FL settings for language tasks. Specifically, our investigation reveals that as the data across users becomes more diverse, the gap between fully fine-tuning the model and employing PEFT methods widens. To bridge this performance gap, we propose a method called SLoRA, which overcomes the key limitations of LoRA in high heterogeneous data scenarios through a novel data-driven initialization technique. Our experimental results demonstrate that SLoRA achieves performance comparable to full fine-tuning, with significant sparse updates with approximately $\\sim 1\\%$ density while reducing training time by up to $90\\%$.",
+    "pdf_file": "02_related/SLoRA_2308.06522v1.pdf",
+    "pdf_bytes": 1389427,
+    "pdf_sha256": "3215c4c21990e6d9269d1f30d8d43527520efe4cc7dccad9d3cac3412ab641b8",
+    "reading_scope": "PDF 1-8",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "LoRA",
+    "arxiv_id": "2106.09685",
+    "priority": "基础",
+    "relation_zh": "低秩适配的基本矩阵定义与参数效率。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "LoRA: Low-Rank Adaptation of Large Language Models",
+    "authors": [
+      "Hu, Edward J.",
+      "Shen, Yelong",
+      "Wallis, Phillip",
+      "Allen-Zhu, Zeyuan",
+      "Li, Yuanzhi",
+      "Wang, Shean",
+      "Wang, Lu",
+      "Chen, Weizhu"
+    ],
+    "date": "2021/06/17",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2106.09685v2",
+    "pdf_url": "https://arxiv.org/pdf/2106.09685v2",
+    "official_metadata": {
+      "citation_title": [
+        "LoRA: Low-Rank Adaptation of Large Language Models"
+      ],
+      "citation_author": [
+        "Hu, Edward J.",
+        "Shen, Yelong",
+        "Wallis, Phillip",
+        "Allen-Zhu, Zeyuan",
+        "Li, Yuanzhi",
+        "Wang, Shean",
+        "Wang, Lu",
+        "Chen, Weizhu"
+      ],
+      "citation_date": [
+        "2021/06/17"
+      ],
+      "citation_online_date": [
+        "2021/10/16"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2106.09685"
+      ],
+      "citation_arxiv_id": [
+        "2106.09685"
+      ],
+      "citation_abstract": [
+        "An important paradigm of natural language processing consists of large-scale pre-training on general domain data and adaptation to particular tasks or domains. As we pre-train larger models, full fine-tuning, which retrains all model parameters, becomes less feasible. Using GPT-3 175B as an example -- deploying independent instances of fine-tuned models, each with 175B parameters, is prohibitively expensive. We propose Low-Rank Adaptation, or LoRA, which freezes the pre-trained model weights and injects trainable rank decomposition matrices into each layer of the Transformer architecture, greatly reducing the number of trainable parameters for downstream tasks. Compared to GPT-3 175B fine-tuned with Adam, LoRA can reduce the number of trainable parameters by 10,000 times and the GPU memory requirement by 3 times. LoRA performs on-par or better than fine-tuning in model quality on RoBERTa, DeBERTa, GPT-2, and GPT-3, despite having fewer trainable parameters, a higher training throughput, and, unlike adapters, no additional inference latency. We also provide an empirical investigation into rank-deficiency in language model adaptation, which sheds light on the efficacy of LoRA. We release a package that facilitates the integration of LoRA with PyTorch models and provide our implementations and model checkpoints for RoBERTa, DeBERTa, and GPT-2 at https://github.com/microsoft/LoRA."
+      ]
+    },
+    "abstract": "Abstract: An important paradigm of natural language processing consists of large-scale pre-training on general domain data and adaptation to particular tasks or domains. As we pre-train larger models, full fine-tuning, which retrains all model parameters, becomes less feasible. Using GPT-3 175B as an example -- deploying independent instances of fine-tuned models, each with 175B parameters, is prohibitively expensive. We propose Low-Rank Adaptation, or LoRA, which freezes the pre-trained model weights and injects trainable rank decomposition matrices into each layer of the Transformer architecture, greatly reducing the number of trainable parameters for downstream tasks. Compared to GPT-3 175B fine-tuned with Adam, LoRA can reduce the number of trainable parameters by 10,000 times and the GPU memory requirement by 3 times. LoRA performs on-par or better than fine-tuning in model quality on RoBERTa, DeBERTa, GPT-2, and GPT-3, despite having fewer trainable parameters, a higher training throughput, and, unlike adapters, no additional inference latency. We also provide an empirical investigation into rank-deficiency in language model adaptation, which sheds light on the efficacy of LoRA. We release a package that facilitates the integration of LoRA with PyTorch models and provide our implementations and model checkpoints for RoBERTa, DeBERTa, and GPT-2 at  this https URL .",
+    "pdf_file": "03_foundations/LoRA_2106.09685v2.pdf",
+    "pdf_bytes": 1609513,
+    "pdf_sha256": "e9a0d3128767db616085dc0f4e6e455e672e89af823e8ed1282793682787395a",
+    "reading_scope": "PDF 3-11",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "AdaLoRA",
+    "arxiv_id": "2303.10512",
+    "priority": "基础",
+    "relation_zh": "重要性感知的自适应秩预算；非联邦基础工作。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning",
+    "authors": [
+      "Zhang, Qingru",
+      "Chen, Minshuo",
+      "Bukharin, Alexander",
+      "Karampatziakis, Nikos",
+      "He, Pengcheng",
+      "Cheng, Yu",
+      "Chen, Weizhu",
+      "Zhao, Tuo"
+    ],
+    "date": "2023/03/18",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2303.10512v2",
+    "pdf_url": "https://arxiv.org/pdf/2303.10512v2",
+    "official_metadata": {
+      "citation_title": [
+        "AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning"
+      ],
+      "citation_author": [
+        "Zhang, Qingru",
+        "Chen, Minshuo",
+        "Bukharin, Alexander",
+        "Karampatziakis, Nikos",
+        "He, Pengcheng",
+        "Cheng, Yu",
+        "Chen, Weizhu",
+        "Zhao, Tuo"
+      ],
+      "citation_date": [
+        "2023/03/18"
+      ],
+      "citation_online_date": [
+        "2023/12/20"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2303.10512"
+      ],
+      "citation_arxiv_id": [
+        "2303.10512"
+      ],
+      "citation_abstract": [
+        "Fine-tuning large pre-trained language models on downstream tasks has become an important paradigm in NLP. However, common practice fine-tunes all of the parameters in a pre-trained model, which becomes prohibitive when a large number of downstream tasks are present. Therefore, many fine-tuning methods are proposed to learn incremental updates of pre-trained weights in a parameter efficient way, e.g., low-rank increments. These methods often evenly distribute the budget of incremental updates across all pre-trained weight matrices, and overlook the varying importance of different weight parameters. As a consequence, the fine-tuning performance is suboptimal. To bridge this gap, we propose AdaLoRA, which adaptively allocates the parameter budget among weight matrices according to their importance score. In particular, AdaLoRA parameterizes the incremental updates in the form of singular value decomposition. Such a novel approach allows us to effectively prune the singular values of unimportant updates, which is essentially to reduce their parameter budget but circumvent intensive exact SVD computations. We conduct extensive experiments with several pre-trained models on natural language processing, question answering, and natural language generation to validate the effectiveness of AdaLoRA. Results demonstrate that AdaLoRA manifests notable improvement over baselines, especially in the low budget settings. Our code is publicly available at https://github.com/QingruZhang/AdaLoRA ."
+      ]
+    },
+    "abstract": "Abstract: Fine-tuning large pre-trained language models on downstream tasks has become an important paradigm in NLP. However, common practice fine-tunes all of the parameters in a pre-trained model, which becomes prohibitive when a large number of downstream tasks are present. Therefore, many fine-tuning methods are proposed to learn incremental updates of pre-trained weights in a parameter efficient way, e.g., low-rank increments. These methods often evenly distribute the budget of incremental updates across all pre-trained weight matrices, and overlook the varying importance of different weight parameters. As a consequence, the fine-tuning performance is suboptimal. To bridge this gap, we propose AdaLoRA, which adaptively allocates the parameter budget among weight matrices according to their importance score. In particular, AdaLoRA parameterizes the incremental updates in the form of singular value decomposition. Such a novel approach allows us to effectively prune the singular values of unimportant updates, which is essentially to reduce their parameter budget but circumvent intensive exact SVD computations. We conduct extensive experiments with several pre-trained models on natural language processing, question answering, and natural language generation to validate the effectiveness of AdaLoRA. Results demonstrate that AdaLoRA manifests notable improvement over baselines, especially in the low budget settings. Our code is publicly available at  this https URL  .",
+    "pdf_file": "03_foundations/AdaLoRA_2303.10512v2.pdf",
+    "pdf_bytes": 668060,
+    "pdf_sha256": "7afe399a4d0c5cf37c956b0a8afb2294c2d2b289608162b4e49bddecc3b311ef",
+    "reading_scope": "PDF 3-9",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FedIT",
+    "arxiv_id": "2305.05644",
+    "priority": "基础",
+    "relation_zh": "联邦指令微调背景；不要将项目中统一 rank 的 fedlora 控制等同于完整论文复现。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "Towards Building the Federated GPT: Federated Instruction Tuning",
+    "authors": [
+      "Zhang, Jianyi",
+      "Vahidian, Saeed",
+      "Kuo, Martin",
+      "Li, Chunyuan",
+      "Zhang, Ruiyi",
+      "Yu, Tong",
+      "Zhou, Yufan",
+      "Wang, Guoyin",
+      "Chen, Yiran"
+    ],
+    "date": "2023/05/09",
+    "version": "v2",
+    "url": "https://arxiv.org/abs/2305.05644v2",
+    "pdf_url": "https://arxiv.org/pdf/2305.05644v2",
+    "official_metadata": {
+      "citation_title": [
+        "Towards Building the Federated GPT: Federated Instruction Tuning"
+      ],
+      "citation_author": [
+        "Zhang, Jianyi",
+        "Vahidian, Saeed",
+        "Kuo, Martin",
+        "Li, Chunyuan",
+        "Zhang, Ruiyi",
+        "Yu, Tong",
+        "Zhou, Yufan",
+        "Wang, Guoyin",
+        "Chen, Yiran"
+      ],
+      "citation_date": [
+        "2023/05/09"
+      ],
+      "citation_online_date": [
+        "2024/01/29"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2305.05644"
+      ],
+      "citation_arxiv_id": [
+        "2305.05644"
+      ],
+      "citation_abstract": [
+        "While \"instruction-tuned\" generative large language models (LLMs) have demonstrated an impressive ability to generalize to new tasks, the training phases heavily rely on large amounts of diverse and high-quality instruction data (such as ChatGPT and GPT-4). Unfortunately, acquiring high-quality data, especially when it comes to human-written data, can pose significant challenges both in terms of cost and accessibility. Moreover, concerns related to privacy can further limit access to such data, making the process of obtaining it a complex and nuanced undertaking. Consequently, this hinders the generality of the tuned models and may restrict their effectiveness in certain contexts. To tackle this issue, our study introduces a new approach called Federated Instruction Tuning (FedIT), which leverages federated learning (FL) as the learning framework for the instruction tuning of LLMs. This marks the first exploration of FL-based instruction tuning for LLMs. This is especially important since text data is predominantly generated by end users. Therefore, it is imperative to design and adapt FL approaches to effectively leverage these users' diverse instructions stored on local devices, while preserving privacy and ensuring data security. In the current paper, by conducting widely used GPT-4 auto-evaluation, we demonstrate that by exploiting the heterogeneous and diverse sets of instructions on the client's end with the proposed framework FedIT, we improved the performance of LLMs compared to centralized training with only limited local instructions. Further, in this paper, we developed a Github repository named Shepherd. This repository offers a foundational framework for exploring federated fine-tuning of LLMs using heterogeneous instructions across diverse categories."
+      ]
+    },
+    "abstract": "Abstract: While \"instruction-tuned\" generative large language models (LLMs) have demonstrated an impressive ability to generalize to new tasks, the training phases heavily rely on large amounts of diverse and high-quality instruction data (such as ChatGPT and GPT-4). Unfortunately, acquiring high-quality data, especially when it comes to human-written data, can pose significant challenges both in terms of cost and accessibility. Moreover, concerns related to privacy can further limit access to such data, making the process of obtaining it a complex and nuanced undertaking. Consequently, this hinders the generality of the tuned models and may restrict their effectiveness in certain contexts. To tackle this issue, our study introduces a new approach called Federated Instruction Tuning (FedIT), which leverages federated learning (FL) as the learning framework for the instruction tuning of LLMs. This marks the first exploration of FL-based instruction tuning for LLMs. This is especially important since text data is predominantly generated by end users. Therefore, it is imperative to design and adapt FL approaches to effectively leverage these users' diverse instructions stored on local devices, while preserving privacy and ensuring data security. In the current paper, by conducting widely used GPT-4 auto-evaluation, we demonstrate that by exploiting the heterogeneous and diverse sets of instructions on the client's end with the proposed framework FedIT, we improved the performance of LLMs compared to centralized training with only limited local instructions. Further, in this paper, we developed a Github repository named Shepherd. This repository offers a foundational framework for exploring federated fine-tuning of LLMs using heterogeneous instructions across diverse categories.",
+    "pdf_file": "03_foundations/FedIT_2305.05644v2.pdf",
+    "pdf_bytes": 813663,
+    "pdf_sha256": "ee2dc8c1c5b2daa9ff79aa2e30f5027ccb1cb9dfdaa3ae894469cfbfd1fa4473",
+    "reading_scope": "PDF 3-10",
+    "reading_report": "result.md"
+  },
+  {
+    "method": "FedAvg",
+    "arxiv_id": "1602.05629",
+    "priority": "基础",
+    "relation_zh": "联邦平均及非 IID 问题的基础。",
+    "checked_date": "2026-09-30",
+    "reading_depth": "阅读核心方法/主要实验/局限；未复现实验，未逐行验证全部证明",
+    "pdf_status": "ok",
+    "tex_status": "not_requested",
+    "title": "Communication-Efficient Learning of Deep Networks from Decentralized Data",
+    "authors": [
+      "McMahan, H. Brendan",
+      "Moore, Eider",
+      "Ramage, Daniel",
+      "Hampson, Seth",
+      "Arcas, Blaise Agüera y"
+    ],
+    "date": "2016/02/17",
+    "version": "v4",
+    "url": "https://arxiv.org/abs/1602.05629v4",
+    "pdf_url": "https://arxiv.org/pdf/1602.05629v4",
+    "official_metadata": {
+      "citation_title": [
+        "Communication-Efficient Learning of Deep Networks from Decentralized Data"
+      ],
+      "citation_author": [
+        "McMahan, H. Brendan",
+        "Moore, Eider",
+        "Ramage, Daniel",
+        "Hampson, Seth",
+        "Arcas, Blaise Agüera y"
+      ],
+      "citation_date": [
+        "2016/02/17"
+      ],
+      "citation_online_date": [
+        "2023/01/26"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/1602.05629"
+      ],
+      "citation_arxiv_id": [
+        "1602.05629"
+      ],
+      "citation_abstract": [
+        "Modern mobile devices have access to a wealth of data suitable for learning models, which in turn can greatly improve the user experience on the device. For example, language models can improve speech recognition and text entry, and image models can automatically select good photos. However, this rich data is often privacy sensitive, large in quantity, or both, which may preclude logging to the data center and training there using conventional approaches. We advocate an alternative that leaves the training data distributed on the mobile devices, and learns a shared model by aggregating locally-computed updates. We term this decentralized approach Federated Learning. We present a practical method for the federated learning of deep networks based on iterative model averaging, and conduct an extensive empirical evaluation, considering five different model architectures and four datasets. These experiments demonstrate the approach is robust to the unbalanced and non-IID data distributions that are a defining characteristic of this setting. Communication costs are the principal constraint, and we show a reduction in required communication rounds by 10-100x as compared to synchronized stochastic gradient descent."
+      ]
+    },
+    "abstract": "Abstract: Modern mobile devices have access to a wealth of data suitable for learning models, which in turn can greatly improve the user experience on the device. For example, language models can improve speech recognition and text entry, and image models can automatically select good photos. However, this rich data is often privacy sensitive, large in quantity, or both, which may preclude logging to the data center and training there using conventional approaches. We advocate an alternative that leaves the training data distributed on the mobile devices, and learns a shared model by aggregating locally-computed updates. We term this decentralized approach Federated Learning.\n We present a practical method for the federated learning of deep networks based on iterative model averaging, and conduct an extensive empirical evaluation, considering five different model architectures and four datasets. These experiments demonstrate the approach is robust to the unbalanced and non-IID data distributions that are a defining characteristic of this setting. Communication costs are the principal constraint, and we show a reduction in required communication rounds by 10-100x as compared to synchronized stochastic gradient descent.",
+    "pdf_file": "03_foundations/FedAvg_1602.05629v4.pdf",
+    "pdf_bytes": 1311201,
+    "pdf_sha256": "2faf5593d9db413dee96a9be6ab9527cb0413b34fd5024aa60db3a5ad5795384",
+    "reading_scope": "PDF 2-8",
+    "reading_report": "result.md"
+  }
+]

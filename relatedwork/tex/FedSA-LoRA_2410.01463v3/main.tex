@@ -1,0 +1,532 @@
+
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2025_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+
+% my package
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{multirow}
+\usepackage{booktabs}
+% \usepackage{makecell}
+\usepackage{pifont}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{assumption}{Assumption}
+\newtheorem{remark}{Remark}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+
+\usepackage{color}
+\newcommand{\pengxin}[1]{\textcolor{black}{#1}}
+\newcommand{\liangqiong}[1]{\textcolor{red}{liangqiong: #1}}
+
+% \title{FedSA-LoRA: Enhancing LoRA in Federated Learning thorough Selective Aggregation}
+
+\title{Selective Aggregation for Low-Rank Adaptation in Federated Learning}
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \iclrfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
+
+% \author{Pengxin Guo$^{1}$ Shuang Zeng$^{2}$ Yanran Wang$^{3}$ Huijie Fan$^{4}$ Feifei Wang$^{5,6}$ Liangqiong Qu$^{1}$\thanks{Corresponding author.}~~
+% \\
+% $^{1}$ School of Computing and Data Science, The University of Hong Kong \\
+% $^{2}$ Department of Mathematics, The University of Hong Kong \\
+% $^{3}$ Stanford Center for Artificial Intelligence in Medicine \& Imaging, Stanford University \\
+% $^{4}$ Shenyang Institute of Automation, Chinese Academy of Sciences \\
+% $^{5}$ Department of Electrical and Electronic Engineering, The University of Hong Kong \\
+% $^{6}$ Materials Innovation Institute for Life Sciences and Energy, HKU-SIRI \\
+% \texttt{\{guopx,zengsh9\}@connect.hku.hk, joycewyr@stanford.edu,}\\
+% \texttt{fanhuijie@sia.cn, ffwang@eee.hku.hk, liangqqu@hku.hk} \\
+% }
+
+\author{Pengxin Guo$^{1}$ Shuang Zeng$^{1}$ Yanran Wang$^{2}$ Huijie Fan$^{3}$ Feifei Wang$^{1,4}$ Liangqiong Qu$^{1}$\thanks{Corresponding author.}~~
+\\
+$^{1}$ The University of Hong Kong \quad $^{2}$ Stanford University \\
+$^{3}$ Shenyang Institute of Automation, Chinese Academy of Sciences \\
+$^{4}$ Materials Innovation Institute for Life Sciences and Energy (MILES), HKU-SIRI \\
+\texttt{\{guopx,zengsh9\}@connect.hku.hk, joycewyr@stanford.edu,}\\
+\texttt{fanhuijie@sia.cn, ffwang@eee.hku.hk, liangqqu@hku.hk} \\
+}
+
+
+% below, only university
+% \author{Pengxin Guo$^{1}$ Shuang Zeng$^{1}$ Yanran Wang$^{2}$ Huijie Fan$^{3}$ Feifei Wang$^{1}$ Liangqiong Qu$^{1}$\thanks{Corresponding author.}~~
+% \\
+% $^{1}$ The University of Hong Kong \quad $^{2}$ Stanford University \\
+% $^{3}$ Shenyang Institute of Automation, Chinese Academy of Sciences \\
+% \texttt{\{guopx,zengsh9\}@connect.hku.hk, joycewyr@stanford.edu,}\\
+% \texttt{fanhuijie@sia.cn, ffwang@eee.hku.hk, liangqqu@hku.hk} \\
+% }
+
+% \author{Antiquus S.~Hippocampus, Natalia Cerebro \& Amelie P. Amygdale \thanks{ Use footnote for providing further information
+% about author (webpage, alternative address)---\emph{not} for acknowledging
+% funding agencies.  Funding acknowledgements go at the end of the paper.} \\
+% Department of Computer Science\\
+% Cranberry-Lemon University\\
+% Pittsburgh, PA 15213, USA \\
+% \texttt{\{hippo,brain,jen\}@cs.cranberry-lemon.edu} \\
+% \And
+% Ji Q. Ren \& Yevgeny LeNet \\
+% Department of Computational Neuroscience \\
+% University of the Witwatersrand \\
+% Joburg, South Africa \\
+% \texttt{\{robot,net\}@wits.ac.za} \\
+% \AND
+% Coauthor \\
+% Affiliation \\
+% Address \\
+% \texttt{email}
+% }
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+
+We investigate LoRA in federated learning through the lens of the asymmetry analysis of the learned $A$ and $B$ matrices. In doing so, we uncover that $A$ matrices are responsible for learning general knowledge, while $B$ matrices focus on capturing client-specific knowledge. Based on this finding, we introduce Federated Share-A Low-Rank Adaptation (FedSA-LoRA), which employs two low-rank trainable matrices $A$ and $B$ to model the weight update, but only $A$ matrices are shared with the server for aggregation. Moreover, we delve into the relationship between the learned $A$ and $B$ matrices in other LoRA variants, such as rsLoRA and VeRA, revealing a consistent pattern. Consequently, we extend our FedSA-LoRA method to these LoRA variants, resulting in FedSA-rsLoRA and FedSA-VeRA. In this way, we establish a general paradigm for integrating LoRA with FL, offering guidance for future work on subsequent LoRA variants combined with FL. Extensive experimental results on natural language understanding and generation tasks demonstrate the effectiveness of the proposed method. Our code is available at \href{https://github.com/Pengxin-Guo/FedSA-LoRA}{https://github.com/Pengxin-Guo/FedSA-LoRA}.
+
+\end{abstract}
+
+\section{Introduction} \label{sec:intro}
+
+Large Language Models (LLMs) trained on large amounts of text, referred to as Pre-trained Language Models (PLMs), have become a cornerstone of Natural Language Processing (NLP) \citep{brown2020language,touvron2023llama,achiam2023gpt,chowdhery2023palm}.
+Typically, to adapt PLMs for specific tasks or enhance accuracy in real-world scenarios, fine-tuning PLMs on task-specific data is often needed. However, in many real-world applications, data is distributed across different institutions, and data sharing between these entities is often restricted due to privacy and regulatory concerns. 
+%To alleviate this issue, 
+% Federated Learning (FL) \citep{mcmahan2017communication, li2020bfederated, zhang2021survey, kairouz2021advances} offers a promising solution to this challenge by enabling collaborative and decentralized fine-tuning of PLMs across multiple institutions without sharing personal data externally.
+Federated Learning (FL) \citep{mcmahan2017communication, li2020bfederated, zhang2021survey, kairouz2021advances}, which utilizes collaborative and decentralized training of models across multiple institutions without sharing personal data externally, offers a promising solution to this challenge.
+
+%While fine-tuning PLMs in FL offers promising opportunities, the computational and storage costs for local clients and the communication overhead in the FL system make it challenging to apply effectively.
+Despite its promise, fine-tuning PLMs in an FL system is challenging due to the high computational and storage demands on local clients and the communication overhead involved. 
+To enable fine-tuning of PLMs in an FL system with limited resources, various Parameter-Efficient Fine-Tuning (PEFT) techniques have been explored. %many works apply Parameter-Efficient Fine-Tuning (PEFT) techniques to FL. 
+These include adapter-tuning-based methods \citep{houlsby2019parameter,zhang2024enhancing}, prompt-tuning-based methods \citep{li2021prefix,guo2023promptfl,che2023federated,guo2023pfedprompt,qiu2024federated,li2024global,deng2024unlocking,sun2024fedbpt,cui2024harmonizing,cao2024sfprompt}, and LoRA-based methods \citep{hulora,yi2023fedlora,liu2023differentially,yang2024dual,qi2024fdlora,cho2023heterogeneous,byun2024towards,chen2024rbla,sunimproving,lin2024splitlora,wu2024fedbiot,wang2024flora}. 
+% Among these, LoRA-based methods have gained significant attention due to their efficiency, effectiveness, and flexibility, which is also the focus of our work.
+\pengxin{Among these, LoRA-based methods have become increasingly popular, leveraging the assumption that over-parameterized models have a low intrinsic dimension \citep{li2018measuring,aghajanyan2020intrinsic}. A pre-trained model can be shared and utilized to create multiple small LoRA modules tailored for different tasks, making them more effective and flexible. Moreover, this simple design allows us to merge the trainable matrices with the frozen weights during deployment, introducing no inference latency. Given these advantages, we focus on LoRA-based methods in this work.}
+
+% While many existing works explore LoRA in FL, the exploration of better utilizing the $A$ and $B$ matrices in FL is limited. \citet{sunimproving} point out that directly combining LoRA with FedAvg may not achieve the best performance due to interference from data heterogeneity. 
+However, aggregating LoRA matrices $A$ and $B$ in FL setting poses a key problem. Directly aggregating the $A$ and $B$ matrices on the server and then broadcasting them to each client may introduce aggregation errors. 
+Specifically, in an FL task with \(m\) clients, each client’s model update is represented by two low-rank matrices \(A_i\) and \(B_i\) introduced by LoRA.
+%Specifically, consider an FL task with $m$ clients where the model update of each client is modeled by two low-rank matrices $A_i$ and $B_i$ introduced by LoRA. 
+After server aggregation and broadcast, the model update of each client is:
+\begin{equation} \label{eq:lora}
+\frac{1}{m}(B_1 + B_2 + \cdots + B_m)\frac{1}{m}(A_1 + A_2 + \cdots + A_m),
+\end{equation}
+which is different from the ``ideal'' model update, i.e., $\frac{1}{m}(B_1A_1 + B_2A_2 + \cdots + B_mA_m)$. \footnote{\pengxin{Refer to Section \ref{app_sec:aggregation_error} in Appendix for more explanations about the derived aggregation errors.}}
+
+To solve this problem, some methods have been explored \citep{sunimproving,wang2024flora}. For example, \citet{sunimproving} propose Federated Freeze-A LoRA (FFA-LoRA), which freezes the $A$ matrices and only updates and aggregates the $B$ matrices, as illustrated in Figure \ref{fig:framework}(b). Thus, the local update of each client under FFA-LoRA is
+% \begin{equation} \label{eq:ffa_lora}
+$
+    \frac{1}{m}(B_1 + B_2 + \cdots + B_m)A_0,
+$
+% \end{equation}
+where $A_0$ denotes the initialized and fixed weights. They point out that this term is equal to the ``ideal'' model update introduced by FFA-LoRA, i.e., $\frac{1}{m}(B_1A_0 + B_2A_0 + \cdots + B_mA_0)$. However, fixing $A$ matrices can impair the learning ability of LoRA and result in suboptimal performance \citep{zhang2023lora}. Meanwhile, many works have demonstrated that a uniform model update for all clients is not optimal, especially under the non-IID scenario \citep{zhao2018federated,zhu2021federated,li2022federated}\pengxin{, which motivates the development of personalized FL \citep{t2020personalized,collins2021exploiting,xu2023personalized}}. To this end, we aim to explore a better way to combine LoRA and FL in this work and move beyond the constraint that the model update of each client should be the same.
+
+\begin{figure*} [t]
+  \centering
+   \includegraphics[width=1\linewidth]{FedSA-LoRA.drawio.pdf}
+   \caption{The illustration of (a) LoRA, (b) FFA-LoRA, and (c) FedSA-LoRA. In LoRA, both $A$ and $B$ matrices are trainable and shared with the server for aggregation. In FFA-LoRA, only $B$ matrices are trainable and shared with the server for aggregation, while $A$ matrices are fixed after initialization. In FedSA-LoRA, both $A$ and $B$ matrices are trainable, but only $A$ matrices are shared with the server for aggregation while $B$ matrices are kept locally.}  
+\label{fig:framework}
+\vskip -0.1in
+\end{figure*}
+
+
+% Drawing inspiration from the asymmetry analysis of the learned $A$ and $B$ matrices in LoRA \citep{zhu2024asymmetry}, we argue that when combining LoRA with FL, $A$ matrices are responsible for learning general knowledge while $B$ matrices focus on capturing client-specific knowledge, as shown in Lemma \ref{lemma:lora}. 
+To achieve this, we start by analyzing the distinct roles of the learned $A$ and $B$ matrices when combining LoRA with FL, resulting in Lemma \ref{lemma:lora}. This lemma suggests that when combing LoRA with FL, $A$ matrices are responsible for learning general knowledge while $B$ matrices focus on capturing client-specific knowledge. To verify this empirically, we locally fine-tuned a RoBERTa-large model \citep{liu2019roberta} with LoRA \citep{hulora} on the RTE task from the GLUE benchmark \citep{wang2018glue} with three clients under different levels of data heterogeneity. The results, illustrated in Figure \ref{fig:motivating_example_mean}, show that the learned $A$ matrices are more similar across clients than the $B$ matrices, and with increased data heterogeneity, the similarity of $B$ matrices between different clients decreases. These results demonstrate our argument that $A$ matrices are used to learn general knowledge while $B$ matrices focus on modeling client-specific knowledge.
+
+Based on our findings, we introduce the Federated Share-A Low-Rank Adaptation (FedSA-LoRA) method in this work. Similar to LoRA \citep{hulora}, we utilize two trainable low-rank matrices, denoted as $A$ and $B$, to model the weight updates during local training. However, only the $A$ matrices are shared with the server for aggregation, as illustrated in Figure \ref{fig:framework}(c). Then, the model update of client $i$ after server aggregation and broadcast is:
+\begin{equation} \label{eq:fedsa_lora}
+B_i\frac{1}{m}(A_1 + A_2 + \cdots + A_m),
+\end{equation}
+where the first part $B_i$ is responsible for capturing client-specific knowledge while the second part is used to model general knowledge. By sharing the $A$ matrices that learn general knowledge with the server for aggregation, while keeping the $B$ matrices that capture client-specific knowledge locally during training, the learning abilities of LoRA combined with FL can be enhanced. Note that this method differs from previous works \citep{sunimproving,wang2024flora} that require each client to share a uniform model update. Instead, it allows for different model updates, \pengxin{placing it in the realm of personalized FL \citep{t2020personalized,collins2021exploiting,xu2023personalized}}, which is more efficient under the non-IID scenario \citep{zhao2018federated,zhu2021federated,li2022federated}.
+
+
+Moreover, we delve into the relationship between the learned $A$ and $B$ matrices in other LoRA variants, such as rsLoRA \citep{kalajdzievski2023rank} and VeRA \citep{kopiczko2024vera}. The observations, illustrated in Figures \ref{fig:motivating_example_mean_rslora} and \ref{fig:motivating_example_mean_vera} in Appendix, demonstrate a similar phenomenon to LoRA. Building upon these insights, we extend our FedSA-LoRA method to these LoRA variants, resulting in FedSA-rsLoRA and FedSA-VeRA. By extending the proposed method to other LoRA variants, we establish a general paradigm for integrating LoRA with FL, offering guidance for future work on subsequent LoRA variants combined with FL.
+% Extensive experimental results on natural language understanding and natural language generation tasks demonstrate the effectiveness of the proposed method. 
+
+We summarize our contributions as follows:
+\begin{itemize}
+    \item We investigate the relationship between learned $A$ and $B$ matrices in LoRA and other LoRA variants (e.g., rsLoRA and VeRA) across different clients, delineating their distinct roles. Specifically, $A$ matrices are responsible for learning general knowledge, while $B$ matrices focus on capturing client-specific knowledge. 
+    \item Building upon our findings, we establish a general paradigm for integrating LoRA with FL. Specifically, we introduce Federated Share-A LoRA (FedSA-LoRA), where both $A$ and $B$ matrices are trainable, but only the $A$ matrices are shared with the server for aggregation. We then generalize the FedSA-LoRA framework to other LoRA variants, resulting in FedSA-rsLoRA and FedSA-VeRA.
+    \item Extensive experimental results demonstrate the superiority of the proposed FedSA-LoRA, FedSA-rsLoRA, and FedSA-VeRA compared to other methods.
+\end{itemize}
+
+
+\section{Related work} \label{sec:related_work}
+
+\subsection{Federated Learning}
+
+% Federated learning (FL) \citep{mcmahan2017communication,li2020bfederated,zhang2021survey,kairouz2021advances} is a widespread distributed learning technique used in privacy-sensitive tasks. 
+Federated Learning (FL) \citep{mcmahan2017communication,li2020bfederated,zhang2021survey,kairouz2021advances}, a commonly used distributed learning method for tasks requiring privacy, has gained significant attention in recent years. However, its application faces challenges due to the non-IID nature of distributed datasets, resulting in accuracy discrepancies compared to centralized training. 
+Numerous works \citep{li2020federated,xu2023personalized,yan2023label,chaninternal,xu2024fedconv,zeng2024tackling} have been proposed to mitigate this performance degradation\pengxin{, including optimizing local learning \citep{li2020federated}, optimizing server aggregation \citep{zeng2024tackling}, and personalized FL \citep{xu2023personalized}}.
+Recently, some studies demonstrate that fine-tuning pre-trained models, especially Pre-trained Language Models (PLMs), through FL suffers less from the non-IID issue \citep{qu2022rethinking,chenimportance,nguyenbegin,weller2022pretrained}. 
+The experimental results in  \citep{weller2022pretrained} show that when applying PLMs, even the vanilla FedAvg can achieve performance comparable to centralized training. 
+However, these large-scale PLMs usually introduce significant communication overheads in FL scenarios, leading to slow and impractical federated training in real-world applications. Additionally, local clients are often constrained by limited computational capacity and memory, making the local fine-tuning of PLMs challenging. 
+% To this end, our work focuses on adapting PLMs within FL, especially under resource constraints.
+To enable fine-tuning of PLMs in an FL system with limited resources, various Parameter-Efficient Fine-Tuning (PEFT) techniques have been explored, such as adapter-tuning-based methods \citep{houlsby2019parameter,zhang2024enhancing}, prompt-tuning-based methods \citep{li2021prefix,guo2023promptfl,che2023federated,guo2023pfedprompt,qiu2024federated,li2024global,deng2024unlocking,sun2024fedbpt,cui2024harmonizing,cao2024sfprompt}, and LoRA-based methods \citep{hulora,yi2023fedlora,liu2023differentially,yang2024dual,qi2024fdlora,cho2023heterogeneous,byun2024towards,chen2024rbla,sunimproving,lin2024splitlora,wu2024fedbiot,wang2024flora}. 
+% Among these, LoRA-based methods have gained significant attention due to their efficiency, effectiveness, and flexibility, which is also the focus of our work.
+\pengxin{Among these, LoRA-based methods have become increasingly popular, leveraging the assumption that over-parameterized models have a low intrinsic dimension \citep{li2018measuring,aghajanyan2020intrinsic}. A pre-trained model can be shared and utilized to create multiple small LoRA modules tailored for different tasks, making them more effective and flexible. Moreover, this simple design allows us to merge the trainable matrices with the frozen weights during deployment, introducing no inference latency. Given these advantages, we focus on LoRA-based methods in this work.}
+
+
+\subsection{LoRA in Federated Learning}
+
+Low-Rank Adaptation (LoRA) \citep{hulora}, which introduces low-rank adaptation matrices to simulate gradient updates while keeping the pre-trained model weights frozen, has recently gained significant attention due to its efficiency, effectiveness, and flexibility \citep{hayou2024lora+,liu2024dora,kopiczko2024vera,wang2024task}. With this trait, LoRA can be utilized to mitigate the communication overhead in FL, which primarily relies on the size of model update parameters. \citet{yi2023fedlora} propose FedLoRA, incorporating LoRA in FL to increase model fine-tuning efficiency. \citet{liu2023differentially} introduce DP-LoRA, ensuring differential privacy in FL for LLMs with minimal communication overhead. \citet{yang2024dual} propose a dual-personalizing adapter (FedDPA), and \citet{qi2024fdlora} introduce FDLoRA. Both adopt the similar idea where each client contains a personalized LoRA module and a global LoRA module to capture personalized and global knowledge, respectively.
+
+Another line of such work is heterogeneous LoRA. For example, \citet{cho2023heterogeneous} introduce heterogeneous LoRA, where they deploy heterogeneous ranks across clients, aggregate the heterogeneous LoRA modules through zero-padding, and redistribute the LoRA modules heterogeneously through truncation. However, this simple zero-padding strategy can make the training process unstable \citep{byun2024towards}. To solve this issue, \citet{byun2024towards} propose a replication-based strategy for aggregating rank-heterogeneous LoRA. \citet{chen2024rbla} propose Rank-Based LoRA Aggregation (RBLA) that performs a weighted aggregation for heterogeneous LoRA structures. \cite{wang2024flora} introduce a stacking-based aggregation method for heterogeneous LoRA.
+
+The most related work to ours is Federated Freeze-A LoRA (FFA-LoRA) \citep{sunimproving}, which fixes the randomly initialized non-zero $A$ matrices and only fine-tunes the zero-initialized $B$ matrices to further halve the communication cost. However, since some matrices are fixed, the learning ability of LoRA is impaired, resulting in suboptimal performance \citep{zhang2023lora}. In contrast, we propose Federated Share-A LoRA (FedSA-LoRA), where both $A$ and $B$ matrices are trainable and only the $A$ matrices are shared with the server for aggregation.
+
+
+\section{Motivating Example} \label{sec:ana_lora}
+
+\paragraph{Preliminary} 
+Building upon the hypothesis that updates to the weights during the fine-tuning exhibit a low ``intrinsic rank'', LoRA \citep{hulora} proposes using the product of two low-rank matrices to update the pre-trained weights incrementally. For a pre-trained weight matrix $W_0 \in \mathbb{R}^{k \times d}$, LoRA models the weight update $\Delta_W \in \mathbb{R}^{k \times d}$ utilizing a low-rank decomposition, expressed as $BA$, where $B \in \mathbb{R}^{k \times r}$ and $A \in \mathbb{R}^{r \times d}$ represent two low-rank matrices, with $r \ll min(k, d)$. During training, $W_0$ is frozen and does not receive gradient updates, while $A$ and $B$ contain trainable parameters. Consequently, the fine-tuned weight $W^{\prime}$ can be represented as: $W^{\prime} = W_0 + BA$. The matrix $A$ is initialized with random Gaussian distribution, while $B$ is initially set to zero, resulting in $\Delta_W = BA$ being zero at the start of training.
+
+To analyze the role of learned $A$ and $B$ matrices, let's consider a simple example analogous to a single network layer with least-squares linear regression task. Specifically, suppose there is a pre-trained linear model weight $W_0 \in \mathbb{R}^{k \times d }$. 
+% Given an input $x \in \mathbb{R}^d$, the output of this model $y \in \mathbb{R}^k$ is formulated as:
+% \begin{equation*}
+%     y = W_0 x.
+% \end{equation*}
+With this model held constant, our goal is regressing $(x_t, y_t)$ pairs where $y_t$ is given by:
+\begin{equation*}
+    y_t = W_{t} x_t,
+\end{equation*}
+with $W_{t} = W_0 + \Delta_W$. In LoRA, the target $\Delta_W$ is modeled by a low rank update to the pre-trained $W_0$, i.e., $W^{\prime} = W_0 + BA$:
+\begin{equation*}
+    \hat{y} = (W_0 + BA) x_t,
+\end{equation*}
+where $B \in \mathbb{R}^{k \times r}$ and $A \in \mathbb{R}^{r \times d}$, with $r \ll min(k, d)$. Then, the least squares loss is defined on the difference between $\hat{y}$ and $y_{t}$:
+\begin{equation} \label{eq:lr_loss}
+    \mathcal{L} = \mathbb{E}_{(x_{t}, y_{t})}[\|y_{t} - (W_0 + BA) x_{t} \|_2^2].
+\end{equation}
+Below, we present the lemma on minimizing this loss while freezing either $A$ or $B$. The proof is provided in Section \ref{sec:proof_lemma} in Appendix.
+\begin{lemma} \label{lemma:lora}
+    Fine-tuning $B$ while fixing $A = Q$, with the goal of optimizing Eq. (\ref{eq:lr_loss}), yields:
+    \begin{equation}
+        B^* = \Delta_W\mathbb{E}[x_tx_t^T]Q^T (Q\mathbb{E}[x_tx_t^T]Q^T)^{-1}.
+    \end{equation}
+    Fine-tuning $A$ while fixing $B = U$ and assuming $U^{-1}$ exists, with the goal of optimizing Eq. (\ref{eq:lr_loss}), yields:
+    \begin{equation}
+        A^* = U^{-1}\Delta_W.
+    \end{equation}
+\end{lemma}
+
+\begin{remark}
+    From this lemma, we can conclude that the optimal solution of $A^*$ is independent of the input data distribution, while $B^*$ is related to the input data distribution captured by $\mathbb{E}[x_tx_t^T]$. This indicates that $A$ is responsible for learning general knowledge, while $B$ focuses on modeling client-specific knowledge.
+\end{remark}
+
+\begin{figure*}[t]
+  \centering
+    \subfigure[IID]{\includegraphics[width=0.32\linewidth]{rte_mean_value_iid.pdf}}
+    \subfigure[moderate non-IID]{\includegraphics[width=0.32\linewidth]{rte_mean_value_lda_1.pdf}}
+    \subfigure[server non-IID]{\includegraphics[width=0.32\linewidth]{rte_mean_value_lda_0.5.pdf}}
+    \subfigure[IID]{\includegraphics[width=0.32\linewidth]{rte_mean_query_iid.pdf}}
+    \subfigure[moderate non-IID]{\includegraphics[width=0.32\linewidth]{rte_mean_query_lda_1.pdf}}
+    \subfigure[server non-IID]{\includegraphics[width=0.32\linewidth]{rte_mean_query_lda_0.5.pdf}}
+  \caption{Mean of pairwise cosine similarity of the learned $A$ and $B$ matrices across layers of a RoBERTa model locally fine-tuned with LoRA on the RTE task, with different levels of data heterogeneity. (a)-(c): value matrices; (d)-(f): query matrices. The learned $A$ matrices are more similar across clients than the $B$ matrices, and with increased data heterogeneity, the similarity of $B$ matrices between different clients decreases.}
+% \label{fig:motivating_example_value_mean}
+\label{fig:motivating_example_mean}
+\end{figure*}
+
+
+To verify this empirically, we locally fine-tune a RoBERTa-large model \citep{liu2019roberta} with LoRA \citep{hulora} on the RTE task from the GLUE benchmark \citep{wang2018glue} using three clients. We model an IID data distribution and two non-IID data distributions. The two non-IID distributions are modeled by a Dirichlet distribution with $\alpha=1$ and $\alpha=0.5$, referred to as moderate non-IID and severe non-IID. 
+% These simulated data partitions allow for a more flexible and thorough investigation of the model's behavior, as they can be easily manipulated to test different degrees of data heterogeneity.
+Figure \ref{fig:motivating_example_mean} shows the mean pairwise cosine similarity of the learned $A$ and $B$ matrices across clients. These results indicate that the learned $A$ matrices are more similar across clients than the $B$ matrices, and with increased data heterogeneity, the similarity of $B$ matrices between different clients decreases. To demonstrate that the $A$ matrices are indeed updated, as they are similar across different clients, we further illustrate the difference between the learned and initialized $A$ matrices for each client in Figure \ref{fig:motivating_example_init} in Appendix. These results confirm that the $A$ matrices are updated. This phenomenon is consistent with previous study about the asymmetry analysis in LoRA \citep{zhu2024asymmetry}. Based on these results, we argue that $A$ matrices are responsible for learning general knowledge while $B$ matrices focus on capturing client-specific knowledge. 
+
+To demonstrate the generalizability of our findings, we further explore  the relationship between the learned $A$ and $B$ matrices in other LoRA variants, such as rsLoRA \citep{kalajdzievski2023rank} and VeRA \citep{kopiczko2024vera}. The observations, illustrated in Figures \ref{fig:motivating_example_mean_rslora} and \ref{fig:motivating_example_mean_vera} in Appendix, show a similar phenomenon to LoRA. In this way, we uncover a general phenomenon when combining LoRA with FL, which serves as the foundation for our proposed method.
+
+\pengxin{There are some works analyzing the asymmetry of $A$ and $B$ within LoRA in other areas \citep{zhu2024asymmetry,tian2024hydralora}. However, our work distinctly considers the asymmetry analyses of $A$ and $B$ within LoRA in the context of federated learning, while these related papers \citep{zhu2024asymmetry,tian2024hydralora} can further serve as verification of the effectiveness of our method. In particular, we further analyzed different non-IID scenarios, as data heterogeneity is a significant issue in FL. Through our analysis, we not only found that the learned $A$ matrices are more similar across clients than the $B$ matrices (consistent with previous findings), but more importantly, we discovered that with increased data heterogeneity, the similarity of $B$ matrices between different clients decreases. %This is a specific new finding in the context of federated learning. 
+Moreover, we further extended this asymmetry analysis to other LoRA variants, such as rsLoRA \citep{kalajdzievski2023rank} and VeRA \citep{kopiczko2024vera}, and found similar phenomena. This generalization was previously lacking in the literature \citep{zhu2024asymmetry,tian2024hydralora}.}
+
+
+\section{Our Method} \label{sec:method}
+
+\subsection{Federated Share-A Low Rank Adaptation}
+
+Drawing from the insights of our findings, we introduce Federated Share-A Low-Rank Adaptation (FedSA-LoRA), illustrated in Figure \ref{fig:framework}(c), which utilizes two low-rank trainable matrices $A$ and $B$ to model the weight update, but only $A$ matrices are shared with the server for aggregation. Specifically, similar to LoRA \citep{hulora}, we employ two low-rank matrices, namely $B \in \mathbb{R}^{k \times r}$ and $A \in \mathbb{R}^{r \times d}$ with $r \ll \min(k, d)$, to model the weight update $\Delta_W \in \mathbb{R}^{k \times d}$ for a pre-trained weight matrix $W_0 \in \mathbb{R}^{k \times d}$. This approach allows us to represent the fine-tuned weight as $W_0 + BA$. During the local training process, $W_0$ is frozen and does not receive gradient updates, while $A$ and $B$ contain trainable parameters. Following LoRA \citep{hulora}, the matrix $A$ is initialized with a random Gaussian distribution, whereas $B$ is initially set to zero, ensuring that $\Delta_W = BA$ is zero at the start of training. Then, for global aggregation, only the $A$ matrices are shared with the server for aggregation. Once the server averages these $A$ matrices, they are broadcast to each client for the subsequent training round. By sharing the $A$ matrices that learn general knowledge with the server for aggregation, while keeping the $B$ matrices that model client-specific knowledge locally, the learning abilities of LoRA combined with FL can be enhanced.
+
+Moreover, based on the similar phenomena observed in other LoRA variants (i.e., rsLoRA \citep{kalajdzievski2023rank} and VeRA \citep{kopiczko2024vera}), we extend the FedSA-LoRA method to these variants, resulting in FedSA-rsLoRA and FedSA-VeRA. Specifically, rsLoRA \citep{kalajdzievski2023rank} is similar to LoRA, differing only in the scaling factor. Thus, the difference between FedSA-rsLoRA and FedSA-LoRA also lies in the scaling factor. In VeRA \citep{kopiczko2024vera}, the low-rank matrices $A$ and $B$ are initialized using the uniform version of Kaiming initialization, fixed, shared across all layers, and adapted with trainable scaling vectors $d$ and $b$. The $b$ vectors are initialized to zero, and the $d$ vectors are initialized with a value of 0.1. To make the notation consistent with our work, we rewrite the scaling vectors $d$ and $b$ as $A_d$ and $B_b$ to reflect the position of each scaling vector. Thus, in FedSA-VeRA, only the scaling vector $A_d$ is shared with the server for aggregation, while $B_b$ is trained locally. By extending the proposed method to other LoRA variants, we establish a general paradigm for integrating LoRA with FL, offering guidance for future work on subsequent LoRA variants combined with FL.
+
+
+\subsection{Convergence Analysis}
+
+To facilitate the convergence analysis of the proposed method, we make assumptions commonly encountered in the literature \citep{li2019convergence} to characterize the smooth and non-convex optimization landscape. 
+
+\begin{assumption} 
+\label{assumption1}
+$\mathcal{L}_1, \cdots, \mathcal{L}_m$ are all L-smooth. For all $\pengxin{W_{i,j}}$ and $\pengxin{W_{i,k}}$:
+\begin{equation*}
+    \mathcal{L}_i(\pengxin{W_{i,k}}) \leq \notag \mathcal{L}_i(\pengxin{W_{i,j}}) + \langle \pengxin{W_{i,k}}-\pengxin{W_{i,j}},\nabla \mathcal{L}_i(\pengxin{W_{i,j}})\rangle_F+\frac{L}{2}\|\pengxin{W_{i,k}}-\pengxin{W_{i,j}}\|_F^2.
+\end{equation*}
+Here, $m$ is the number of clients, \pengxin{$W_{i,j}$ and $W_{i,k}$ represent any different model weights of client $i$}, $\mathcal{L}_i$ is the empirical loss on client $i$, $\nabla \mathcal{L}_i(\pengxin{W_{i,j}})$ represents the gradient of $\mathcal{L}_i$ with respect to $\pengxin{W_{i,j}}$, $\langle \cdot,\cdot \rangle_F$ is the Frobenius inner product, and $\|\cdot\|_F$ denotes the Frobenius norm.
+\end{assumption}
+\begin{assumption}
+\label{assumption2}
+Let $\xi_{i,t}$ be sampled from the $i$-th client's local data uniformly at random at $t$-th training step. The expected squared norm of stochastic gradients is uniformly bounded, i.e., 
+$\mathbb{E}\|\nabla \mathcal{L}_i(W_i^{(t)};\xi_{i,t})\|^2 \leq G^2,\text{~for all~} i=1,\cdots, m \text{ and } t=0, \cdots, T-1$. Here $T$ denotes the total number of every client's training steps.
+\end{assumption}
+\begin{assumption}
+\label{assumption3}
+Let $W_i^{(t)}=W_0+B_i^{(t)}A_i^{(t)}$ represent the model parameters for the $i$-th client at the $t$-th step. There exist constants $C_B>0$, $C_A>0$, $c_B > 0$, and $c_A > 0$ such that:
+\begin{equation*}
+    \begin{aligned}
+        \|B_i^{(t)}\|_F &\leq C_B, \\
+        \|A_i^{(t)}\|_F &\leq C_A, \\
+        \langle {A_i^{(t)}}^{\top}A_i^{(t)}, \nabla \mathcal{L}_i(W_i^{(t)})^{\top}\nabla \mathcal{L}_i(W_i^{(t)})\rangle_F &\geq c_A \|\nabla \mathcal{L}_i(W_i^{(t)})\|_F^2, \\
+        \langle {B_i^{(t)}}^{\top}B_i^{(t)}, \nabla \mathcal{L}_i(W_i^{(t)})^{\top}\nabla \mathcal{L}_i(W_i^{(t)})\rangle_F & \geq c_B \|\nabla \mathcal{L}_i(W_i^{(t)})\|_F^2,
+    \end{aligned}
+\end{equation*}
+for all $i=1,\cdots,m \text{ and } t=0, \cdots, T-1$.
+\end{assumption}
+% \begin{assumption}
+% \label{assumption4}
+% Let $W_i^{(t)}=W_0+B_i^{(t)}A_i^{(t)}$ be the model parameters maintained in the $i$-th client at the $t$-th step. There exists constants $c_A > 0$ and $c_B>0$ such that
+% $\langle {A_i^{(t)}}^{\top}A_i^{(t)}, \nabla \mathcal{L}_i(W_i^{(t)})^{\top}\nabla \mathcal{L}_i(W_i^{(t)})\rangle_F
+% \geq c_A \|\nabla \mathcal{L}_i(W_i^{(t)})\|_F^2,$
+% and
+% $\langle {B_i^{(t)}}^{\top}B_i^{(t)}, \nabla \mathcal{L}_i(W_i^{(t)})^{\top}\nabla \mathcal{L}_i(W_i^{(t)})\rangle_F
+% \geq c_B \|\nabla \mathcal{L}_i(W_i^{(t)})\|_F^2\text{~for all~} i=1,\cdots,m \text{ and } t=0, \cdots, T-1.$
+% \end{assumption}
+
+    \pengxin{Assumptions \ref{assumption1} and \ref{assumption2} are widely used $L$-smoothness and bounded second moment assumption in FL papers \citep{li2019convergence,yu2019parallel,basu2019qsparse}. For Assumption \ref{assumption3}, according to the definition of the Frobenius norm $\|A\|_{\mathrm{F}}=\sqrt{\sum_i^m \sum_j^n\left|a_{i j}\right|^2}$, we know that the first two inequalities in Assumption 3 hold when all parameter values in $A_i^{(t)}$ and $B_i^{(t)}$ are finite. If we denote the eigenvalues of $A_i^{(t)}$ by $\{\lambda_{1},\ldots,\lambda_{K}\}$, then the eigenvalue of $(A_i^{(t)})^{\top} A_i^{(t)}$ are $\{\lambda^2_{1},\ldots,\lambda^2_{K}\}$. Similarly, if the eigenvalues of $\nabla \mathcal{L}_i(W_i^{(t)})$ are $\{\mu_{1},\ldots,\mu_{K}\}$, then the eigenvalues of $(\nabla \mathcal{L}_i(W_i^{(t)}))^{\top}\nabla \mathcal{L}_i(W_i^{(t)})$ are $\{\mu^2_{1},\ldots,\mu^2_{K}\}$. Noting that $\langle {A_i^{(t)}}^{\top}A_i^{(t)}, \nabla \mathcal{L}_i(W_i^{(t)})^{\top}\nabla \mathcal{L}_i(W_i^{(t)})\rangle_F = \sum_{k}\lambda_k^2 \mu_k^2$, and $\|\nabla \mathcal{L}_i(W_i^{(t)})\|_F^2 = \sum_{k}\mu_k^2$, the third inequality of Assumption 3 holds when there exist a constant $c_A$ such that $\lambda_k^2 \geq c_A, \forall k$. In other words, the third inequality of Assumption \ref{assumption3} holds when all the eigenvalues of $A_i^{(t)}$ are non-zero (choose $c_A = \min\{|\lambda_1|,\ldots,|\lambda_K|\}$). Similarly, the last inequality of Assumption 3 holds when all the eigenvalues of $B_i^{(t)}$ are non-zero. }
+Then we present the convergence rate for our method, with the proof provided in Section \ref{sec:proof_theorem} in Appendix.
+\begin{theorem}
+\label{theorem1}
+Let Assumptions \ref{assumption1}, \ref{assumption2}, and \ref{assumption3} hold and $L$, $G$, $C_A$, $C_B$, $c_A$, $c_B$ be defined therein. Denote $E$ as the number of local training iterations between two communication rounds. Then, for a learning rate $\eta$, we have:
+% {\small
+\begin{equation}
+\frac{1}{m T} \sum_{i=1}^m \sum_{t=1}^T \mathbb{E}\left[\left\|\nabla\mathcal{L}_i(W_i^{(t)})\right\|_F^2\right] \leq \frac{2}{c_A+c_B}\sqrt{\frac{DM}{T}},
+\end{equation}
+% }
+where $\mathcal{L}_i(W^{(0)}) - \mathcal{L}_i(W^*) \leq D, \forall i$, and
+$
+(2C_B^2E^2G^2+\frac{1}{2}G^2)\eta + \frac{3}{2}\eta^4 C_A^2 C_B^2G^4L+(C_A C_B G^2+\frac{3}{2}C_A^2L G^2+\frac{3}{2}C_B^2L G^2+2C_B^4 E^2 L G^2)\eta^2 \leq M\eta^2.
+$
+\end{theorem} 
+According to Theorem \ref{theorem1}, we can obtain an $O(\frac{1}{\sqrt{T}})$ convergence rate towards the stationary solution under smooth and non-convex conditions. This convergence rate is comparable to that of traditional FedAvg in the non-convex scenario 
+% \citep{wang2020tackling}.
+\pengxin{\citep{yu2019parallel}}
+
+\section{Experiments} \label{sec:exp}
+
+In this section, we evaluate and compare the performance of the proposed method with other methods on two types of tasks: natural language understanding and natural language generation. For the natural language understanding tasks, we use the RoBERTa model \citep{liu2019roberta} evaluated on the GLUE benchmark \citep{wang2018glue}, including MNLI, SST2, QNLI, QQP, and RTE. For the natural language generation tasks, we employ the LLaMA model \citep{touvron2023llama} evaluated on the GSM8K dataset \citep{cobbe2021training}. Our implementation is based on the FederatedScope-LLM library \citep{kuang2023federatedscope}. The experiments for LoRA-based methods are conducted on NVIDIA GeForce RTX 4090 and 3090 GPUs, while the rsLoRA-based and VeRA-based methods are carried out on NVIDIA L40S GPUs. All experiments are performed with half-precision enabled for efficiency. \pengxin{For the main results in Table \ref{tab:main_result}, they are based on multiple runs to report the mean and standard deviation, while other results in our paper are based on a single run.}
+
+\subsection{Natural Language Understanding} \label{sec:exp_glue_main}
+
+\pengxin{\textbf{Model Performance.}} For the natural language understanding tasks, similar to FFA-LoRA \citep{sun2024fedbpt}, we randomly split the data across three clients for federated learning. We model a non-IID data distribution using a Dirichlet distribution with $\alpha = 0.5$, i.e., Dir (0.5). We use the pre-trained RoBERTa-large (355M) \citep{liu2019roberta} from the HuggingFace Transformers library \citep{wolf2020transformers} as the base model. For LoRA-based methods optimization, we adopt the SGD optimizer \citep{ruder2016overview} for all approaches. We set the batch size to 128, local update steps to 10, and total communication rounds to 1000, consistent across all experiments. Similar to \citet{hulora}, we only apply LoRA to $W_q$ and $W_v$ in the attention layers in our experiments. The rank $r = 8$ and scaling factor $\alpha = 16$ are fixed for all algorithms. We report the best result from experiments run with learning rates $\eta \in \{5\text{E-}3, 1\text{E-}2, 2\text{E-}2, 5\text{E-}2, 1\text{E-}1\}$. The optimization of rsLoRA-based methods is similar to LoRA-based methods, only the learning rates are searched from $\eta \in \{1\text{E-}3, 2\text{E-}3, 5\text{E-}3, 1\text{E-}2, 2\text{E-}2, 5\text{E-}2\}$. For VeRA-based methods, following VeRA \citep{kopiczko2024vera}, we set the rank $r=256$. We adopt the AdamW optimizer \citep{Loshchilov2017DecoupledWD}, introduce separate learning rates for the classification head and the adapted layers, and determine the learning rates through hyperparameter tuning. Other settings are the same as for LoRA-based methods. The learning rates used for each method are shown in Tables \ref{tab:lr_lora}, \ref{tab:lr_rslora}, and \ref{tab:lr_vera} in Appendix.
+
+\vspace{-0.3cm}
+
+\begin{table}[h]
+\caption{Performance of different methods on the GLUE benchmark. MNLI-m denotes MNLI with matched test sets, and MNLI-mm denotes MNLI with mismatched test sets. For all tasks, we report accuracy evaluated across 3 runs with mean and standard deviation.}
+\label{tab:main_result}
+\vspace{-0.3cm}
+\begin{center}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule 
+ & Method & MNLI-m & MNLI-mm & SST2 & QNLI & QQP & RTE & Avg. \\
+\midrule
+\multirow{3}{*}{LoRA}& LoRA & $88.71_{\pm 0.09}$ & $88.19_{\pm 0.02}$ & $95.16_{\pm 0.09}$ & $91.16_{\pm 0.72}$ & $85.33_{\pm 1.33}$ & $87.49_{\pm 0.15}$ & $89.33$ \\
+& FFA-LoRA & $88.83_{\pm 0.02}$ & $88.27_{\pm 0.03}$ & $94.95_{\pm 0.04}$  & $91.52_{\pm 0.59}$ & $86.71_{\pm 0.07}$ & $86.08_{\pm 1.16}$ & $89.39$ \\
+& FedDPA-LoRA & $88.99_{\pm 0.06}$ & $88.43_{\pm 0.05}$ & $95.50_{\pm 0.06}$ & $90.74_{\pm 1.38}$ & $85.73_{\pm 1.73}$ &  $87.44_{\pm 0.13}$ & $89.47$ \\
+& FedSA-LoRA & $\bm{90.18}_{\pm 0.02}$ & $\bm{88.88}_{\pm 0.02}$ & $\bm{96.00}_{\pm 0.04}$ & $\bm{92.13}_{\pm 0.24}$ & $\bm{87.48}_{\pm 0.22}$ & $\bm{87.93}_{\pm 0.11}$ & $\bm{90.43}$ \\
+\midrule
+\multirow{3}{*}{rsLoRA}& rsLoRA & $88.91_{\pm 0.15}$ & $88.33_{\pm 0.04}$ & $95.02_{\pm 0.24}$ & $91.21_{\pm 0.39}$ & $86.73_{\pm 0.98}$ & $85.99_{\pm 0.34}$ & $89.36$ \\
+& FFA-rsLoRA & $89.21_{\pm 0.11}$ & $88.45_{\pm 0.08}$ & $95.42_{\pm 0.17}$ & $91.42_{\pm 0.44}$ & $86.93_{\pm 1.18}$ & $85.24_{\pm 0.21}$ & $89.44$ \\
+& FedDPA-rsLoRA & $89.34_{\pm 0.11}$ & $88.53_{\pm 0.05}$ & $95.56_{\pm 0.21}$ & $90.97_{\pm 0.76}$ & $86.81_{\pm 0.53}$ & $86.26_{\pm 0.11}$ & $89.57$ \\
+& FedSA-rsLoRA & $\bm{90.35}_{\pm 0.11}$  & $\bm{89.02}_{\pm 0.03}$  & $\bm{95.78}_{\pm 0.08}$  & $\bm{92.03}_{\pm 0.22}$  & $\bm{87.97}_{\pm 0.16}$  & $\bm{88.00}_{\pm 0.10}$  & $\bm{90.52}$ \\
+\midrule
+\multirow{3}{*}{VeRA}& VeRA & $85.54_{\pm 0.10}$ & $85.09_{\pm 0.07}$ & $93.53_{\pm 0.13}$ & $91.90_{\pm 0.17}$ & $82.07_{\pm 0.35}$ & $86.31_{\pm 0.12}$ & $87.40$ \\
+& FFA-VeRA & $86.63_{\pm 0.13}$ & $86.22_{\pm 0.08}$ & $93.44_{\pm 0.05}$ & $92.05_{\pm 0.23}$ & $82.23_{\pm 0.07}$ & $83.54_{\pm 0.59}$ & $87.35$ \\
+& FedDPA-VeRA & $86.74_{\pm 0.11}$ & $86.35_{\pm 0.07}$ & $93.61_{\pm 0.32}$ & $90.73_{\pm 0.54}$ & $82.11_{\pm 0.41}$ & $86.12_{\pm 0.12}$ & $87.61$  \\
+& FedSA-VeRA & $\bm{87.21}_{\pm 0.10}$ & $\bm{86.52}_{\pm 0.04}$ & $\bm{93.68}_{\pm 0.07}$ & $\bm{92.91}_{\pm 0.09}$ & $\bm{82.56}_{\pm 0.05}$ & $\bm{87.83}_{\pm 0.09}$ & $\bm{88.45}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{center}
+\end{table}
+
+
+The experimental results are shown in Table \ref{tab:main_result}. From this table, we can observe that the proposed FedSA-LoRA, FedSA-rsLoRA, and FedSA-VeRA consistently outperform other methods across all tasks, demonstrating the effectiveness of the proposed method.
+
+
+\textbf{System Efficiency.} We further compare the proposed method with baselines in terms of system efficiency, following~\cite{qu2022rethinking, zhang2024flhetbench, lai2022fedscale}. The system efficiency in FL consists of communication cost and computation cost. To provide a comprehensive comparison, we detail the number of trainable parameters, the number of communication model parameters per FL round, the computation cost per FL round, and the number of communication rounds needed to reach the predefined target performance on the RTE and QNLI tasks in Table \ref{tab:efficiency_compare}. The target performance is defined as 95\% of the prediction accuracy provided in LoRA \citep{hulora}. Specifically, we define the target performance of the RTE and QNLI tasks as 80.94\% and 90.06\%, respectively. 
+
+
+Communication cost is a critical factor in FL, as it significantly impacts the overall system efficiency. The communication cost can be roughly estimated by considering the number of transmitted messages required to achieve a target performance, calculated as \textit{\# transmitted messages= \# communication round $\times$ \# communicated model parameter}. As shown in Table \ref{tab:efficiency_compare}, our FedSA-LoRA requires the smallest communication cost to reach the target performance (with smallest communication rounds and per-round communication parameters). Additionally, while our FedSA-LoRA requires more trainable model parameters and incurs slightly more computation cost per FL round than the baseline FFA-LoRA (22s compared to 20s on RTE task), it is important to note that our model reaches the target performance with fewer communication rounds (\#91 compared to \#229 on RTE task).  These computation and communication costs demonstrate the overall efficiency of our model.
+
+\begin{table}[h]
+\caption{Time and space costs for each method on the RTE and QNLI tasks. \# Communication round denotes the number of communication rounds to reach the predefined target performance.}
+\label{tab:efficiency_compare}
+\vspace{-0.3cm}
+\begin{center}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lcccccc}
+\toprule 
+& \multirow{2}{*}{\# Trainable Parm.} &  \multirow{2}{*}{\# Per-round Communicated Parm.}  & \multicolumn{2}{c}{\# Per-round Computation Cost} & \multicolumn{2}{c}{\# Communication Round} \\
+ \cmidrule(lr){4-5}  \cmidrule(lr){6-7}
+& & & RTE & QNLI & RTE & QNLI \\
+\midrule
+LoRA & 1.83M & 0.78M & 22s & 35s & 167 & 397 \\
+FFA-LoRA & 1.44M & 0.39M & 20s & 33s & 229 & 374 \\
+FedDPA-LoRA & 2.62M & 0.78M & 23s & 37s &  128 & 325 \\
+FedSA-LoRA & 1.83M & 0.39M & 22s & 34s &  91 & 224 \\
+\bottomrule
+\end{tabular}
+}
+\end{center}
+\end{table}
+
+
+
+% \subsection{Ablation Studies}
+\subsection{In-depth Analyses}
+
+In this section, we utilize LoRA-based methods to perform in-depth analyses on the natural language understanding tasks of QNLI, SST2, and MNLI-m to assess the impact of factors such as data heterogeneity, the number of clients, and LoRA rank on model performance.
+
+\subsubsection{Effect of Data Heterogeneity}
+To investigate the effect of data heterogeneity on model performance, we model an IID partition (Split-1) and two non-IID partitions with Dir (1) and Dir (0.5). The latter two non-IID partitions are referred to as moderate non-IID (Split-2) and severe non-IID (Split-3). The training settings are the same as in Section \ref{sec:exp_glue_main}.
+
+\begin{table}[h]
+\caption{Performance comparison on the QNLI, SST2, and MNLI-m tasks with various degrees of data heterogeneity.}
+\label{tab:ablation_data_hete}
+\vspace{-0.3cm}
+\begin{center}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lccccccccc}
+\toprule 
+ \multirow{2}{*}{Method} & \multicolumn{3}{c}{QNLI} & \multicolumn{3}{c}{SST2} & \multicolumn{3}{c}{MNLI-m} \\
+ \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} 
+ & Split-1 & Split-2 & Split-3 & Split-1 & Split-2 & Split-3 & Split-1 & Split-2 & Split-3 \\
+\midrule
+LoRA & 92.92 & 92.44 & 90.60 & 95.30 & 95.53 & 95.26 & 88.52 & 88.35 & 88.80 \\
+FFA-LoRA & 92.68 & 92.29 & 91.72 & 95.87 & 95.47 & 94.91 & 88.15 & 88.03 & 88.83 \\
+\midrule
+FedSA-LoRA & 92.95 & 93.32 & 92.00 & 96.10 & 96.24 & 95.92 & 89.57 & 89.71 & 90.20 \\
+\bottomrule
+\end{tabular}
+}
+\end{center}
+\end{table}
+
+The results are provided in Table \ref{tab:ablation_data_hete}. From these results, we can observe that the proposed FedSA-LoRA consistently outperforms other baselines, demonstrating its adaptability and robustness in various heterogeneous data scenarios. Additionally, as data heterogeneity increases, the improvement of the proposed method also increases. Specifically, FedSA-LoRA improves accuracy by 0.03\%, 0.88\%, and 1.84\% on the QNLI task from IID to severe non-IID compared with LoRA, and by 1.05\%, 1.36\%, and 1.4\% on the MNLI-m task. This indicates that the proposed method is more effective when non-IID conditions are more severe.
+\pengxin{This phenomenon is consistent with Figure \ref{fig:motivating_example_mean}, which shows that with increased data heterogeneity, the similarity of $B$ matrices between different clients decreases. Therefore, when the non-IID conditions are more severe, the advantages of keeping $B$ locally become more pronounced. In this case, the learned $B$ will be less similar, highlighting the need for personalization.}
+
+
+\subsubsection{Effect of Number of Clients}
+In Section \ref{sec:exp_glue_main}, we demonstrated the effectiveness of the proposed method on a small number of clients, i.e., three clients. In this section, we show the superiority of FedSA-LoRA compared to other baselines on a larger number of clients, i.e., from 10 to 100 clients. Specifically, we use the same non-IID split, i.e., Dir (0.5), to divide the data into 10, 20, and 100 clients. The training settings are the same as in Section \ref{sec:exp_glue_main} and the results are shown in Table \ref{tab:ablation_clients_num}.
+
+It can be concluded that FedSA-LoRA not only outperforms other methods with a small number of clients (i.e., 3 clients) but also shows superior performance with a large number of clients (i.e., from 10 to 100 clients), demonstrating the adaptability and robustness of the proposed FedSA-LoRA across various client numbers.
+
+\clearpage
+
+\begin{table}[t]
+\caption{Performance comparison on the QNLI, SST2, and MNLI-m tasks with different number of clients. We apply full participation for FL system with 10 and 20 clients, and apply client sampling with rate 0.3 for FL system with 100 clients.}
+\label{tab:ablation_clients_num}
+\vspace{-0.3cm}
+\begin{center}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lccccccccc}
+\toprule 
+ \multirow{2}{*}{Method} & \multicolumn{3}{c}{QNLI} & \multicolumn{3}{c}{SST2} & \multicolumn{3}{c}{MNLI-m} \\
+ \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} 
+ & 10 clients & 20 clients & 100 clients & 10 clients & 20 clients & 100 clients & 10 clients & 20 clients & 100 clients \\
+\midrule
+LoRA & 91.32 & 91.23 & 90.32 & 96.68 & 93.16 & 96.68 & 86.94 & 88.50 & 88.13 \\
+FFA-LoRA & 91.47 & 91.70 & 91.27 & 96.59 & 93.31 & 96.33 & 86.76 & 88.60 & 87.86 \\
+\midrule
+FedSA-LoRA & 91.97 & 92.54 & 91.48 & 96.83 & 94.21 & 97.02 & 88.59 & 89.05 & 88.82 \\
+\bottomrule
+\end{tabular}
+}
+\end{center}
+\vspace{-0.5cm}
+\end{table}
+
+
+\vspace{-0.5cm}
+
+\subsubsection{Effect of LoRA Rank}
+\vspace{-0.1cm}
+
+The adapter parameter budget (i.e., rank $r$) is a key factor in LoRA performance. In this section, we experiment with rank $r \in \{2, 4, 8, 16\}$ on the QNLI, SST2, and MNLI-m tasks to test its influence on model performance, keeping other settings unchanged compared to Section \ref{sec:exp_glue_main}.
+
+\vspace{-0.5cm}
+
+\begin{table}[h]
+\caption{Performance comparison on the QNLI, SST2, and MNLI-m tasks with different LoRA ranks $r$.}
+\label{tab:ablation_rank_r}
+\vspace{-0.3cm}
+\begin{center}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{clccc||clcccc}
+\toprule 
+ Rank & Method & QNLI & SST2 & MNLI-m & Rank & Method & QNLI & SST2 & MNLI-m \\
+\midrule
+\multirow{3}{*}{$r=2$} & LoRA & 92.07 & 94.69 & 88.29 & \multirow{3}{*}{$r=4$} & LoRA & 92.71 & 94.20 & 88.43 \\
+& FFA-LoRA & 91.02 & 93.95 & 87.98 & & FFA-LoRA & 92.97 & 94.61 & 88.24 \\
+& FedSA-LoRA & 92.69 & 95.67 & 89.14 & & FedSA-LoRA & 93.10 & 95.69 & 88.98 &  \\
+\midrule
+\multirow{3}{*}{$r=8$} & LoRA & 90.69 & 95.26 & 88.80 & \multirow{3}{*}{$r=16$} & LoRA & 90.59 & 94.98 & 88.78 \\
+& FFA-LoRA & 91.72 & 94.91 & 88.83 & & FFA-LoRA & 91.62 & 94.13 & 89.25  \\
+& FedSA-LoRA & 92.00 & 95.92 & 90.20  & & FedSA-LoRA & 92.03 & 95.78 & 89.59 \\
+\bottomrule
+\end{tabular}
+}
+\end{center}
+\end{table}
+
+\vspace{-0.3cm}
+
+The results, as shown in Table \ref{tab:ablation_rank_r}, demonstrate that the proposed FedSA-LoRA outperforms other methods across various LoRA rank values, showcasing the adaptability and robustness of FedSA-LoRA in different scenarios.
+
+
+\subsection{Natural Language Generation}
+\vspace{-0.2cm}
+
+For the natural language generation tasks, we adopt the pre-trained LLaMA3-8B \citep{meta2024introducing} from the HuggingFace Transformers library \citep{wolf2020transformers}, using the GSM8K dataset \citep{cobbe2021training} \pengxin{and the CodeSearchNet dataset \citep{husain2019codesearchnet}} for evaluation. For \pengxin{the GSM8K dataset \citep{cobbe2021training}}, Following \citep{kuang2023federatedscope}, we split the data into three clients under an IID distribution, and other optimization hyperparameters are the same as in that work.
+% The results shown in Table \ref{tab:result_nlg} demonstrate that the proposed FedSA-LoRA outperforms other methods in complex natural language generation tasks. From the given example, it can be seen that both LoRA and FFA-LoRA have reasoning errors, but FedSA-LoRA can reason accurately, demonstrating the superiority of the proposed method.
+The results of LoRA, FFA-LoRA, and FedSA-LoRA are 46.23, 46.32, and 46.63, respectively, and \pengxin{the generated examples are shown in Table \ref{tab:result_nlg} in Appendix}. From the given example, it can be seen that both LoRA and FFA-LoRA have reasoning errors, but FedSA-LoRA can reason accurately, demonstrating the superiority of the proposed method in complex natural language generation tasks.
+
+
+\pengxin{For an additional dataset on the code generation task. We choose the CodeSearchNet dataset \citep{husain2019codesearchnet} and use the default non-IID partitioning provided in \citep{kuang2023federatedscope}. The performance scores for LoRA, FFA-LoRA, and our FedSA-LoRA are 58.34, 58.57, and 59.66, respectively, which further validates the effectiveness of our method in generation tasks.}
+
+\vspace{-0.2cm}
+\section{Conclusion} \label{sec:conclusion}
+\vspace{-0.2cm}
+
+In this work, we discover that when combining LoRA with FL, $A$ matrices are responsible for learning general knowledge, while $B$ matrices focus on capturing client-specific knowledge. Building upon this finding, we introduce Federated Share-A Low-Rank Adaptation (FedSA-LoRA), which employs two low-rank trainable matrices $A$ and $B$ to model the weight update, but only $A$ matrices are shared with the server for aggregation. By sharing the $A$ matrices that learn general knowledge with the server for aggregation, while keeping the $B$ matrices that model client-specific knowledge locally, the learning abilities of LoRA combined with FL can be enhanced. Moreover, we explore the relationship between the learned $A$ and $B$ matrices in other LoRA variants, such as rsLoRA and VeRA, revealing a consistent pattern. Consequently, we extend our FedSA-LoRA method to these LoRA variants, resulting in FedSA-rsLoRA and FedSA-VeRA. By doing so, we establish a general paradigm for integrating LoRA with FL, offering guidance for future work on subsequent LoRA variants combined with FL.
+
+
+\section*{Acknowledgments}
+
+This work was supported by National Natural Science Foundation of China (62306253, U24A201397), Early career fund (27204623), and Guangdong Natural Science Fund-General Programme (2024A1515010233).
+
+\bibliography{iclr2025_conference}
+\bibliographystyle{iclr2025_conference}
+
+\input{appendix}
+
+\end{document}

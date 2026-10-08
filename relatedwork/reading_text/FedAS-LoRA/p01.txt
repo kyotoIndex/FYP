@@ -1,0 +1,107 @@
+1
+Rethinking Factor Sharing in Federated LoRA: A
+Rank-Aware Adaptive Approach
+Xinyi Xu1,* Bingnan Xiao 2,* Shuang Qin 1,† Gang Feng 1 Tony Q.S. Quek 3
+1University of Electronic Science and Technology of China
+2Fudan University
+3Singapore University of Technology and Design
+*Equal contribution. †Corresponding author.
+xinyixu@std.uestc.edu.cn, 22110720061@m.fudan.edu.cn, blueqs@uestc.edu.cn
+fenggang@uestc.edu.cn, tonyquek@sutd.edu.sg
+Abstract—Low-rank adaptation (LoRA) represents large
+language model (LLM) updates with two compact matrix
+factors, i.e.,AandB, providing an efficient way to fine-tune
+large models in federated learning paradigm. Inspired by the
+asymmetric roles of the LoRA factors, we study whetherA
+should be shared across clients whileBremains client-specific
+(Share-A/Local-B), or whetherBshould instead be shared
+whileAremains client-specific (Share-B/Local-A). With a least-
+squares surrogate, we reveal that Share-A/Local-B requires the
+client-specific LoRA update matrices to use a common rank-r
+input-side space, whereas Share-B/Local-A requires a common
+rank-routput-side space. The two strategies therefore incur
+different projection residuals, indicating that the preferred
+strategy is the one with the smaller aggregate residual across
+clients. With this insight, we propose Federated Adaptive
+Factor Sharing Low-Rank Adaptation (FedAS-LoRA), which
+selects the sharing side before training to enhance fine-tuning
+performance. To enable adaptive factor selection before train-
+ing, we design a Rank-Aware Shared-Subspace Sufficiency
+(RSS) metric, which effectively assesses whether a shared rank-
+rinput subspace is sufficient for the local data distributions
+using representations extracted from a frozen LLM backbone.
+Experiments across different tasks, data distributions, LoRA
+ranks, and participation settings confirm the effectiveness of
+RSS and the superior performance of FedAS-LoRA.
+I. INTRODUCTION
+Large language models (LLMs) have demonstrated strong
+capabilities in language understanding and generation, sup-
+porting a wide range of natural language processing ap-
+plications Brown et al. [2020], Touvron et al. [2023]. For
+pretrained LLMs, task-specific adaptations are needed before
+deployment to meet the requirements of different scenar-
+ios Houlsby et al. [2019], Li and Liang [2021], Hu et al.
+[2022]. In many practical settings, the data required for fine-
+tuning are distributed across clients or organizations and
+cannot be centralized due to privacy, ownership, or regu-
+latory constraints. Federated learning (FL) enables multiple
+clients to collaboratively fine-tune a model without sharing
+their private data McMahan et al. [2017], Li et al. [2020a].
+Nevertheless, full-model fine-tuning in FL incurs substantial
+computation, storage, and communication costs. Parameter-
+efficient fine-tuning provides a practical alternative by up-
+dating only a small set of additional parameters He et al.
+[2022]. In particular, low-rank adaptation (LoRA) keeps the
+pretrained LLM backbone frozen and represents each model
+update by two trainable low-rank factors, making it well
+suited to resource-constrained federated adaptation.
+One critical challenge of federated LoRA lies in aggre-
+gation mismatch. For an FL system withNclients, let the
+LoRA update of clientibe∆W i =B iAi. Independently
+averaging the two factorsB i andA i at the server yields
+ 1
+N
+NX
+i=1
+Bi
+ 1
+N
+NX
+i=1
+Ai
+
+̸= 1
+N
+NX
+i=1
+BiAi,(1)
+which differs from directly averaging the client model up-
+dates. Several studies have explored methods to address this
+mismatch Bian et al. [2025], Wang et al. [2026], Chen et al.
+[2026]. One representative line of work assigns asymmetric
+training and aggregation roles to the two LoRA factors. For
+example, FFA-LoRA fixes a common randomly initialized
+factorA 0, and only trains and aggregatesB i Sun et al.
+[2024b]. FedSA-LoRA instead keeps both factors trainable,
+aggregatesA i, and retainsB i locally for personalized adap-
+tation Guo et al. [2025]. Although such methods adopt
+different factor-handling strategies, they hard-code the roles
+ofAandBbefore training and apply the same assignment
+across diverse system settings.It remains unclear whether
+this hard-coded assignment is consistently superior, prompt-
+ing a reconsideration of the roles of the LoRA factors B and
+A in federated settings.
+To examine this question, we compare Share-A/Local-
+B and Share-B/Local-A under a label-balanced input-skew
+partition. As shown in Fig. 1, Share-B/Local-A outper-
+forms Share-A/Local-B, and the performance gap varies
+with LoRA rank. This observation does not imply that
+Share-B/Local-A is always preferable. Instead, it means that
+fixing a sharing side is unsuitable for all federated LoRA
+settings. We further analyze the structural asymmetry of
+the two LoRA factors through a least-squares surrogate.
+The resultant projection characterization shows that shar-
+ingAimposes a common rank-rinput-side representation
+across clients, whereas sharingBimposes a common rank-
+routput-side representation. Thus, the hard-coded sharing
+arXiv:2608.09742v1  [cs.LG]  10 Aug 2026

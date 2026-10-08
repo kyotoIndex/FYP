@@ -1,3 +1,13 @@
+# FYP：HetSA-LoRA 与联邦 LoRA 实验证据
+
+**当前新实验主线：HetSA-LoRA。** 云端工作环境从 [hetsa/README.md](hetsa/README.md) 开始，安装与全规模运行见 [hetsa/CLOUD_SETUP.md](hetsa/CLOUD_SETUP.md)，研究交接见 [hetsa/docs/RESEARCH_HANDOFF_20261008.md](hetsa/docs/RESEARCH_HANDOFF_20261008.md)，20 篇相关论文阅读与原文见 [relatedwork/](relatedwork/README.md)。
+
+已完成 HetSA 五种子确认结果随代码上传；新的六方法 × 五种子 × 30 轮机制矩阵按独立协议运行。根目录保留已经合并的 PR #2–#4 及共享模型研究记录。
+
+---
+
+## 历史共享模型研究入口
+
 # PCLA Experiments
 
 面向联邦参数高效微调（Federated PEFT）的可复现实验项目。项目在异构客户端和非独立同分布数据下，统一实现并比较 LoRA 层/组件分配方法，重点记录 Fed-HeLLo 机制复现、经典 baseline、LEGEND 对照，以及组件级 PCLA 的正式实验。

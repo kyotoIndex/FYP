@@ -1,0 +1,41 @@
+Table 6: Local-training protocols for the structural diagnostics.
+Setting RoBERTa-base / RTE GPT-2 124M
+Clients 3 per partition setting2domains×2tasks×2replicas
+Train / calibration / evaluation161–1543/9–86/10–87 500/250/250
+Local LoRA rank / scale8/16 4/8
+LoRA dropout0.05 0
+Steps / effective batch size200/128 200/16
+Maximum sequence length128 64
+Optimizer SGD AdamW
+LoRA learning rate10 −2 3×10 −4
+Classifier learning rate10 −2 No additional classifier
+Training seeds123,124,125 11,23,37,53,71
+RoBERTa client construction.We partition the 2,490 official RTE training examples across three clients
+using either IID shuffling or label-based Dirichlet allocation ( α∈ {0.5,1.0} ). Under IID partitioning,
+each client receives exactly 830 examples. Under Dirichlet allocation, local dataset sizes vary from 161 to
+1,543, with entailment ratios ranging between 8.67% and 94.41%. The 277 official validation examples are
+distributed uniformly for IID clients and according to local training-label priors for Dirichlet clients. Each
+client’s data is further stratified by label into calibration and evaluation subsets, retaining minor strata (e.g.,
+the smallest calibration subset contains 9 examples from a single class).
+GPT-2 tasks and token regimes.We evaluate controlled synthetic tasks using template-generated movie
+and product sentences across two classification objectives: sentiment and tense. For a given domain and
+replica, both tasks share identical underlying content but differ in instructions and labels. Each prompt
+comprises a task instruction ending in Text:, the content sentence, and an Answer: suffix. Training
+minimizes cross-entropy over the two candidate answer-token logits at the final prompt position, without
+appending answer tokens to the input. We divide each prompt into three disjoint diagnostic masks:content
+(sentence tokens),decision(the final prompt token predicting the answer), andinstruction(all remaining
+tokens, including non-decision suffix tokens). Held-out examples are jointly stratified by sentiment and tense
+into calibration and evaluation splits.
+B.2 Initialization and factor agreement
+Table 7: Cross-client projector Dice in RoBERTa-base/RTE averaged across client pairs, layers, and projec-
+tions. All entries use the fixed step-200 checkpoint.
+Partition InitializationA B G: top 1G: top 2G: full
+IID Common1.000 0.199 0.978 0.825 0.876
+α= 1Common1.000 0.185 0.974 0.834 0.871
+α= 0.5Common1.000 0.177 0.965 0.818 0.835
+IID Independent0.011 0.193 0.814 0.452 0.159
+α= 1Independent0.011 0.180 0.810 0.454 0.160
+α= 0.5Independent0.011 0.177 0.810 0.455 0.159
+Following Guo et al. (2025), here we evaluate structural alignment using both the flattened-factor cosine
+similarity and basis-invariant subspace agreement (Table 7). Under common initialization, the flattened
+16

@@ -1,0 +1,115 @@
+H. Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, Blaise Ag ¨uera y Arcas
+Algorithm 1 FederatedAveraging. TheK clients are
+indexed byk;B is the local minibatch size,E is the number
+of local epochs, andη is the learning rate.
+Server executes:
+initializew0
+for each roundt = 1, 2,... do
+m ← max(C ·K, 1)
+St ← (random set ofm clients)
+for each clientk ∈St in parallel do
+wk
+t+1 ← ClientUpdate(k,w t)
+mt ← ∑
+k∈Stnk
+wt+1 ← ∑
+k∈St
+nk
+mt
+wk
+t+1 // Erratum4
+ClientUpdate(k,w ): // Run on clientk
+B ← (split Pk into batches of sizeB)
+for each local epochi from 1 toE do
+for batchb ∈ B do
+w ←w −η▽ℓ(w;b)
+returnw to server
+3 Experimental Results
+We are motivated by both image classiﬁcation and language
+modeling tasks where good models can greatly enhance the
+usability of mobile devices. For each of these tasks we ﬁrst
+picked a proxy dataset of modest enough size that we could
+thoroughly investigate the hyperparameters of the FedAvg
+algorithm. While each individual training run is relatively
+small, we trained over 2000 individual models for these
+experiments. We then present results on the benchmark
+CIFAR-10 image classiﬁcation task. Finally, to demonstrate
+the effectiveness of FedAvg on a real-world problem with
+a natural partitioning of the data over clients, we evaluate
+on a large language modeling task.
+Our initial study includes three model families on two
+datasets. The ﬁrst two are for the MNIST digit recognition
+task [26]: 1) A simple multilayer-perceptron with 2-hidden
+layers with 200 units each using ReLu activations (199,210
+total parameters), which we refer to as the MNIST 2NN. 2)
+A CNN with two 5x5 convolution layers (the ﬁrst with 32
+channels, the second with 64, each followed with 2x2 max
+pooling), a fully connected layer with 512 units and ReLu
+activation, and a ﬁnal softmax output layer (1,663,370 total
+parameters). To study federated optimization, we also need
+to specify how the data is distributed over the clients. We
+study two ways of partitioning the MNIST data over clients:
+IID, where the data is shufﬂed, and then partitioned into 100
+clients each receiving 600 examples, and Non-IID, where
+we ﬁrstsort the data by digit label, divide it into 200 shards
+of size 300, and assign each of 100 clients 2 shards. This is
+a pathological non-IID partition of the data, as most clients
+4Earlier versions of this paper incorrectly indicated summation
+over all K clients here.
+will only have examples of two digits, letting us explore the
+degree to which our algorithms will break on highly non-IID
+data. Both of these partitions are balanced, however.5
+For language modeling, we built a dataset from The Com-
+plete Works of William Shakespeare [32]. We construct a
+client dataset for each speaking role in each play with at
+least two lines. This produced a dataset with 1146 clients.
+For each client, we split the data into a set of training lines
+(the ﬁrst 80% of lines for the role), and test lines (the last
+20%, rounded up to at least one line). The resulting dataset
+has 3,564,579 characters in the training set, and 870,014
+characters6 in the test set. This data is substantially unbal-
+anced, with many roles having only a few lines, and a few
+with a large number of lines. Further, observe the test set is
+not a random sample of lines, but is temporally separated
+by the chronology of each play. Using an identical train/test
+split, we also form a balanced and IID version of the dataset,
+also with 1146 clients.
+On this data we train a stacked character-level LSTM lan-
+guage model, which after reading each character in a line,
+predicts the next character [22]. The model takes a series of
+characters as input and embeds each of these into a learned
+8 dimensional space. The embedded characters are then
+processed through 2 LSTM layers, each with 256 nodes.
+Finally the output of the second LSTM layer is sent to a
+softmax output layer with one node per character. The full
+model has 866,578 parameters, and we trained using an
+unroll length of 80 characters.
+SGD is sensitive to the tuning of the learning-rate parameter
+η. The results reported here are based on training over
+a sufﬁciently wide grid of learning rates (typically 11-13
+values for η on a multiplicative grid of resolution 10
+1
+3 or
+10
+1
+6 ). We checked to ensure the best learning rates were in
+the middle of our grids, and that there was not a signiﬁcant
+difference between the best learning rates. Unless otherwise
+noted, we plot metrics for the best performing rate selected
+individually for eachx-axis value. We ﬁnd that the optimal
+learning rates do not vary too much as a function of the
+other parameters.
+Increasing parallelism We ﬁrst experiment with the
+client fractionC, which controls the amount of multi-client
+parallelism. Table 1 shows the impact of varyingC for both
+MNIST models. We report the number of communication
+rounds necessary to achieve a target test-set accuracy. To
+compute this, we construct a learning curve for each com-
+bination of parameter settings, optimizing η as described
+above and then making each curve monotonically improving
+by taking the best value of test-set accuracy achieved over
+5We performed additional experiments on unbalanced versions
+of these datasets, and found them to in fact be slightly easier for
+FedAvg.
+6We always use character to refer to a one byte string, and use
+role to refer to a part in the play.

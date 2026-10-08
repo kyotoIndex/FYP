@@ -1,0 +1,127 @@
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+Algorithm 1:FDLoRA Training Algorithm
+Input:D, dataset across all clients;𝑁, total number of
+clients;𝑇, total number of rounds;Θ, 𝜃 𝑝, 𝜃𝑠, initial
+LLM, personalized, global LoRA module;
+w={w 1, . . . ,w N}, parameters of gate function;𝐻,
+the asynchronous update frequency.
+Output: ˜𝑆=𝑓(·;Θ)
+// Stage 1. Local learning on𝑁clients
+1for𝑖=1to𝑁do
+// Training personalized LoRA module via
+supervised fine-tuning
+2for1 to n_batchesdo
+3B ←Randomly sample𝑏data fromD (𝑖)
+4𝜃 (𝑖)
+𝑝 ←𝑆𝐹𝑇(𝑓(𝐵;(Θ, 𝜃 (𝑖)
+𝑝 )))
+5end
+6end
+// Stage 2. Federate learning
+7𝜃 (0)
+𝑠 ← 1
+𝑁
+Í𝑁
+𝑖=1 𝜃 (𝑖)
+𝑝 ;// Initial global LoRA module
+8forouter step t = 1 to𝑇do
+// Update the personalized LoRA module every
+𝐻communication rounds
+9is_sync←𝑡%𝐻
+10forclient i = 1,. . . ,Ndo
+11𝜃 (𝑖) (𝑡)
+𝑠 ←𝜃 (𝑡−1)
+𝑠
+// Inner optimization
+12𝜃 (𝑖) (𝑡)
+𝑠 ←InnerOpt(𝜃 (𝑖) (𝑡)
+𝑠 ,D (𝑖) , 𝐾)
+13ifis_syncthen
+// Synchronize personalized and global
+LoRA module
+14𝜃 (𝑖)
+𝑝 ←𝜃 (𝑖) (𝑡)
+𝑠
+15end
+16end
+// Averaging outer gradients
+17Δ (𝑡) ← 1
+𝑁
+Í𝑁
+𝑖=1 (𝜃 (𝑡−1)
+𝑠 −𝜃 (𝑖) (𝑡)
+𝑠 )
+// Outer optimization
+18𝜃 (𝑡)
+𝑠 ←OuterOpt(𝜃 (𝑡−1)
+𝑠 ,Δ (𝑡) )
+19end
+// Stage 3. Adaptive fusion function
+20forclient i = 1, . . . , Ndo
+21w (𝑖) ←FusionOpt(𝜃 (𝑖)
+𝑝 ,w (i) )
+22end
+23return𝜃 𝑠, 𝜃𝑝,w
+serving as the starting point for the subsequent round of inner
+optimizations. Communication among workers is only necessary
+during this phase, occurring once every 𝐾 inner optimization steps.
+In total, a client undergoes𝑇×𝐾inner steps during this stage.
+Specifically, the inner optimizer (InnerOpt) is used as AdamW
+[56], which is a variant of the Adam optimizer that separates weight
+decay from the gradient update based on the observation that the
+weight decay formulation is different when applied to SGD and
+Adam. As for the outer optimizer (OuterOpt), we use Nesterov
+momentum [38], because it gave the best convergence in previous
+works [12]. When OuterOpt is set to SGD, the outer optimizer is
+equivalent to vanilla FedAVG [ 31]. If the total number of outer
+optimization steps (𝑇 ) is set to 1, then our approach reduces to
+’souping’ [44]. Finally, if the number of inner optimization steps (𝐾)
+is set to 1 and InnerOpt is set to SGD, our approach is equivalent
+to large-batch training with data parallelism.
+Overall, iterating the above process 𝑇 times, all clients contain
+a personalized LoRA and a global LoRA. The personalized LoRA
+contains the knowledge learned from the local data, and the global
+LoRA contains the knowledge of all clients and is aligned with the
+local knowledge by SFT. The degree of alignment can be adjusted by
+the inner optimization steps 𝐾. Increasing 𝐾 will give more atten-
+tion to local knowledge. This process ensures that, as the federated
+learning progresses through multiple iterations, each client’s global
+LoRA parameters are enriched with a harmonious blend of both
+local and global knowledge, contributing to a comprehensive and
+collaborative model refinement.
+3.5 Adaptive Fusion
+In this stage, we implement an element-wise method, a.k.a. AdaFu-
+sion, to adaptively combine both the personalized LoRA module and
+the global LoRA module. This process integrates the corresponding
+parameters of the LoRA modules, requiring the modules being com-
+bined to have the same rank 𝑟 to properly align the structures. For
+the client 𝑖, assuming that 𝑚𝑖 =𝐴 𝑖𝐵𝑖 and 𝑖= 1or2, the combined
+LoRA module ˆ𝑚can be formulated as follows:
+ˆ𝑚=(𝑤 1𝐴1 +𝑤 2𝐴2) (𝑤1𝐵1 +𝑤 2𝐵2)(7)
+The objective is to modify the coefficients w(i) ={𝑤 (𝑖)
+1 , 𝑤 (𝑖)
+2 } to
+enhance the performance on each client. To achieve this, a fusion
+optimizer (FusionOpt) is introduced. An intuitive approach is to im-
+plement the FusionOpt using gradient-based optimization methods,
+such as standard gradient descent. However, this approach neces-
+sitates the construction of a hypernetwork on each client, which
+can be challenging due to the substantial GPU memory and time
+requirements [22]. This is a significant challenge for heterogeneous
+clients. We observe that the number of optimized parameters is
+relatively small (only 𝑤 1 and 𝑤 2 in each client). Consequently, we
+opt for gradient-free methods for optimization rather than gradient
+descent.
+Inspired by previous work [22], we employ a black-box optimiza-
+tion technique to find the optimalw. This optimization process
+hinges on minimizing the cross-entropy loss, with the objective
+of determining the optimal coefficients 𝑤 1 and 𝑤 2 that minimize
+the loss L𝑐 across a set of few-shot examples denoted as 𝑄. Fur-
+thermore, we employ 𝐿1 regularization, which penalizes extreme
+values by imposing a constraint on the sum of the absolute values
+ofw. Consequently, the objective function is formulated as follows,
+which minimizes the combined loss and the regularization term.
+min
+w
+L=L 𝑐 +𝜆 (𝑖) |w (i) |(8)
+where𝜆is the hyperparameter.

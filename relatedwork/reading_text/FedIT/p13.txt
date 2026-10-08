@@ -1,0 +1,45 @@
+sizes vaccines and the understanding of disease causes and treatments. Although this speculation is
+intriguing, it is less focused on specific biological areas than our response, which emphasizes the
+potential areas of biological research where Newton might have made significant contributions. More-
+over, it briefly mentions Newton’s actual background, which is not directly related to the question but
+provides context.
+Even though baseline Local-1 is primarily fine-tuned on brainstorming instructions that share similar-
+ities with counterfactual QA, since they both involve creative thinking and deal with hypothetical
+situations, its response lacks depth and does not discuss the potential impact of Newton’s focus on
+biology. Counterfactual QA typically evaluates or analyzes past events, involving questions about
+alternative outcomes, necessitating an understanding of the factors leading to a specific event outcome
+[57]. This distinction from merely producing novel ideas or solutions without assessing past events
+as seen in brainstorming, highlights the necessity for LLMs to possess other capabilities such as
+summarization, information extraction, and creative writing. Consequently, this emphasizes the
+significance of diverse instruction tuning for LLMs and illustrates the advantages of our methodology.
+Table 5: Response demonstration for a classification task from Databricks-dolly-15k dataset. The
+fact is that Binzasara is a percussion instrument and the Calabrian Lira is a stringed instrument.
+Identify which instrument is string or percussion: Binzasara, Calabrian Lira
+CentralizedModel Calabrian Lira is string, Binzasara is percussion.
+LLaMA Binzasara is a string instrument. Calabrian Lira is a percussion
+instrument.
+Local-1 Binzasara is string, Calabrian Lira is percussion.
+Local-2 Binzasara is string, Calabrian Lira is percussion.
+Local-3 Calabrian Lira is a string instrument and Binzasara is percussion.
+Shepherd-7B (ours) Calabrian Lira is string, Binzasara is percussion.
+ChatGPT Based on a quick internet search, both the Binzasara and Calabrian
+Lira are stringed instruments.
+Although there remains room for improvement in our model’s quality when compared to theCen-
+tralizedModel and ChatGPT, the performance gap between our model and ChatGPT does not imply
+that our model is consistently inferior. As evidenced in Table 5, our response accurately addresses
+the question, while ChatGPT fails. Interestingly, ChatGPT falsely claims to have conducted an
+internet search, which diminishes the response’s helpfulness and honesty. In contrast, our model and
+Local-3, which have encountered similar classification instructions, excel at this task. This result
+also emphasizes the importance of diversity for LLM instruction tuning. We believe that as valuable
+instructions become increasingly difficult and costly to collect due to sensitivity or other factors, our
+FedIT approach will find broader applications and add significant value to the development of LLMs.
+5 Future Directions
+5.1 Computation and Communication Overhead
+Deploying LLM in FL poses major challenges in terms of the colossal communication cost and the
+computational and storage overhead of local clients. FL faces significant communication challenges
+as it requires frequent exchanges of model information (parameters or gradients) among distributed
+clients and services. When it comes to using FL for LLM, the communication overhead becomes
+even more significant, with gigabit-level data transmissions necessary to achieve centralized training
+performance. This level of communication overhead is not acceptable for FL systems. Furthermore,
+local clients may not have the computing power to fine-tune the entire LLM, and storing different
+13

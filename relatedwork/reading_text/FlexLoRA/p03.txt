@@ -1,0 +1,52 @@
+2 Related Work
+Parameter-Efficient Fine-tuning of LLMs.The computation and storage demands of traditional fine-
+tuning processes have spurred the development of parameter-efficient fine-tuning (PEFT) techniques
+such as adapter and prefix tuning [15, 23]. Among existing PEFT techniques, we choose to employ
+LoRA due to its simplicity and outstanding performance [ 24, 18]. Despite this, our aggregation
+scheme can be easily extended into other PEFT methods by replacing the LoRA weights with their
+alternative weights to be tuned.
+PEFT in Federated Learning. PEFT techniques have been integrated into FL to minimize commu-
+nication costs and maximize efficiency. Several works employ LoRA for local model updates within
+an FL framework [2, 43, 44, 41, 19, 8, 26, 30, 38, 42]. For instance, [ 43] combines LoRA-based
+local updates with FedAvg for model aggregation, while [2] intersperses sparse finetuning with LoRA
+finetuning for improved initialization for LoRA in FedAvg. [36] proposes a technique to improve
+LoRA performance in FL scheme, and [32] reduces communication cost through zeroth-order opti-
+mization. Distinct from these methods, our work, by introducing a simple yet effective aggregation
+scheme, leverages heterogeneous client resources to enhance the generalization and natural language
+understanding of the global FL model, addressing limitations seen in current FL paradigms.
+Data and Resource Heterogeneity in FL. Data and resource heterogeneity remain significant
+challenges in FL, impacting both training and performance [ 28, 20]. Fruitful solutions have been
+explored to tackle the data heterogeneity [ 10, 25, 4] or resource heterogeneity [ 21, 11, 7], while
+not in LLM context. A concurrent work, HETLORA [8], proposes allowing heterogeneous LoRA
+ranks by zero-padding local LoRA weights for aggregation and truncating global weights to match
+the local rank for distribution, all while employing sparsity regularization. However, our approach
+distinguishes itself through a focus on zero-shot task generalization and large-scale experiments
+inclusive of thousands of NLP tasks and clients, aiming to synthesize a well-generalized global LLM.
+Moreover, our method is simple and easy to use without any hyper-parameters for the aggregation,
+thereby circumventing the need for case-by-case tuning of newly introduced variables such as the
+decay and regularization factors of HETLORA.
+3 Methodology of FlexLoRA
+3.1 Intrinsic Dimension and Generalization
+Fine-tuning LLMs to enhance task-specific performance inevitably encounters cost of reduced
+generalization ability: a trade-off supported by the “no-free-lunch” theorem and empirical evidence
+usually called “alignment tax” of LLM [40, 31]. The generalization capability of LLMs is influenced
+by complexity of applied tasks and their solution spaces, which can be characterized by the concept
+of an intrinsic dimension - typically far smaller than the total number of model parameters [1].
+The insight of intrinsic dimension informs the design of LoRA to fine-tune LLMs’ pre-trained weights
+in a parameter-efficient manner, utilizing compact and low-rank matrices. Specifically, matrices
+A ∈ Rr×p, B ∈ Rd×r are introduced, where r denotes the rank that encapsulates intrinsic dimension.
+These matrices form a low-rank approximation for tuning original weightsW0 as h = W0x + sBAx,
+where x is the input of the parameter to be tuned, h is the output, and s is a scaling constant. Previous
+studies show that different ranks produce weights with attributes particularly tailored to specific
+downstream tasks [16, 18]. Consequently, the rank value plays a critical role in not only task-specific
+solution subspaces but also in determining a model’s ability to generalize to various tasks.
+In scenarios where clients have highly heterogeneous task and resource distributions, a uniform
+LoRA rank usually does not suffice for model performance, especially in its zero-shot generalization
+ability for unseen clients and tasks. Employing a small LoRA rank potentially leads to under-fitting
+in a global context by capturing only a subset of task-specific features, while a large rank is usually
+infeasible due to the “bucket effect” of existing FL solutions constrained by least-resourced clients.
+FlexLoRA emerges as a solution to this dilemma by dynamically adjusting the rank in response to the
+variability in local client resources. By increasing the LoRA rank for clients with greater resources
+to contribute more global knowledge, FlexLoRA enhances the model’s ability to generalize across
+diverse data distributions without sacrificing local performance accuracy. This strategy allows for
+3

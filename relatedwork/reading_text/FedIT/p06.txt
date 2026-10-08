@@ -1,0 +1,204 @@
+the needs of a multilingual audience poses several challenges. Apart from understanding all the
+languages in the dataset, achieving fairness across languages, particularly for those underrepresented
+in the instruction dataset, is a crucial aspect that warrants further investigation in Federated Instruc-
+tion Tuning. Moreover, domain-specific instructions further compound the heterogeneity of the
+framework. Different domains have distinct contexts, each characterized by unique terminologies and
+sentence structures. For instance, legal or pharmaceutical contexts may require specific vocabulary
+and phrasing that do not apply to other domains. Additionally, there are other sources of heterogeneity,
+such as task complexity, task ambiguity, emotional tone, cultural factors, and more, which merit
+further investigation.
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+149
+10.0%
+598
+40.1%
+746
+50.0%
+Client #0
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+747
+49.3%
+767
+50.7%
+Client #1
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+377
+25.2%
+747
+50.0%
+370
+24.8%
+Client #2
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+985
+66.0%
+507
+34.0%
+Client #3
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+747
+49.7%
+757
+50.3%
+Client #4
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+746
+49.3%
+767
+50.7%
+Client #5
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+362
+24.2%
+747
+50.0%
+385
+25.8%
+Client #6
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+746
+50.0%
+483
+32.4%
+264
+17.7%
+Client #7
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+325
+21.8%
+468
+31.3%
+701
+46.9%
+Client #8
+OQAGQA C CQA B IE S CW
+0
+200
+400
+600
+800
+1000
+747
+49.0%
+777
+51.0%
+Client #9
+(a) The distribution of instruction dataset categories across each client’s dataset.
+CCQA
+S
+OQA
+C
+OQA
+GQA
+IE
+OQA
+S
+CQA
+IE OQA
+GQA
+GQA
+B
+IE
+OQA
+C
+B
+GQA
+CQA
+CW
+C
+B
+Client #0 (1493)
+Client #1 (1514)
+Client #2 (1494)
+Client #3 (1492)
+Client #4 (1504) Client #5 (1513)
+Client #2 (1494)
+Client #0 (1493)
+Client #2 (1494)
+Client #9 (1524)
+24.0%
+(3611)
+14.6%
+(2191)
+14.2%
+(2136)
+12.1%
+(1823)
+11.8%
+(1768)
+10.1%
+(1512)
+8.4%
+(1263)
+4.7%
+(711)
+FedIT
+Categories
+Open QA(OQA)
+General QA(GQA)
+Classification(C)
+Closed QA(CQA)
+Brainstorming(B)
+Information Extraction(IE)
+Summarization(S)
+Creative Writing(CW)
+(b) Training on a Higher-Quality, More Diverse Dataset with FedIT
+Figure 2: Illustrate the heterogeneity of FedIT with Databricks-dolly-15k instruction dataset. The
+model can be trained on only the particular local instruction categories of each user (bottom left), or
+on the local instruction datasets of all clients with greater diversity and quantity of data points that
+cover the entire range of the subject matter by implementing our FedIT (bottom right).
+6

@@ -1,0 +1,38 @@
+Each client’s validation partition follows the empirical label mixture of its training partition. For each task,α,
+and seed, all methods use the same client training and validation indices.Table 11 gives the common settings
+for the main comparison and the GLUE ablation and rank studies. The latter vary only the settings identified
+in Appendices D–E.
+Table 11: Common training settings for personalized GLUE. FedSAIL-specific settings also apply to its
+message and rank ablations unless stated otherwise.
+Setting Configuration
+Backbone and adapters RoBERTa-large; query and value projections in all 24 layers; default rL = 8 ,
+αLoRA = 16, LoRA dropout0.05.
+Initialization Independent client Ak, zero Bk; identical initial classification heads, trained locally.
+Data and batching Full task training/validation sets; maximum length 128; batch and micro-batch size
+128.
+Optimization SGD with CUDA AMP;500rounds;10local steps per client and phase per round.
+Main-comparison seeds123,124, and125.
+Evaluation Personalized validation every25rounds; no global-model evaluation.
+FedSAIL guidance Shared rank s= 1 , logged penalty β= 1 ; 50 local-only warmup rounds, then 450
+guided rounds; layer selection disabled.
+Input moments Estimated from the first 128 examples of each client’s training partition before round
+1; shrinkageγ= 0.05; frozen throughout training.
+C.2 Method-specific settings and scale convention
+In Table 12 we distinguish the communication and optimization rules. All classification heads remain
+client-local. Baselines aggregate uniformly from the first round. Our FedSAIL approach starts sharing after
+warmup and weights its trace-normalized spectral messages by the number of local tokens used to estimate
+the moments.
+Table 12: Method-specific GLUE settings. Steps are local steps per client and round; FedDPA-LoRA uses
+separate global and local phases.
+Method Federated exchange Learning rate Steps
+LoRA LocalA k andB k 0.005 10
+FFA-LoRA AverageB k; freeze localA k 0.005 10
+FedSA-LoRA AverageA k; keepB k local0.005 10
+FedDPA-LoRA Average global factors; retain local branch0.005 10 + 10
+FedSAIL Share action spectra and consensus bases0.005 10
+We shall note that FedDPA-LoRA has separate rank-8 global and local adapters and uses a fixed global/local
+prediction mixture of 0.5/0.5. Its adapter capacity and scheduled local-step budget are twice those of the
+single-branch methods. Another thing that worth attention is that for FFA-LoRA, freezing independently
+initialized Ak differs from its canonical shared-A setting, so that the reported performance may not achieve
+its best possible performance.
+20

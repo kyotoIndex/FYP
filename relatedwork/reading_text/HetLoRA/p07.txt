@@ -1,0 +1,110 @@
+Reddit (RougeL) Multi-Session Chat (Perplexity)
+PaLM 2-XXS PaLM 2-XS PaLM 2-XXS PaLM 2-XS
+Full 94.56(±0.01) 94.87(±0.04) 32.70(±0.17) 23.40(±0.36)
+HOMLORA r = 5 92 .57(±1.56), ×0.001 92 .89(±0.96) 80 .51(±8.32), ×0.001 64 .59(±9.31)
+HOMLORA r = 50 70 .57(±2.13), ×0.01 84 .95(±1.59) 307 .96(±11.43), ×0.01 167 .46(±1.72)
+Recon+SVD 63.28(±1.92), ×0.003 75 .17(±1.25) 323 .89(±20.57), ×0.002 215 .63(±15.38)
+HETLORA γ = 0.99 94.23(±0.03), ×0.003 94.41(±0.05) 53.93(±1.57), ×0.002 38.76(±0.52)
+Table 3: Final RougeL score for Reddit text summarization and perplexity for multi-session chat for different federated
+fine-tuning methods. The blue text indicates the ratio of trained number of parameters compared to the full fine-tuning case.
+HETLORA outperforms both HOMLORA and Recon+SVD method, but slightly underperforms the full fine-tuning case.
+However, compared to full fine-tuning the number of trained parameter is significantly smaller.
+0 50 100 150 200
+Communication Rounds
+102
+103
+Perplexity
+r = 1
+r = 5
+r = 20
+r = 50
+(a) PaLM 2-XXS
+0 50 100 150 200
+Communication Rounds
+102
+103
+Perplexity
+r = 1
+r = 5
+r = 20
+r = 50 (b) PaLM 2-XS
+Figure 3: Performance of homogeneous LoRA for different
+rank r. Higher ranks achieve better performance with fewer
+communication rounds than the lower ranks, but they overfit
+quickly. Conversely, the lowest rank r = 1 achieves low
+perplexity slower than higher ranks, but without overfitting.
+ples as the training clients and use another 100
+users with at least 100 data samples for evaluation.
+Local Training. We use mini-batch size 8 and
+number of local iterations τ = 5 with the feature
+length set to1024. For the learning rate we perform
+grid search in η = {0.1, 0.01, 0.001, 0.0001}.
+For each MSC and Reddit task, we select 5 and 10
+clients per communication round respectively.
+4.1 Experiment Results
+Homogeneous LoRA and the Effect of Ranks
+r. First, we evaluate the performance of federated
+fine-tuning of the LoRA modules with homoge-
+neous LoRA deployment across clients in Fig. 3 for
+different ranks r ∈ [1, 5, 20, 50]. We observe that
+a higher rank r for homogeneous LoRA achieves
+better perplexity floor with fewer communication
+rounds than the lower ranks but quickly overfits
+resulting in worse performance compared to the
+lower ranks after more communication rounds. On
+the other hand, while the lower rank cases need
+more communication rounds to achieve good per-
+formance, it does not have the problem of overfit-
+ting as the higher ranks. Hence for homogeneous
+LoRA, there is a trade-off to consider between
+low and high ranks, in terms of faster performance
+achievement and overfitting. Note that these ob-
+0 100 200
+Communication Rounds
+102
+103
+Perplexity
+rmin = 1
+rmin = 5
+(a) rmax = 10
+0 100 200
+Communication Rounds
+102
+103
+Perplexity
+rmin = 1
+rmin = 5 (b) rmax = 50
+Figure 4: Performance of HETLORA without rank pruning
+or and with simple average aggregation. Similar to homoge-
+neous LoRA, larger rmin leads to overfitting for heterogeneous
+LoRA, but it is not as severe as homogeneous LoRA even
+for larger maximum rank rmax = 50 showing that the smaller
+rank LoRA modules act as a regularizer for HETLORA.
+servations are consistent with previous literature in
+the centralized setting where a higher rank does not
+necessarily yields the best performance (Hu et al.,
+2021; Zhang et al., 2023b). Next, we show that
+HETLORA achieves good performance quickly
+without this overfitting issue, showing better per-
+formance than the homogeneous LoRA case.
+Naïve Heterogeneous LoRA and the Effect of
+rmin and rmax. First, we show the performance
+of naïve heterogeneous LoRA without self rank-
+pruning and with only average aggregation instead
+of the sparsity-weighted aggregation in Fig. 4. We
+can see similar observations to those from homo-
+geneous LoRA where a smaller minimum rank
+rmin = 1 leads to slower training but better per-
+formance while a larger maximum rank leads to
+faster training but worse performance. However,
+compared to homogeneous LoRA the overfitting
+does not get as severe for heterogeneous LoRA
+even with much larger ranks such as rmax = 50 .
+We can imply from this result that the smaller rank
+LoRA modules act as a regularizer in heteroge-
+neous LoRA. Next, we show that by adding the
+self rank-pruning and sparsity-weighted aggrega-
+tion, even with rmin = 5 we are able to prevent
+overfitting issues and achieve better training speed
+and final performance than other baselines.
+7

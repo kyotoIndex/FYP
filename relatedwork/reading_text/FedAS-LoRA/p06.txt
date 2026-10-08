@@ -1,0 +1,116 @@
+6
+andR uns = ( 1
+2ρηℓ
++ L
+2 )η2
+gη2
+ℓ E2C4
+⋆ G2
+max. The proof of
+Theorem 2 is provided in the Appendix.
+Theorem 2shows that FedAS-LoRA reaches a stationary
+neighborhood under arbitrary client participation. The first
+term on the right-hand side (RHS) of (14) decreases as
+O(1/T), while the second term serves as the non-vanishing
+error induced by stochastic local updates, multiple local
+steps, and client sampling drift. The proof covers both
+sharing strategies since their local updates are identical:
+each selected client updates bothAandBbefore uploading
+only the shared factor. The only difference lies in the
+uploaded factor update, leading to a different drift bound,
+i.e.,∥Q E
+t,k −Q t∥F ≤η ℓECQGmax, whereQ∈ {A, B}.
+V. EXPERIMENTS
+In this section, we systematically evaluate the perfor-
+mance of FedAS-LoRA on two types of tasks: natural
+language understanding and natural language generation.
+A. Experimental Setup
+Datasets and implementation.:For natural language
+understanding tasks, we evaluate FedAS-LoRA with
+RoBERTa-large Liu et al. [2019] on the GLUE bench-
+mark Wang et al. [2018], including MNLI, SST-2, QNLI,
+QQP, and RTE. For natural language generation tasks, we
+evaluate FedAS-LoRA on the GSM8K dataset Cobbe et al.
+[2021] with LLaMA3-8B Meta AI [2024].
+For natural language understanding tasks, consistent with
+FedSA-LoRA Guo et al. [2025], we use the pre-trained
+RoBERTa-large model with 355M parameters Liu et al.
+[2019] from the HuggingFace Transformers library Wolf
+et al. [2020] as the backbone. LoRA modules are inserted
+into the query and value projection matrices of each attention
+layer. The default LoRA rank is set tor= 8with the
+scaling factorα= 16. For LoRA variants, rsLoRA adopts
+the same training configuration except for the rank-stabilized
+scaling rule Kalajdzievski [2023]. We use SGD for all
+LoRA- and rsLoRA-based methods. For VeRA Kopiczko
+et al. [2024], we setr= 256and use AdamW optimizer
+Loshchilov and Hutter [2019] with separate learning rates
+for the classification head and the adapted layers. Across
+all methods, we use a batch size of 128,E= 10,
+andT= 500. The local learning rateη l is tuned from
+{0.001,0.002,0.005,0.01,0.02,0.05}, and the global learn-
+ing rateη g is set to 1. Experiments are conducted on
+NVIDIA RTX 4090 GPUs. All results are reported as mean
+±standard deviation over three independent runs. See the
+Appendix for more experimental details.
+Benchmarks.:We compare FedAS-LoRA with repre-
+sentative federated LoRA methods and fixed factor-sharing
+policies.LoRAdenotes the standard federated implemen-
+tation that trains and aggregates both factorsA i andB i.
+FFA-LoRASun et al. [2024b] fixes a common randomly
+initialized factorAand only trains and aggregatesB i.
+FedDPA-LoRAYang et al. [2024] maintains global and
+personalized LoRA modules to capture shared and client-
+specific knowledge.FedSA-LoRAGuo et al. [2025] trains
+both factors, aggregatesA i, and retainsB i locally, i.e.,
+Share-A/Local-B.
+B. Main Results
+For natural language understanding tasks, consistent with
+FFA-LoRA Sun et al. [2024b], we randomly split the data
+across three clients for federated learning. We consider a
+non-IID setting using a Dirichlet distribution withα= 0.5,
+i.e., Dir(0.5). From Table I, we observe that FedAS-LoRA,
+FedAS-rsLoRA, and FedAS-VeRA consistently outperform
+the compared methods in terms of average accuracy, demon-
+strating the effectiveness of the proposed method. FedAS-
+LoRA achieves an average accuracy of90.77%, which is
+0.93 percentage points higher than that of FedSA-LoRA.
+These results indicate that applying the same fixed factor-
+sharing policy across tasks and adaptation variants can
+lead to suboptimal performance, supporting our design of
+selecting the sharing side according to the specific federated
+setting.
+For natural language generation, we evaluate LLaMA3-
+8B Meta AI [2024] on GSM8K using the Hugging-
+Face Transformers library Wolf et al. [2020]. Following
+FederatedScope-LLM Kuang et al. [2024], we split the data
+across three clients under an IID distribution and adopt the
+same optimization settings. LoRA, FFA-LoRA, and FedAS-
+LoRA achieve accuracies of 55.14%, 54.51%, and 56.28%,
+respectively, with generated examples in the Appendix.
+C. In-Depth Analyses
+We proceed to utilize LoRA-based methods to conduct
+analyses on the natural language understanding tasks of
+QNLI, SST-2, and MNLI-m to assess the impact of client
+sampling, data heterogeneity, and LoRA rank on model
+performance. Detailed comparisons of RSS decisions with
+Share-A/Local-B and Share-B/Local-A strategies, together
+with the communication cost analysis, are provided in the
+Appendix.
+1) Effect of Client Sampling:We consider10clients
+under both uniform and non-uniform sampling settings. For
+uniform sampling, we apply a sampling rate of 0.3 in
+each round. For non-uniform sampling, clientiparticipates
+independently according to a Bernoulli distribution with
+probability of0.1+0.4(i−1)/(N−1), i.e., the participation
+probabilities increase linearly from0.1to0.5. As shown
+in Table II, FedAS-LoRA consistently outperforms FedSA-
+LoRA across all evaluated tasks under both uniform and
+non-uniform sampling. Additional scalability results with
+N= 50clients are provided in the Appendix.
+2) Effect of Data Heterogeneity:We consider the perfor-
+mance of FedAS-LoRA under different data heterogeneity
+levels by examining IID data distributions, Dir(1), and
+Dir(0.5) under full client participation. Table III shows that
+FedAS-LoRA outperforms the compared baselines across
+the evaluated IID and Dirichlet partitions. Additional results

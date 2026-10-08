@@ -1,0 +1,107 @@
+17
+Method Uniform Non-uniform
+LoRA 87.27 ±0.48 83.24 ±0.72
+FFA-LoRA 86.18 ±0.45 84.90 ±0.85
+FedDPA-LoRA 87.50 ±0.41 84.29 ±0.64
+FedSA-LoRA 88.12 ±0.55 85.68 ±0.44
+FedAS-LoRA (Ours)89.37 ±0.37 86.80 ±0.56
+LoRA 93.42 ±0.67 92.80 ±0.77
+FFA-LoRA 93.61 ±0.71 93.51 ±0.78
+FedDPA-LoRA 94.87 ±0.52 94.70 ±0.89
+FedSA-LoRA 95.01 ±0.58 96.48 ±0.77
+FedAS-LoRA (Ours)95.64 ±0.73 96.89 ±0.79
+LoRA 83.91 ±0.53 81.25 ±0.60
+FFA-LoRA 84.23 ±0.56 83.93 ±0.99
+FedDPA-LoRA 85.07 ±0.80 83.19 ±0.95
+FedSA-LoRA 86.89 ±0.83 84.28 ±0.99
+FedAS-LoRA (Ours)87.55 ±0.91 85.04 ±0.84
+TABLE IX: Performance on the QNLI, SST-2, and MNLI-m
+tasks under uniform and non-uniform client sampling with
+N= 50. From top to bottom, the three blocks correspond
+to QNLI, SST-2, and MNLI-m, respectively.
+Rank Method SST-2 MNLI-m
+r= 4
+LoRA 95.87 ±0.59 86.63 ±0.21
+FFA-LoRA 95.56 ±0.39 85.44 ±0.42
+FedSA-LoRA 92.98 ±0.45 87.07 ±0.11
+FedAS-LoRA (Ours)96.47 ±0.19 87.43 ±0.20
+r= 8
+LoRA 95.18 ±0.48 86.41 ±0.29
+FFA-LoRA 93.35 ±0.52 83.37 ±0.10
+FedSA-LoRA 94.04 ±0.44 86.19 ±0.11
+FedAS-LoRA (Ours)96.56 ±0.04 86.53 ±0.34
+TABLE X: Test accuracy under structured input-skew par-
+titions with different LoRA ranksr. SST-2 uses a label-
+balanced input-length-skew partition, while MNLI-m uses a
+label-balanced genre partition with telephone, government,
+and fiction clients.
+labels across the clients so that the main source of hetero-
+geneity is the textual genre rather than the label distribution.
+We report performance on the MNLI matched evaluation set,
+denoted as MNLI-m.
+As shown in Table X, FedAS-LoRA achieves the highest
+accuracy in all four evaluated settings. On SST-2, it obtains
+accuracies of96.47%and96.56%atr= 4andr= 8,
+respectively, exceeding LoRA by 0.60 and 1.38 percentage
+points. On MNLI-m, FedAS-LoRA reaches87.43%atr= 4
+and86.53%atr= 8, improving over LoRA by 0.80 and
+0.12 percentage points. It also exceeds FFA-LoRA by 1.99
+and 3.16 percentage points, and FedSA-LoRA by 0.36 and
+0.34 percentage points atr= 4andr= 8, respectively.
+These results show that selecting the sharing side remains
+beneficial when clients mainly differ in input characteristics
+rather than label proportions.
+Results on GSM8K with Llama 3 8B
+The results on the GSM8K dataset are shown in Table XI,
+demonstrating that the proposed FedAS-LoRA outperforms
+other methods in complex natural language generation tasks.
+From the given example, it can be seen that both LoRA
+and FFA-LoRA have reasoning errors, but FedAS-LoRA
+can reason accurately, demonstrating the superiority of the
+proposed method.
+Communication Cost
+Table XII compares the trainable parameter count, per-
+round communicated model size, per-round computation
+time, and the communication-round index of the best val-
+idation checkpoint. Share-A/Local-B and Share-B/Local-A
+train both LoRA factors and therefore retain the same
+number of trainable parameters as LoRA, i.e., 1.839M on
+MNLI-m and 1.838M on SST-2. However, each strategy
+communicates only the selected shared factor. Their per-
+round communicated model size is therefore 0.393M pa-
+rameters, which is 50% lower than the 0.786M parameters
+communicated by LoRA and FedDPA-LoRA.
+The reduction in per-round communication does not intro-
+duce substantial additional local computation. On MNLI-m,
+the per-round computation times of Share-A/Local-B and
+Share-B/Local-A are 14.14s and 14.18s, respectively, com-
+pared with 14.12s for LoRA. On SST-2, the corresponding
+times are 6.25s and 6.26s, compared with 6.24s for LoRA.
+FFA-LoRA has a slightly lower per-round computation time
+because it freezes one factor, whereas the two sharing
+strategies keep both factors trainable. FedDPA-LoRA incurs
+a higher parameter and computation cost because it main-
+tains additional global and personalized LoRA modules.
+These results show that factor-wise sharing reduces the
+communicated model size per round while preserving the
+training capacity of both LoRA factors.
+Relative Heterogeneity Amplification of Local LoRA
+Changes
+To further examine how client data heterogeneity af-
+fects the two LoRA factors, we compare the client-specific
+changes ofAandBafter local training on MNLI. We
+consider three non-IID partitioning schemes: Dirichlet dis-
+tributions withα= 1andα= 0.5, and the label-balanced
+MNLI-genre partition. For each scheme, we independently
+generate five three-client partitions using different partition
+seeds. Each non-IID partition is paired with an IID partition
+generated using the same seed. The model initialization
+and all training-related random seeds are fixed across the
+partition instances. Therefore, the variation across the five
+instances is caused by the client data partitions rather than
+by model initialization or stochastic training.
+For this analysis, the clients perform local training in-
+dependently without server aggregation. We measure the
+change in each LoRA factor relative to its common ini-
+tialization as∆Q i. We analyze these changes rather than
+the terminal factor values to exclude the initial factor values

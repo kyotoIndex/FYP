@@ -1,0 +1,57 @@
+Heterogeneous Case.In Appendix A3.5, we analyze the convergence of RoLoRA with single
+LoRA structure in a federated setting withheterogeneousclients. By showing the decreasing of the
+angle distance between the ground truth a∗ and the shared down-projection a, we demonstrate that
+RoLoRA allows the global model to converge to global minimum while the global loss of FFA-LoRA
+can be dominated by the term caused by the angle distance between the random initialization a0 and
+a∗.
+4.2 Verifying Insights On a Non-Linear Model
+Figure 2: (Left) Comparison of three methods on
+a toy model with 5 clients. (Right) Comparison of
+three methods on a toy model with 10 clients.
+The previous analysis considers a linear model
+for each client. To assess the validity of the
+theorem in a non-linear model, we consider a
+two-layer neural network model on each client
+given by
+fi(xi) =ReLU(x iAB)Wout (10)
+where Wout ∈R d×c, A∈R d×r and B∈
+Rr×d are weights. We train the model on
+MNIST [11]. We consider two different ways
+to distribute training images to clients. The first
+is to distribute the images to 5 clients and each
+client gets access to training images of two specific labels, while the second is to distribute the images
+to 10 clients and each client only has training images of one specific label. There is no overlap in the
+training samples each client can access. Only weights matrices B and A are tunable, while Wout are
+fixed. We use c= 10, d= 784, r= 16 and make each client train 5 epochs locally with batch-size
+64 and aggregate clients’ update following three methods: FedA VG of LoRA, referred as LoRA;
+FFA-LoRA [32], which freezes A during training, and RoLoRA, which alternately updates B and A.
+As shown in Figure 2, we evaluate the performance of the model in each iteration on the test set. We
+observe that the accuracy of FFA-LoRA plateaus around 55% in both settings, which aligns with
+our theoretical analysis. The decline in LoRA’s performance with an increasing number of clients is
+most likely due to less accurate model aggregation, as demonstrated in (1) and (2). Notably, RoLoRA
+demonstrates greater robustness in these settings.To study the impact of non-linearity on RoLoRA,
+we repeat the two-layer experiment on a linear network without ReLU. As shown in Figure 7 in the
+Appendix, RoLoRA benefits more from the added expressiveness of ReLU.
+4.3 Convergence in Smooth Non-Convex Settings
+We follow the approach of Li et al.[25] to analyze the convergence behavior of RoLoRA in smooth,
+non-convex settings, and derive TheoremA4.4 in Appendix. As shown in TheoremA4.4, RoLoRA
+achieves an O(1/
+√
+T) convergence rate toward a stationary point under smooth, non-convex condi-
+tions, matching the convergence rate established for FedA VG in the same regime.
+5 Experiments on Language Models
+In this section, we evaluate the performance of RoLoRA in various federated settings. Considering
+all clients will participate in each round, we will explore the following methods: FedA VG of LoRA
+(referred as LoRA) [43], FFA-LoRA [32], FlexLoRA[2], FloRA[40], and RoLoRA (ours).
+Implementation & Configurations.We implement all the methods based on FederatedScope-LLM
+[24]. We use NVIDIA GeForce RTX 4090 or NVIDIA A40 for all the experiments. To make a fair
+comparison, for each dataset, we obtain the best performance on test set and report the average over
+multiple seeds. Specifically, the learning rate is chosen from the set {5e−4,1e−3,2e−3,5e−
+3,1e−2,2e−2,5e−2,1e−1} . Other hyper-parameters for experiments are specified in Table 6
+in Appendix A5.2. Please note that in all tasks, we compare the performance of the three methods
+under the same number of communication rounds.
+5.1 Language Understanding Tasks
+Model and Datasets.We take the pre-trained RoBERTa-Large (355M) [ 27] models from the
+HuggingFace Transformers library, and evaluate the performance of federated finetuning methods on
+5 datasets (SST-2, QNLI, MNLI, QQP, RTE) from the GLUE [38].
+7

@@ -1,0 +1,155 @@
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+where the𝜃=
+
+𝜃 (1) , 𝜃 (2) , . . . , 𝜃(𝑁) 	
+, the L (𝑓(𝑥 ; 𝜃 (𝑖) ), 𝑦) denoted
+the loss between the𝑓(𝑥;𝜃 (𝑖) )and𝑦on client𝑖.
+In contrast to traditional FL, research in PFL (Figure 1, bottom)
+aims to address two principal challenges. The first challenge is the
+poor convergence of heterogeneous data, particularly when learn-
+ing onnon-IIDdata. The accuracy of traditional methods, such as
+FedAvg, is significantly reduced when training on such data. This
+performance degradation is attributed to the phenomenon of client
+drift resulting from local training and synchronization onnon-IID
+data. The second challenge is the lack of personalized solutions. In
+a traditional FL setting, a single global shared model is trained to fit
+the "average client". Consequently, for local distributions that differ
+significantly from the global distribution, the shared model strug-
+gles to generalize effectively. This lack of personalization hinders
+generalization, especially in practical applications dealing with
+commonly encounterednon-IIDlocal data sets. In such cases, a
+single model is often insufficient.
+To address the aforementioned challenges, PFL divides each
+client’s knowledge into two distinct categories: general knowledge
+and client-specific knowledge. Innon-IIDscenarios, the data distri-
+butions of different clients are unique. PFL decomposes the model
+trained on client data into a shared part,𝜃𝑠, and a personalized part,
+𝜃𝑝, which is dedicated to learning general knowledge and client-
+specific knowledge, respectively. Formally, the training objective
+of the personalized part can be formulated as:
+min
+𝜃𝑝
+L𝜃𝑝 := 1
+𝑁
+𝑁Í
+𝑖=1
+1
+| D(𝑖) |
+Í
+𝑥∈ D (𝑖)
+L (𝑓(𝑥;𝜃 (𝑖)
+𝑝 ), 𝑦) (2)
+where 𝜃𝑝 =
+n
+𝜃 (1)
+𝑝 , 𝜃 (2)
+𝑝 , . . . , 𝜃(𝑁)
+𝑝
+o
+. Consequently, the PFL, which is
+designed to adapt to statistical heterogeneity, aims to achieve high
+accuracy across different types and degrees of heterogeneous data,
+all without prior knowledge of the data distributions.
+2.2 Low-rank Adaptation
+As the number of LLM parameters increases from millions to bil-
+lions, fine-tuning models by freezing a portion of the parameters
+becomes increasingly resource-intensive, making it cost-prohibitive.
+To tackle this challenge, researchers have recently proposed the
+Parameter-Efficient Fine-Tuning (PEFT) method [21]. The objective
+of PEFT is to enhance the performance of pre-trained LLMs on
+downstream tasks by reducing the number of fine-tuned parame-
+ters and computational complexity, thereby reducing training costs.
+Consequently, even when constrained by limited computational re-
+sources, the LLMs can adapt to downstream tasks, enabling efficient
+transfer learning.
+LoRA is currently the most popular PEFT method due to its su-
+perior performance compared to other techniques, such as adapter,
+prefix tuning, and fine-tuning. LoRA embeds domain-specific knowl-
+edge into low-rank parameter matrices without altering the original
+parameters (Figure 2). Given a parameter matrix 𝑊0 ∈R 𝑑×𝑘 , the
+low-rank decomposition can be utilized to represent parameter
+updatesΔ𝑊as follows:
+𝑊0 +Δ𝑊=𝑊 0 +𝐵𝐴(3)
+where 𝐵∈R 𝑑×𝑟 , 𝐴∈R 𝑟×𝑘 and 𝑟<<min(𝑑, 𝑘) . 𝑊0 is freeze in
+training stage, while𝐴and𝐵are trainable.
+Pretrained 
+weights
+W 
+Weight
+update
+∆W 
+Inputs
+Outputs𝒉𝒉∈ ℝ𝒌𝒌
+𝒙𝒙∈ ℝ𝒅𝒅
+Pretrained 
+weights
+W 
+Inputs
+Outputs𝒉𝒉∈ ℝ𝒌𝒌
+𝒙𝒙∈ ℝ𝒅𝒅
+𝑨𝑨∈ ℝ𝒅𝒅×𝒓𝒓
+𝑩𝑩∈ ℝ𝒓𝒓×𝒌𝒌
+LoRA matrices A and B 
+approximate the weight 
+update matrix ∆W 
+Figure 2: Comparison of principle between regular fine-
+tuning (left) and LoRA (right).
+By learning rank decomposition matrices while simultaneously
+freezing the original parameters, LoRA reduces the number of train-
+able parameters significantly (see Figure 4). This substantially di-
+minishes the storage requirements of LLMs tailored for specific
+tasks and facilitates efficient task switching during deployment
+without introducing inference latency.
+3 METHOD
+3.1 Problem Formulation
+The goal of this paper is to train the LoRA module for diverse clients
+incorporating the PFL technique to improve performance while
+maintaining data privacy and efficiency. Building upon this goal, we
+re-investigated the concept of the PFL in the LLMs era. In particular,
+we consider that knowledge should be divided into three parts:basic
+knowledge,domain-general knowledge, andpersonalized knowledge.
+Basic knowledgeis the knowledge that LLM learns from a large
+corpus, which is not aimed at specific tasks but forms the basis
+of learning.Domain-general knowledgeis shared by one or more
+tasks based on data in a specific domain.Personalized knowledge
+is learned from data distribution specific to each client (non-IID
+scenarios).
+Based on the above concepts, we propose a novel approach, a.k.a
+FDLoRA, in the context of PFL. Similar to PFL, we build a LoRA
+module as the shared part 𝜃𝑠 to learn domain-general knowledge
+from different clients. Moreover, another LoRA module is built as
+the personalized part𝜃 (𝑖)
+𝑝 to learn personalized knowledge for client
+𝑖. Note that the basic knowledge in LLM has not changed, but this
+part (denoted Θ) is extremely important as the basis of learning.
+Finally, a function G (·) is adopted to dynamically fusionbasic
+knowledge,domain-general knowledge, andpersonalized knowledge.
+The objective of FDLoRA is to minimize the sum of the loss of all
+clients’ models, i.e.,
+min
+𝜃𝑠 ,𝜃𝑝 ,w
+1
+𝑁
+𝑁Í
+𝑖=1
+1
+| D(𝑖) |
+Í
+𝑥∈ D (𝑖)
+L
+
+G (F(𝑥;𝜃 (𝑖)
+𝑝 , 𝜃𝑠,Θ);w (𝑖) )
+
+(4)
+wherew =
+
+w(𝑖) 	𝑁
+𝑖=1 is the learnable parameters of G of client
+𝑖, F=
+
+𝑓(𝑥;𝜃 𝑝 ), 𝑓(𝑥;𝜃 𝑠 ), 𝑓(𝑥;Θ)
+	
+is the mapping ofpersonalized
+knowledgepart,domain-general knowledgepart, andbasic knowledge
+part. We will subsequently elaborate on the design of the FDLoRA .

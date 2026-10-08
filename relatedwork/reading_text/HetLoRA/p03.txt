@@ -1,0 +1,95 @@
+r = 1 r = 5 r = 10 r = 20 r = 50 r = 100 r = 150 r = 200
+PaLM 2 XXS, PaLM 2 XS 0.02% 0 .11% 0 .21% 0 .42% 1 .05% 2 .10% 3 .14% 4 .19%
+Table 2: Percentage of the LoRA parameters’ size for different ranks r compared to the original pre-trained ODFM’s parameter
+size. Even for large ranks such as r = 200 the trainable LoRA parameters’ size compared to the original pre-trained ODFM
+size is less than 5% for both PaLM 2-XS and PaLM 2-XXS.
+2 Related Work
+Parameter-Efficient Fine Tuning.There has been
+a plethora of recent work on PEFT which either
+trains a subset of parameters within the existing
+FM whilst other parameters are freezed or intro-
+duces an additional set of trainable parameters
+whilst keeping the original FM freezed. For the for-
+mer, methods such as head or bias fine-tuning (Wei
+et al., 2021; Bu et al., 2022; Lee et al., 2019; Zaken
+et al., 2021) has been explored, while for the latter,
+methods such as adapters (Houlsby et al., 2019),
+prompt (Lester et al., 2021) or prefix-tuning (Li
+and Liang, 2021), and low-rank approximation (Hu
+et al., 2021) has been proposed. While these num-
+ber of methods has been proven to perform as well
+as full model fine-tuning with just a few number
+of parameters for the centralized setting, it has
+not been thoroughly explored how these methods
+perform for a much smaller FM such as ODFMs,
+in the decentralized setting where clients’ system-
+capacities can be heterogeneous and much limited.
+Federated Fine-Tuning. Recently, interest in
+the intersection of FMs and FL has notably in-
+creased (Zhou et al., 2023; Yu et al., 2023). Many
+recent work has proposed to combine the PEFT
+methods devised for the centralized setting to FL
+such as training prompts or adapters collabora-
+tively with FL (Guo et al., 2022; Chen et al., 2022;
+Zhang et al., 2023a; Shysheya et al., 2023; Legate
+et al., 2023). Another line of work has proposed
+to perform a few-shot or nearly zero-shot train-
+ing of FMs with FL for improved communication-
+efficiency (Wortsman et al., 2023; Zhang et al.,
+2023d). However, these work either overlooks that
+most devices do not have the resource to fit a gen-
+eral FM (Touvron et al., 2023; Brown et al., 2020)
+(>8B parameters) even for inference or does not
+consider the heterogeneous system capacities of
+the clients. It is detrimental to consider these fac-
+tors since FMs that actually fits to the devices in
+FL are much smaller, making them weaker in the
+general intelligence capabilities, and also hetero-
+geneous system capacities may prohibit deploying
+same sized PEFT parameters across clients.
+Only a few number of recent work has looked in
+to using LoRA for FL. For instance, in (Babakniya
+et al., 2023), the importance of the initialization
+for the LoRA modules is evaluated where they pro-
+pose to train the LoRA modules with FL and then
+perform singular value decomposition (SVD) to
+gain a good initialization of the LoRA modules.
+However, the training process of LoRA itself is
+not altered to adapt to heterogeneous system capa-
+bilieis of devices. Another recent work (Yi et al.,
+2023) has evaluated LoRA in the context of per-
+sonalized FL, but other than applying LoRA to
+personalization, the LoRA method itself is, again,
+not changed. Our work proposes heterogeneous
+LoRA for federated fine-tuning where heteroge-
+neous ranks are deployed and trained across clients
+by a new algorithm that includes rank self-pruning
+and sparsity weighted aggregation.
+3 Federated Fine-Tuning with LoRA
+3.1 Preliminaries
+Formally, we define the pre-trained ODFM as
+W0 ∈ Rd×l and the trainable low-rank decom-
+posed matrix as ∆W ∈ Rd×l. In standard
+LoRA (Hu et al., 2021) under the centralized set-
+ting, the low-rank decomposition of ∆W is con-
+structed such that ∆W = BA where B ∈ Rd×r
+and A ∈ Rr×l are the low rank decomposition
+of ∆W with identical rank r. Now, let us con-
+sider LoRA for federated fine-tuning where there
+are M total clients. Each client k ∈ [M] has pri-
+vate data Bk and its corresponding local empiri-
+cal loss function Fk(W) = 1
+|Bk|
+P
+ξ∈Bk ℓ(W, ξ),
+where ℓ(W, ξ) is the loss for model W at data
+sample ξ. The optimization task for federated
+fine-tuning is to collaboratively find the global
+parameters which we define as B and A, given
+the pretrained knowledge W0 that can minimize
+the global objective F (W) = 1
+M
+PM
+k=1 Fk(W)
+where W = W0 + B A. Later in the paper, when
+3

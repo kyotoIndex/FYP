@@ -1,0 +1,24 @@
+19
+positive values are particularly evident in several middle
+and later layers under the MNLI-genre partition, indicating
+stronger relative disagreement in∆Aat these layers. The
+value projection exhibits a less uniform pattern. While many
+early and middle layers have positive mean log RHA, several
+later layers under the Dirichlet partitions have negative
+values, indicating stronger relative disagreement in∆B.
+These mixed layer-wise patterns show that an average factor-
+level trend does not fully characterize the behavior of all
+adapted layers and projections. This further supports eval-
+uating shared-subspace sufficiency from the representations
+of the actual client partition, as done by RSS.
+Overall, the relative disagreement between the two LoRA
+factors depends on the realized client partition and varies
+across Transformer layers and projection types. Therefore,
+neither the Dirichlet concentration parameter nor an average
+factor-level trend is sufficient to prescribe a fixed sharing
+side across federated settings. RSS addresses this issue by
+assessing, for the current client partition and target LoRA
+rankr, whether a shared rank-rinput subspace is sufficient
+for the local data distributions. These results support select-
+ing the sharing side according to the observed client partition
+rather than applying a fixed factor-sharing policy.

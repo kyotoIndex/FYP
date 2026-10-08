@@ -1,0 +1,102 @@
+Combining (40), (49) , and (61), with probability at least1−2 exp (dlog(1 + 2
+ϵ0
+)−c 5ϵ2
+3N m)−q−10,
+∥∇al(a, ¯b)−E[∇ al(a, ¯b)]∥ ≤ 1
+1−ϵ 0
+max
+w∈N
+w⊤∇al(a, ¯b)−w ⊤E[∇al(a, ¯b)]
+ (64)
+≤ 2ϵ3
+1−ϵ 0
+∥a¯b⊤ −a ∗b∗⊤
+∥op · ∥¯b∥(65)
+= 2ϵ3
+1−ϵ 0
+∥a(¯b−g) ⊤ −(I d −aa ⊤)a∗b∗⊤
+∥op · ∥¯b∥(66)
+≤ 2ϵ3
+1−ϵ 0
+(∥a⊤(¯b−g)∥+∥(I d −aa ⊤)a∗b∗⊤
+∥op)∥¯b∥(67)
+≤ 2ϵ3
+1−ϵ 0
+(∥¯b−g∥+∥(I d −aa ⊤)a∗∥ · ∥b∗∥)∥¯b∥(68)
+= 2ϵ3
+1−ϵ 0
+(∥¯b−g∥+δ t∥b∗∥)∥¯b−g+g∥(69)
+≤ 2ϵ3
+1−ϵ 0
+(∥¯b−g∥+δ t∥b∗∥)(∥¯b−g∥+∥g∥)(70)
+≤ 2ϵ3
+1−ϵ 0
+(∥¯b−g∥+δ t∥b∗∥)(∥¯b−g∥+∥b ∗∥)(71)
+= 2ϵ3
+1−ϵ 0
+(∥¯b−g∥ 2 +δ t∥¯b−g∥∥b ∗∥+∥ ¯b−g∥∥b ∗∥+δ t∥b∗∥2)
+(72)
+≤ 2ϵ3
+1−ϵ 0
+((ϵ′)2(δt)2 +ϵ ′(δt)2 +ϵ ′δt +δ t)∥b∗∥2 (73)
+≤ 2ϵ3
+1−ϵ 0
+(ϵ′ + 1)2δt∥b∗∥2 (74)
+= 2˜ϵ(ϵ′ + 1)2δt∥b∗∥2 (75)
+with ˜ϵ= ϵ3
+1−ϵ0
+. (65) uses (61). (67) follows by triangle inequality. (69) follows by δt =∥(I d −
+aa⊤)a∗∥. (71) uses∥g∥=∥b ∗a∗⊤
+a∥ ≤ ∥b ∗∥. (74) follows by(δ t)2 < δ t sinceδ t ∈(0,1).
+IfN m= Ω(
+dlog( 2
+ϵ0 )
+ϵ2
+3
+), then existing large constantC,
+1−2 exp (dlog(1 + 2
+ϵ0
+)−c 5ϵ2
+3N m)−q −10 >1−exp(−Cd)−q −10 (76)
+>1−d −10 −q −10 (77)
+>1−2q −10 (78)
+Thus with probability at least1−2q −10, (75) holds.
+Lemma A3.11(Lemma 4.3).Let a=a t. Let δt =∥(I d −a ∗a∗⊤
+)a∥=∥(I d −aa ⊤)a∗∥ denote
+the angle distance betweena ∗ anda. Assume that Assumption 4.1 holds andδ t ≤δ t−1 ≤ · · · ≤δ 0.
+Let m be the number of samples for each updating step, let ϵ′ = ϵ2
+(1−ϵ0)(1−ϵ1) ,˜ϵ= ϵ3
+1−ϵ0
+for
+ϵ0, ϵ1, ϵ2, ϵ3 ∈(0,1), if
+m= Ω
+ 
+max
+(
+log(N)
+[min(ϵ1, ϵ2)]2 ,
+dlog( 2
+ϵ0
+)
+ϵ2
+2
+)!
+andϵ ′,˜ϵ < 1−(δ0)2
+16 , for anytandη≤ 1
+L2max
+, then we have,
+δt+1 ≤δ t
+q
+1−η(1−δ 02
+)∥b∗∥2 (79)
+with probability at least1−2q −10 forq= max
+
+log(N)
+[min(ϵ1,ϵ2)]2 ,
+dlog( 2
+ϵ0 )
+ϵ2
+2
+
+.
+23

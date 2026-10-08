@@ -1,0 +1,70 @@
+\vspace{-3mm}
+
+\section{Theoretical Analysis}\label{sec:theory}
+We analyze AS-LoRA along two axes: $\emph{(i) layer-wise freedom}$ which is the ability to activate $A$ or $B$ independently per layer and $\emph{(ii) score-driven selection}$ which is  $\arg\max_a S_a$ with $S_a=\|g_a\|^2-\tfrac{\eta}{2}g_a^\top H_a g_a$. Each axis contributes a distinct and quantifiable advantage over the layer-tied or static baselines including FFA-LoRA \cite{sun2024improving}, and RoLoRA \cite{chen2025robust}. To focus our goals, we do not consider the effect of random projection, EMA, temperature-scaled softmax strategy, and the variance of training and scoring caused by distributed settings in our analysis. We first prove that AS-LoRA requires no extra privacy cost. In fact, AS-LoRA's selection at each layer depends on $\|g_a^{(n)}\|^2$ and $(g_a^{(n)})^\top H_a^{(n)} g_a^{(n)}$, both of which are gradient-dependent statistics that in principle \emph{could} be privacy-relevant. The following theorem resolves the concern based on the post-processing invariance of DP \cite{dwork2014dpfoundations}. The proof of Theorem \ref{thm:privacy} can be found in Appendix \ref{app:proof_of_privacy}.
+
+\begin{theorem}[$(\epsilon,\delta)$-DP at no privacy cost]\label{thm:privacy}
+With per-round DP-SGD~\cite{abadi2016deep} (subsampled Gaussian, sensitivity $C$, noise scale $\sigma$, sampling rate $q$), AS-LoRA satisfies $(\epsilon,\delta)$-DP with
+\(
+\epsilon \le \tfrac{q^2 C^2 T}{\sigma^2}\log(1/\delta),
+\)
+the same bound with FFA-LoRA/RoLoRA via moments accountant / R\'enyi-DP composition~\citep{mironov2017renyi,wang2019sgm}.
+\end{theorem}
+Now, we show that any schedule which ties the mode across all layers must incur an irreducible loss floor, whereas AS-LoRA provably eliminates it. For the analysis, we first introduce \emph{layer-wise population-optimal LoRA pair} that minimizes the \emph{population} fine-tuning loss $f_n$ as
+\begin{equation}\label{def_optimal}
+\bigl(A^\star(n),\,B^\star(n)\bigr) :=\arg\min_{A\in\R^{r\times d},\,B\in\R^{d\times r}}\; \E_{X_{n}}\!\bigl[\ell\bigl(f(X_{n})\bigr)\bigr].
+\end{equation}
+Next, we define the \emph{subspace misalignment} $\delta^t(n)$ as
+\begin{equation}\label{def_misalign}
+    \delta^t(n) :=\bigl\|B^\star(n)\,A^\star(n)\,(I - P_{A^t(n)})\bigr\|_F  = \bigl\|\Delta W^\star(n)(I - P_{A^t(n)})\bigr\|_F
+\in[0,\|\Delta W^\star(n)\|_F],
+\end{equation}
+where $P_{A^t(n)}:=A^t(n)^\dagger A^t(n)\in\R^{d\times d}$ denote the orthogonal projector onto $\mathrm{row}(A^t(n))$, $A^\dagger$ denotes the Moore-Penrose pseudoinverse \cite{barata2012moore}. It quantifies the part of the optimal update $B^\star A^\star$ that lies outside $\mathrm{row}(A^t(n))$. The intermediate values with $r=1$ was used by \cite{chen2025robust} to diagnose the fundamental obstruction of FFA-LoRA, where $A^t(n)\!\equiv\!A^0(n)$ so $\delta^t(n)$ persists forever. With $X_n\in\R^{d\times m}$ stacking the layer-$n$ inputs, we define \emph{per-layer reconstruction risk} as
+\begin{equation} \label{def_recon}
+    \mathcal R_\text{rec}(\mathbf W) :=\frac{1}{N}\sum_{n=1}^{N}\bigl\|B^\star(n)A^\star(n)X_n - B(n)A(n)X_n\bigr\|_F^2,
+\end{equation}
+\emph{i.e.} the average layer-wise squared Frobenius distance between each layer's effective update and its optimal LoRA pair defined in \eqref{def_optimal}. While the reconstruction risk with one layer was also used in \cite{chen2025robust}, $\mathcal R_\text{rec}$ in \eqref{def_recon} is averaged layer-wise. Following Theorem \ref{thm:irreducible} and Corollary \ref{cor:asstrict} prove the strict dominance of layer-wise freedom over layer-tied schedules.
+
+\begin{theorem}[Irreducible reconstruction floor of layer-tied schedules]\label{thm:irreducible}
+Under Assumptions~\ref{asm:smooth}--\ref{asm:hess} and a well-conditioned input regime that is $\sigma_{\max}(X_n)/\sigma_{\min}^+(X_n A^0(n)^\dagger) = O(1)$ uniformly over layers $n$, FFA-LoRA~\citep{sun2024improving} which freezes $A^{(n)}$ at the random initialization $A^0(n)$ satisfies
+\begin{equation}
+\lim_{T\to\infty}\E\!\left[\mathcal R_\text{rec}(\mathbf W_T^{\text{FFA}})\right] \;=\; \Theta\!\left(\tfrac{1}{N}\!\sum_{n=1}^N\bigl(\delta^0(n)\bigr)^2\right),    
+\end{equation}
+where $\delta^0(n)\!=\!\|B^\star(n)A^\star(n)(I\!-\!P_{A^0(n)})\|_F$ is the initial subspace misalignment, and the implicit $\Theta(1)$ constants depend on the per-layer conditioning $\sigma_{\max}^2(X_n)/\sigma_{\min}^2(X_n A^0(n)^\dagger) = O(1)$ and absorb both the correction $O(1/\sqrt{Km})$ and the SGD noise floor $O(\eta\sigma_g^2)$. Moreover, any RoLoRA-type layer-tied alternation inherits $\Omega\!\bigl(\tfrac{1}{N}\sum_n(\delta^0(n))^2\bigr)$ floor under adversarial layer configurations.
+\end{theorem}
+
+The preliminaries can be found in Appendix \ref{app:prelim}, the proof of Theorem~\ref{thm:irreducible} can be found in Appendix~\ref{app:proof_of_irreducible}, and the proof of Corollary \ref{cor:asstrict} can be found in Appendix \ref{app:proof-asstrict}.
+
+\begin{corollary}[Strict improvement of AS-LoRA]\label{cor:asstrict}
+Under the same well-conditioned input regime as Theorem~\ref{thm:irreducible}: if AS-LoRA activates $A^{(n)}$ on $\Theta(T)$ rounds per layer, then for any $\varepsilon>0$ there exists $T=O(\log(1/\varepsilon))$ with $\delta^T(n)\!\le\!\varepsilon$ for all $n$, and
+\begin{equation}
+    \lim_{T\to\infty}\E\bigl[\mathcal R_\text{rec}(\mathbf W_T^{\text{AS}})\bigr] \;=\; O\!\bigl(\varepsilon^2\bigr) \;<\; \lim_{T\to\infty}\E\bigl[\mathcal R_\text{rec}(\mathbf W_T^{\text{FFA}})\bigr] \;=\; \Theta\!\bigl(\tfrac{1}{N}\!\sum_n(\delta^0(n))^2\bigr)
+\end{equation}
+whenever any $\delta^0(n_0)>\varepsilon$ for at least one layer $n_0$ (the FFA floor's $\Theta(1)$ constant is bounded below).
+\end{corollary}
+
+Having established that per-layer freedom is the right design axis, we now ask which block to pick at each round. Here, we discuss the improvement via the selection based on $S_a^{(n)}$. For this, we first define the \emph{adaptive gain} $\Delta_{\mathcal S}^t(n) := \E\!\left[\max_{a\in\{A,B\}} S_a^t (n)\right] -\frac{1}{2}\,\E\!\left[S_A^{t}(n)+S_B^{t}(n)\right] $
+the per-layer gap between the score of AS-LoRA's greedy pick and the uniform baseline. This is the score-space version of the \emph{suboptimality gap} used in Gauss--Southwell analyses of BCD \cite{nesterov2012bcd}. In addition, We collect $1-\tfrac{\eta}{2}\lambda_a^{(n)}$ across the trajectory and across layers, and define $\rho^\star := \inf_{t,n}\Bigl(1-\tfrac{\eta}{2}\lambda_{M^t(n)}^{(n)}\Bigr) \;\in\;(0,1]$,
+the \emph{curvature-penalty ratio}, where $\lambda_{a}^{(n)}:=(g_{a}^{(n)})^{\top} H_a^{n} g_a^{(n)}/\|g_a^{(n)}\|^2$ the block Rayleigh quotient. Intuitively, $\rho^\star$ is the fraction of pure-descent score that survives after the curvature penalty under the AS-LoRA selection rule. Note that the curvature-penalty ratio with AS-LoRA is larger than the value with static schedules in the late-training regime where $\|g_A^{(n)}\|^2 \approx \|g_B^{(n)}\|^2$. The following theorem provides the convergence of AS-LoRA and improvement compared to the static schedules characterized by the factors $\overline{\Delta_{\mathcal S}}$, and $\rho^\star$   
+\begin{theorem}[Accelerated Convergence with quantities $\overline{\Delta_{\mathcal S}}$, and $\rho^\star$]\label{thm:conv}
+Under Assumptions~\ref{asm:smooth}--\ref{asm:hess} with $\eta\le 1/\beta$,
+\begin{equation} \label{non-convex_bound}
+\min_{t\le T}\E\|\nabla\Loss(W_t)\|^2 \;\le\; \frac{2(\Loss(W_0)-\Loss^\star)}{\eta\,\rho^\star\,T} \;-\; \frac{2\,\overline{\Delta_{\mathcal S}}}{\rho^\star} \;+\; \frac{\eta\beta\sigma_g^2}{\rho^\star},    
+\end{equation}
+where $\overline{\Delta_{\mathcal S}}:=\tfrac{1}{T}\sum_{t=1}^{T}\tfrac{1}{N}\sum_{n=1}^{N}\Delta_{\mathcal S}^t(n)$. Under the additional PL condition (Assumption~\ref{asm:pl})~\citep{karimi2016pl},
+$
+\E[\Loss(W_T)-\Loss^\star]\le(1-\eta\mu\rho^\star)^T(\Loss(W_0)-\Loss^\star)+O(\eta\sigma_g^2/\mu).
+$
+\end{theorem}
+
+The non-convex bound \eqref{non-convex_bound} recovers the standard $O(1/(\eta\rho^\star T))$ gradient-norm rate of SGD \citep{karimi2016pl} but with two distinguishing features. The terms are multiplied by $1/\rho^{\star}$, and the second term $-2\overline{\Delta_{\mathcal S}}/\rho^\star$ guarantees that AS-LoRA's pick tightens the bound directly and beats the uniform baseline. Under the PL condition, the improvement compounds geometrically, yielding a $(1-\eta\mu\rho^\star)^T$ rate that matches the best-known LoRA fine-tuning rate~\citep{liu2022loss,hayou2024lora+} but with $\mu\rho^\star$ in place of $\mu$, i.e.\ AS-LoRA provably converges generally faster than any layer-tied or static baselines. The proof can be found in Appendix \ref{app:proof-conv}. Finally, we discuss that AS-LoRA's trajectory with $S_a^{(n)}$ is biased toward the \emph{flatter} of the two blocks, which can be seen as an implict SAM-style regularization \cite{foret2021sam} or cheap method to achieve the flatness without the SVD overhead in FedSVD \cite{lee2025fedsvd}. The proof can be found in Appendix \ref{app:proof-implicit}.
+
+
+\begin{theorem}[Implicit flatness via curvature-penalty score]\label{thm:implicit}
+For each layer $n$, let $\overline H_t^{(n)} := \E[H_{M^t(n)}^{(n)}]$ denote the expected block Hessian at the selected mode under AS-LoRA's argmax rule. Under Assumptions~\ref{asm:smooth}--\ref{asm:hess},
+\begin{equation}    
+\E\bigl[\lambda_{\max}\bigl(\overline H_t^{(n),\text{AS}}\bigr)\bigr] \;\le\; \E\bigl[\lambda_{\max}\bigl(\overline H_t^{(n),\text{static}}\bigr)\bigr] \quad\text{for every } n\in[N],
+\end{equation}
+with strict inequality at every layer at which the two per-block top-spectra $\{\lambda_{\max}(H_A^{(n)}), \lambda_{\max}(H_B^{(n)})\}$ differ. AS-LoRA's trajectory is therefore biased toward the \emph{flatter} of the two blocks, yielding an implicit SAM-style regularization \citep{foret2021sam}.
+\end{theorem}
+

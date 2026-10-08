@@ -1,0 +1,103 @@
+Centralized LDA( =1000)
+ LDA( =0.1)
+ Pathological
+Data Distribution
+0
+20
+40
+60
+80
+100T est Accuracy (%)
+FFT LoRA Pfeiffer Holusby BITFIT
+(a) 20News group dataset on Albert
+Centralized LDA( =1000)
+ LDA( =0.1)
+ Pathological
+Data Distribution
+40
+45
+50
+55
+60
+65
+70
+75
+80
+85T est Accuracy (%)
+FFT LoRA Pfeiffer Holusby BitFit (b) 20News group dataset on DistilBERT
+Figure 3: Performance of PEFT methods in the centralized and federated setting with different data distributions for
+20News group dataset.
+as follows
+h = W0x + β
+r BAx, (1)
+where r is LoRA rank and β is a constant in r.
+Therefore, according to (eq. 1), the output from
+the LoRA module is added coordinate-wise to the
+output of the original model. The scaling β
+r can be
+used to reduce the need to re-tune hyper-parameters
+when varying r.
+4 Our Proposed approach
+(Primed-LoRA)
+In centralized learning, LoRA consistently has
+shown promising performance in different tasks
+and closely follows the FFT accuracy. As shown
+in Fig. 3, this still holds for federated settings
+with more homogeneous data distribution (larger
+α). However, in highly non-IID data distribution,
+LoRA can fail to reach close to the FFT perfor-
+mance or suffer from a slower convergence rate
+compared to FFT. We hypothesize that one of the
+reasons behind this is the way that LoRA blocks
+are initialized (Fig. 2).
+As described in Hu et al. (2021), LoRA initial-
+izes the A matrix with random independent Gaus-
+sian coefficients and B with 0. This initialization
+works in a centralized setting where the data is am-
+ple and concentrated. However, these random and
+zero initializations in FL can potentially slow down
+the fine-tuning process.
+Data-driven priming of LoRA. Based on our hy-
+pothesis, picking a better starting point for LoRA
+might improve its performance. Therefore, we pro-
+pose a two-stage parameter efficient fine-tuning,
+Primed-LoRA, based on the LoRA algorithm.
+In Stage 1, the FL clients collaboratively find a
+mature starting point to prime the LoRA blocks.
+Then, in Stage 2, we run the LoRA algorithm with
+our learned initializers from Stage 1. In the remain-
+der of the section, we discuss different ways of
+priming in Primed-LoRA and the properties of the
+different priming methods.
+4.1 Full fine-tuning for priming LoRA
+A straightforward approach for Stage 1 of Primed-
+LoRA is to perform a full fine-tuning for a few
+rounds in Stage 1 of Primed-LoRA and then use
+SVD matrix decomposition t extract a good initial-
+ization for Stage 2. We call this variant of Primed-
+LoRA as FFT-LoRA or FLoRA.
+Formally, we use∆W to denote the accumulated
+change in the model parameters after Stage 1. This
+weight difference is, conceptually, the same as what
+we have in each LoRA block, but ∆W is of size
+d × k matrix. We use SVD to arrive at a low-rank
+approximation of ∆W = B × A, with B ∈ Rd×r,
+A ∈ Rr×k that is used to prime LoRA in Stage
+2. A description of how we create A and B using
+SVD is delegated to Appendix A.
+After converting ∆W into A and B, the training
+goes to the second stage, where clients only update
+the LoRA blocks and share those parameters with
+the server. As shown in Fig. 7, FLoRA can im-
+prove the global model’s performance, especially
+with more training rounds in Stage 1. However,
+as we discuss next, using full fine-tuning to prime
+LoRA comes at a cost.
+Cost of FLoRA In FLoRA, Stage 1 successfully
+enhances the performance while achieving param-
+eter efficiency. However, in terms of the training
+cost, the communication and computation cost of
+training at this stage is the same as full fine-tuning.
+In Stage 2, the cost depends on dimensions param-
+eter r.
+While FLoRA shows that Primed-LoRA can

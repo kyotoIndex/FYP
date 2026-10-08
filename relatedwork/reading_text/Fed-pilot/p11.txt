@@ -1,0 +1,114 @@
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Supplement
+We provide more discussions and experiments of this work in the supplement and organize it as follows:
+• Supplement A: Additional details on memory consumption in LoRA-based FM fine-tuning.
+– In Subsection A.1, we provide an example of how to calculate activations with only a frozen linear layer.
+– In Subsection A.2, we provide an example of how to calculate activations with a frozen non-linear layer.
+– In Subsection A.3, we provide details on the type of activation in the ViT model.
+– In Subsection A.4, we provide a code of how to calculate memory consumption for a given LoRA allocation map with ViT-base.
+• Supplement B: We provide detailed information on the experimental settings, including the models, FL settings, GPU memory capacity
+configurations for each client and model level, the resources and infrastructure used for the experiments, and a detailed explanation
+of the experiments shown in Figure 1.
+– In Subsection B.1, we outline the FL-related settings and hyperparameters.
+– In Subsection B.2, we describe the capacity chooses for each model.
+– In Subsection B.3, we provide a detailed explanation of the experimental settings used for Figure 1.
+• Supplement C: Details on the preprocessing of all datasets are provided.
+• Supplement D: Additional results are presented in tables.
+• Supplement E: A comparative study on state-of-the-art methods is provided.
+• Supplement F: The limitations of our work are discussed.
+• Supplement G: Directions for future work are outlined.
+A GPU Memory Consumption of Model Fine-Tuning with LoRA
+A.1 Backpropagation for Linear Layers: Saving Dynamic Activation using Freezing
+We provide a simple example [1] demonstrating how gradients are backpropagated to the first layer of a neural network while its middle
+layer is frozen. To this end, let us perform backpropagation using a 3-layer neural network as an example. The architecture of this network is
+described as follows,
+y1 = xW1 + b1, (9)
+y2 = y1W2 + b2, (10)
+y3 = y2W3 + b3. (11)
+where {W1, W2, W3} and {b1, b2, b3} are the weights and biases of the network, respectively. In this example, x, y1, and y2 are input to
+the first layer, the second layer, and the third layer, respectively. The backpropagation equations for the lossL using the chain rule can be
+presented as follows,
+𝜕L
+𝜕W3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕W3
+= 𝜕L
+𝜕y3
+y2, (12)
+𝜕L
+𝜕b3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕b3
+= 𝜕L
+𝜕y3
+, (13)
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 y1, (14)
+𝜕L
+𝜕b2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕b2
+= 𝜕L
+𝜕y3
+W⊤
+3 , (15)
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 x, (16)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 . (17)
+where 𝜕 denotes the partial derivative, and 𝜕 L
+𝜕W3 is obtained by computing the loss.
+Training all three layers. To update all the network weights (i.e., W1, W2, W3), we need to store x, y1, and y2 during forward
+computations, as they are required in the gradient calculations.
+Training two layers while freezing the middle layer. In the case of freezing the middle layer, it is unnecessary to compute the
+gradient update for W2:
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 y1. (18)

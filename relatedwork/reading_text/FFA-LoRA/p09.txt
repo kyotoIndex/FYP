@@ -1,0 +1,53 @@
+Published as a conference paper at ICLR 2024
+Method # of params
+(million)
+MNLI
+(matched)
+MNLI
+(mismatched) SST-2 QQP QNLI
+LoRA (rank 16) 3.15 (0.877%) 87.43 87.47 93.98 84.79 91.92
+LoRA (rank 8) 1.57 (0.440%) 87.01 87.33 93.55 84.41 91.36
+LoRA (rank 4) 0.79 (0.220%) 86.07 86.41 93.89 83.71 91.51
+LoRA (rank 2) 0.39 (0.110%) 85.83 86.52 93.58 83.00 91.76
+FFA-LoRA (rank 16) 1.57 (0.440%) 85.82 86.38 95.30 84.89 91.65
+FFA-LoRA (rank 8) 0.79 (0.220%) 87.04 87.36 94.10 85.33 91.62
+FFA-LoRA (rank 4) 0.39 (0.110%) 85.61 86.11 94.47 84.64 91.38
+FFA-LoRA (rank 2) 0.20 (0.055%) 84.89 85.75 94.18 84.92 90.98
+Table 3: Prediction accuracy ( %) comparison on FFA-LoRA and LoRA with different ranks.
+privacy budget Method r = 16 r = 8 r = 4 r = 2
+Non-Private LoRA 91.92 91.36 91.51 91.76
+FFA-LoRA 91.65 91.62 91.38 88.56
+ϵ = 6 LoRA 86.87 86.45 85.24 83.54
+FFA-LoRA 87.33 87.57 86.74 86.31
+ϵ = 3 LoRA 86.23 86.05 85.35 85.57
+FFA-LoRA 86.36 86.98 86.22 85.08
+ϵ = 1 LoRA 80.54 81.45 58.30 58.15
+FFA-LoRA 81.87 83.01 82.06 82.64
+Table 4: Prediction accuracy ( %) of FFA-LoRA and LoRA across privacy and parameter budgets.
+been shown in proof of Thm. 1 that the scaling factor does not affect the overall performance of
+the algorithm. We conducted experiments with a selection of different α, and refer to A.6 in the
+appendix for the details and discussion.
+How does different initialization on A affect performance? Since our proposed FFA-LoRA sets
+A as fixed throughout the fine-tuning process, a natural question would be regarding the initialization
+of A.We provide a discussion in Appendix A.8.
+5.3 E XTENDING BEYOND LANGUAGE CLASSIFICATION
+We next consider the task of Natural Language Generation (NLG) with LLaMA-7B, a more sophis-
+ticated model with significantly more parameters.
+Our method has achieved an accuracy of 17.12% on the task of GSM-8K, significantly better than
+the best performance of LoRA at 15.68% (15.31% reported in (Kuang et al., 2023)). It is also the
+best results on fine-tuning LLaMA with GSM-8K to the best of our knowledge.
+For an additional dataset on the computer vision task. We use the pre-trained vision transformer
+(Dosovitskiy et al., 2020) and consider the task of fine-tuning on the Food-101 dataset Bossard et al.
+(2014). In short, the algorithms performs similarly compared to the language classification tasks.
+We report the details of the two experiments above in Appendix A.3 and A.7 respectively.
+6 C ONCLUSION
+In this paper, we discussed how to improve LoRA in the context of privacy-preserving federated
+learning. An in-depth analysis was provided on LoRA’s deficient performance in FL and with
+DP guarantees. We proposed a modification to LoRA named FFA-LoRA, which is theoretically
+motivated, empirically verified and computationally more efficient. Beyond the scope of this paper,
+FFA-LoRA could motivate more interesting problems related to PEFT for future study. For instance,
+we provide some preliminary results in Appendix A.4 to motivate future studies on algorithms that
+are even more parameter-efficient for federated LLM fine-tuning, one potential future direction is al-
+ternative initialization methods for matrices such as the orthogonal initialization. From a theoretical
+perspective, FFA-LoRA could be related to random kernel methods due to its pseudo-linear nature.
+9

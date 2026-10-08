@@ -1,0 +1,1400 @@
+
+
+===== PDF PAGE 1 =====
+
+What Should Federated LoRA Share?
+FedSAIL via Input-aware Subspace Alignment
+Junye Du* Shuaida He* Long Feng†
+School of Computing & Data Science
+The University of Hong Kong
+junyedu@connect.hku.hk sdhe@hku.hk lfeng@hku.hk
+Abstract
+Federated low-rank adaptation (LoRA) requires identifying an update structure that is shared across
+heterogeneous clients. Prior work reports strong similarity among trained LoRA projection matrices across
+clients; however, such agreement may be largely induced by common initialization and collapses toward
+random overlap under independent initialization. More crucially, relying solely on parameter similarity
+inherently ignores the influence of local input regime. To uncover a more robust shared structure, we
+introduce an input-aware action matrix that weights the adapter update by the second-moment statistics of
+local layer inputs. Empirically, while parameter similarity vanishes, the leading right singular directions of
+this action matrix remain strongly aligned across clients. This shared geometry preserves task-conditioned
+differences and naturally varies across network depths. Motivated by these findings, we propose Federated
+Subspace-Guided Action-Informed Learning (FedSAIL). Instead of averaging weights, FedSAIL estimates
+a shared action subspace to regularize local training while preserving client-specific coefficients. Across
+several benchmarks, our approach consistently improves predictive performance over competing federated
+LoRA methods while reducing communication cost significantly.
+1 Introduction
+Low-rank adaptation (LoRA) fine-tunes a frozen pretrained layer through a compact update ∆=BA
+(Hu et al., 2022). In federated learning, clients can exchange such adapters while keeping their data local
+(McMahan et al., 2017; Zhang et al., 2024). A central question is therefore what information should be
+shared across clients. Existing methods address this by specifying which components of the adapter are
+communicated and how they are aggregated. A representative example is FedSA-LoRA, which trains both
+factors but shares only A, while retaining client-specific Bk for personalization (Guo et al., 2025). For
+illustration, Figure 1 (b) depicts the FedSA-LoRA mechanism, with the shared LoRA component highlighted
+in yellow. Other approaches shareBagainst either a common frozenA(Sun et al., 2024) or locally trained
+Ak (Ban and Ji, 2026). FLoRA aggregates full adapter updates by stacking factors (Wang et al., 2024), while
+LoRA-FAIR refines aggregation and next-round initialization (Bian et al., 2025). FedRot-LoRA instead
+aligns factor coordinates through orthogonal rotations before aggregation, preserving each adapter product
+while addressing rotational misalignment (Zhang et al., 2026). These choices determine how clients represent
+and combine their updates, but parameter agreement alone need not identify structure learned in common.
+*Equal contribution.
+†Corresponding author:lfeng@hku.hk.
+1
+arXiv:2609.32485v1  [cs.LG]  26 Sep 2026
+
+===== PDF PAGE 2 =====
+
+Pretrained
+W
+B
+A
+r
++
+yk
+hk
+(a) LoRA
+Pretrained
+W
+Bk
+A
+r
++
+yk
+hk
+(b) FedSA-LoRA
+Pretrained
+W
+Bk
+Ak
+r
++
+yk
+hk
+Client input regimes
+Math
+Coding
+Natural language
+∫ x
+2
+dx
+</>
+Hello
+Input-aware action
+Bk Ak Gk
+Dominant right subspace
+Client input moment
+(c) FedSAIL (Ours)
+Frozen backbone Shared object Local object
+Σ𝑘 = 𝔼𝑘[ℎℎ⊤]
+Σ𝑘
+1/2
+Figure 1: Sharing in federated LoRA. (a) LoRA. (b) FedSA-LoRA shares A and retains Bk locally. (c)
+FedSAIL shares a spectral summary of the dominant right subspace ofG k =B kAkΣ1/2
+k .
+Initialization provides one reason for this distinction. FedSA-LoRA motivates sharing A by its higher
+cross-client similarity relative to B (Guo et al., 2025). However, recent analyses suggest that this apparent
+similarity may be largely inherited from common initialization (Zhu et al., 2024; Ban and Ji, 2026). Our
+controlled RoBERTa/RTE (Liu et al., 2019; Wang et al., 2018) experiment further supports this interpretation:
+the rowspace agreement of the final A falls to near-random levels under independent initialization, while the
+learned changes remain only weakly aligned under either initialization scheme.
+A further limitation of sharing only LoRA parameters is that it does not explicitly account for client-specific
+input distributions. Since each client induces a local input regime at every adapted layer, an update’s effect
+depends jointly on its weights and the hidden states it encounters. Differences in domain, prompts, or
+sequence length can therefore make even identical adapters behave differently across clients. These local
+input regimes are reflected in the hidden-state activations, motivating the use of activation statistics, such
+as second moments, to summarize their local geometry. Such statistics have already been used for adapter
+construction: EV A initializes LoRA input factors from dominant activation directions and allocates rank
+according to explained activation variance (Paischer et al., 2025), while CorDA uses activation covariance
+to orient decompositions of pretrained weights (Yang et al., 2024a). While these methods use activation
+statistics to construct adapters, we instead ask whether such statistics can reveal shared structure in learned
+updates across client-specific input regimes, motivating a shift beyond raw parameter sharing.
+To address this question, we introduce the input-aware action matrix Gk =B kAkΣ1/2
+k , where Σk =
+Ek
+
+hh⊤
+is the uncentered second moment of the local layer inputs. We defer its formal properties to
+Section 2.2, but intuitively, the leading right singular directions of Gk identify the input subspace where
+the adapter’s effect is most concentrated. This provides a natural and robust representation of cross-client
+common structure. Figure 1 (c) contrasts this action-based perspective with existing parameter-sharing
+approaches.
+Our empirical studies confirm that Gk uncovers a robust shared structure often obscured by raw parameter
+comparisons. In our RoBERTa/RTE diagnostic, the leading action direction remains aligned across clients
+even under independent initialization and captures substantially more action energy on a held-out client than
+matched geometric controls. Furthermore, a factorial GPT-2 study reveals that this geometric alignment
+is highly task-conditioned and depth-dependent: clients solving the same task remain more aligned across
+domains than clients solving different tasks. These results suggest a simple design principle: share only a
+2
+
+===== PDF PAGE 3 =====
+
+compact common action subspace, retain client-specific flexibility, and use layerwise agreement to decide
+where collaboration is beneficial.
+We realize this principle throughFederated Subspace-Guided Action-Informed Learning(FedSAIL). Instead
+of exchanging raw weights, each client uploads a compact spectral summary of its action matrix. The
+server then estimates a common geometric basis, which guides local training via a soft penalty on actions
+falling outside this shared subspace. Since both LoRA factors remain local, clients preserve their specific
+coefficients and trainable residual directions. Crucially, this design fundamentally decouples communication
+cost from local adapter capacity, allowing clients to scale up their models locally without incurring additional
+communication costs. Furthermore, by evaluating cross-client agreement after a local warmup phase,
+FedSAIL can restrict collaboration only to structurally aligned layers. Evaluated on personalized GLUE,
+FedSAIL consistently outperforms existing federated LoRA baselines. In highly heterogeneous domain-
+and-task settings, our layer selection strategy further reduces communication by 19.26% while preserving
+comparable predictive accuracy, validating FedSAIL as a highly efficient and data-driven approach to
+federated fine-tuning.
+We summarize our main contributions as follows:
+• We introduce an input-aware action matrixGk that exposes shared structure in federated LoRA beyond
+raw parameter similarity. Controlled diagnostics show that its leading directions remain aligned
+even under independent initialization, capturing structures that are inherently task-conditioned and
+depth-dependent.
+• We develop FedSAIL, a novel federated fine-tuning framework that guides personalized adaptation via
+a shared action subspace. By keeping both LoRA factors strictly local and exchanging only compact
+spectral summaries, FedSAIL fundamentally decouples network communication overhead from local
+adapter capacity.
+• We evaluate FedSAIL across heterogeneous client settings, including ablations over local rank and
+communicated summaries. Selective layer sharing further reduces communication while maintaining
+comparable mean accuracy in the studied settings.
+2 Identifying Shared Structure in Federated LoRA
+In this paper, we consider a frozen linear layer with input dimension p and output dimension q. During local
+adaptation, clientklearns a rank-rweight update parameterized as
+∆k =B kAk ∈R q×p, r <min(p, q),(1)
+where Ak ∈R r×p and Bk ∈R q×r denote the down-projection and up-projection matrices, respectively. For
+notational simplicity, we omit the layer index and the LoRA scaling factor.
+Given a layer inputh∈R p, the corresponding LoRA correction isBk
+ 
+Akh
+
+(Hu et al., 2022). This operation
+can be viewed as sequential feature-extraction and output-mapping: Ak projects h into an r-dimensional
+latent feature space, while Bk maps the resulting features to a correction vector in Rq (Zhu et al., 2024). A
+fundamental question in federated LoRA then arises: what underlying structure in this adaptation process is
+shared across clients, and how can it be used to improve local adaptation?
+3
+
+===== PDF PAGE 4 =====
+
+2.1 Limits of Raw Parameter Similarity
+To answer this question, we first examine the pitfalls of existing parameter-centric approaches. In federated
+learning, sharing a LoRA component typically means aggregating locally trained parameters across clients
+and broadcasting the result for the next round of local training. Existing methods share either the projection
+matrix Ak, Bk, or the full adapter update ∆k, each reflecting a different assumption about transferable
+structure. For example, sharing Ak imposes a common input feature map while allowing client-specific Bk
+to produce personalized output corrections. Conversely, sharing Bk imposes a common mapping from latent
+representation to the output space while retaining client-specific input projections (Sun et al., 2024). As
+shown in Table 1, we summarize some shared structures and the components retained locally across existing
+methods.
+Table 1: Comparison of shared components, aggregation strategies, and local training rules across different
+federated LoRA frameworks.
+Method Shared object Aggregation Local training
+FedIT
+(Zhang et al., 2024) A,B
+¯A= P
+k ωkAk
+¯B= P
+k ωkBk
+Ak,B k
+FLoRA
+(Wang et al., 2024) Adapter update∆ ¯∆= P
+k ωk∆k Ak,B k
+FFA-LoRA
+(Sun et al., 2024) B; common frozenA (0) ¯B= P
+k ωkBk OnlyB k
+FedSA-LoRA
+(Guo et al., 2025) A ¯A= P
+k ωkAk Ak,B k
+FedDPA-LoRA
+(Yang et al., 2024b) GlobalA g,B g
+¯Ag = 1
+K
+P
+k Ag
+k
+¯Bg = 1
+K
+P
+k Bg
+k
+GlobalA g
+k,B g
+k
+LocalA ℓ
+k,B ℓ
+k
+FedSAIL(ours) Dominant right subspace
+ofG k in (3)
+cM= P
+k ωk cMk in (6)
+bV= TopEig s(cM)
+Ak,B k
+However, these parameter-sharing schemes do not by themselves reveal what structure is genuinely learned
+in common across clients. As a representative example, Guo et al. (2025) motivate sharing Ak based
+on its higher cross-client similarity relative to Bk. Yet, the factors in low-rank matrix factorizations are
+nonunique: BkAk =
+ 
+BkR
+ 
+R−1Ak
+
+for any invertible R∈R r×r. Consequently, directly sharing raw
+factor parameters constrains specific coordinate representations rather than coordinate-invariant subspaces.
+Furthermore, prior studies suggest that high similarity among trained A factors can arise from common
+initialization (Zhu et al., 2024; Ban and Ji, 2026), which highlights the need to distinguish inherited similarity
+from genuine learned agreement.
+As an illustration, we compare common and independent initializations in a controlled RoBERTa-base study
+on RTE. We examine both the trained factors and their learned changes to assess whether clients develop a
+common representation during early adaptation. To rigorously quantify this cross-client geometric alignment,
+we employ the basis-invariantProjector Dice. For two orthogonal projectors P1 and P2 of ranks r1 and r2, it
+is defined as:
+Dice(P1,P 2) := 2 tr(P1P2)
+r1 +r 2
+,(2)
+which yields a value of one for perfectly identical subspaces and zero for completely orthogonal ones.
+Evaluated under this metric, our comparison reveals that high trained-A similarity need not indicate genuinely
+shared learning. Figure 2 illustrates this pattern across layers and heterogeneity levels. In both conditions, the
+final row spaces remain close to their respective initializations, while the learned changes are weakly aligned
+4
+
+===== PDF PAGE 5 =====
+
+across clients. Thus, within this diagnostic, the apparent agreement primarily reflects inherited initialization
+geometry and is insufficient evidence of a common representation learned through adaptation. We refer to
+Appendix B for the detailed experimental setting and numerical results.
+0 3 6 9 11
+0
+0.25
+0.50
+0.75
+1.00
+Mean pairwise projector Dice
+(a) IID
+0 3 6 9 11
+(b) α = 1
+0 3 6 9 11
+(c) α = 0.5
+0 3 6 9 11
+(d) IID
+0 3 6 9 11
+(e) α = 1
+0 3 6 9 11
+(f) α = 0.5
+Transformer layer
+Common initialization Independent initialization
+Ak row space (r = 8) Bk column space (r = 8) Gk dominant right subspace (s = 1)
+Figure 2: Cross-client subspace agreement for RoBERTa-base on RTE. For each initialization group, label
+heterogeneity increases from left to right, withα∈ {0.5,1.0}controlling Dirichlet label skew.
+2.2 Input-Aware Action Matrix
+If raw parameter similarity is an unreliable proxy for shared learning, where does the true cross-client shared
+component lie? We argue that the effect of a local update depends jointly on its weights and the hidden
+states it encounters. To characterize this, let h∈R p denote the hidden-state vector entering the adapted
+layer on client k, and let Ek denote the expectation under its local input distribution. Assuming Ek|h|2
+2 <∞ ,
+define Σk =E k
+
+hh⊤
+. Empirical version of Σk has been used to guide model merging (Jin et al., 2022;
+Salami et al., 2025), weight pruning (Frantar and Alistarh, 2023), and model compression (Wang et al., 2025),
+revealing its potential for shaping parameter effects. Here, we define the input-aware action matrix
+Gk :=∆ kΣ1/2
+k .(3)
+Note that when Σk =I p, (3) reduces to Gk =∆ k. More generally, if Σk =c kIp for some ck >0 , the right
+singular subspaces of ∆k are preserved. In contrast, anisotropic input moments can alter both the orientation
+and relative strength of these singular directions, revealing shared structure that may be hidden in the raw
+updates.Crucially, this representation evaluates update differences strictly through their effects on the local
+input distribution. For any alternative update e∆, we have:
+(∆k − e∆)Σ1/2
+k
+2
+F =E k
+(∆k − e∆)h
+2
+2
+
+.
+Thus, update differences are weighted by the local input distribution, where directions carrying little input
+energy are naturally discounted. Moreover, since Gk depends on the LoRA factors only through their product
+BkAk, it is invariant to any invertible reparameterization of the raw factors.
+Rather than synchronizing the entire action matrix, we can isolate its most critical geometric components.
+Let Vk,s contain the leading s right singular vectors of Gk, and define Pk,s =V k,sV⊤
+k,s. Among rank- s
+orthogonal projectors, Pk,s maximizes ∥GkP∥2
+F , thereby identifying the low-dimensional subspace where
+the adapter’s effect is most concentrated. This projector naturally provides a basis-invariant target for cross-
+client alignment. By employing guidance toward this subspace, clients are able to preserve their personalized
+5
+
+===== PDF PAGE 6 =====
+
+coefficients and residual directions without the constraints of rigid parameter averaging. To demonstrate
+how this action-based approach differs from traditional parameter-based views, the following remark shows
+that the nearly orthogonal LoRA rowspaces can yield an identical right action subspace after accounting for
+client-specific input moments. Besides, in Appendix A, we provide an intuitive geometric illustration.
+Remark 1(Shared action geometry allows misaligned LoRA rowspaces).Mathematically, nearly orthogonal
+LoRA rowspaces can induce identical right action subspaces after accounting for client-specific input
+moments. As a simple rank-one example, let B1 =B 2 = 1 , A1 =
+ 
+a−1,1
+
+and A2 =
+ 
+1, a−1
+, with
+diag
+ 
+a,1
+
+and diag
+ 
+1, a
+
+for a >1 . Then G1 =G 2 =
+ 
+1,1
+
+, while the Dice similarity between the raw
+LoRA rowspaces converges to zero asa→ ∞. Appendix A provides an intuitive illustration.
+Beyond this illustrative construction, our empirical diagnostic with rank-8 LoRA adapters also reveals that
+cross-client agreement is concentrated in the dominant rank-1 right action subspace, while the remaining
+directions exhibit substantially weaker alignment. This observation motivates sharing a compact geometric
+subspace while retaining greater local capacity for personalization. Detailed experimental evidence is
+provided in Appendix B.3.
+2.3 Task and Layer Dependence of Shared Structure
+Beyond robustness to initialization, a meaningful shared component should also reflect the actual learning
+objectives of the clients, e.g., clients solving the same task should exhibit stronger geometric alignment than
+those solving different tasks. Furthermore, this alignment should naturally vary across the network’s depth,
+as deeper layers typically specialize in task-specific representations.
+0 3 6 9 11
+0
+0.25
+0.50
+0.75
+1.00
+Mean pairwise projector Dice
+(a) Instruction
+0 3 6 9 11
+(b) Content
+0 3 6 9 11
+(c) Decision
+0 3 6 9 11
+(d) Instruction
+0 3 6 9 11
+(e) Content
+0 3 6 9 11
+(f) Decision
+Transformer layer
+Common initialization Independent initialization
+Same domain, same task
+Same domain, different tasks
+Different domains, same task
+Different domains, different tasks
+Figure 3: Task and layer dependence of action-subspace agreement in GPT-2. Curves report rank-1 Projector
+Dice averaged over query and value projections, while shaded bands indicate95%confidence intervals.
+To verify this, we evaluate the action-subspace agreement in a controlled GPT-2 study, crossing two input
+domains (movie vs. product reviews) with two distinct classification objectives (sentiment vs. tense). As
+shown in Figure 3, under both initialization schemes, same-task clients across domains exhibit stronger
+dominant-direction agreement on average than different-task clients within the same domain. Besides, this
+distinction varies with depth: early Decision layers remain highly aligned across tasks, whereas deeper
+Content and Decision layers show substantially lower agreement between different-task clients. These
+observations complement our initialization analysis in Section 2.1. Detailed diagnostics are provided in
+Appendix B.4.
+6
+
+===== PDF PAGE 7 =====
+
+3 FedSAIL
+In Section 2, we demonstrate that parameter similarity alone is an unreliable proxy for client agreement,
+whereas the action geometry retains a robust and task-conditioned structure. Motivated by these, we propose
+Federated Subspace-Guided Action-Informed Learning(FedSAIL). Instead of directly averaging adapter
+weights, FedSAIL extracts and shares the dominant right subspace of the input-aware action matrix. This
+allows the server to compute a basis-invariant geometric consensus to regularize local training, while keeping
+both LoRA factors and client-specific residual directions strictly local.
+3.1 Local Action Subspace Extraction
+To capture input-conditioned action geometry while keeping raw data local, in our approach, each client
+k estimates the uncentered second moment of its layer-input hidden states. After that, we apply shrinkage
+toward a scaled identity matrix to improve the conditioning of this estimation and stabilize subsequent spectral
+computations:
+Sk = 1
+nk
+nkX
+i=1
+hk,ih⊤
+k,i, bΣk = (1−γ)S k +γ tr(Sk)
+p Ip.(4)
+where nk is the number of local layer-input hidden states andγ∈(0,1) determines the shrinkage level. Since
+constructing and sharing the full q×p action matrix bGk is computationally inefficient, we instead form a
+compact equivalent:
+bCk = (B ⊤
+k Bk)1/2AkbΣ
+1/2
+k ∈R rL×p.(5)
+SincebC⊤
+kbCk = bG⊤
+k bGk, the compact matrixbCk has the same right singular subspaces and singular values
+as the input-aware action matrix bGk. Client k then isolates the highest-energy geometric directions by
+computing an orthonormal basis Qk = TopEigs(bC⊤
+kbCk) for the leading rank-s eigenspace, alongside its
+corresponding eigenvalues λk ∈R s
++. By sharing this subspace representation, the server captures the
+dominant directions of the input-weighted actions without requiring clients to synchronize their raw weight
+matrices.
+3.2 Server Aggregation and Personalized Feedback
+Upon receiving the local uploads, aggregating these subspaces presents a geometric alignment problem:
+directly averaging eigenvectors is ill-posed due to sign and basis-rotation ambiguities. Our approach resolves
+this by reconstructing a stabilized, trace-normalized rank- s action Gram matrix for each client, and then
+aggregating them strictly as positive-semidefinite (PSD) matrices:
+cMk = Qk diag(λk)Q⊤
+k
+1⊤λk +ε 0
+, cM=
+KX
+k=1
+nkP
+j nj
+cMk.(6)
+Here, ε0 >0 acts as a numerical stabilizer. The trace normalization is a critical design choice: it controls
+for varying top-s action magnitudes across heterogeneous clients, ensuring that clients with larger absolute
+updates do not disproportionately dominate the geometric consensus. The server then extracts the top-
+s eigenspace of the aggregated Gram matrix, bV= TopEig s(cM), and broadcasts the global projector
+bP= bVbV⊤.
+Armed with this global geometric consensus, clients resume training their personalized adapters. Rather than
+overwriting local weights, FedSAIL introduces a penalty that regularizes the local update toward the shared
+7
+
+===== PDF PAGE 8 =====
+
+subspace:
+min
+Ak,Bk
+bLtask
+k (BkAk) + β
+2
+BkAkbΣ
+1/2
+k (Ip −bP)
+
+2
+F
+.(7)
+This objective function selectively penalizes action energy that falls outside the globally shared space.
+Coefficients operating within that space remain entirely client-specific. Furthermore, the finite penalty
+weight β provides local adapters with the necessary flexibility to retain unshared, residual directions if they
+sufficiently reduce the local task loss. This aligns with our observation in Figure 3: while different tasks
+share a dominant direction, they still require task-conditioned geometric variations to optimize performance.
+Algorithm 1FedSAIL: Federated Subspace-Guided Action-Informed Learning
+Require:Clients{D k}K
+k=1; LoRA rankr L; shared ranks; shrinkageγ; penaltyβ; stabilizerε 0; roundsT.
+1:for allclientskin paralleldo
+2:Estimate bΣk by (4); locally warm up(A 0
+k,B 0
+k)withβ= 0.
+3:end for
+4:fort= 1, . . . , Tdo
+5:for allclientskin paralleldo
+6:Form bCt−1
+k by (5).
+7:Q t
+k ←TopEig s((bCt−1
+k )⊤bCt−1
+k ); collect the corresponding eigenvalues inλ t
+k.
+8:Upload(Q t
+k,λ t
+k, nk).
+9:end for
+10:Server forms cMt by (6) and broadcasts bVt ←TopEig s(cMt).
+11:for allclientskin paralleldo
+12:Update(A t
+k,B t
+k)using (7) with bPt = bVt(bVt)⊤.
+13:end for
+14:end for
+Ensure:Personalized adapters{B T
+k AT
+k }K
+k=1.
+4 Experiments
+In this section, we evaluate FedSAIL to validate the effectiveness of sharing input-aware action subspaces for
+personalized adaptation under data heterogeneity. We begin by comparing its predictive performance with
+existing federated LoRA methods. We then study how local adapter rank and shared subspace rank could
+affect accuracy and communication cost, before examining the contribution ofG k sharing through ablation
+studies. Finally, we evaluate whether layer selection based on cross-client subspace agreement can reduce
+communication while retaining comparable predictive performance.
+4.1 Personalized Adaptation on GLUE
+We first evaluate RoBERTa-large on five GLUE benchmarks (RTE, SST-2, QNLI, MNLI, and QQP). To
+simulate a heterogeneous federated environment, we distribute each task across three clients using a Dirichlet
+label skew (α∈ {0.5,0.75,1.0} ) and initialize each client’s adapters independently. We compare FedSAIL
+against standard LoRA (Hu et al., 2022), FFA-LoRA (Sun et al., 2024), FedSA-LoRA (Guo et al., 2025),
+and FedDPA-LoRA (Yang et al., 2024b). Full optimization details and hyperparameters are provided in
+Appendix C.
+Table 2 shows that FedSAIL achieves the highest six-split mean validation accuracy at all three heterogeneity
+levels. Its overall mean is 89.33%, compared with 88.69% for FedSA-LoRA and 88.57% for FedDPA-LoRA,
+although the gains vary across tasks. FFA-LoRA averages 74.62% under the independent-initialization
+8
+
+===== PDF PAGE 9 =====
+
+protocol. This is a stress test of aggregatingBk with different frozenAk bases, rather than its canonical shared-
+A setting (Appendix C). The results support input-aware subspace guidance for personalized adaptation with
+independently initialized adapters.
+Table 2: Personalized GLUE validation accuracy (%, mean ± sample std.) after 500 rounds, with the highest
+mean in each column for eachαshown in bold. Smallerαindicates stronger label heterogeneity.
+αMethod RTE SST-2 QNLI MNLI-m MNLI-mm QQP Avg.
+0.5LoRA78.70 ±2.60 95.83±0.93 90.13±1.93 88.68±1.60 88.96±1.73 89.41±5.75 88.62±1.14
+FFA-LoRA70.04 ±5.91 90.75±1.78 79.46±2.06 65.46±9.63 66.65±9.11 81.28±11.53 75.61±3.27
+FedDPA-LoRA78.22 ±6.83 95.99±1.20 91.62±1.21 89.06±1.58 89.29±1.71 89.62±5.76 88.97±1.33
+FedSA-LoRA79.90 ±8.61 95.95±1.13 91.76±0.61 88.56±1.72 88.92±1.76 89.53±5.63 89.10±1.60
+FedSAIL80.87 ±7.50 96.37±1.17 93.06±0.57 88.98±1.54 89.07±1.75 89.80±5.39 89.69±1.28
+0.75LoRA77.26 ±0.96 95.45±0.35 90.76±0.89 88.39±1.43 88.62±1.44 88.68±4.49 88.19±0.54
+FFA-LoRA61.13 ±3.47 89.22±2.81 81.77±2.42 62.33±10.84 63.60±10.45 81.53±8.88 73.26±1.81
+FedDPA-LoRA74.61 ±0.91 95.49±0.46 92.12±0.17 88.81±1.44 88.83±1.45 88.67±4.71 88.09±0.27
+FedSA-LoRA76.65 ±3.86 95.41±0.41 92.34±0.29 88.22±1.58 88.42±1.75 88.70±4.87 88.29±0.39
+FedSAIL77.26 ±5.05 95.64±0.20 93.23±0.61 88.61±1.53 88.84±1.60 89.05±4.69 88.77±0.56
+1.0LoRA79.78 ±2.53 95.83±0.69 92.20±0.94 88.18±1.25 88.41±1.51 88.00±2.33 88.73±1.00
+FFA-LoRA76.29 ±4.22 87.88±0.98 80.08±1.36 61.48±11.53 62.48±10.99 81.69±4.80 74.98±4.05
+FedDPA-LoRA77.98 ±2.89 95.80±1.26 92.80±0.55 88.40±1.32 88.80±1.70 88.18±2.16 88.66±1.11
+FedSA-LoRA79.54 ±4.35 95.83±0.81 92.32±0.66 88.10±1.52 88.17±1.60 88.18±2.14 88.69±1.31
+FedSAIL81.95 ±3.61 96.25±1.10 93.28±0.41 88.40±1.40 88.52±1.35 88.72±2.11 89.52±1.14
+4.2 Shared Rank vs. Local Rank
+A key architectural advantage of FedSAIL is its ability to decouple the rank of the globally shared subspace (s)
+from the capacity of the local adapters (rL). Standard federated parameter-averaging methods usually tie these
+two dimensions together. In contrast, FedSAIL’s asymmetric design allows us to disentangle communication
+cost from client-side learning capacity. Table 3 reports the performance and communication costs as we vary
+these ranks.
+We first evaluate the communication-accuracy trade-off by fixing the local rank atrL = 8 and varying the
+shared rank. Expanding the shared subspace from s= 1 to s= 4 quadruples the communication payload,
+yet yields only small, non-monotonic changes in accuracy. This confirms that sharing dominant action
+direction captures the most critical geometric alignment information. Then we fix the shared rank at the
+communication-efficient s= 1 and scale up the local adapter rank rL from 2 to 8, predictive performance
+steadily improves across all heterogeneity levels. Crucially, since the shared spectral message depends entirely
+on s, scaling up rL enhances local personalization capacity without incurring any additional communication
+overhead.
+4.3 Ablation Study: Input-Moment Weighting in the Shared Message
+To isolate the source of FedSAIL’s empirical gains, we ablate the rank-1 spectral message uploaded by the
+clients. To evaluate these properties, we compare shared subspaces extracted from the raw input factor
+(Ak), the full raw update (∆k =B kAk), and the input-aware action matrix (bGk =∆ kbΣ
+1/2
+k ). All variants
+use identical communication payloads and retain the samebGk-based local regularizer. In Appendix D, we
+provide the protocol details and task-level results.
+9
+
+===== PDF PAGE 10 =====
+
+Table 3: Sensitivity to shared and local ranks on personalized GLUE . We report averaged validation accuracy
+(%, mean±sample std.), adapter parameter counts, and total communication costs.
+rL sParams. (M) Comm. (GiB)α= 0.5α= 0.75α= 1.0
+8 1 0.786 0.4949 89.69 ±1.28 88.77±0.56 89.52±1.14
+8 2 0.786 0.9895 89.83 ±1.08 88.87±0.49 89.65±0.98
+8 4 0.786 1.978789.91 ±1.48 89.15±0.18 89.47±1.03
+2 1 0.197 0.4949 88.74 ±1.43 87.92±0.55 88.65±1.41
+4 1 0.393 0.4949 89.21 ±1.51 88.24±0.81 89.10±1.09
+16 1 1.573 0.4949 89.84 ±1.43 89.22±0.29 89.61±0.95
+As shown in Table 4, the input-awarebGk message outperforms both unweighted messages across all three
+heterogeneity settings. At fixed communication cost, input-moment weighting therefore improves the
+guidance provided by the shared subspace. Although ∆k =B kAk is already invariant to invertible LoRA
+reparameterizations, its unweighted message performs poorly under the same action-based regularizer. This
+supports selecting shared directions that reflect local input distributions even after removing parameterization
+ambiguity. We shall note that in Appendix D, an additional ablation study reveals that extracting the subspace
+from AkbΣ
+1/2
+k performs only marginally lower than the fullbGk. Therefore, we do not claim that including the
+output factor Bk is strictly necessary for empirical performance improvements. However, in comparison to
+AkbΣ
+1/2
+k , the full action matrix bGk is invariant to invertible LoRA reparameterizations, which is a desirable
+property for a shared geometric object.
+Table 4: Ablation of the shared message on personalized GLUE. We report validation accuracy (%, mean ±
+sample std.) with rank-1payloads.
+Shared message Input-awareα= 0.5α= 0.75α= 1.0Overall
+Ak No68.75 ±2.92 66.17±1.41 68.95±3.47 67.96±1.20
+∆k =B kAk No68.79 ±3.05 66.17±1.42 69.04±3.41 68.00±1.22
+bGk =∆ kbΣ
+1/2
+k Yes89.69 ±1.28 88.77±0.56 89.52±1.14 89.33±0.36
+4.4 Layer selection and communication
+As observed in Section 2.3, under highly heterogeneous environments, such as when clients operate across
+different domains and different tasks (DDDT), cross-client geometric agreement tends to decline sharply in
+deeper layers. To exploit this property, we construct a DDDT benchmark with eight RoBERTa-large clients
+split across IMDb/Amazon (sentiment) and QQP/QNLI (paraphrase/entailment). After a local warmup phase,
+we evaluate the cross-client geometric agreement at each layer. If the subspace agreement falls below a
+thresholdτ, that layer is excluded from subspace sharing entirely and remains purely local.
+At τ= 0.6 , the selector leaves the final six layers (zero-based layers 18–23) local across all three training
+seeds, without an imposed contiguity constraint. This pattern is consistent with the decline in cross-client
+agreement at deeper layers observed in Section 2.3. Table 5 shows that restricting guidance to layers with
+greater action-subspace agreement reduces communication by 19.26%, including selector overhead, while
+retaining comparable mean held-out accuracy. A higher threshold further reduces communication, with a
+modest decrease in mean accuracy. These results support using action geometry to guide where clients share
+subspaces, allowing the depth of collaboration to adapt to observed agreement while preserving local training
+10
+
+===== PDF PAGE 11 =====
+
+Table 5: Layer selection performance on DDDT. We report averaged held-out accuracy (%, mean± sample
+std.) at round64and total communication cost, including selector overhead.
+FedSAIL variant Accuracy (%) Comm. (MiB) Saving (%)
+Full90.033±0.225 96.094–
+Selection,τ= 0.6 90.133±0.038 77.589 19.26
+Selection,τ= 0.7 89.908±0.800 58.904 38.70
+in unshared layers. Appendix F provides the selection rule, complete threshold sweep, and communication
+accounting.
+5 Conclusion
+In this paper, we demonstrate that high parameter similarity in federated LoRA often reflects common
+initialization rather than genuine task learning. By shifting the focus from weight space to input-aware
+action space, we identify a robust, task-conditioned structure that genuinely generalizes across heterogeneous
+clients. Leveraging this geometric insight, we introduce FedSAIL. Instead of enforcing rigid parameter
+synchronization, FedSAIL aligns clients through a basis-invariant spectral consensus, providing regularization
+while preserving local coefficients and residual directions. Extensive evaluations confirm that FedSAIL
+consistently outperforms existing federated LoRA baselines. Additionally, by measuring layer-wise subspace
+agreement, our framework can use warmup-based selection to suspend communication at deeper layers with
+low cross-client agreement, reducing payload costs significantly while retaining comparable mean predictive
+accuracy. Ultimately, we establish that effective federated fine-tuning must be data-driven: by anchoring
+consensus in local input distributions, it ensures clients collaborate where tasks align and diverge where
+personalization is essential.
+AI use statement
+We used generative AI tools to provide feedback on the experimental methodology and to assist with
+interpreting results. We also used these tools to revise manuscript and figures. The authors take responsibility
+for the final content, including AI-assisted text, analyses, and figures.
+Ethics statement
+This work focuses on algorithmic design in federated learning and utilizes standard, publicly available
+datasets. The research does not involve human subjects, sensitive personal information, or proprietary data.
+Consequently, this paper does not present any specific ethical issues or potential for negative societal impact.
+Reproducibility statement
+Algorithm 1 details the core FedSAIL framework. To ensure full reproducibility, comprehensive exper-
+imental details—including dataset construction, client partitioning, hyperparameter configurations, and
+exact communication accounting—are provided in Appendices B through F. Furthermore, the core im-
+plementation of FedSAIL, along with numerical tests and baseline methods, is anonymously available at
+https://anonymous.4open.science/r/FedSAIL-4A7C/.
+11
+
+===== PDF PAGE 12 =====
+
+References
+Hao Ban and Kaiyi Ji. Rethinking parameter sharing for llm fine-tuning with multiple loras. InFindings of
+the Association for Computational Linguistics: ACL 2026, pages 12843–12863, 2026.
+Jieming Bian, Lei Wang, Letian Zhang, and Jie Xu. Lora-fair: Federated lora fine-tuning with aggregation
+and initialization refinement. InProceedings of the IEEE/CVF International Conference on Computer
+Vision, pages 3737–3746, 2025.
+Elias Frantar and Dan Alistarh. Sparsegpt: Massive language models can be accurately pruned in one-shot.
+InInternational conference on machine learning, pages 10323–10337. PMLR, 2023.
+Pengxin Guo, Shuang Zeng, Yanran Wang, Huijie Fan, Feifei Wang, and Liangqiong Qu. Selective aggregation
+for low-rank adaptation in federated learning. InThe Thirteenth International Conference on Learning
+Representations, 2025.
+Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu
+Chen, et al. LoRA: Low-rank adaptation of large language models. InThe Tenth International Conference
+on Learning Representations, 2022.
+Xisen Jin, Xiang Ren, Daniel Preotiuc-Pietro, and Pengxiang Cheng. Dataless knowledge fusion by merging
+weights of language models.arXiv preprint arXiv:2212.09849, 2022.
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis,
+Luke Zettlemoyer, and Veselin Stoyanov. Roberta: A robustly optimized bert pretraining approach.arXiv
+preprint arXiv:1907.11692, 2019.
+Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, and Blaise Aguera y Arcas.
+Communication-efficient learning of deep networks from decentralized data. InArtificial intelligence and
+statistics, pages 1273–1282. PMLR, 2017.
+Fabian Paischer, Lukas Hauzenberger, Thomas Schmied, Benedikt Alkin, Marc Deisenroth, and Sepp Hochre-
+iter. Parameter efficient fine-tuning via explained variance adaptation. InAdvances in Neural Information
+Processing Systems, volume 38, 2025. URLhttps://doi.org/10.52202/085713-1539.
+Riccardo Salami, Pietro Buzzega, Matteo Mosconi, Jacopo Bonato, Luigi Sabetta, and Simone Calderara.
+Closed-form merging of parameter-efficient modules for federated continual learning. InInternational
+Conference on Learning Representations, volume 2025, pages 86612–86637, 2025.
+Youbang Sun, Zitao Li, Yaliang Li, and Bolin Ding. Improving lora in privacy-preserving federated learning.
+InThe Twelfth International Conference on Learning Representations, 2024.
+Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R Bowman. Glue: A
+multi-task benchmark and analysis platform for natural language understanding. InProceedings of the 2018
+EMNLP workshop BlackboxNLP: Analyzing and interpreting neural networks for NLP, pages 353–355,
+2018.
+Xin Wang, Yu Zheng, Zhongwei Wan, and Mi Zhang. Svd-llm: Truncation-aware singular value decomposi-
+tion for large language model compression. InInternational Conference on Learning Representations,
+volume 2025, pages 19299–19319, 2025.
+12
+
+===== PDF PAGE 13 =====
+
+Ziyao Wang, Zheyu Shen, Yexiao He, Guoheng Sun, Hongyi Wang, Lingjuan Lyu, and Ang Li. Flora:
+Federated fine-tuning large language models with heterogeneous low-rank adaptations.Advances in Neural
+Information Processing Systems, 37:22513–22533, 2024.
+Yibo Yang, Xiaojie Li, Zhongzhu Zhou, Shuaiwen Leon Song, Jianlong Wu, Liqiang Nie, and Bernard
+Ghanem. CorDA: Context-oriented decomposition adaptation of large language models for task-aware
+parameter-efficient fine-tuning. InAdvances in Neural Information Processing Systems, volume 37, 2024a.
+URLhttps://doi.org/10.52202/079017-2292.
+Yiyuan Yang, Guodong Long, Tao Shen, Jing Jiang, and Michael Blumenstein. Dual-personalizing adapter
+for federated foundation models.Advances in Neural Information Processing Systems, 37:39409–39433,
+2024b.
+Haoran Zhang, Dongjun Kim, Seohyeon Cha, and Haris Vikalo. FedRot-LoRA: Mitigating rotational
+misalignment in federated LoRA. InInternational Conference on Machine Learning, 2026. URL
+https://arxiv.org/abs/2602.23638.
+Jianyi Zhang, Saeed Vahidian, Martin Kuo, Chunyuan Li, Ruiyi Zhang, Tong Yu, Guoyin Wang, and Yiran
+Chen. Towards building the federatedgpt: Federated instruction tuning. InICASSP 2024-2024 IEEE
+international conference on acoustics, speech and signal processing (ICASSP), pages 6915–6919. IEEE,
+2024.
+Jiacheng Zhu, Kristjan Greenewald, Kimia Nadjahi, Haitz Sáez de Ocáriz Borde, Rickard Brüel Gabrielsson,
+Leshem Choshen, Marzyeh Ghassemi, Mikhail Yurochkin, and Justin Solomon. Asymmetry in low-rank
+adapters of foundation models. InForty-first International Conference on Machine Learning, 2024.
+13
+
+===== PDF PAGE 14 =====
+
+Overview of the appendices
+The appendices provide the construction, diagnostic protocols, and additional results supporting the main
+text. They are organized as follows.
+• Appendix A provides further details for Remark 1, showing how shared action geometry can coexist
+with misaligned LoRA rowspaces.
+• Appendix B describes the RoBERTa and GPT-2 diagnostics for initialization effects, concentration
+in dominant action directions, and task and layer dependence, including their controls and statistical
+summaries.
+• Appendix C specifies the client partitions, training settings, baseline implementations, and evaluation
+protocol for personalized GLUE.
+• Appendix D reports the shared-message ablation, which varies the use of output-factor and input-
+moment weighting while keeping the local action penalty fixed.
+• Appendix E studies shared and local rank sensitivity, with task-level accuracy, adapter parameter
+counts, and communication accounting.
+• Appendix F details the real-data DDDT layer-selection study, including the benchmark protocol,
+geometric selection rule, threshold sweep, and selector overhead.
+• Appendix G describes the anonymous code release, its reproducibility scope, and the computational
+resources.
+A Details of Remark 1
+e1
+e2
+0
+θA
+A ⊤
+1
+A ⊤
+2
+e1
+e2
+0
+G ⊤
+1 = G ⊤
+2
+(1, 1)⊤
+(a)  Raw LoRA row spaces (b)  Right action subspaces
+Client-specific
+input weighting
+Gk = BkAkΣ1/2
+k
+Σ1/2
+1 = diag(10, 1)
+Σ1/2
+2 = diag(1, 10)
+Dice = 0.039 Dice = 1.000a = 10, B1 = B2 = 1
+Figure 4: Illustration of Remark 1, with a= 10 and B1 =B 2 = 1. (a) The raw Ak row spaces have Dice
+0.039. (b) After client-specific input weighting, G1 =G 2 =
+ 
+1,1
+
+, so the right action subspaces coincide
+with Dice one. Blue and orange denote clients 1 and 2, respectively.
+14
+
+===== PDF PAGE 15 =====
+
+The construction in Remark 1 relies on each adapter compensating for its client’s input scaling. With
+Σ1/2
+1 = diag
+ 
+a,1
+
+andΣ 1/2
+2 = diag
+ 
+1, a
+
+, we obtain
+G1 =
+ 
+a−1,1
+
+diag
+ 
+a,1
+
+=
+ 
+1,1
+
+,
+G2 =
+ 
+1, a−1
+diag
+ 
+1, a
+
+=
+ 
+1,1
+
+.
+For each client, the smaller adapter coefficient exactly offsets the larger input scale in the corresponding
+coordinate. Both clients therefore have the same right action direction v= 2 −1/2 
+1,1
+⊤. The corresponding
+projectorP=vv ⊤ satisfies
+Gk
+ 
+I2 −P
+
+= 0, k= 1,2,
+and hence captures all action energy for both clients. Despite this agreement, the raw LoRA rowspaces
+become increasingly misaligned. Their Projector Dice is
+⟨A1,A 2⟩2
+F
+∥A1∥2
+F ∥A2∥2
+F
+=
+ 
+2a−12
+ 
+1 +a −22 =
+ 2a
+a2 + 1
+2
+→0
+as a→ ∞ . Thus, the raw rowspaces are nearly orthogonal even though their input-weighted action directions
+remain identical. Figure 4 illustrates this contrast ata= 10.
+This example also clarifies the distinction between sharing an action subspace and sharing an input factor.
+For every a >1 , the raw updates ∆1 =A 1 and ∆2 =A 2 are nonproportional. They cannot therefore be
+reproduced by a single shared rank-one factor A with client-specific scalar coefficientsBk, since all products
+BkA would be proportional. A common action subspace thus accommodates both local updates under their
+respective input regimes, whereas exact input-factor sharing cannot represent them at the same rank.
+B Additional Diagnostics of Shared Action Subspaces
+In this section, we supply the protocols and measurements behind Section 2. We first examine initialization
+effects in RoBERTa/RTE diagnostic, then compare dominant and complete action subspaces, and finally
+separate task, domain, and layer effects in GPT-2. The RoBERTa comparison isolates the choice of adapter
+initialization under a fixed local-training protocol. These are diagnostics of locally trained adapters; the
+federated training evaluations are reported separately in Section 4.1 and Appendices C–F.
+B.1 Experimental setup and measurement
+Training and initialization.Table 6 summarizes the two studies. In both studies we freeze the pretrained
+backbone and place LoRA on the query and value projections in all 12 transformer layers. Common
+initialization uses identical initial A matrices at corresponding projections across clients; independent
+initialization draws them separately. Both conditions initialize B= 0 . Client partitions, optimization settings,
+minibatch orders, and training dropout streams are held fixed across conditions. For RoBERTa, the dropout
+seed is reset after injecting the initial adapters; the classification head has a common initialization within each
+seed. Client 0 uses the same initial A in both conditions and serves as a paired anchor, not an independent
+replicate. RoBERTa uses SGD without momentum, weight decay, or gradient clipping. GPT-2 uses AdamW
+with zero weight decay and gradient clipping at norm one.
+We emphasize that the studies in this section is not to train high-performing models (full federated evaluations
+are deferred to Section 4). Instead, we simply want to examine how different adapter initializations affect
+local parameter updates across heterogeneous clients. 200 local steps without server aggregation are fully
+sufficient for this purpose.
+15
+
+===== PDF PAGE 16 =====
+
+Table 6: Local-training protocols for the structural diagnostics.
+Setting RoBERTa-base / RTE GPT-2 124M
+Clients 3 per partition setting2domains×2tasks×2replicas
+Train / calibration / evaluation161–1543/9–86/10–87 500/250/250
+Local LoRA rank / scale8/16 4/8
+LoRA dropout0.05 0
+Steps / effective batch size200/128 200/16
+Maximum sequence length128 64
+Optimizer SGD AdamW
+LoRA learning rate10 −2 3×10 −4
+Classifier learning rate10 −2 No additional classifier
+Training seeds123,124,125 11,23,37,53,71
+RoBERTa client construction.We partition the 2,490 official RTE training examples across three clients
+using either IID shuffling or label-based Dirichlet allocation ( α∈ {0.5,1.0} ). Under IID partitioning,
+each client receives exactly 830 examples. Under Dirichlet allocation, local dataset sizes vary from 161 to
+1,543, with entailment ratios ranging between 8.67% and 94.41%. The 277 official validation examples are
+distributed uniformly for IID clients and according to local training-label priors for Dirichlet clients. Each
+client’s data is further stratified by label into calibration and evaluation subsets, retaining minor strata (e.g.,
+the smallest calibration subset contains 9 examples from a single class).
+GPT-2 tasks and token regimes.We evaluate controlled synthetic tasks using template-generated movie
+and product sentences across two classification objectives: sentiment and tense. For a given domain and
+replica, both tasks share identical underlying content but differ in instructions and labels. Each prompt
+comprises a task instruction ending in Text:, the content sentence, and an Answer: suffix. Training
+minimizes cross-entropy over the two candidate answer-token logits at the final prompt position, without
+appending answer tokens to the input. We divide each prompt into three disjoint diagnostic masks:content
+(sentence tokens),decision(the final prompt token predicting the answer), andinstruction(all remaining
+tokens, including non-decision suffix tokens). Held-out examples are jointly stratified by sentiment and tense
+into calibration and evaluation splits.
+B.2 Initialization and factor agreement
+Table 7: Cross-client projector Dice in RoBERTa-base/RTE averaged across client pairs, layers, and projec-
+tions. All entries use the fixed step-200 checkpoint.
+Partition InitializationA B G: top 1G: top 2G: full
+IID Common1.000 0.199 0.978 0.825 0.876
+α= 1Common1.000 0.185 0.974 0.834 0.871
+α= 0.5Common1.000 0.177 0.965 0.818 0.835
+IID Independent0.011 0.193 0.814 0.452 0.159
+α= 1Independent0.011 0.180 0.810 0.454 0.160
+α= 0.5Independent0.011 0.177 0.810 0.455 0.159
+Following Guo et al. (2025), here we evaluate structural alignment using both the flattened-factor cosine
+similarity and basis-invariant subspace agreement (Table 7). Under common initialization, the flattened
+16
+
+===== PDF PAGE 17 =====
+
+cosine for the final matrix A reaches 1, whereas under independent initialization, it drops to −0.0003 (with
+the corresponding B cosines at 0.2238 and −0.0016, respectively). Similarly, the final-A rowspace Dice
+coefficient is 1.0000 under common initialization versus 0.0105 under independent initialization. Notably,
+0.0105 coincides with the random baseline expectation of 8/768≈0.0104 for independent rank-8 subspaces
+in 768 dimensions.
+0 3 6 9 11
+0
+0.25
+0.50
+0.75
+1.00
+Mean pairwise projector Dice
+(a) IID
+0 3 6 9 11
+(b) α = 1
+0 3 6 9 11
+(c) α = 0.5
+0 3 6 9 11
+(d) IID
+0 3 6 9 11
+(e) α = 1
+0 3 6 9 11
+(f) α = 0.5
+Transformer layer
+Common initialization Independent initialization
+Ak row space (r = 8) Bk column space (r = 8) Gk dominant right subspace (s = 1)
+Figure 5: Query-projection subspace agreement in RoBERTa-base/RTE. For each initialization group, label
+heterogeneity increases from left to right, withα∈ {0.5,1.0}controlling Dirichlet label skew.
+Figure 5 provides the query-projection counterpart to Figure 2. Both include all 12 layers, with visibly lower
+independent-initialization G agreement at layer 0. At each layer, the three unordered client pairs are averaged
+within seed; the plotted mean and standard deviation are computed across three seeds. Pairs sharing a client
+are not treated as independent replications.
+Table 8: Rank-4A -rowspace Dice for GPT-2, averaged over layers and query/value projections.S11: same
+domain and task, S10: same domain and different tasks, S01: different domains and same task, S00: different
+domains and tasks.
+InitializationS 11 S10 S01 S00
+Common0.9412 0.8288 0.9082 0.8221
+Independent0.0806 0.0383 0.0687 0.0355
+The same initialization dependence is corroborated by the GPT-2 study (Table 8). Here, Sdt identifies pairs
+with same-domain indicator d and same-task indicator t. While independent initialization sharply reduces the
+complete A-rowspace overlap across all pairs, same-task pairs (S11, S01) retain slightly more overlap than
+different-task pairs. Thus, the loss of high absolute agreement in weight space should not be equated with
+the complete absence of task-specific geometry; rather, it demonstrates that raw parameter similarity is too
+fragile to serve as a robust medium for federated sharing.
+B.3 Dominant and complete action-subspace agreement
+Agreement is concentrated in the leading direction.The leading direction captures 96.90% and 96.83%
+of the evaluation action energy under common and independent initialization, respectively, with a calibra-
+tion/evaluation Dice coefficient of 0.9813 in both cases. Under independent initialization, cross-client Dice
+agreement drops sharply as rank increases: 0.8113 for the leading direction, 0.4536 for the top-two subspace,
+17
+
+===== PDF PAGE 18 =====
+
+1 2 3 4 5 6 7 8
+Ordered right-singular direction j
+0
+0.25
+0.50
+0.75
+1.00Fraction of total energy
+96.83%
+(a) Action energy
+1 2 3 4 5 6 7 8
+Ordered right-singular direction j
+0
+0.25
+0.50
+0.75
+1.00Projector Dice
+(b) Cross-client agreement
+1 2 3 4 5 6 7 8
+Ordered right-singular direction j
+0
+0.25
+0.50
+0.75
+1.00Held-out energy fraction
+(c) Leave-one-client-out capture
+Observed Matched random orientation
+Figure 6: Ordered-direction diagnostics on RoBERTa-base/RTE with independent initialization and LoRA
+rank eight. Panels show (a) evaluation action energy fraction, (b) cross-client rank-one projector Dice, and (c)
+LOO action-energy capture. Metrics are averaged across partitions, layers, projections, and client pairs.
+and 0.1593 for the full numerical-rank space (note that these rank-normalized overlaps do not measure
+captured energy). To examine individual directions, Figure 6 evaluates all eight components separately. For
+each direction, we construct a leave-one-client-out (LOO) projector using the leading eigenvector of the
+mean calibration projector from the other two clients; LOO capture then measures the fraction of held-out
+evaluation action energy retained by this projector. As a control baseline, we replace the right singular basis
+of (B⊤
+k Bk)1/2Ak with a uniformly sampled orthonormal basis while preserving its singular spectrum and
+local moments (averaged over 200 draws per seed, partition, layer, and projection). The leading direction
+substantially outperforms this control in both Dice agreement (0.811 vs. 0.248) and LOO capture (0.832 vs.
+0.528), showing consistent positive gains across all seed means. In contrast, directions 2 through 8 perform
+below control on average across both metrics. These diagnostic findings confirm that cross-client agreement
+is strongly concentrated in the leading direction. We note that direction-wise LOO captures are non-additive
+and serve as diagnostic insights rather than guarantees of downstream aggregation performance.
+B.4 Task, domain, and layer dependence in GPT-2
+For Figure 3, Sdt denotes the mean fixed-top-1 action-subspace Dice in each of the four pair classes. There
+are 4 pairs in S11 and 8 each in S10, S01, and S00. We first average within each class, then compute the
+balanced factorial contrasts
+Ctask = 1
+2 (S11 +S 01 −S 10 −S 00), C domain = 1
+2 (S11 +S 10 −S 01 −S 00),(8)
+which give each pair class equal weight. A positive Ctask indicates greater agreement between same-task
+clients after averaging equally over same-domain and different-domain pairs. The comparison S01 −S 10 =
+Ctask −C domain asks the stronger question of whether task-related differences exceed domain-related
+differences. Its sign describes their relative strength; a negative value can coexist with a positive task contrast.
+At s= 1 , task contrasts are positive and exceed domain contrasts under both initialization conditions in all
+three token regions (Table 9). Different-task pairs nevertheless retain mean Dice of approximately 0.65–0.67.
+Task dependence therefore appears as a difference within partly shared geometry, not as orthogonality between
+tasks. In the layerwise curves, this difference is most pronounced in later content and decision layers. Early
+decision layers remain highly aligned even across tasks. These depth-dependent patterns motivate a layerwise
+sharing criterion; the effects of actually disabling guidance are tested separately in Appendix F.
+18
+
+===== PDF PAGE 19 =====
+
+Table 9: Task and domain organization of the fixed rank-1 dominant right direction of Gk. Mean values and
+95%tintervals (in brackets) are averaged over query and value projections.
+Initialization TokensC task Cdomain S01 −S 10
+Common Instruction.224[.207, .240].008[.001, .016].215[.195, .235]
+Common Content.212[.202, .222].047[.042, .052].165[.153, .176]
+Common Decision.242[.221, .263].023[.017, .030].218[.196, .241]
+Independent Instruction.201[.190, .213].011[.003, .018].191[.178, .203]
+Independent Content.201[.192, .211].039[.033, .045].162[.153, .171]
+Independent Decision.237[.222, .252].023[.017, .029].214[.198, .230]
+Table 10: Task-minus-domain contrasts in GPT-2 across projections and retained ranks, averaged over
+replicates and 12 layers. Entries report S01 −S 10 =C task −C domain, with negative values indicating a larger
+domain contrast.QandVdenote query and value.
+Initialization Tokens Projections= 1s= 2s= 3s= 4
+Common Instruction Q.211.246.288.318
+V.220.287.328.356
+Content Q.126.097.016−.061
+V.204.150.016−.067
+Decision Q.210.188.129.083
+V.227.207.144.082
+Independent Instruction Q.191.138.132.129
+V.190.137.123.117
+Content Q.126.079.047.028
+V.199.123.082.052
+Decision Q.210.156.121.092
+V.219.203.148.107
+Projection and retained-rank checks.Table 10 separates query and value and varies the retained analysis
+dimension s on the same rank-4 adapters. The balanced task contrast Ctask, averaged over query and value,
+remains positive in every token region under both initialization schemes for all s∈ {1,2,3,4} . Task-
+conditioned differences therefore remain detectable in larger retained subspaces in this experiment. Under
+independent initialization, S01 −S 10 remains positive for both projections at every tested rank, with all
+seed-level intervals excluding zero; s= 1 gives the largest contrast in each token region. Under common
+initialization, the full content-token subspace (s= 4 ) has a larger domain contrast than task contrast, yielding
+negative S01 −S 10 for both projections. Its projection-averaged task contrast nevertheless remains positive:
+Ctask = 0.190 with a 95% seed-level t interval of [0.183,0.197] . Thus, the reversal concerns the relative
+strength of task and domain structure, while task dependence remains present. The relative contributions vary
+with initialization and retained rank.
+C Personalized GLUE: Training and Evaluation Protocol
+C.1 Tasks, client partitions, and common settings
+We evaluate RTE, SST-2, QNLI, MNLI, and QQP, with a separate three-client federation for each task. MNLI-
+m and MNLI-mm are reported separately, giving six evaluation splits. Training examples are partitioned by a
+label-skew Dirichlet distribution with α∈ {0.5,0.75,1.0} ; smaller α produces stronger label heterogeneity.
+19
+
+===== PDF PAGE 20 =====
+
+Each client’s validation partition follows the empirical label mixture of its training partition. For each task,α,
+and seed, all methods use the same client training and validation indices.Table 11 gives the common settings
+for the main comparison and the GLUE ablation and rank studies. The latter vary only the settings identified
+in Appendices D–E.
+Table 11: Common training settings for personalized GLUE. FedSAIL-specific settings also apply to its
+message and rank ablations unless stated otherwise.
+Setting Configuration
+Backbone and adapters RoBERTa-large; query and value projections in all 24 layers; default rL = 8 ,
+αLoRA = 16, LoRA dropout0.05.
+Initialization Independent client Ak, zero Bk; identical initial classification heads, trained locally.
+Data and batching Full task training/validation sets; maximum length 128; batch and micro-batch size
+128.
+Optimization SGD with CUDA AMP;500rounds;10local steps per client and phase per round.
+Main-comparison seeds123,124, and125.
+Evaluation Personalized validation every25rounds; no global-model evaluation.
+FedSAIL guidance Shared rank s= 1 , logged penalty β= 1 ; 50 local-only warmup rounds, then 450
+guided rounds; layer selection disabled.
+Input moments Estimated from the first 128 examples of each client’s training partition before round
+1; shrinkageγ= 0.05; frozen throughout training.
+C.2 Method-specific settings and scale convention
+In Table 12 we distinguish the communication and optimization rules. All classification heads remain
+client-local. Baselines aggregate uniformly from the first round. Our FedSAIL approach starts sharing after
+warmup and weights its trace-normalized spectral messages by the number of local tokens used to estimate
+the moments.
+Table 12: Method-specific GLUE settings. Steps are local steps per client and round; FedDPA-LoRA uses
+separate global and local phases.
+Method Federated exchange Learning rate Steps
+LoRA LocalA k andB k 0.005 10
+FFA-LoRA AverageB k; freeze localA k 0.005 10
+FedSA-LoRA AverageA k; keepB k local0.005 10
+FedDPA-LoRA Average global factors; retain local branch0.005 10 + 10
+FedSAIL Share action spectra and consensus bases0.005 10
+We shall note that FedDPA-LoRA has separate rank-8 global and local adapters and uses a fixed global/local
+prediction mixture of 0.5/0.5. Its adapter capacity and scheduled local-step budget are twice those of the
+single-branch methods. Another thing that worth attention is that for FFA-LoRA, freezing independently
+initialized Ak differs from its canonical shared-A setting, so that the reported performance may not achieve
+its best possible performance.
+20
+
+===== PDF PAGE 21 =====
+
+D Shared-Message Ablation on Personalized GLUE
+Controlled comparison.To understand exactly what makes the shared consensus effective, we isolate
+the components of our transmitted message. Specifically, we ask whether the performance gains stem
+from incorporating the local input moments (bΣ
+1/2
+k ), the up-projection (Bk), or their combination. In our
+experiments, we compare the rank-1 right spectral messages extracted from four variants: Ak, the full raw
+update ∆k, AkbΣ
+1/2
+k , and our full input-aware action matrix bGk =∆ kbΣ
+1/2
+k . Besides, to ensure a strict
+comparison of the messages themselves, we hold the local optimization objective constant across all variants.
+We evaluate these variants using seed 123 across all three Dirichlet heterogeneity settings. To rule out
+confounding initialization effects, all configurations are strictly matched from step zero, sharing identical
+client partitions, data-loader states, and warmup trajectories up to round50.
+Results and interpretation.As shown in Table 13, incorporating the input-moment weighting improves
+performance across all 18 task-by-heterogeneity configurations. WithoutbΣ
+1/2
+k , both unweighted messages
+(Ak and ∆k) suffer severe performance degradation, averaging only 66.68%. Notably, even though sharing
+the full raw update ∆k resolves the non-uniqueness (reparameterization ambiguity) of individual LoRA
+factors, it still performs poorly under the fixed action-based regularizer. This demonstrates a key insight:
+merely fixing factorization ambiguity is insufficient. To provide meaningful cross-client guidance, the
+shared geometric consensus must be explicitly anchored in the local input distribution. We also observe
+that extracting the shared subspace from AkbΣ
+1/2
+k yields an overall mean (88.92%) that is only marginally
+lower than using the full action matrix bGk (89.02%). Consistent with our discussion in the main text,
+this minor empirical gap suggests that including the output factor Bk in the shared message is not strictly
+necessary for achieving high predictive performance on these tasks. However, our preference for the full
+action matrix bGk is mathematically motivated. Unlike the right subspace of AkbΣ
+1/2
+k , bGk is inherently
+invariant to invertible LoRA reparameterizations. This coordinate-free property makes it a fundamentally
+more robust and principled geometric object to share across heterogeneous clients. Finally, we note that these
+single-seed results specifically assess the composition of the shared message; to maintain a strictly controlled
+comparison, all evaluated variants still retain both Bk and the input moment in their local optimization
+objective.
+Table 13: Ablation of shared-message on personalized GLUE. We report validation accuracy (%) over500
+rounds.
+αShared message RTE SST-2 QNLI MNLI-m MNLI-mm QQP Avg.
+0.5A k 74.73 81.42 70.49 48.04 49.14 69.11 65.49
+∆k 74.37 81.65 70.55 48.13 49.15 68.56 65.40
+Ak bΣ
+1/2
+k 85.2095.30 93.25 87.45 87.3986.0189.10
+bGk 85.20 95.53 93.37 87.56 87.5585.9289.19
+0.75A k 63.54 76.72 69.25 62.65 63.10 68.35 67.27
+∆k 61.73 78.67 69.34 62.69 63.13 68.87 67.40
+Ak bΣ
+1/2
+k 83.3995.41 93.04 89.04 89.25 85.35 89.25
+bGk 83.0395.53 93.26 89.06 89.37 85.67 89.32
+1.0A k 70.40 72.25 70.25 59.36 59.43 71.95 67.27
+∆k 70.04 72.48 70.14 59.36 59.43 71.99 67.24
+Ak bΣ
+1/2
+k 77.98 95.9993.0688.5188.5286.40 88.41
+bGk 78.34 96.4492.8488.6588.4486.63 88.56
+21
+
+===== PDF PAGE 22 =====
+
+E Shared and Local Rank Sensitivity on Personalized GLUE
+A defining architectural advantage of FedSAIL over traditional parameter-averaging methods is its ability to
+decouple the communication payload from the client’s local adapter capacity. In this section, we provide the
+detailed communication accounting and empirical sensitivity analysis for the shared rank (s) and local rank
+(rL).
+Communication accounting.At each adapted module, a client uploads an orthonormal basis of size
+1024×s , s eigenvalues, and a single integer token count, and subsequently receives a 1024×s global
+consensus basis. Assuming float32 precision for bases and eigenvalues and int32 for the count, the total
+bidirectional payload per run is:
+Ctotal(s) = 3(clients)×48(modules)×450(rounds)×4 (2049s+ 1)bytes.(9)
+Each client has 98,304rL trainable LoRA parameters across all24 layers. Under FedSAIL, the communication
+payload (Equation 9) scales exclusively with s and remains completely independent of rL. For a fixed s= 1 ,
+the total communication is 0.4949 GiB, strictly governing the network overhead regardless of how large the
+local adapters grow.
+Experimental setup.To empirically evaluate this decoupling, we conduct two complementary sweeps
+around the default configuration of(r L, s) = (8,1)following the protocol before.
+1. Shared-rank sweep: We vary s∈ {1,2,4,8} while fixing rL = 8 to examine the communication-
+accuracy trade-off.
+2. Local-rank sweep: We vary rL ∈ {2,4,8,16} while fixing s= 1 to examine local capacity scaling
+under a strict communication budget.
+To maintain isolation between variables, we fix the effective unscaled-factor penalty coefficient atβeff = 4 by
+setting the LoRA scaling factor αLoRA = 2rL. Neither the learning rate nor the penalty weight is retuned
+across either sweep. Tables 14 and 15 report the personalized validation accuracy over500 rounds. Replicated
+entries use seeds 123, 124, and 125; we compute the six-split mean within each seed before calculating its
+sample standard deviation across seeds.
+Decoupling geometric alignment from local personalization.The results from the two sweeps illustrate
+the core mechanism of FedSAIL: structural alignment and task fitting utilize different forms of capacity.
+As shown in Table 14, increasing the shared rank s yields only small, non-monotonic changes in accuracy.
+Expanding s from 1 to 4 quadruples the communication payload (from 0.49 GiB to 1.98 GiB) but results
+in heavily diminishing returns in predictive performance. This pattern is qualitatively consistent with our
+diagnostic findings in Section 2.2, where cross-client agreement is concentrated in the leading direction.
+These results support s= 1 as a communication-efficient default, while larger shared ranks offer modest,
+task-dependent gains at increased communication cost.
+Conversely, Table 15 shows that additional local capacity can improve accuracy without increasing the
+message size, although the gains depend on the heterogeneity setting. Clients retain the necessary degrees
+of freedom (rL > s) to model task-specific residuals, while collaborating strictly within a low-dimensional
+(s= 1) consensus geometry.
+22
+
+===== PDF PAGE 23 =====
+
+Table 14: Shared-rank sensitivity with fixed local rank rL = 8. We report personalized validation accuracy
+and total communication cost, with accuracy averaged across the six splits.
+α sRTE SST-2 QNLI MNLI-m MNLI-mm QQP Avg. Comm. (GiB)
+0.5 1 80.87 ±7.50 96.37±1.17 93.06±0.57 88.98±1.54 89.07±1.75 89.80±5.39 89.69±1.28 0.4949
+2 80.39 ±5.53 96.56±1.30 93.56±0.57 89.12±1.60 89.23±1.80 90.11±5.34 89.83±1.08 0.9895
+4 80.51 ±7.82 96.64±1.32 93.40±0.31 89.37±1.50 89.45±1.81 90.07±5.39 89.91±1.48 1.9787
+8 80.75 ±8.08 96.60±1.30 93.37±0.59 89.34±1.53 89.41±1.80 90.19±5.44 89.94±1.50 3.9573
+0.75 1 77.26 ±5.05 95.64±0.20 93.23±0.61 88.61±1.53 88.84±1.60 89.05±4.69 88.77±0.56 0.4949
+2 76.90 ±5.32 95.80±0.52 93.84±1.04 88.72±1.49 88.85±1.60 89.10±4.79 88.87±0.49 0.9895
+4 77.86 ±3.62 95.68±0.46 93.78±1.06 89.04±1.44 89.12±1.55 89.43±4.56 89.15±0.18 1.9787
+8 77.86 ±3.71 95.68±0.18 93.65±1.32 89.12±1.54 89.10±1.66 89.40±4.60 89.13±0.18 3.9573
+1.0 1 81.95 ±3.61 96.25±1.10 93.28±0.41 88.40±1.40 88.52±1.35 88.72±2.11 89.52±1.14 0.4949
+2 81.71 ±2.71 96.29±1.09 93.87±0.60 88.47±1.29 88.70±1.49 88.87±2.13 89.65±0.98 0.9895
+4 80.63 ±2.71 96.02±0.81 93.79±0.61 88.67±1.31 88.75±1.50 88.96±2.11 89.47±1.03 1.9787
+8 80.75 ±2.94 96.06±1.10 93.81±0.60 88.64±1.44 88.78±1.47 88.84±1.97 89.48±1.04 3.9573
+Table 15: Local-rank sensitivity with fixed shared rank s= 1 . We report six-split validation accuracy (%,
+mean ± sample std.) and per-client LoRA parameter counts. Total communication remains fixed at 0.4949
+GiB per run.
+rL Params. (M)α= 0.5α= 0.75α= 1.0
+2 0.197 88.74 ±1.43 87.92±0.55 88.65±1.41
+4 0.393 89.21 ±1.51 88.24±0.81 89.10±1.09
+8 0.786 89.69 ±1.28 88.77±0.56 89.52±1.14
+16 1.573 89.84 ±1.43 89.22±0.29 89.61±0.95
+F Real-DDDT Layer Selection and Communication
+F.1 Benchmark and Training Protocol
+To evaluate layer selection, we construct two disjoint client replicas for each of the following datasets: IMDb
+(sentiment), Amazon (polarity), QQP (paraphrase), and QNLI (entailment). Within each replica, IMDb
+is paired with QQP, and Amazon with QNLI, yielding four disjoint different-domain/different-task dyads.
+Guidance-basis aggregation is strictly restricted to each dyad, while both LoRA factors remain entirely local.
+The geometric selector pools their subspace alignments to compute one common layer-sharing mask per
+training seed. Table 16 details the dataset allocation and hyperparameter configurations.
+To prevent data leakage and ensure rigorous evaluation, review-body and question-identity deduplication
+are applied to control direct overlap. Equal final-test sizes are maintained to strictly align client-macro and
+sample-micro accuracy metrics; sentiment tasks contribute half the weight, while paraphrase and entailment
+each contribute a quarter.
+F.2 Warmup-Based Layer Selection
+During local warmup ( β= 0 ), we collect snapshots at rounds t∈ {24,28,32} . For client k, layer ℓ∈
+{0, . . . ,23}, query/value projection a∈ {Q, V} , and token regime z∈ Z={instruction,content,decision} ,
+let qkℓazt be a unit leading right singular vector of Gkℓazt =B t
+kℓaAt
+kℓaΣ1/2
+kℓzt. Here Σkℓzt is the uncentered
+23
+
+===== PDF PAGE 24 =====
+
+Table 16: DDDT data, training, and evaluation protocol.
+Component Setting
+Clients and splits Eight clients; per client: 1000 training, 256 calibration, 244 validation, and 500 final-test
+examples. All splits are label-balanced and disjoint across splits and replicas.
+Data sources Training/calibration: official training pools. Validation/final test: IMDb/Amazon test
+pools and labeled QQP/QNLI validation pools; no GLUE test-server evaluation.
+Seeds Data partition:2027. Training seeds:83,97,109.
+Backbone and adapters Frozen RoBERTa-large and MLM head; query/value LoRA in all 24 layers, rL = 4 ,
+αLoRA = 16, dropout0.05. IndependentA k initialization andB k = 0.
+Optimization AdamW, learning rate 2×10 −4, weight decay 0, gradient clipping 1, batch size 16,
+CUDA AMP; 10 local iterations per client per round. Optimizer/scaler states remain
+local across rounds.
+Training schedule64 rounds: 32 local warmup rounds and 32 guided rounds, with shared rank s= 1 and
+guidance coefficientβ= 1.
+Inputs and prediction Maximum 128 tokens, preserving instructions, field markers, decision mask, and content
+heads/tails. Mask-token verbalizers: negative/positive (sentiment), different/same (para-
+phrase), and yes/no (entailment).
+Evaluation Terminal round-64 checkpoint. Average accuracy over eight clients within each seed,
+then report mean and sample SD over three seeds. Task columns average two replicas
+and three seeds.
+second moment of local calibration inputs in regime z at layer ℓ and round t, computed without shrinkage
+and with negative eigenvalues clipped to zero. For each of the four dyads d∈ {1,2,3,4} described above, id
+and jd denote its two client indices. To ensure stability against stochastic training noise, we define the layer
+agreement scores ℓ using a temporal median over the collected snapshots:
+sℓ = median t∈{24,28,32}
+
+ 1
+24
+4X
+d=1
+X
+a∈{Q,V}
+X
+z∈Z
+q⊤
+idℓaztqjdℓazt
+
+2
+
+ ,S τ ={ℓ:s ℓ ≥τ}.(10)
+Each snapshot averages 4×2×3 = 24 rank-one Projector Dice values. This threshold τ applies to the pooled
+score rather than individual dyads. Once the mask Sτ is computed at round 32, it remains fixed. Notably,
+we impose no contiguity constraints or minimum layer requirements. For instance, at τ= 0.6 , the selector
+naturally excludes the final six layers in every random seed, consistently identifying that deeper layers encode
+representations too task-specific to benefit from federated sharing.
+Following selection, all arms branch from identical round- 32 optimizer and scaler states. Selected layers
+use the subspace penalty defined in (7) with β= 1 , while unselected layers continue purely local adaptation
+using only the task loss.
+F.3 Threshold Sensitivity
+Table 17 compares full-layer guidance against four different thresholds (τ) applied to the exact same warmup
+geometry. Increasing τ imposes a stricter geometric consensus requirement, restricting sharing to layers with
+robust cross-client agreement.
+The sensitivity sweep clearly demonstrates the efficacy of geometry-guided selection. At τ= 0.6 , restricting
+guidance exclusively to the selected layers reduces the total communication payload by 19.26% while
+retaining predictive performance entirely comparable to full-layer guidance (a minimal difference of +0.100
+24
+
+===== PDF PAGE 25 =====
+
+Table 17: FedSAIL threshold sensitivity on DDDT. We report round-64 accuracy (%, mean ± sample std.)
+and total communication cost, including selector snapshots and mask delivery.
+FedSAIL variantτIMDb Amazon QQP QNLI Avg. Comm.
+Full –93.33 95.9383.2787.60 90.033 ±0.225 96.094
+Selection0.4 93.20 95.70 83.07 88.07 90.008 ±0.644 104.282
+Selection0.5 93.23 96.17 82.3788.3790.033 ±0.284 89.601
+Selection0.6 93.57 96.37 83.13 87.4790.133 ±0.038 77.589
+Selection0.793.77 96.4081.97 87.50 89.908 ±0.800 58.904
+percentage points, with a 95%t interval of [−0.530,0.730] ). This validates our core hypothesis: layers
+with divergent action subspaces should be left entirely local, freeing them from negative transfer (unhelpful
+cross-client penalties) while saving network bandwidth.
+Furthermore, this sweep serves as a comprehensive sensitivity analysis for our system. We observe a clear
+trade-off surface: while τ= 0.7 minimizes communication maximally, it begins to degrade mean accuracy
+(particularly on QQP) due to overly aggressive isolation. Conversely, a highly permissive threshold like
+τ= 0.4 retains so many layers that the overhead of the selector mechanism outpaces the communication
+saved.
+F.4 Communication Accounting
+Using the per-module payload convention in Appendix E, each active query/value module at s= 1 communi-
+cates 4(2049 + 1) bytes per client per guided round. For this DDDT protocol, eight clients, two modules per
+layer, and 32 guided rounds give 4,198,400L bytes for L active layers. The additional selector cost consists
+of three snapshots over all 24 layers and three token regimes, 3×8×24×2×3×1026×4 = 14,183,424
+bytes, plus24bytes to deliver a24-bit mask to each of the eight clients. Thus,
+Cfull = 4,198,400×24, C selection(L) = 4,198,400L+ 14,183,448bytes.(11)
+Full-layer FedSAIL requires no selector. At this training length, selection must retain at most 20 layers to
+offset its overhead. Table 17 reports the mean per-run cost over three seeds in MiB (220 bytes), charging the
+full selector cost to each threshold without amortization across the sweep.
+These are logical payloads counted for every client delivery, excluding initial model distribution, headers,
+serialization, checkpoints, optimizer states, and evaluation traffic. The reported deployment cost includes
+the three snapshots required by the selection rule. The research pilot recorded five additional diagnostic
+snapshots; charging all eight adds 22.544 MiB per selection run. Under this research-logging allocation,
+τ= 0.6 costs 100.133 MiB rather than 77.589 MiB and does not save communication relative to full-layer
+FedSAIL. The savings reported in the main text therefore refer to the three-snapshot selection protocol.
+G Code Availability and Computational Resources
+Computational resources.Table 18 summarizes the primary compute server and benchmark training
+environment. GLUE and DDDT runs simulate federated clients within single-GPU jobs; independent jobs
+are scheduled across the available GPUs. Both protocols use CUDA automatic mixed precision, with training
+settings given in Appendices C and F.
+25
+
+===== PDF PAGE 26 =====
+
+Table 18: Primary compute server and benchmark training environment.
+Component Specification
+GPUs4×NVIDIA GeForce RTX 3090,24GiB memory each
+CPUs2×Intel Xeon Gold 5218R,40physical cores in total
+Host memory Approximately504GiB (OS-reported)
+Operating system Ubuntu 22.04.5 LTS
+Training runtime Python 3.9.21; PyTorch 2.5.1 with CUDA 12.4
+Libraries Transformers 4.42.3; Datasets 2.20.0
+Anonymous code release.The core implementation of FedSAIL is available at
+https://anonymous.4open.science/r/FedSAIL-4A7C/.
+The repository implements input-moment estimation and shrinkage, compact spectral messages, server-side
+subspace aggregation, the local action residual penalty, layer selection, and communication accounting. Syn-
+thetic CPU tests check these components against dense reference computations, including reparameterization
+invariance and penalty gradients. Experimental settings and evaluation conventions are documented in the
+preceding appendices.
+Installation and verification.The standalone package requires Python 3.10 or later and PyTorch. From the
+repository root, the following commands install the package and run its numerical tests without downloading
+models or datasets:
+python -m pip install -e ".[test]"
+PYTHONDONTWRITEBYTECODE=1 python -m pytest -p no:cacheprovider
+26

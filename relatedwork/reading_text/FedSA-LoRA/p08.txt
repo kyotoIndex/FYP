@@ -1,0 +1,61 @@
+Published as a conference paper at ICLR 2025
+5.1 N ATURAL LANGUAGE UNDERSTANDING
+Model Performance. For the natural language understanding tasks, similar to FFA-LoRA (Sun
+et al., 2024a), we randomly split the data across three clients for federated learning. We model
+a non-IID data distribution using a Dirichlet distribution with α = 0 .5, i.e., Dir (0.5). We use
+the pre-trained RoBERTa-large (355M) (Liu et al., 2019) from the HuggingFace Transformers li-
+brary (Wolf et al., 2020) as the base model. For LoRA-based methods optimization, we adopt the
+SGD optimizer (Ruder, 2016) for all approaches. We set the batch size to 128, local update steps
+to 10, and total communication rounds to 1000, consistent across all experiments. Similar to Hu
+et al. (2022), we only apply LoRA to Wq and Wv in the attention layers in our experiments. The
+rank r = 8 and scaling factor α = 16 are fixed for all algorithms. We report the best result
+from experiments run with learning rates η ∈ {5E-3, 1E-2, 2E-2, 5E-2, 1E-1}. The optimization of
+rsLoRA-based methods is similar to LoRA-based methods, only the learning rates are searched from
+η ∈ { 1E-3, 2E-3, 5E-3, 1E-2, 2E-2, 5E-2}. For VeRA-based methods, following VeRA (Kopiczko
+et al., 2024), we set the rankr = 256. We adopt the AdamW optimizer (Loshchilov & Hutter, 2017),
+introduce separate learning rates for the classification head and the adapted layers, and determine
+the learning rates through hyperparameter tuning. Other settings are the same as for LoRA-based
+methods. The learning rates used for each method are shown in Tables 6, 7, and 8 in Appendix.
+Table 1: Performance of different methods on the GLUE benchmark. MNLI-m denotes MNLI with
+matched test sets, and MNLI-mm denotes MNLI with mismatched test sets. For all tasks, we report
+accuracy evaluated across 3 runs with mean and standard deviation.
+Method MNLI-m MNLI-mm SST2 QNLI QQP RTE Avg.
+LoRA
+LoRA 88.71±0.09 88.19±0.02 95.16±0.09 91.16±0.72 85.33±1.33 87.49±0.15 89.33
+FFA-LoRA 88.83±0.02 88.27±0.03 94.95±0.04 91.52±0.59 86.71±0.07 86.08±1.16 89.39
+FedDPA-LoRA88.99±0.06 88.43±0.05 95.50±0.06 90.74±1.38 85.73±1.73 87.44±0.13 89.47
+FedSA-LoRA90.18±0.02 88.88±0.02 96.00±0.04 92.13±0.24 87.48±0.22 87.93±0.11 90.43
+rsLoRA
+rsLoRA 88.91±0.15 88.33±0.04 95.02±0.24 91.21±0.39 86.73±0.98 85.99±0.34 89.36
+FFA-rsLoRA 89.21±0.11 88.45±0.08 95.42±0.17 91.42±0.44 86.93±1.18 85.24±0.21 89.44
+FedDPA-rsLoRA89.34±0.11 88.53±0.05 95.56±0.21 90.97±0.76 86.81±0.53 86.26±0.11 89.57
+FedSA-rsLoRA90.35±0.11 89.02±0.03 95.78±0.08 92.03±0.22 87.97±0.16 88.00±0.10 90.52
+VeRA
+VeRA 85.54±0.10 85.09±0.07 93.53±0.13 91.90±0.17 82.07±0.35 86.31±0.12 87.40
+FFA-VeRA 86.63±0.13 86.22±0.08 93.44±0.05 92.05±0.23 82.23±0.07 83.54±0.59 87.35
+FedDPA-VeRA86.74±0.11 86.35±0.07 93.61±0.32 90.73±0.54 82.11±0.41 86.12±0.12 87.61
+FedSA-VeRA87.21±0.10 86.52±0.04 93.68±0.07 92.91±0.09 82.56±0.05 87.83±0.09 88.45
+The experimental results are shown in Table 1. From this table, we can observe that the proposed
+FedSA-LoRA, FedSA-rsLoRA, and FedSA-VeRA consistently outperform other methods across all
+tasks, demonstrating the effectiveness of the proposed method.
+System Efficiency. We further compare the proposed method with baselines in terms of system
+efficiency, following Qu et al. (2022); Zhang et al. (2024a); Lai et al. (2022). The system efficiency in
+FL consists of communication cost and computation cost. To provide a comprehensive comparison,
+we detail the number of trainable parameters, the number of communication model parameters per
+FL round, the computation cost per FL round, and the number of communication rounds needed
+to reach the predefined target performance on the RTE and QNLI tasks in Table 2. The target
+performance is defined as 95% of the prediction accuracy provided in LoRA (Hu et al., 2022).
+Specifically, we define the target performance of the RTE and QNLI tasks as 80.94% and 90.06%,
+respectively.
+Communication cost is a critical factor in FL, as it significantly impacts the overall system effi-
+ciency. The communication cost can be roughly estimated by considering the number of transmitted
+messages required to achieve a target performance, calculated as # transmitted messages= # com-
+munication round × # communicated model parameter . As shown in Table 2, our FedSA-LoRA
+requires the smallest communication cost to reach the target performance (with smallest commu-
+nication rounds and per-round communication parameters). Additionally, while our FedSA-LoRA
+requires more trainable model parameters and incurs slightly more computation cost per FL round
+than the baseline FFA-LoRA (22s compared to 20s on RTE task), it is important to note that our
+model reaches the target performance with fewer communication rounds (#91 compared to #229 on
+RTE task). These computation and communication costs demonstrate the overall efficiency of our
+model.
+8

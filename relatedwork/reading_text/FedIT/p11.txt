@@ -1,0 +1,51 @@
+50 60 70 80 90 100 110
+Relative Score (%)
+CentralizedModel
+LLaMA
+Local-1
+Local-2
+Local-3
+Shepherd-7B (ours)
+139.0/172.7    81%
+118.3/176.0    67%
+125.3/173.7    72%
+123.7/173.7    71%
+125.3/173.3    72%
+133.3/175.7    76%
+ChatGPT
+CentralizedModel
+LLaMA
+Local-1
+Local-2
+Local-3
+Shepherd-7B (ours)
+Figure 3: The relative scores of all models against ChatGPT(GPT-3.5-turbo)
+the instructions.Consequently, there is a need for further exploration of more efficient federated
+optimization methods and client scheduling methods, such as FA-LD [16] and FedCBS [95], which
+are inspired by bayesian sampling methods [ 47, 87, 96, 97, 99, 100], to enhance the aggregation
+process. In conclusion, as discussed in Section 3.2, statistical heterogeneity can be a beneficial factor
+for FedIT, as it enhances the diversity of instruction data, thus improving the model’s generalization
+ability to unseen tasks. However, to fully utilize the benefits of data heterogeneity, advanced federated
+optimization methods need to be developed and integrated to manage and leverage heterogeneity
+more effectively.
+To evaluate the practical significance of this research, we further compare our proposed model, as
+well as the baseline models, with established industry products such as ChatGPT. In line with our
+ultimate goal of developing federated GPT models, we utilized GPT-4 auto-evaluation to compare
+the responses of these models with the response of GPT-3.5-turbo (ChatGPT). The resulting Relative
+Scores over ChatGPT are presented in Figure 3. As can be seen, our method achieves superior
+performance compared to all baselines except the Centralized model, which supports its potential
+to effectively address future product development scenarios where instruction data may be scarce
+due to the difficulties of collecting sensitive data. Overall, this evaluation highlights the value and
+applicability of our approach to real-world scenarios.
+4.3 Qualitative Study with Example Demonstration
+In this section, we demonstrate the efficacy of FedIT by presenting examples that highlight the
+comparative performance of our model against various baseline models. The first example is derived
+from the 20 unseen questions in [ 11], while the second example is sourced from the Databricks-
+dolly-15k dataset.
+As illustrated in Table 4, our Shepherd-7B model generates a more accurate and pertinent response
+compared to Local-3, which is also more detailed than LLaMA’s response. Our response outlines
+potential discoveries Newton could have made in biology, such as evolution, genetics, cellular biology,
+immunology, infectious diseases, and vaccines, whereasLocal-3 incorporates extraneous information,
+rendering its response less relevant to the question. As assessed by GPT-4, the Local-2 response also
+discusses the potential implications of Newton concentrating on biology but predominantly empha-
+11

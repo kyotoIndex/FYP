@@ -1,0 +1,78 @@
+Table 5: The training time (i.e., computation time) of
+different methods and the number of training rounds
+with the server for the Distilbert model on the 20news
+dataset.
+FFTLoRASFT SLoRA SVD-decomposition
+Computation time0.19 0.20 1.02 Stage 1:1.1 15.4(sec/epoch) Stage 2:0.20 (one-time cost)Total training rounds250 12501250 300 —
+table, SLoRA enjoys better performance compared
+to FFT and still has better training time.
+Table 6: Performance and training cost of different al-
+gorithm for the 20News group dataset on DistilBERT
+model.
+#TrainableTrainingAccuracyCommunication
+ParameterTime (min) (%) (Gbits)
+FFT 67.0M 3407 64.4±2 997
+LoRA 0.7M 203 63.1±0.5 57.5
+SFT 0.7M 220 62.3±0.9 57.5
+SLoRA 0.7M 186 64.8±0.4 57.5
+The results for the News category dataset on
+Albert and DistilBERT are summarized in Table 7
+and Table 8, respectively. As depicted in the tables,
+the same observations still hold for this dataset as
+well.
+Table 7: Performance and training cost of different algo-
+rithms for the News category dataset on Albert model.
+#TrainableTrainingAccuracyCommunication
+ParameterTime (min) (%) (Gbits)
+FFT 11.7M 559 65.2±0.6 174
+LoRA 0.14M 39.5 56.8±5 9.95
+SFT 0.14M 140 55.1±0.6 9.95
+SLoRA 0.14M 41.5 62.8±3 9.95
+B.1 Impact of Update size.
+In this section, we show the impact of update size
+for other settings as well. In all the settings, updates
+with higher density have better performance as ex-
+pected, and the performance considerably drops by
+increasing the data heterogeneity.
+Table 8: Performance and training cost of different al-
+gorithms for the News category dataset on DistilBERT
+model. We train SLoRA on Stage 2 for only 50 rounds.
+#TrainableTrainingAccuracyCommunication
+ParameterTime (min) (%) (Gbits)
+FFT 67.0M 3406 61.6±1.5 997
+LoRA 0.7M 161 50.2±5 45.5
+SFT 0.7M 177 55.8±0.1 45.5
+SLoRA 0.7M 160 56.1±1 45.5
+Table 9: Impact of update density of different PEFT
+methods on the performance for the 20News group
+dataset on DistilBERT.
+Data DensityLoRA HolusbyPfeiffer
+Distribution (%) (%) % (%)
+Centralized 10 70.0 70.0 69.5
+1 69.8 69.6 68.7
+α = 0.1 10 66.3 65.3 65.3
+1 65.8 65.0 64.8
+Pathological 10 58.6 55.1 55.7
+1 57.2 54.7 54.2
+Table 10: Impact of update density of different PEFT
+methods on the performance for the News category
+dataset on Albert.
+Data DensityLoRA HolusbyPfeiffer
+Distribution (%) (%) % (%)
+Centralized 10 76.0 76.0 76.0
+1 76.0 75.9 75.9
+α = 0.1 10 72.3 68.54 70.6
+1 71 68.17 70.27
+Pathological 10 60.7 33.6 57.0
+1 41.96 27.78 50.8
+Table 11: Impact of update density of different PEFT
+methods on the performance for the News category
+dataset on DistilBERT.
+Data DensityLoRA HolusbyPfeiffer
+Distribution (%) (%) % (%)
+Centralized 10 78.4 78.0 78.15
+1 77.99 77.94 77.85
+α = 0.1 10 73.55 72.2 71.6
+1 71.6 71.6 71.362
+Pathological 10 49.39 38.03 37.4
+1 33.9 33.9 28.2

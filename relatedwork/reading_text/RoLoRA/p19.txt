@@ -1,0 +1,113 @@
+Theorem A3.8(Bernstein’s inequality).Let X1, . . . , XN be independent mean-zero sub-exponential
+random variables. Then, for everyt≥0, we have
+P
+ 
+NX
+i=1
+Xi
+ ≥t
+!
+≤2 exp
+ 
+−cmin
+ 
+t2
+PN
+i=1 ∥Xi∥2
+ψ1
+, t
+maxi ∥Xi∥ψ1
+!!
+,
+wherec >0is an absolute constant.
+Proof.See proof of Theorem 2.8.1 of [37].
+A3.3 Homogeneous Case
+Outline of Proof.In this section, we first analyze the minimization step for updating bt
+i
+(Lemma A3.9), then establish a bound on the deviation of the gradient from its expectation with
+respect to a (Lemma A3.10), and finally derive a bound on |sinθ(a t+1,a ∗)| based on the gradient
+descent update rule for a (Lemma 4.3 or Lemma A3.11). The proof of Theorem 4.5 is provided in
+Section A3.4, where the result is obtained by recursively applying Lemma 4.3 overTiterations.
+Lemma A3.9.Let a=a t. Let δt =∥(I d −a ∗a∗⊤
+)a∥=∥(I d −aa ⊤)a∗∥ denote the angle
+distance between a∗ and a. Let g⊤ =a ⊤a∗b∗⊤
+, ¯b= 1
+N
+PN
+i=1 bi, If m= Ω(q) , and q=
+max( log(N)
+[min(ϵ1,ϵ2)]2 ,
+dlog( 2
+ϵ0 )
+ϵ2
+2
+), then with probability1−q −10,
+∥¯b−g∥ ≤ϵ ′δt∥b∗∥(11)
+whereϵ ′ = ϵ2
+(1−ϵ0)(1−ϵ1), forϵ 0, ϵ1, ϵ2 ∈(0,1).
+Proof. We drop superscriptt for simplicity. Following Algorithm 2, we start by computing the update
+for ˜bi. Withg ⊤ =a ⊤a∗b∗⊤
+, we get:
+˜b⊤
+i = a⊤X⊤
+i Xia∗b∗⊤
+a⊤X⊤
+i Xia (12)
+= a⊤X⊤
+i Xiaa⊤a∗b∗⊤
++a ⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+a⊤X⊤
+i Xia (13)
+=g ⊤ + a⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+a⊤X⊤
+i Xia .(14)
+Therefore,
+∥˜bi−g∥ ≤ |a ⊤X⊤
+i Xia|−1·∥a⊤X⊤
+i Xi(Id−aa⊤)a∗b∗⊤
+∥=∥X ia∥−2·∥a⊤X⊤
+i Xi(Id−aa⊤)a∗b∗⊤
+∥.
+(15)
+Note that since each entry of Xi is independent and identically distributed according to a standard
+Gaussian, and ∥a∥= 1 , Xia is a random standard Gaussian vector. By Theorem 3.1.1 of [37], the
+following is true for anyϵ 1 ∈(0,1)
+P
+
+∥Xia∥2 ≤(1−ϵ 1)m
+	
+≤exp (− c1ϵ2
+1m
+K4 )(16)
+where K=∥ξ∥ ψ2 ≥1 for ξ∼ N(0,1) and c1 is some large absolute constant that makes
+(16) holds. Next we upper bound ∥a⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+∥. Note that E[a⊤X⊤
+i Xi(Id −
+aa⊤)a∗b∗⊤
+] =a ⊤E[X⊤
+i Xi](Id −aa ⊤)a∗b∗⊤
+=ma ⊤(Id −aa ⊤)a∗b∗⊤
+= 0. First we need to
+apply sub-exponential Berstein inequality to bound the deviation from this mean, and then apply
+epsilon net argument. Let N be any ϵ0-net of the unit sphereS d−1 in the d-dimensional real Euclidean
+space, then by Lemma A3.7, we have
+∥a⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+∥ ≤ 1
+1−ϵ 0
+max
+w∈N
+a⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+w(17)
+≤ 1
+1−ϵ 0
+max
+w∈N
+|a⊤X⊤
+i Xi(Id −aa ⊤)a∗b∗⊤
+w|(18)
+19

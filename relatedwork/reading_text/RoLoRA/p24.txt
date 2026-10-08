@@ -1,0 +1,57 @@
+Proof.Recall that ˆa+ =a−η∇ al(a, ¯b). We substract and addE[∇ al(a, ¯b)], obtain
+ˆa+ =a−ηE[∇ al(a, ¯b)] +η(E[∇ al(a, ¯b)]− ∇ al(a, ¯b))(80)
+Multiply both sides by the projection operatorP=I d −a ∗(a∗)⊤,
+Pˆa+ =Pa−ηPE[∇ al(a, ¯b)] +ηP(E[∇ al(a, ¯b)]− ∇ al(a, ¯b))(81)
+=Pa−2ηP(a ¯b⊤ −a ∗b∗⊤
+)¯b+ηP(E[∇ al(a, ¯b)]− ∇ al(a, ¯b))(82)
+=Pa−2ηPa ¯b⊤¯b+ηP(E[∇ al(a, ¯b)]− ∇ al(a, ¯b))(83)
+=Pa(1−2η ¯b⊤¯b) +ηP(E[∇ al(a, ¯b)]− ∇ al(a, ¯b))(84)
+where (82) usesE[∇ al(a, ¯b)] = 2(a¯b⊤ −a ∗b∗⊤
+)¯b, (83) follows byPa ∗ = 0. Thus, we get
+∥Pˆa+∥ ≤ ∥Pa∥|1−2η ¯b⊤¯b|+η∥(E[∇ al(a, ¯b)]− ∇ al(a, ¯b))∥(85)
+Normalizing the left hand side, we obtain
+∥Pˆa+∥
+∥ˆa+∥ ≤ ∥Pa∥|1−2η ¯b⊤¯b|+η∥(E[∇ al(a, ¯b)]− ∇ al(a, ¯b))∥
+∥ˆa+∥ (86)
+⇒δ t+1 ≤ δt|1−2η ¯b⊤¯b|+η∥E[∇ al(a, ¯b)]− ∇ al(a, ¯b)∥
+∥ˆa+∥ (87)
+= E1 +E 2
+∥ˆa+∥ (88)
+where (87) follows by δt+1 = ∥Pˆa+∥
+∥ˆa+∥ and δt =∥Pa∥ . We need to upper bound E1 and E2
+accordingly.E 2 is upper bounded based on Lemma A3.10. With probability at least1−2q −10,
+E2 =η∥E[∇ al(a, ¯b)]− ∇ al(a, ¯b)∥(89)
+≤2η˜ϵ(ϵ′ + 1)2δt∥b∗∥2 (90)
+To upper boundE 1, we need to lower bound∥ ¯b∥2. We can first lower bound∥ ¯b∥by:
+∥¯b∥=∥g−(g− ¯b)∥(91)
+≥ ∥g∥ − ∥g− ¯b∥(92)
+=
+p
+1−(δ t)2∥b∗∥ − ∥g− ¯b∥(93)
+≥
+p
+1−(δ t)2∥b∗∥ −ϵ ′δt∥b∗∥(94)
+with probability at least 1−q −10. (93) follows by g⊤ =a ⊤a∗b∗⊤
+and a⊤a∗ = cosθ(a,a ∗),
+(94) follows by Lemma A3.9. Assuming δt ≤ · · · ≤δ 0, we choose ϵ′ < 1−(δ0)2
+16 to makep
+1−(δ t)2∥b∗∥ −ϵ ′δt∥b∗∥ ≥0. Hence∥ ¯b∥2 is lower bounded by:
+∥¯b∥2 ≥(
+p
+1−(δ t)2∥b∗∥ −ϵ ′δt∥b∗∥)2 (95)
+= (1−(δ t)2)∥b∗∥2 + (ϵ′)2(δt)2∥b∗∥2 −2ϵ ′δtp
+1−(δ t)2∥b∗∥2 (96)
+≥(1−(δ t)2)∥b∗∥2 + (ϵ′)2(δt)2∥b∗∥2 −ϵ ′∥b∗∥2 (97)
+≥(1−(δ 0)2)∥b∗∥2 −ϵ ′∥b∗∥2 (98)
+with probability at least 1−q −10. (97) follows by xy≤ 1
+2 for x2 +y 2 = 1, (98) follows by assuming
+δt ≤δ t−1 ≤ · · · ≤δ 0.E 1 is upper bounded below.
+E1 =δ t|1−2η ¯b⊤¯b|(99)
+≤δ t|1−2η((1−(δ 0)2)−ϵ ′)∥b∗∥2|(100)
+with probability at least1−q −10. Next we lower bound∥ ˆa+∥.
+∥ˆa+∥2 =∥a−η∇ al(a, ¯b)∥2 (101)
+=a ⊤a+η 2∥∇al(a, ¯b)∥2 −2ηa ⊤∇al(a, ¯b)(102)
+≥a ⊤a−2ηa ⊤∇al(a, ¯b)(103)
+= 1−2ηa ⊤∇al(a, ¯b)(104)
+= 1−2ηa ⊤(∇al(a, ¯b)−E[∇ al(a, ¯b)])−2ηa ⊤E[∇al(a, ¯b)](105)
+24

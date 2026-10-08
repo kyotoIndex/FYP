@@ -1,0 +1,65 @@
+Published as a conference paper at ICLR 2025
+A.3 F URTHER EXPLANATIONS ABOUT AGGREGATION ERRORS .
+In this section, we provide more explanation about what aggregation errors are and why people do
+not achieve the “ideal” model update.
+When introducing LoRA into FL, the update for the i-the client is given by ∆Wi = BiAi. The
+“ideal” model update for server aggregation should be:
+∆∗
+W = 1
+m
+mX
+i=1
+∆Wi = 1
+m
+mX
+i=1
+BiAi = 1
+m(B1A1 + B2A2 + · · · + BmAm). (27)
+However, in practical LoRA training, the matrices Ai and Bi, not the original Wi, are trainable.
+Thus, we cannot directly average the ∆Wi; instead, we can only separately average Ai and Bi, and
+then combine them to obtain the update:
+∆W =( 1
+m
+mX
+i=1
+Bi)( 1
+m
+mX
+i=1
+Ai)
+= 1
+m(B1 + B2 + · · · + Bm) 1
+m(A1 + A2 + · · · + Am)
+= 1
+m2 (B1A1 + B1A2 + · · · + B1Am + B2A1
++ B2A2 + · · · + B2Am + · · · + BmA1 + BmA2 + · · · + BmAm),
+(28)
+which differs from the “ideal” model update in Eq. (27). This difference introduces aggregation
+errors.
+Regarding why the “ideal” model update is not achieved, it is because the matrices Ai and Bi are
+trainable, not the original Wi. While it is possible to first combineAi and Bi to obtain ∆Wi and then
+average them to achieve the “ideal” update, we cannot decomposeW back into A and B for further
+federated training. This limitation prevents people from performing the “ideal” model update.
+A.4 H YPERPARAMETERS
+Tables 6 and 7 show the learning rates used for LoRA-based methods and rsLoRA-based methods,
+respectively. For the VeRA-based methods, we first tried using the SGD optimizer (Ruder, 2016)
+with a search learning rate from η ∈ { 5E-3, 1E-2, 2E-2, 5E-2, 1E-1} as adopted in LoRA-based
+methods, but we found the performance to be significantly worse than that of LoRA-based methods.
+For example, the best performance among the three VeRA-based methods (i.e., VeRA, FFA-VeRA,
+and FedSA-VeRA) is 53.73% on the MNLI-m task, which is significantly worse than that of the
+LoRA-based methods (90.20%). Thus, we chose the AdamW optimizer (Loshchilov & Hutter,
+2017) and introduced separate learning rates for the classification head and the adapted layers as
+used in VeRA (Kopiczko et al., 2024). The learning rates used for VeRA-based methods are shown
+in Table 8.
+Table 6: The learning rates used for LoRA-based methods on the GLUE benchmark.
+Method MNLI-m MNLI-mm SST2 QNLI QQP RTE
+LoRA 1E-2 1E-2 2E-2 1E-2 1E-2 1E-2
+FFA-LoRA 5E-2 5E-2 5E-2 2E-2 5E-2 2E-2
+FedDPA-LoRA 1E-2 1E-2 1E-2 5E-2 5E-2 1E-2
+FedSA-LoRA 2E-2 2E-2 1E-2 5E-3 2E-2 1E-2
+A.5 E XAMPLES OF GENERATED ANSWER FOR GSM8K D ATASETS
+The results of the GSM8K dataset are shown in Table 9, demonstrating that the proposed FedSA-
+LoRA outperforms other methods in complex natural language generation tasks. From the given
+example, it can be seen that both LoRA and FFA-LoRA have reasoning errors, but FedSA-LoRA
+can reason accurately, demonstrating the superiority of the proposed method.
+21

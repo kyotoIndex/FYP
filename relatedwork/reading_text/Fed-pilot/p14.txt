@@ -1,0 +1,67 @@
+, , Zhang et al.
+A.4 Code for Calculating GPU Memory Consumption
+We provided a script that estimates the memory consumption for the ViT-base model when using LoRA-based fine-tuning. The calculations
+include static and dynamic activation memory, parameter memory, optimizer memory, and GPU context. Three configurations are evaluated:
+training the full 12 LoRA modules, the first 6 LoRA modules, and the last 6 LoRA modules.
+1 from transformers import A u t o M o d e l F o r I m a g e C l a s s i f i c a t i o n
+2 from peft import LoraConfig , get_peft_model
+3
+4 def get_activation ( model , rank , sequence_size , hidden_size , batch_size ) :
+5 element_size = 4 # For float32
+6 s t a t i c _ a c t i v a t i o n _ p e r L = (9 * batch_size * sequence_size * hidden_size +
+7 2 * batch_size * sequence_size * sequence_size ) * element_size / (10**6)
+8 d y n a m i c _ a c t i v a t i o n _ p e r L = (2 * batch_size * sequence_size * hidden_size +
+9 2 * batch_size * sequence_size * rank ) * element_size / (10**6)
+10 param_memory = sum ( p . numel () * p . element_size () for p in model . parameters () ) / (10**6)
+11 opti mizer_me mory = 3 * sum ( p . numel () * p . element_size () for p in model . parameters () if p . requires_grad ) / (10**6)
+12
+13 return { ' static ': static_activation_perL ,
+14 ' dynamic ': dynamic_activation_perL ,
+15 ' param ': param_memory ,
+16 ' optimizer ': opt imizer_m emory }
+17
+18 # Model Configurations
+19 lora_layer = 12
+20 rank = 16
+21 model = A u t o M o d e l F o r I m a g e C l a s s i f i c a t i o n . from_pretrained (' google / vit - base - patch16 -224 - in21k ')
+22 config = LoraConfig (
+23 r = rank ,
+24 lora_alpha =16 ,
+25 target_modules =[ " query " , " value " ] ,
+26 lora_dropout =0.1 ,
+27 bias = " none "
+28 )
+29 net_glob = get_peft_model ( model , config )
+30
+31 # Context memory based on experimental values
+32 c o n t e x t _ m e m o r y _ 6 _ l a y e r = 2280 # MB
+33 c o n t e x t _ m e m o r y _ 1 2 _ l a y e r = 5800 # MB
+34
+35 # Activation Memory Calculation
+36 sequence_size = 197
+37 hidden_size = 768
+38 batch_size = 496
+39 me mo ry _c al cul at or = get_activation ( model , rank , sequence_size , hidden_size , batch_size )
+40
+41 # Full 12 Layers
+42 optim izer_mem ory = m em or y_ ca lcu la to r [ ' optimizer '] / lora_layer * 12
+43 model_memory = m em or y_c al cu la to r [ ' param ']
+44 ac ti va ti on _me mo ry = m em ory _c al cu lat or [ ' static '] * 12 + mem or y_ ca lc ula to r [ ' dynamic '] * 12
+45 print ( f " 12 Layers Memory Consumption : {( opt imizer_m emory + model_memory + ac ti va tio n_ me mo ry + c o n t e x t _ m e m o r y _ 1 2 _ l a y e r ) /
+(10**3) } GB \ n " )
+46
+47 # First 6 Layers
+48 optim izer_mem ory = m em or y_ ca lcu la to r [ ' optimizer '] / lora_layer * 6
+49 model_memory = m em or y_c al cu la to r [ ' param ']
+50 ac ti va ti on _me mo ry = m em ory _c al cu lat or [ ' static '] * 12 + mem or y_ ca lc ula to r [ ' dynamic '] * 6
+51 print ( f " First 6 Layers Memory Consumption : {( opt imizer_ memory + model_memory + ac ti va ti on_ me mo ry +
+c o n t e x t _ m e m o r y _ 6 _ l a y e r ) / (10**3) } GB \ n " )
+52
+53 # Last 6 Layers
+54 optim izer_mem ory = m em or y_ ca lcu la to r [ ' optimizer '] / lora_layer * 6
+55 model_memory = m em or y_c al cu la to r [ ' param ']
+56 ac ti va ti on _me mo ry = m em ory _c al cu lat or [ ' static '] * 6 + mem or y_ ca lc ula to r [ ' dynamic '] * 6
+57 print ( f " Last 6 Layers Memory Consumption : {( opt imizer_ memory + model_memory + ac ti va ti on_ me mo ry + c o n t e x t _ m e m o r y _ 6 _ l a y e r
+) / (10**3) } GB \ n " )
+Listing 1: Memory Consumption Estimation for ViT with LoRA
+The estimated memory consumption for different configurations is presented in Table 12.

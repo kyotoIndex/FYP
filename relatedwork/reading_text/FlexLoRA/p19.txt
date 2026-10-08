@@ -1,0 +1,40 @@
+J Single Client’s Performance under Different Rank
+Table 13 below shows the single client performance under a small rank of 8 and a large rank of 200.
+This data shows that performance improves with higher LoRA ranks uniformly regardless of the tasks
+assigned to each client, motivating us to allocate the highest feasible rank given a client’s resource
+budget. Figure 9 illustrates all the clients’ performance under rank 8 and rank 200.
+Table 13: 8 examples of single-client performance under FedIT with homo rank 8 and homo rank
+200 distribution in a single round.
+rank=8 rank=200 Task Type
+0.8977 0.9157 Translation
+0.9084 0.9272 Translation
+0.549 0.5749 Program Execution
+0.5031 0.5301 Program Execution
+0.4414 0.4507 Sentiment Analysis
+0.5173 0.5328 Fact Verification
+0.6995 0.7354 Program Execution
+0.4801 0.5166 Question Rewriting
+0 10 20 30 40 50 60 70 80
+Clients
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9RougeL for single client
+RougeL score for single clients for FedIT
+LoRA configurations
+rank_8
+rank_200
+Figure 9: Performance on FedIT with homo rank 8 vs homo rank 200 across all the clients.
+K Computational Resources and Infrastructure Report
+In our study, we employ the LLaMA-1.3B from Data-Juicer 2 as the foundational architecture for
+our FlexLoRA framework, which consists of approximately 1.35 billion parameters. During our
+experiments, the DataJuicer-1.3B model itself is kept frozen, and the tunable parameter size for each
+client within our federated learning framework are determined by the size of the LoRA module, with
+specific configurations detailed in Table 1. Our experiments are conducted on a cluster equipped with
+16 NVIDIA A100 GPUs, each with 40GB or 80GB of memory. The total GPU hours for running
+all the experiments is approximately 1200 GPU hours. All the experiments are implemented using
+PyTorch package with version 2.1.0 and Huggingface’s Transformers package with version 4.31.0.
+2https://huggingface.co/datajuicer/LLaMA-1B-dj-refine-150B
+19

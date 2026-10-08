@@ -1,0 +1,44 @@
+protocol. This is a stress test of aggregatingBk with different frozenAk bases, rather than its canonical shared-
+A setting (Appendix C). The results support input-aware subspace guidance for personalized adaptation with
+independently initialized adapters.
+Table 2: Personalized GLUE validation accuracy (%, mean ± sample std.) after 500 rounds, with the highest
+mean in each column for eachαshown in bold. Smallerαindicates stronger label heterogeneity.
+αMethod RTE SST-2 QNLI MNLI-m MNLI-mm QQP Avg.
+0.5LoRA78.70 ±2.60 95.83±0.93 90.13±1.93 88.68±1.60 88.96±1.73 89.41±5.75 88.62±1.14
+FFA-LoRA70.04 ±5.91 90.75±1.78 79.46±2.06 65.46±9.63 66.65±9.11 81.28±11.53 75.61±3.27
+FedDPA-LoRA78.22 ±6.83 95.99±1.20 91.62±1.21 89.06±1.58 89.29±1.71 89.62±5.76 88.97±1.33
+FedSA-LoRA79.90 ±8.61 95.95±1.13 91.76±0.61 88.56±1.72 88.92±1.76 89.53±5.63 89.10±1.60
+FedSAIL80.87 ±7.50 96.37±1.17 93.06±0.57 88.98±1.54 89.07±1.75 89.80±5.39 89.69±1.28
+0.75LoRA77.26 ±0.96 95.45±0.35 90.76±0.89 88.39±1.43 88.62±1.44 88.68±4.49 88.19±0.54
+FFA-LoRA61.13 ±3.47 89.22±2.81 81.77±2.42 62.33±10.84 63.60±10.45 81.53±8.88 73.26±1.81
+FedDPA-LoRA74.61 ±0.91 95.49±0.46 92.12±0.17 88.81±1.44 88.83±1.45 88.67±4.71 88.09±0.27
+FedSA-LoRA76.65 ±3.86 95.41±0.41 92.34±0.29 88.22±1.58 88.42±1.75 88.70±4.87 88.29±0.39
+FedSAIL77.26 ±5.05 95.64±0.20 93.23±0.61 88.61±1.53 88.84±1.60 89.05±4.69 88.77±0.56
+1.0LoRA79.78 ±2.53 95.83±0.69 92.20±0.94 88.18±1.25 88.41±1.51 88.00±2.33 88.73±1.00
+FFA-LoRA76.29 ±4.22 87.88±0.98 80.08±1.36 61.48±11.53 62.48±10.99 81.69±4.80 74.98±4.05
+FedDPA-LoRA77.98 ±2.89 95.80±1.26 92.80±0.55 88.40±1.32 88.80±1.70 88.18±2.16 88.66±1.11
+FedSA-LoRA79.54 ±4.35 95.83±0.81 92.32±0.66 88.10±1.52 88.17±1.60 88.18±2.14 88.69±1.31
+FedSAIL81.95 ±3.61 96.25±1.10 93.28±0.41 88.40±1.40 88.52±1.35 88.72±2.11 89.52±1.14
+4.2 Shared Rank vs. Local Rank
+A key architectural advantage of FedSAIL is its ability to decouple the rank of the globally shared subspace (s)
+from the capacity of the local adapters (rL). Standard federated parameter-averaging methods usually tie these
+two dimensions together. In contrast, FedSAIL’s asymmetric design allows us to disentangle communication
+cost from client-side learning capacity. Table 3 reports the performance and communication costs as we vary
+these ranks.
+We first evaluate the communication-accuracy trade-off by fixing the local rank atrL = 8 and varying the
+shared rank. Expanding the shared subspace from s= 1 to s= 4 quadruples the communication payload,
+yet yields only small, non-monotonic changes in accuracy. This confirms that sharing dominant action
+direction captures the most critical geometric alignment information. Then we fix the shared rank at the
+communication-efficient s= 1 and scale up the local adapter rank rL from 2 to 8, predictive performance
+steadily improves across all heterogeneity levels. Crucially, since the shared spectral message depends entirely
+on s, scaling up rL enhances local personalization capacity without incurring any additional communication
+overhead.
+4.3 Ablation Study: Input-Moment Weighting in the Shared Message
+To isolate the source of FedSAIL’s empirical gains, we ablate the rank-1 spectral message uploaded by the
+clients. To evaluate these properties, we compare shared subspaces extracted from the raw input factor
+(Ak), the full raw update (∆k =B kAk), and the input-aware action matrix (bGk =∆ kbΣ
+1/2
+k ). All variants
+use identical communication payloads and retain the samebGk-based local regularizer. In Appendix D, we
+provide the protocol details and task-level results.
+9

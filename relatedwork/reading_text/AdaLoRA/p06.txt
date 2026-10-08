@@ -1,0 +1,64 @@
+Published as a conference paper at ICLR 2023
+Algorithm 1 AdaLoRA
+1: Input: Dataset D; total iterations T ; budget schedule {b(t)}T
+t=0; hyperparameters η, γ, β1, β2.
+2: for t = 1, . . . , T do
+3: Sample a mini-batch from D and compute the gradient ∇L(P, E, Q);
+4: Compute the sensitivity I(t) in (8) for every parameter in {P, E, Q};
+5: Update I
+(t)
+as (9) and U
+(t)
+as (10) for every parameter in {P, E, Q};
+6: Compute S(t)
+k,i by (7), for k = 1, . . . , nand i = 1, . . . , r;
+7: Update P (t+1)
+k = P (t)
+k − η∇Pk L(P, E, Q) and Q(t+1)
+k = Q(t)
+k − η∇Qk L(P, E, Q);
+8: Update Λ(t+1)
+k = T (Λ(t)
+k − η∇Λk L(P, E, Q), S(t)
+k ) given the budget b(t).
+9: end for
+10: Output: The fine-tuned parameters {P(T), E(T), Q(T)}.
+3.3 G LOBAL BUDGET SCHEDULER
+As mentioned in Section 1, adjusting the rank is naturally to control the parameter budget in the
+context of low-rank adaptation. Hence we define the budget b(t) as the total rank of all incremental
+matrices, i.e., the number of total singular values. Recall that the budget allocation is iteratively
+conducted during the fine-tuning. To facilitate the training, we propose a global budget scheduler.
+Specifically, we start from an initial budgetb(0) that is slightly higher than the target budget b(T) (e.g.,
+1.5 times of b(T)). We set the initial rank of each incremental matrix as r = b(0)/n. We warm up
+the training for ti steps, and then follow a cubic schedule to decrease the budget b(t) until it reaches
+b(T). Finally, we fix the resulting budget distribution and fine-tune the model for tf steps. The exact
+equation for the budget schedule is presented in Appendix A. This allows AdaLoRA to explore the
+parameter space first and then focus on the most important weights later.
+4 E XPERIMENTS
+We implement AdaLoRA for fine-tuning DeBERTaV3-base (He et al., 2021a) and BART-large
+(Lewis et al., 2019). We evaluate the effectiveness of the proposed algorithm on natural language
+understanding (GLUE, Wang et al. (2019)), question answering (SQuADv1, Rajpurkar et al. (2016)
+and SQuADv2, Rajpurkar et al. (2018)), and natural language generation (XSum, Narayan et al.
+(2018) and CNN/DailyMail Hermann et al. (2015)). All the gains have passed significant tests with
+p < 0.05.
+Implementation Details. We use PyTorch(Paszke et al., 2019) to implement all the algorithms. Our
+implementation is based on the publicly available Huggingface Transformers3 (Wolf et al., 2019)
+code-base. All the experiments are conducted on NVIDIA V100 GPUs.
+LoRA scales ∆x by α/r where α is a constant in r. As a result, the magnitude of output can be
+consistent given different r. It reduces the efforts of retuning learning rate when varying r. Typically
+α is set as 16 or 32 and never tuned (Hu et al., 2022; Yang & Hu, 2020). Following LoRA, we add
+the same scaling for (3) and fix α as LoRA. Besides, in Algorithm 1, we prune singular values every
+∆T steps (e.g., ∆T = 100) such that the pruned triplets can still get updated within these intervals
+and possibly reactivated in future iterations.
+Baselines. We compare AdaLoRA with the following methods:
+• Full fine-tuning is the most common approach for adaptation. During fine-tuning, the model is
+initialized with pre-trained weights and biases, and all model parameters undergo gradient updates.
+• Bitfit (Zaken et al., 2021) is an effective parameter-efficient fine-tuning method. The method only
+fine-tunes bias vectors in the pre-trained model.
+• Adapter tuning (Houlsby et al., 2019; Pfeiffer et al., 2020) inserts two-layer adapters between
+transformer blocks. We compare with two types of adapter. Houlsby adapter as proposed in Houlsby
+et al. (2019) is inserted between the self-attention module and the FFN module followed by a
+subsequent residual connection. Recently, Pfeiffer et al. (2020) propose a more efficient design with
+adapters only applied after FFN modules and LayerNorm modules (Ba et al., 2016), which we call
+3https://github.com/huggingface/transformers
+6

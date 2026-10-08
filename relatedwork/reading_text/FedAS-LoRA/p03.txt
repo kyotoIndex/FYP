@@ -1,0 +1,84 @@
+3
+Fig. 2: Illustration of (a) FFA-LoRA, (b) FedSA-LoRA, and (c) FedAS-LoRA. In FFA-LoRA,Ais fixed after initialization,
+whileBis trainable and shared with the server for aggregation. In FedSA-LoRA, bothAandBare trainable, whileAis
+shared andBis retained locally. In FedAS-LoRA, the server uses RSS to determine the sharing strategy before training.
+For either strategy, both factors are updated locally; each client uploads only the shared factor and retains the other factor
+locally.
+different training or aggregation roles to the two factors,
+the sharing side is either predetermined or not explicitly
+considered. Which LoRA factor should be shared across
+clients and which should remain client-specific remains
+underexplored.
+III. PRELIMINARIES ANDMOTIVATION
+This section formulates the federated LoRA factor-sharing
+problem and proves that a fixed sharing side is insufficient.
+We first define a general federated factor-sharing model
+covering Share-A, Share-B, and full-factor sharing, followed
+by a motivating example to illustrate that Share-B/Local-A
+can outperform Share-A/Local-B. Based on a least-squares
+surrogate, we characterize the structural asymmetry between
+the two LoRA factors in federated settings.
+A. Factor Sharing in Federated LoRA
+Consider a federated fine-tuning system with a server and
+Nclients, indexed byN={1,2, . . . , N}. Clientiowns
+a local datasetD i and optimizes a local objectivef i. For
+a target linear layer with frozen pretrained weightW 0 ∈
+Rdout×din, the LoRA update of each clientiis∆W i =B iAi.
+Here,A i ∈R r×din,B i ∈R dout×r, andr≪min{d in, dout}
+denotes the LoRA rank. Given an input representationx∈
+Rdin,A i mapsxto anr-dimensional latent representation,
+whileB i maps this representation to the output space.
+For federated LoRA settings, we consider a fixed shared
+factor typeQ∈ {A, B}. LetQ i =A i whenQ=Aand
+Qi =B i whenQ=Bfor brevity. The corresponding
+personalized federated objective is
+min
+{Ai,Bi}N
+i=1
+1
+N
+NX
+i=1
+fi(BiAi)
+s.t. Q i =Q j,∀i, j∈ N.
+(2)
+Here,f i(BiAi)denotes the local loss evaluated atW 0 +
+BiAi. WhenQ=A, the constraint sharesAacross clients
+while leavingB i client-specific, yielding Share-A/Local-B.
+WhenQ=B, it sharesBwhile leavingA i client-specific,
+yielding Share-B/Local-A. At training roundt, letQ t be
+the shared factor maintained by the server andQ e
+t,i its local
+copy at participating clientiafterelocal updates.
+In each training roundt, the following steps are executed:
+•Client selection and downlink transmission:The
+server selects an arbitrary subset ofS t ⊆ NwithS t
+clients, and broadcastsQ t,Q∈ {A, B}, to clients
+i∈ S t.
+•Local update:Each selected client initializes the local
+copy of every shared factor asQ 0
+t,i =Q t, and performs
+Elocal update steps with local learning rateη ℓ on
+its local datasetD i. During local training, the client
+updates all trainable LoRA factors in its local model,
+while keeping non-shared factors client-local.
+•Uplink Aggregation:After local training, each se-
+lected client uploads the update of the shared factor,
+∆Qt,i =Q E
+t,i −Q t, Q∈ {A, B}to the server for
+aggregation:
+Qt+1 =Q t +η g
+1
+St
+X
+i∈St
+∆Qt,i,(3)
+whereη g is the server learning rate.
+The sharing strategy determines which side of the LoRA
+adaptation is exposed to cross-client averaging and which
+side remains client-specific.
+B. Observation: Fixed Sharing Can Be Suboptimal
+One representative personalized federated LoRA design
+adopts Share-A/Local-B, i.e., sharing factorAwhile keeping
+Bi,∀i∈ Nclient-specific in each training round Guo et al.
+[2025]. However, it remains unclear whether sharingAis

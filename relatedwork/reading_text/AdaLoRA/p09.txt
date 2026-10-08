@@ -1,0 +1,72 @@
+Published as a conference paper at ICLR 2023
+as 64. For CNN/DailyMail, we set the beam length as 4 and batch size as 32. Please see Appendix E
+for the detailed configuration.
+Main Results. Experimental results are summarized in Table 3, where we compare the fine-tuning
+performance under four budget levels: the number of trainable parameters is 0.13%, 0.26%, 1.10% and
+2.20% of total pre-trained parameters. We see that AdaLoRA achieves better or on par performance
+compared with the baseline on both datasets (XSum and CNN/DailyMail) under all the budget levels.
+For example, AdaLoRA achieves 21.13 R-2 score when budget level is 1.10%, compared with 19.89
+for LoRA.
+4.4 A NALYSIS
+Different budget levels. Figure 2 illustrates experimental results of fine-tuning DeBERTaV3-base
+under different budget levels. We see that on all the three datasets (MNLI-m, SQuADv2.0 and XSum),
+AdaLoRA achieves consistent performance improvement under all the budget levels compared with
+the baseline. The performance gain is more significant when increasing the budget for the XSum
+task, suggesting a high budget can help NLG tasks. Note that on the MNLI and SQuADv2.0 datasets,
+the performance of AdaLoRA under low budget levels (≤ 1%) can match the results of high budget
+settings. For example, AdaLoRA achieves 88.78% F1 on SQuADv2.0 when the budget is 0.16%. It
+is close to the performance (88.89% F1) of the highest budget (4.65%) with a more significant gain
+over the baseline.
+0.08 0.16 0.32 0.65 0.96 1.30 1.95 2.88
+# Params (%)
+90.2
+90.3
+90.4
+90.5
+90.6
+90.7Acc (MNLI-m)
+LoRA 
+AdaLoRA
+(a) MNLI
+0.08 0.16 0.32 0.65 1.30 2.70 4.65
+# Params (%)
+87.0
+87.5
+88.0
+88.5
+89.0
+F1
+ (b) SQuADv2.0
+0.13 0.26 1.1 2.2 4.5 7.9 12.5
+# Params (%)
+20.0
+20.5
+21.0
+21.5
+ROUGE-2
+ (c) XSum
+Figure 2: Fine-tuning performance under different budget levels. We compare AdaLoRA with the
+generalized LoRA that applies to every weight matrix.
+Comparison to low-rank parameterization. As mentioned in Section 3.1, one can alternatively
+prune LoRA doublet-wise to conduct the rank allocation. In this case, the doublets are zeroed
+out entirely, raising the barrier to reactivate them. It can cause training instability and hurt the
+generalization when some crucial doublets are pruned by mistake. In Table 4, we compare AdaLoRA
+with pruning LoRA on three datasets (SST-2, RTE, and CoLA) to illustrate this point. We apply the
+same importance score, budget scheduler and training setups as Section 4.1 for pruning LoRA. We
+can see that AdaLoRA outperforms pruning LoRA on all the datasets under all the budget levels.
+Table 4: We present two ablation studies in this table: (i) Comparison between AdaLoRA and
+structured pruning on LoRA. (ii) Comparison of different importance metrics for AdaLoRA.
+SST-2 RTE CoLA
+# Params 0.08% 0.16% 0.65% 0.08% 0.16% 0.65% 0.08% 0.16% 0.65%
+Prune LoRA 94.84 94.50 94.95 86.28 86.15 87.00 66.71 69.29 69.57
+AdaLoRA 95.52 95.80 96.10 87.36 87.73 88.09 70.21 70.04 71.45
+s(·) = I(·) 94.61 95.30 95.64 87.36 87.71 88.10 66.71 68.83 70.19
+Si = |λi| 95.41 95.41 95.87 87.00 86.28 88.00 67.67 68.44 70.38
+Variants of the importance score. Recall that in AdaLoRA, the importance score is defined by the
+sensitivity and uncertainty of every entry in the triplet (7). In Table 4, we examine two variants of the
+importance score: (i) changing s(·) in (7) to sensitivity-only; (ii) directly defining Si as |λi|. From
+the results, we can see that the proposed importance score generally performs best. The other two
+variants can degenerate the model performance up to 0.9%.
+The role of two components. We remark that both two components of our method - SVD adaptation
+and adaptive budget allocation, play vital roles for the performance gain. To demonstrate it, we
+9

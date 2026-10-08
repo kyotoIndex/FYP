@@ -1,0 +1,55 @@
+Published as a conference paper at ICLR 2023
+Table 1: Results with DeBERTaV3-base on GLUE development set. The best results on each dataset are shown
+in bold. We report the average correlation for STS-B.Full FT, HAdapter and PAdapter represent full fine-tuning,
+Houlsby adapter, and Pfeiffer adapter respectively. We report mean of5 runs using different random seeds.
+Method # Params MNLI SST-2 CoLA QQP QNLI RTE MRPC STS-B All
+m/mm Acc Mcc Acc/F1 Acc Acc Acc Corr Ave.
+Full FT 184M 89.90/90.12 95.63 69.19 92.40/89.80 94.03 83.75 89.46 91.60 88.09
+BitFit 0.1M 89.37/89.91 94.84 66.96 88.41/84.95 92.24 78.70 87.75 91.35 86.02
+HAdapter 1.22M 90.13/90.17 95.53 68.64 91.91/89.27 94.11 84.48 89.95 91.48 88.12
+PAdapter 1.18M 90.33/90.39 95.61 68.77 92.04/89.40 94.29 85.20 89.46 91.54 88.24
+LoRAr=8 1.33M 90.65/90.69 94.95 69.82 91.99/89.38 93.87 85.20 89.95 91.60 88.34
+AdaLoRA 1.27M 90.76/90.79 96.10 71.45 92.23/89.74 94.55 88.09 90.69 91.84 89.31
+HAdapter 0.61M 90.12/90.23 95.30 67.87 91.65/88.95 93.76 85.56 89.22 91.30 87.93
+PAdapter 0.60M 90.15/90.28 95.53 69.48 91.62/88.86 93.98 84.12 89.22 91.52 88.04
+HAdapter 0.31M 90.10/90.02 95.41 67.65 91.54/88.81 93.52 83.39 89.25 91.31 87.60
+PAdapter 0.30M 89.89/90.06 94.72 69.06 91.40/88.62 93.87 84.48 89.71 91.38 87.90
+LoRAr=2 0.33M 90.30/90.38 94.95 68.71 91.61/88.91 94.03 85.56 89.71 91.68 88.15
+AdaLoRA 0.32M 90.66/90.70 95.80 70.04 91.78/89.16 94.49 87.36 90.44 91.63 88.86
+Pfeiffer adapter. The number of trainable parameters is determined by the number of layers, the
+hidden dimension of adapters and the dimension of their inputs.
+• LoRA (Hu et al., 2022) is a state-of-the-art method for parameter-efficient fine-tuning. The method
+parameterizes incremental updates by two small matrices and only fine-tune them. The number of
+trainable parameter is controlled by the rank r and the number of adapted weight matrices n. Hu et al.
+(2022) apply LoRA to query and value projections only. In empirical, we find that applying LoRA
+to all weight matrices, i.e., Wq, Wk, Wv, Wf1 and Wf2, can further improve its performance (Please
+see Appendix F). Hence, we compare with this generalized LoRA to maximize its performance. We
+use publicly available implementation 4 to run all the baselines. Please refer to Hu et al. (2022) and
+reference therein for details.
+4.1 N ATURAL LANGUAGE UNDERSTANDING
+Models and Datasets. We evaluate the fine-tuning performance of DeBERTaV3-base (He et al.,
+2021a) using the proposed algorithm. We conduct experiments on the General Language Understand-
+ing Evaluation (GLUE, Wang et al. 2019) benchmark. The benchmark includes two single-sentence
+classification tasks, three similarity and paraphrase tasks and four natural language inference tasks.
+Dataset details are summarized in Appendix B.
+Implementation Details. DeBERTaV3-base consists of 183 millions parameters. We compare
+AdaLoRA with the baselines under different budget levels, for example, given the total trainable
+parameters as 0.3/0.6/1.2 million. In order to match the parameter budget, we select the hidden
+dimensions of adapters from {8, 16, 32, 64}, set the rank r of LoRA as {2, 4, 8}, and choose the
+final budget b(T) of AdaLoRA from {144, 288, 576}. Then we set b(0) as 1.5 times of b(T) for
+AdaLoRA and select the regularization coefficient γ from {0.1, 0.3, 0.5}. We set the exponential
+moving average parameters β1 and β2 as their default value 0.85. We select the learning rate from
+{5 × 10−5, 8 × 10−5, 1 × 10−4, 2 × 10−4}. More details are presented in Appendix C.
+Main results. We compare AdaLoRA with the baseline methods under different budget settings.
+Table 1 shows experimental results on the GLUE development set. We see that AdaLoRA achieves
+better or on par performance compared with existing approaches on all datasets under all budget
+levels. For example, when the parameter budget is 0.3M, AdaLoRA achieves 87.36% accuracy on
+RTE, which is 1.8% higher than the best-performing baseline. Besides, AdaLoRA with extreme
+low budget can often perform better than the baselines with higher budget. For example, AdaLoRA
+achieve 70.04% Mcc. score on CoLA with 0.3M fine-tuning parameters, which is higher than all
+baseline methods with lager budget (e.g., 0.6M and 1.2M).
+4.2 Q UESTION ANSWERING
+Models and Datasets. We evaluate performance of the proposed algorithm on two question answering
+(QA) datasets: SQuAD v1.1 (Rajpurkar et al., 2016) and SQuADv2.0 (Rajpurkar et al., 2018), where
+4https://github.com/microsoft/LoRA
+7

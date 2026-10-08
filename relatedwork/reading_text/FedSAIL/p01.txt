@@ -1,0 +1,38 @@
+What Should Federated LoRA Share?
+FedSAIL via Input-aware Subspace Alignment
+Junye Du* Shuaida He* Long Feng†
+School of Computing & Data Science
+The University of Hong Kong
+junyedu@connect.hku.hk sdhe@hku.hk lfeng@hku.hk
+Abstract
+Federated low-rank adaptation (LoRA) requires identifying an update structure that is shared across
+heterogeneous clients. Prior work reports strong similarity among trained LoRA projection matrices across
+clients; however, such agreement may be largely induced by common initialization and collapses toward
+random overlap under independent initialization. More crucially, relying solely on parameter similarity
+inherently ignores the influence of local input regime. To uncover a more robust shared structure, we
+introduce an input-aware action matrix that weights the adapter update by the second-moment statistics of
+local layer inputs. Empirically, while parameter similarity vanishes, the leading right singular directions of
+this action matrix remain strongly aligned across clients. This shared geometry preserves task-conditioned
+differences and naturally varies across network depths. Motivated by these findings, we propose Federated
+Subspace-Guided Action-Informed Learning (FedSAIL). Instead of averaging weights, FedSAIL estimates
+a shared action subspace to regularize local training while preserving client-specific coefficients. Across
+several benchmarks, our approach consistently improves predictive performance over competing federated
+LoRA methods while reducing communication cost significantly.
+1 Introduction
+Low-rank adaptation (LoRA) fine-tunes a frozen pretrained layer through a compact update ∆=BA
+(Hu et al., 2022). In federated learning, clients can exchange such adapters while keeping their data local
+(McMahan et al., 2017; Zhang et al., 2024). A central question is therefore what information should be
+shared across clients. Existing methods address this by specifying which components of the adapter are
+communicated and how they are aggregated. A representative example is FedSA-LoRA, which trains both
+factors but shares only A, while retaining client-specific Bk for personalization (Guo et al., 2025). For
+illustration, Figure 1 (b) depicts the FedSA-LoRA mechanism, with the shared LoRA component highlighted
+in yellow. Other approaches shareBagainst either a common frozenA(Sun et al., 2024) or locally trained
+Ak (Ban and Ji, 2026). FLoRA aggregates full adapter updates by stacking factors (Wang et al., 2024), while
+LoRA-FAIR refines aggregation and next-round initialization (Bian et al., 2025). FedRot-LoRA instead
+aligns factor coordinates through orthogonal rotations before aggregation, preserving each adapter product
+while addressing rotational misalignment (Zhang et al., 2026). These choices determine how clients represent
+and combine their updates, but parameter agreement alone need not identify structure learned in common.
+*Equal contribution.
+†Corresponding author:lfeng@hku.hk.
+1
+arXiv:2609.32485v1  [cs.LG]  26 Sep 2026

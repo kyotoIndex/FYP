@@ -1,0 +1,43 @@
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Table 12: Memory consumption estimates for training different LoRA modules.
+Configuration Memory Consumption (GB)
+Full 12 modules 47.77
+First 6 modules 40.57
+Last 6 modules 23.44
+Table 13: FL settings for all experiments.
+Dataset/ConfigurationModel LoRA Client Training Round Learning Rate batch size 𝑇IG 𝑇Agg |𝐷IG|
+Natural InstructionLlama (Data-Juicer-1B) rank=8, lora_alpha=16, target_modules=[“q_proj”, “v_proj”] 50 (10%) 6 0.00005 8 1 2 50Dolly-15K OPT-1.3B rank=8, lora_alpha=16, target_modules=[“q_proj”, “v_proj”] 50 (10%) 25 0.00005 8 2 2 50CIFAR-100 ViT-base rank=16, lora_alpha=16, target_modules=[“query”, “value”] 100 (10%) 350 0.1 496 10 10 50LEDGAR BERT-base rank=16, lora_alpha=16, target_modules=[“query”, “value”] 100 (10%) 350 0.01 496 10 10 50DomainNet-121 ViT-base rank=16, lora_alpha=16, target_modules=[“query”, “value”] 100 (10%) 350 0.05 496 10 10 50
+Table 14: Memory capacity settings and context memory consumptions for heterogeneous client groups.
+Model/Capacity Level
+Level 1 (4/10 clients) Level 2 (3/10) Level 3 (2/10) Level 4 (1/10)
+GPU Type Context (MB) GPU Type Context (MB) GPU Type Context (MB) GPU Type Context (MB)
+Llama (Data-Juicer-1B)V100 32 GB 80 A100 40 GB 1,470 A6000 48 GB 2,870 H100 80 GB 5,650
+OPT-1.3B V100 32 GB 2,890 A100 40 GB 4,913 A6000 48 GB 6,862 H100 80 GB 8,811
+ViT-base A5000 24 GB 380 V100 32 GB 2,280 A100 40 GB 4,170 A6000 48 GB 5,800
+BERT-base A5000 24 GB 280 V100 32 GB 1,962 A100 40 GB 3,981 A6000 48 GB 5,700
+B Details on Experimental Settings
+B.1 FL Settings
+The table presents the FL settings used for all experiments, detailing the datasets, models, LoRA configurations, client distribution, training
+rounds, learning rates, batch sizes, and key hyperparameters. It includes five datasets: Natural Instruction, Dolly-15K, CIFAR-100, LEDGAR, and
+DomainNet-121. Different models were used, including Llama (Data-Juicer-1B), OPT-1.3B, ViT-base, and BERT-base. The LoRA configuration
+varies by dataset, specifying rank, scaling parameter (lora_alpha), and target modules such as 𝑞proj, 𝑣proj, 𝑞𝑢𝑒𝑟𝑦 , and 𝑣𝑎𝑙𝑢𝑒 . The number of
+participating clients differs, with CIFAR-100, LEDGAR, and DomainNet-121 using 100 clients (10% per round), while Natural Instruction
+and Dolly-15K involve 50 clients (10% per round). Training rounds range from 6 to 350, with learning rates varying between 0.00005 and
+0.1. Batch sizes are set to 8 and 496 for different models. Across all experiments, the local IG dataset size |𝐷IG| is fixed at 50, while other
+hyper-parameters are case-by-case.
+B.2 GPU Memory Capacity Settings
+Table 14 categorizes memory capacity settings and GPU Context memory consumption for different models across four client levels based
+on experimental results. Llama (Data-Juicer-1.3B) has the lowest context memory at 80 MB on Level 1 (V100 32 GB) and the highest at 5650
+MB on Level 4 (H100 80 GB). OPT-1.3B follows a similar trend, ranging from 2890 MB on Level 1 to 8811 MB on Level 4. ViT-base starts at
+380 MB on Level 1 (A5000 24 GB) and increases to 5800 MB on Level 4 (A6000 48 GB). BERT-base consumes the least memory, from 280 MB
+on Level 1 to 5700 MB on Level 4. These results illustrate the scaling of context memory with GPU capacity and the computational demands
+of different models under heterogeneous client conditions.
+The GPU configurations are flexible, and our Knapsack optimization algorithm can be applied to various GPU devices with various
+memory capacities.
+B.3 Experimental Settings for Figure 1
+In Figure 1, we present preliminary experiments to explore how different LoRA allocation strategies impact memory consumption and global
+model accuracy. The experiments use ViT-base, a transformer-based model with 12 encoder layers, where LoRA is applied to all 12 layers,
+specifically to the “query” and “value” components. The hyperparameters are set as follows: rank = 16, alpha = 16, and dropout ratio = 0.1.
+In the FL settings, the total number of users is 100, the selection rate is 10%, the total training rounds are 350, and the local round is set
+to 1. The batch size is 496, distributed across 8 GPUs (62 on each GPU). The local learning rate is 0.01, optimized using Adam. Results are
+evaluated on CIFAR-100 and divided according to an IID distribution.

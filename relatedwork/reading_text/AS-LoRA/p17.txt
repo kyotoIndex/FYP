@@ -1,0 +1,122 @@
+Algorithm 3Score ComputationS HVP(·)with Random Projection
+1: Input:local loss Lt
+k, LoRA parameters {At
+k(n), Bt
+k(n)}N
+n=1, projection matrices
+{RA(n), RB(n)}N
+n=1, learning rateη
+2:Output:local scores{S t
+A,k(n), St
+B,k(n)}N
+n=1
+3:forn= 1toNdo
+4:Compute gradients:
+gt
+A,k(n)← ∇ At
+k(n)Lt
+k, g t
+B,k(n)← ∇ Bt
+k(n)Lt
+k
+5:Apply random projection:
+egt
+A,k(n)←g t
+A,k(n)RA(n),eg t
+B,k(n)←R B(n)gt
+B,k(n)
+6:Compute Hessian-vector products:
+ht
+A,k(n)←H A(n)(Wt)egt
+A,k(n), h t
+B,k(n)←H B(n)(Wt)egt
+B,k(n)
+7:Compute scores:
+St
+A,k(n)← ∥egt
+A,k(n)∥2
+2 − η
+2egt
+A,k(n)⊤ht
+A,k(n)
+St
+B,k(n)← ∥egt
+B,k(n)∥2
+2 − η
+2egt
+B,k(n)⊤ht
+B,k(n)
+8:end for
+9:return{S t
+A,k(n), St
+B,k(n)}N
+n=1
+Algorithm 4Score ComputationS FD(·)with Random Projection
+1: Input:local loss Lt
+k, LoRA parameters {At
+k(n), Bt
+k(n)}N
+n=1, projection matrices
+{RA(n), RB(n)}N
+n=1, learning rateη, finite-difference radiusϵ fd
+2:Output:local scores{S t
+A,k(n), St
+B,k(n)}N
+n=1
+3:forn= 1toNdo
+4:Compute gradients:
+gt
+A,k(n)← ∇ At
+k(n)Lt
+k, g t
+B,k(n)← ∇ Bt
+k(n)Lt
+k
+5:Apply random projection:
+egt
+A,k(n)←g t
+A,k(n)RA(n),eg t
+B,k(n)←R B(n)gt
+B,k(n)
+6:fora∈ {A, B}do
+7:Normalize the projected gradient direction:
+vt
+a,k(n)←
+egt
+a,k(n)
+∥egt
+a,k(n)∥2 +ϵ
+8:Estimate curvature by finite difference:
+ct
+a,k(n)←
+Lt
+k
+
+Wt +ϵ fdvt
+a,k(n)
+
+−2L t
+k(Wt) +L t
+k
+
+Wt −ϵ fdvt
+a,k(n)
+
+ϵ2
+fd
+9:Compute finite-difference score:
+St
+a,k(n)← ∥egt
+a,k(n)∥2
+2 − η
+2 ct
+a,k(n)∥egt
+a,k(n)∥2
+2
+10:end for
+11:end for
+12:return{S t
+A,k(n), St
+B,k(n)}N
+n=1
+17

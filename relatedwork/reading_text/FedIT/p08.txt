@@ -1,0 +1,48 @@
+Simulated Local Training This core component of our Fed-PEIT framework is implemented in
+the fed_util/client.py module. In real-world scenarios, all selected clients perform their local
+training simultaneously, which can be computationally expensive to simulate. To make it feasible for
+researchers with limited resources, our framework conducts the local training of clients sequentially,
+one at a time. To implement the LoRA method, we utilize the PEFT package [53] and the Alpaca-lora
+repository 9 to encapsulate the frozen, original pre-trained model with LoRA configurations, enabling
+more efficient parameter-efficient fine-tuning for our Shepherd framework.
+model = g e t _ p e f t _ m o d e l ( model , L o R A _ c o n f i g )
+To aid future researchers in understanding and implementing our framework, we have defined a
+Python class, GeneralClient, which represents a client in the Federated Learning (FL) training
+process and includes attributes that represent the specific client’s required information.
+class G e n e r a l C l i e n t :
+def __init__ ( self , model , ** args ) :
+self . model = model
+We have also defined several methods forGeneralClient that conduct important components of
+the local training process.
+def p r e p r a r e _ l o c a l _ d a t a s e t ( self , ** args ) :
+...
+self . l o c a l _ t r a i n _ d a t a s e t = ...
+self . l o c a l _ e v a l _ d a t a s e t = ...
+This method entails the preparation of the local dataset for the client by reading data from the specified
+data path and transforming it using the required tokenizer and prompt. Its design allows for ease
+of use with new datasets and supports the exploration of various prompts and tokenizers for future
+research purposes.
+def b u i l d _ l o c a l _ t r a i n e r ( self , ** args ) :
+...
+self . l o c a l _ t r a i n e r = t r a n s f o r m e r s . Trainer ( self . model , **
+args )
+This method constructs a local trainer for client-side training by leveraging the Hugging Face Trainer.
+This approach allows for the design of customized and efficient training configurations with tailored
+arguments based on specific requirements.
+def i n i t i a t e _ l o c a l _ t r a i n i n g ( self ) :
+...
+This method encompasses the preparatory steps for training. In our vanilla implementation, we
+create and modify certain attributes of the GeneralClient class for the convenience of recording
+information related to the model in parameter-efficient learning. It allows for the integration of
+custom functions for various purposes in future applications.
+def train ( self ) :
+self . l o c a l _ t r a i n e r . train ()
+This method executes local training by leveraging the capabilities of the established local trainer.
+def t e r m i n a t e _ l o c a l _ t r a i n i n g ( self , ** args ) :
+...
+return self . model , ...
+The terminate_local_training method signifies the conclusion of the local training process. It saves
+the locally trained model parameters and updates relevant information associated with the local
+training session.
+9https://github.com/tloen/alpaca-lora
+8

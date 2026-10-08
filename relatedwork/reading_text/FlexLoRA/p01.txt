@@ -1,0 +1,47 @@
+Federated Fine-tuning of Large Language Models
+under Heterogeneous Tasks and Client Resources
+Jiamu Bai∗
+Pennsylvania State University
+jvb6867@psu.edu
+Daoyuan Chen∗
+Alibaba Group
+daoyuanchen.cdy@alibaba-inc.com
+Bingchen Qian
+Alibaba Group
+qianbingchen.qbc@alibaba-inc.com
+Liuyi Yao
+Alibaba Group
+yly287738@alibaba-inc.com
+Yaliang Li
+Alibaba Group
+yaliang.li@alibaba-inc.com
+Abstract
+Federated Learning (FL) has recently been applied to the parameter-efficient fine-
+tuning of Large Language Models (LLMs). While promising, it raises significant
+challenges due to the heterogeneous resources and data distributions of clients.
+This study introduces FlexLoRA, a simple yet effective aggregation scheme for
+LLM fine-tuning, which mitigates the “bucket effect” in traditional FL that restricts
+the potential of clients with ample resources by tying them to the capabilities of
+the least-resourced participants. FlexLoRA allows for dynamic adjustment of local
+LoRA ranks, fostering the development of a global model imbued with broader, less
+task-specific knowledge. By synthesizing a full-size LoRA weight from individual
+client contributions and employing Singular Value Decomposition (SVD) for
+weight redistribution, FlexLoRA fully leverages heterogeneous client resources.
+Involving thousands of clients performing heterogeneous NLP tasks and client
+resources, our experiments validate the efficacy of FlexLoRA, with the federated
+global model achieving consistently better improvement over SOTA FL methods
+in downstream NLP task performance across various heterogeneous distributions.
+FlexLoRA’s practicality is further underscored by our theoretical analysis and its
+seamless integration with existing LoRA-based FL methods, offering a path toward
+cross-device, privacy-preserving federated tuning for LLMs.
+1 Introduction
+Large Language Models (LLMs) have propelled advancements in natural language processing (NLP),
+offering breakthroughs in various tasks [45]. Finetuning LLMs on specific datasets enhances their
+applicability [12, 33], yet collecting such datasets raises concerns regarding cost and privacy [29, 6].
+Researchers have turned to Federated Learning (FL) as a means to fine-tune LLMs using more
+data across distributed clients without compromising data privacy [28, 2, 43, 32]. In these settings,
+parameter-efficient fine-tuning techniques [34], particularly Low-Rank Adaptation (LoRA) [ 16],
+become attractive for reducing computational and communicational burdens [44, 41, 8].
+∗Equal contribution. Work done during Jiamu Bai’s internship at Alibaba Group.
+Preprint. Under review.
+arXiv:2402.11505v2  [cs.CL]  30 May 2024

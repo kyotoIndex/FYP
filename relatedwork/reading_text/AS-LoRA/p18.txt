@@ -1,0 +1,43 @@
+Algorithm 5Mode SelectionM(·)
+1: Input:EMA scores { ˆSt
+A(n), ˆSt
+B(n)}N
+n=1, round t, warm-up period tw, temperature parameters
+(T 0, Tmin, γ)
+2:Output:mode vectorM t ={M t(n)}N
+n=1
+3:ift≤t w then
+4:// warm-up: alternating schedule
+5:forn= 1toNdo
+6:M t(n)←(tmod 2)
+7:end for
+8:else
+9:Compute temperature:
+T t ←max
+
+Tmin, T 0 ·γ (t−tw)
+
+10:forn= 1toNdo
+11:Compute selection probabilities:
+P t(A, n)←
+exp
+
+ˆSt
+A(n)/T t
+
+exp
+
+ˆSt
+A(n)/T t
+
++ exp
+
+ˆSt
+B(n)/T t
+
+12:Sample mode:
+M t(n)∼Bernoulli(P t(A, n))
+13:end for
+14:end if
+15:returnM t
+18

@@ -1,0 +1,61 @@
+where (103) follows by η2∥∇al(a, ¯b)∥2 ≥0 , and (104) follows by a⊤a= 1 . The first subtrahend
+2ηa⊤(∇al(a, ¯b)−E[∇ al(a, ¯b)])is upper bounded such that
+2ηa⊤(∇al(a, ¯b)−E[∇ al(a, ¯b)])≤2η∥a∥ · ∥(∇ al(a, ¯b)−E[∇ al(a, ¯b)])∥(106)
+= 2η∥(∇al(a, ¯b)−E[∇ al(a, ¯b)])∥(107)
+≤4η˜ϵ(ϵ′ + 1)2∥b∗∥2 (108)
+with probability at least 1−2q −10. (108) uses Lemma A3.9. The second subtrahend is upper bounded
+such that
+2ηa⊤E[∇al(a, ¯b)] = 4ηa⊤(a¯b⊤ −a ∗b∗⊤
+)¯b(109)
+= 4ηa⊤(a¯b⊤ −a ∗b∗⊤
+)g−4ηa ⊤(a¯b⊤ −a ∗b∗⊤
+)(g− ¯b)(110)
+where a⊤(a¯b⊤ −a ∗b∗⊤
+)g=−a ⊤((Id −aa ⊤)a∗b∗⊤
++a(g− ¯b)⊤)g= ( ¯b−g) ⊤g. The second
+term is simplified via a⊤(a¯b⊤ −a ∗b∗⊤
+)(g− ¯b) =a ⊤((Id −aa ⊤)a∗b∗⊤
++a(g− ¯b)⊤)(¯b−g) =
+−(g− ¯b)2. Both simplifications usea ⊤(Id −aa ⊤) = 0anda ⊤a= 1. (110) becomes
+2ηa⊤E[∇al(a, ¯b)] = 4η(¯b−g) ⊤g+ 4η(g− ¯b)2 (111)
+≤4η∥g− ¯b∥∥b∗∥+ 4η∥g− ¯b∥2 (112)
+≤4ηϵ ′δt∥b∗∥2 + 4η(ϵ′)2(δt)2∥b∗∥2 (113)
+≤4η((ϵ ′)2 +ϵ ′)∥b∗∥2 (114)
+with probability at least1−q −10. (113) uses Lemma A3.9. Combining (108) and (114), we obtain
+∥ˆa+∥2 ≥1−4η˜ϵ(ϵ ′ + 1)2∥b∗∥2 −4η((ϵ ′)2 +ϵ ′)∥b∗∥2 (115)
+with probability at least1−2q −10. Combining (100), (90) and (115), we obtain
+δt+1 ≤ E1 +E 2
+∥ˆa+∥ ≤ δt(1−2η((1−(δ 0)2)−ϵ ′)∥b∗∥2 + 2η˜ϵ(ϵ′ + 1)2∥b∗∥2)p
+1−4η˜ϵ(ϵ′ + 1)2∥b∗∥2 −4η((ϵ ′)2 +ϵ ′)∥b∗∥2 =δ tC(116)
+We can chooseϵ′,˜ϵ < 1−(δ0)2
+16 such that (1−(δ 0)2)>max(4(˜ϵ(ϵ′+1)2+(ϵ′)2+ϵ′),2ϵ ′+2˜ϵ(ϵ′+1)2)
+holds. Then we obtain
+C= 1−2η((1−(δ 0)2)−ϵ ′)∥b∗∥2 + 2η˜ϵ(ϵ′ + 1)2∥b∗∥2
+p
+1−4η˜ϵ(ϵ′ + 1)2∥b∗∥2 −4η((ϵ ′)2 +ϵ ′)∥b∗∥2 (117)
+= 1−2η(1−(δ 0)2)∥b∗∥2 + 2ηϵ′∥b∗∥2 + 2η˜ϵ(ϵ′ + 1)2∥b∗∥2
+p
+1−4η(˜ϵ(ϵ′ + 1)2 + (ϵ′)2 +ϵ ′)∥b∗∥2 (118)
+≤ 1−2η(1−(δ 0)2)∥b∗∥2 +η(2ϵ ′ + 2˜ϵ(ϵ′ + 1)2)∥b∗∥2
+p
+1−4η(˜ϵ(ϵ′ + 1)2 + (ϵ′)2 +ϵ ′)∥b∗∥2 (119)
+≤ 1−η(1−(δ 0)2)∥b∗∥2
+p
+1−η(1−(δ 0)2)∥b∗∥2 (120)
+=
+p
+1−η(1−(δ 0)2)∥b∗∥2 (121)
+Assuming η≤ 1
+L2max
+≤ 1
+∥b∗∥2 , 1−η(1−(δ 0)2)∥b∗∥2 is strictly positive. Therefore we obtain, with
+probability at least1−2q −10,
+δt+1 ≤δ tp
+1−η(1−(δ 0)2)∥b∗∥2.(122)
+A3.4 Proof of Theorem 5.4
+Proof. In Lemma 4.3, we have shown the angle distance between a and a∗ decreasing in t-th
+iteration such that with probability at least 1−2q −10 for q= max{log(N), d} , δt+1 ≤δ tC for
+c∈(0,1), C=
+p
+1−c(1−(δ 0)2)with proper choice of step sizeη.
+25

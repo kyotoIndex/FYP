@@ -1,0 +1,110 @@
+Communication-Efﬁcient Learning of Deep Networks from Decentralized Data
+Table 3: Number of rounds and speedup relative to baseline
+SGD to reach a target test-set accuracy on CIFAR10. SGD
+used a minibatch size of 100. FedSGD and FedAvg used
+C = 0.1, with FedAvg usingE = 5 andB = 50.
+ACC. 80% 82% 85%
+SGD 18000 (—) 31000 (—) 99000 (—)
+FE DSGD 3750 (4.8 ×) 6600 (4.7 ×) N/A (—)
+FE DAV G 280 (64.3×) 630 (49.2 ×) 2000 (49.5 ×)
+to produce logits, for a total of about 106 parameters. Note
+that state-of-the-art approaches have achieved a test accu-
+racy of 96.5% [19] for CIFAR; nevertheless, the standard
+model we use is sufﬁcient for our needs, as our goal is to
+evaluate our optimization method, not achieve the best pos-
+sible accuracy on this task. The images are preprocessed as
+part of the training input pipeline, which consists of crop-
+ping the images to 24x24, randomly ﬂipping left-right and
+adjusting the contrast, brightness and whitening.
+For these experiments, we considered an additional base-
+line, standard SGD training on the full training set (no user
+partitioning), using minibatches of size 100. We achieved
+an 86% test accuracy after 197,500 minibatch updates
+(each minibatch update requires a communication round
+in the federated setting). FedAvg achieves a similar test
+accuracy of 85% after only 2,000 communication rounds.
+For all algorithms, we tuned a learning-rate decay param-
+eter in addition to the initial learning rate. Table 3 gives
+the number of communication rounds for baseline SGD,
+FedSGD, and FedAvg to reach three different accuracy
+targets, and Figure 4 gives learning-rate curves forFedAvg
+versus FedSGD.
+By running experiments with minibatches of sizeB = 50
+for both SGD and FedAvg, we can also look at accuracy as
+a function of the number of such minibatch gradient calcula-
+tions. We expect SGD to do better here, because a sequential
+step is taken after each minibatch computation. However,
+as Figure 9 in the appendix shows, for modest values ofC
+andE, FedAvg makes a similar amount of progress per
+minibatch computation. Further, we see that both standard
+SGD and FedAvg with only one client per round (C = 0),
+demonstrate signiﬁcant oscillations in accuracy, whereas
+averaging over more clients smooths this out.
+Large-scale LSTM experiments We ran experiments on
+a large-scale next-word prediction task to demonstrate the
+effectiveness of our approach on a real-world problem. Our
+training dataset consists 10 million public posts from a large
+social network. We grouped the posts by author, for a total
+of over 500,000 clients. This dataset is a realistic proxy for
+the type of text entry data that would be present on a user’s
+mobile device. We limited each client dataset to at most
+5000 words, and report accuracy (the fraction of the data
+where the highest predicted probability was on the correct
+next word, out of 10000 possibilities) on a test set of 1e5
+0 200 400 600 800 1000
+Communication Rounds
+0.00
+0.02
+0.04
+0.06
+0.08
+0.10
+0.12
+0.14Test Accuracy @ 1
+FedAvg (E=1)FedSGD
+Next Word Prediction LSTM, Non-IID Data
+´=6.0
+´=9.0
+´=18.0
+´=22.0
+´=3.0
+´=6.0
+´=9.0
+´=18.0
+Figure 5: Monotonic learning curves for the large-scale
+language model word LSTM.
+posts from different (non-training) authors. Our model is a
+256 node LSTM on a vocabulary of 10,000 words. The input
+and output embeddings for each word were of dimension
+192, and co-trained with the model; there are 4,950,544
+parameters in all. We used an unroll of 10 words.
+These experiments required signiﬁcant computational re-
+sources and so we did not explore hyper-parameters as thor-
+oughly: all runs trained on 200 clients per round; FedAvg
+usedB = 8 andE = 1 . We explored a variety of learn-
+ing rates for FedAvg and the baseline FedSGD. Figure 5
+shows monotonic learning curves for the best learning rates.
+FedSGD withη = 18.0 required 820 rounds to reach 10.5%
+accuracy, while FedAvg withη = 9.0 reached an accuracy
+of 10.5% in only 35 communication rounds (23× fewer then
+FedSGD). We observed lower variance in test accuracy for
+FedAvg, see Figure 10 in Appendix A. This ﬁgure also
+include results forE = 5, which performed slightly worse
+thanE = 1.
+4 Conclusions and Future Work
+Our experiments show that federated learning can be made
+practical, as FedAvg trains high-quality models using rel-
+atively few rounds of communication, as demonstrated by
+results on a variety of model architectures: a multi-layer
+perceptron, two different convolutional NNs, a two-layer
+character LSTM, and a large-scale word-level LSTM.
+While federated learning offers many practical privacy ben-
+eﬁts, providing stronger guarantees via differential pri-
+vacy [14, 13, 1], secure multi-party computation [ 18], or
+their combination is an interesting direction for future work.
+Note that both classes of techniques apply most naturally to
+synchronous algorithms like FedAvg.8
+8Subsequent to this work, Bonawitz et al. [6] introduced an
+efﬁcient secure aggregation protocol for federated learning, and
+Koneˇcn´y et al. [23] presented algorithms for further decreasing
+communication costs.

@@ -1,0 +1,75 @@
+H. Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, Blaise Ag ¨uera y Arcas
+A Supplemental Figures and Tables
+Figure 6: Training set convergence for the MNIST CNN.
+Note they-axis is on a log scale, and thex-axis covers more
+training than Figure 2. These plots ﬁxC = 0.1.
+Figure 7: Test set accuracy vs. communication rounds for
+MNIST 2NN with C = 0.1 and optimized η. The left
+column is the IID dataset, and right is the pathological 2-
+digits-per-client non-IID data.
+Figure 8: The effect of training for many local epochs (large
+E) between averaging steps, ﬁxingB = 10 andC = 0.1.
+Training loss for the MNIST CNN. Note different learning
+rates andy-axis scales are used due to the difﬁculty of our
+pathological non-IID MNIST dataset.
+Table 4: Speedups in the number of communication rounds
+to reach a target accuracy of 97% for FedAvg, versus
+FedSGD (ﬁrst row) on the MNIST 2NN model.
+MNIST 2NN E B u IID N ON-IID
+FE DSGD 1 ∞ 1 1468 1817
+FE DAV G 10 ∞ 10 156 (9.4×) 1100 (1.7×)
+FE DAV G 1 50 12 144 (10.2×) 1183 (1.5×)
+FE DAV G 20 ∞ 20 92 (16.0×) 957 (1.9×)
+FE DAV G 1 10 60 92 (16.0×) 831 (2.2×)
+FE DAV G 10 50 120 45 (32.6×) 881 (2.1×)
+FE DAV G 20 50 240 39 (37.6×) 835 (2.2×)
+FE DAV G 10 10 600 34 (43.2×) 497 (3.7×)
+FE DAV G 20 10 1200 32 (45.9×) 738 (2.5×)
+0 50000 100000 150000 200000 250000 300000
+Number of Minibatch Gradient Computations
+0.5
+0.6
+0.7
+0.8
+Test Accuracy
+CIFAR-10
+FedAvg, C=0.0, E=5, η =  0.05
+FedAvg, C=0.1, E=1, η =  0.30
+FedAvg, C=0.1, E=5, η =  0.17
+FedAvg, C=0.1, E=10, η =  0.17
+FedAvg, C=0.1, E=20, η =  0.15
+FedAvg, C=1.0, E=5, η =  0.50
+SGD, η =  0.15
+Figure 9: Test accuracy versus number of minibatch gradient
+computations (B = 50). The baseline is standard sequential
+SGD, as compared toFedAvg with different client fractions
+C (recallC = 0 means one client per round), and different
+numbers of local epochsE.
+0 200 400 600 800 1000
+Communication Rounds
+0.00
+0.02
+0.04
+0.06
+0.08
+0.10
+0.12
+0.14Test Accuracy @ 1FedSGD FedAvg (E=1) FedAvg (E=5)
+Next Word Prediction LSTM, Non-IID Data
+´=6.0
+´=9.0
+´=18.0
+´=22.0
+´=3.0
+´=6.0
+´=9.0
+´=18.0
+´=3.0
+´=6.0
+´=9.0
+´=18.0
+Figure 10: Learning curves for the large-scale language
+model word LSTM, with evaluation computed every 20
+rounds. FedAvg actually performs better with fewer local
+epochsE (1 vs 5), and also has lower variance in accuracy
+across evaluation rounds compared to FedSGD.

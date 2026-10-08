@@ -1,0 +1,44 @@
+Table 10: Percentage of improvement of FedAvg, FedIT, and SLoRA incorporating with FlexLoRA
+compared with their respective configurations without FlexLoRA, as shown in Table 2.
+FedAvg FedIT SLoRA Avg
+Uniform 2.72% 0.08% 1.22% 1.33%
+Heavy-Tail-Light 1.52% 0.97% 0.65% 1.05%
+Normal 2.20% 1.17% 2.78% 2.05%
+Heavy-Tail-Strong 2.12% 1.24% 3.09% 2.15%
+Avg 2.14% 0.86% 1.94% 1.65%
+The statistical test results presented in Table 11 provide a quantitative comparison between the
+performance of FlexLoRA across different FL baselines to be integrated, namely FedAvg, FedIT, and
+SLoRA. The p-values obtained from the statistical tests are used to determine whether the observed
+differences in performance are statistically significant.
+Table 11: Significant test results (in p-values) between FlexLoRA and its FL baselines to be integrated.
+FedAvg FedIT SLoRA
+Uniform 0.064 0.358 0.044
+Heavy-Tail-Light 0.168 0.018 0.175
+Heavy-Tail-Strong 0.016 <0.001 0.060
+Normal 0.029 0.006 0.044
+As shown in the table, FlexLoRA consistently outperforms its homogeneous baselines under various
+distribution types, indicated by p-values smaller than the conventional significance level of 0.05 in
+several cases. Notably, under the ’Heavy Tail Light’ distribution, FlexLoRA achieves statistically
+significant improvements in FedIT (p=0.018) scenarios. Highly significant improvements are also
+observed in the “Heavy Tail Strong” and “normal” distributions, especially in the FedIT setting,
+where the p-values are smaller than 0.001 and 0.006 respectively, strongly suggesting that FlexLoRA’s
+performance enhancement is not due to random chance.
+Overall, the results indicate that FlexLoRA is a robust approach that can yield performance im-
+provements in federated tuning environments for LLMs, especially in scenarios characterized by a
+resource-heterogeneous distribution of client resources.
+G Natural Language Task Performance
+Figure 7 illustrates the performance of global models on natural language tasks when trained with
+FlexLoRA in the FedIT setting. In line with results from the FedAvg setting, global models that
+leverage heterogeneous ranks in the FedIT setting also perform better on tasks involving logical rela-
+tionships between sentences, such as overlap extraction, textual entailment, cause-effect classification,
+and dialogue act recognition. However, the global models underperform in word-level analysis tasks,
+such as word analogy and keyword tagging. We hypothesize that this underperformance in the FedIT
+setting is due to the local clients being trained with the Adam optimizer rather than the conventional
+SGD optimizer. The top decoding block of the LLaMA transformer, which processes word-level
+information, likely overfits specific information because of the momentum component inherent to the
+Adam optimizer.
+H More Results for Effect of SVD
+Similar to Figure 6(b), Figure 8 also verifies the empirical information loss from SVD by illustrating
+the singular value distribution and error ratio of kproj weights. kproj weights shares similar trends
+with qproj weights regarding the singular value distribution and error ratio.
+17

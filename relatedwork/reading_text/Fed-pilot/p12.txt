@@ -1,0 +1,132 @@
+, , Zhang et al.
+Therefore, there is no need to store y1 during the forward pass. However, discarding y1 does not affect the backward computations of the
+first layer, since the updates for W1 and b1 are independent of y1:
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 x, (19)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 1. (20)
+This example illustrates how freezing an intermediate linear layer affects the backpropagation process. For a liner layer, activation can be
+discarded if the layer is frozen.
+A.2 Backpropagation for Non-Linear Layers: Static Activation Remains using Freezing
+Here, we demonstrate how non-linear transformations (such as Softmax, GELU, and LayerNorm) impact backpropagation in a 3-layer neural
+network. By extending the example in [1], the architecture of the network is defined as follows:
+y1 = xW1 + b1, (21)
+y2 = 𝜎 (y1W2 + b2), (22)
+y3 = y2W3 + b3. (23)
+where {W1, W2, W3} and {b1, b2, b3} are the weights and biases of the network, respectively. In this example, x, y1, and y2 are input to
+the first layer, the second layer, and the third layer, respectively. The non-linear function𝜎 (·) introduces non-linearity in the second layer.
+The backpropagation equations for the loss L using the chain rule can be presented as follows,
+𝜕L
+𝜕W3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕W3
+= 𝜕L
+𝜕y3
+y2, (24)
+𝜕L
+𝜕b3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕b3
+= 𝜕L
+𝜕y3
+, (25)
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)y1, (26)
+𝜕L
+𝜕b2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕b2
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2), (27)
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+𝜕L
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 x, (28)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+𝜕L
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 . (29)
+Here, 𝜎 ′ (y1W2) represents the derivative of the non-linear function 𝜎 (·) applied to the linear transformation y1W2 + b2.
+Training all three layers. To update all the network weights (i.e., W1, W2, W3), we need to store x, y1, and y2 during forward
+computations, as they are required in the gradient calculations.
+Training two layers while freezing the middle layer. In the case of freezing the middle layer, it is unnecessary to compute the
+gradient update for W2:
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)y1. (30)
+However, unlike the linear case, it is necessary to store y1 during the forward pass because the gradients for w1 and b1 depends on
+𝜎 ′ (y1W2 + b2). Discarding y1 would prevent the correct computation of gradients for W1 and b1, as their updates explicitly involve y1:
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 x, (31)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 . (32)
+This example illustrates how freezing an intermediate non-linear layer affects the backpropagation process. Unlike the linear case, where
+activations can be discarded when a layer is frozen, a non-linear layer requires storing its activations due to its role in computing the
+gradients of earlier layers.

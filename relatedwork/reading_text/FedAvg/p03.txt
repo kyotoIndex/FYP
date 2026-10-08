@@ -1,0 +1,118 @@
+H. Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, Blaise Ag ¨uera y Arcas
+While we focus on non-convex neural network objectives,
+the algorithm we consider is applicable to any ﬁnite-sum
+objective of the form
+min
+w∈Rd
+f (w) where f (w)
+def
+= 1
+n
+n∑
+i=1
+fi(w). (1)
+For a machine learning problem, we typically takefi(w) =
+ℓ(xi,y i;w), that is, the loss of the prediction on example
+(xi,y i) made with model parametersw. We assume there
+areK clients over which the data is partitioned, with Pk the
+set of indexes of data points on client k, with nk = |Pk|.
+Thus, we can re-write the objective (1) as
+f (w) =
+K∑
+k=1
+nk
+n Fk(w) where Fk(w) = 1
+nk
+∑
+i∈Pk
+fi(w).
+If the partition Pk was formed by distributing the training
+examples over the clients uniformly at random, then we
+would have EPk [Fk(w)] = f (w), where the expectation is
+over the set of examples assigned to a ﬁxed clientk. This is
+the IID assumption typically made by distributed optimiza-
+tion algorithms; we refer to the case where this does not
+hold (that is,Fk could be an arbitrarily bad approximation
+tof) as the non-IID setting.
+In data center optimization, communication costs are rela-
+tively small, and computational costs dominate, with much
+of the recent emphasis being on using GPUs to lower these
+costs. In contrast, in federated optimization communication
+costs dominate — we will typically be limited by an upload
+bandwidth of 1 MB/s or less. Further, clients will typically
+only volunteer to participate in the optimization when they
+are charged, plugged-in, and on an unmetered wi-ﬁ connec-
+tion. Further, we expect each client will only participate in a
+small number of update rounds per day. On the other hand,
+since any single on-device dataset is small compared to the
+total dataset size, and modern smartphones have relatively
+fast processors (including GPUs), computation becomes
+essentially free compared to communication costs for many
+model types. Thus, our goal is to use additional computation
+in order to decrease the number of rounds of communica-
+tion needed to train a model. There are two primary ways
+we can add computation: 1) increased parallelism, where
+we use more clients working independently between each
+communication round; and, 2) increased computation on
+each client, where rather than performing a simple computa-
+tion like a gradient calculation, each client performs a more
+complex calculation between each communication round.
+We investigate both of these approaches, but the speedups
+we achieve are due primarily to adding more computation
+on each client, once a minimum level of parallelism over
+clients is used.
+Related Work Distributed training by iteratively averag-
+ing locally trained models has been studied by McDon-
+ald et al. [28] for the perceptron and Povey et al. [31] for
+speech recognition DNNs. Zhang et al. [42] studies an asyn-
+chronous approach with “soft” averaging. These works only
+consider the cluster / data center setting (at most 16 workers,
+wall-clock time based on fast networks), and do not consider
+datasets that are unbalanced and non-IID, properties that
+are essential to the federated learning setting. We adapt
+this style of algorithm to the federated setting and perform
+the appropriate empirical evaluation, which asks different
+questions than those relevant in the data center setting, and
+requires different methodology.
+Using similar motivation to ours, Neverova et al.[29] also
+discusses the advantages of keeping sensitive user data on
+device. The work of Shokri and Shmatikov [35] is related in
+several ways: they focus on training deep networks, empha-
+size the importance of privacy, and address communication
+costs by only sharing a subset of the parameters during each
+round of communication; however, they also do not consider
+unbalanced and non-IID data, and the empirical evaluation
+is limited.
+In the convex setting, the problem of distributed opti-
+mization and estimation has received signiﬁcant attention
+[4, 15, 33], and some algorithms do focus speciﬁcally on
+communication efﬁciency [45, 34, 40, 27, 43]. In addition
+to assuming convexity, this existing work generally requires
+that the number of clients is much smaller than the number
+of examples per client, that the data is distributed across
+the clients in IID fashion, and that each node has an iden-
+tical number of data points — all of these assumptions
+are violated in the federated optimization setting. Asyn-
+chronous distributed forms of SGD have also been applied
+to training neural networks, e.g., Dean et al. [12], but these
+approaches require a prohibitive number of updates in the
+federated setting. Distributed consensus algorithms (e.g.,
+[41]) relax the IID assumption, but are still not a good ﬁt for
+communication-constrained optimization over very many
+clients.
+One endpoint of the (parameterized) algorithm family we
+consider is simple one-shot averaging, where each client
+solves for the model that minimizes (possibly regularized)
+loss on their local data, and these models are averaged to
+produce the ﬁnal global model. This approach has been
+studied extensively in the convex case with IID data, and it
+is known that in the worst-case, the global model produced is
+no better than training a model on a single client [44, 3, 46].
+2 The FederatedAveraging Algorithm
+The recent multitude of successful applications of deep
+learning have almost exclusively relied on variants of
+stochastic gradient descent (SGD) for optimization; in fact,
+many advances can be understood as adapting the struc-
+ture of the model (and hence the loss function) to be more
+amenable to optimization by simple gradient-based meth-
+ods [16]. Thus, it is natural that we build algorithms for

@@ -1,0 +1,374 @@
+{
+  "name": "hetsa_lora_sst2_v1",
+  "stage": "second_task",
+  "dataset": {
+    "name": "SST-2",
+    "format": "sst2_tsv",
+    "train_file": "data/SST-2/train.tsv",
+    "dev_file": "data/SST-2/dev.tsv",
+    "model": "bert-base-uncased",
+    "local_files_only": true,
+    "num_labels": 2,
+    "max_length": 64,
+    "proxy_source": "train",
+    "proxy_split_seed": 20260728,
+    "eval_monitor_seed": 20260728,
+    "metric": "accuracy",
+    "secondary_metric": "macro_f1"
+  },
+  "data_heterogeneity": {
+    "mode": "constrained_dirichlet_label_skew",
+    "alpha": 0.3,
+    "samples_per_client_fixed": true,
+    "preserve_global_label_distribution": true,
+    "sample_reuse": false
+  },
+  "federated": {
+    "seeds": [
+      101,
+      202,
+      303
+    ],
+    "total_clients": 20,
+    "selected_clients": 10,
+    "samples_per_client": 512,
+    "rounds": 30,
+    "local_epochs": 1,
+    "batch_size": 16,
+    "eval_batch_size": 32,
+    "learning_rate": 0.001,
+    "client_selection": "uniform_random_without_replacement",
+    "local_holdout_fraction": 0.2
+  },
+  "lora": {
+    "target_modules": [
+      "query",
+      "value"
+    ],
+    "rank": 16,
+    "alpha": 16.0,
+    "dropout": 0.1,
+    "num_encoder_layers": 12
+  },
+  "resource_heterogeneity": {
+    "capability_names": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "layer_fractions": [
+      0.5,
+      0.75,
+      1.0
+    ],
+    "client_ratio": [
+      0.6,
+      0.3,
+      0.1
+    ],
+    "compute_factors": [
+      1.8,
+      1.2,
+      0.7
+    ],
+    "communication_factors": [
+      1.3,
+      1.0,
+      0.8
+    ],
+    "communication_time_per_mb": 1.5
+  },
+  "fedhello": {
+    "importance_score": "fim_gradient_norm",
+    "importance_source": "server_proxy",
+    "proxy_samples": 64,
+    "proxy_batch_size": 16,
+    "proxy_batches": 4,
+    "allocation": "probability_clustered_sampling_without_replacement",
+    "random_seeded_allocation": true,
+    "resource_levels_sorted_ascending": true,
+    "rgd_pattern": "bottleneck",
+    "rgd_hla_rounds": 5,
+    "fim_update_interval": 5,
+    "combined_schedule": "rgd_then_periodic_fim"
+  },
+  "baselines": [
+    "resource_depth",
+    "hetsa_lora",
+    "fedsa_lora"
+  ],
+  "kill_rules": {
+    "local_vs_resource_depth_pp": 1.0
+  },
+  "target_accuracy": 0.7,
+  "output_dir": "results/hetsa_lora_sst2_v1",
+  "executed_seed": 101,
+  "executed_methods": [
+    "resource_depth",
+    "hetsa_lora",
+    "fedsa_lora"
+  ],
+  "device": "cuda",
+  "effective_clients": [
+    {
+      "client_id": 0,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.02734375,
+      "samples": 512,
+      "label_counts": [
+        498,
+        14
+      ]
+    },
+    {
+      "client_id": 1,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.98046875,
+      "samples": 512,
+      "label_counts": [
+        10,
+        502
+      ]
+    },
+    {
+      "client_id": 2,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.349609375,
+      "samples": 512,
+      "label_counts": [
+        333,
+        179
+      ]
+    },
+    {
+      "client_id": 3,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.048828125,
+      "samples": 512,
+      "label_counts": [
+        487,
+        25
+      ]
+    },
+    {
+      "client_id": 4,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.03125,
+      "samples": 512,
+      "label_counts": [
+        496,
+        16
+      ]
+    },
+    {
+      "client_id": 5,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 1.0,
+      "samples": 512,
+      "label_counts": [
+        0,
+        512
+      ]
+    },
+    {
+      "client_id": 6,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.603515625,
+      "samples": 512,
+      "label_counts": [
+        203,
+        309
+      ]
+    },
+    {
+      "client_id": 7,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.96875,
+      "samples": 512,
+      "label_counts": [
+        16,
+        496
+      ]
+    },
+    {
+      "client_id": 8,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.33203125,
+      "samples": 512,
+      "label_counts": [
+        342,
+        170
+      ]
+    },
+    {
+      "client_id": 9,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 1.0,
+      "samples": 512,
+      "label_counts": [
+        0,
+        512
+      ]
+    },
+    {
+      "client_id": 10,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.009765625,
+      "samples": 512,
+      "label_counts": [
+        507,
+        5
+      ]
+    },
+    {
+      "client_id": 11,
+      "capability": "low",
+      "capacity": 6,
+      "compute_factor": 1.8,
+      "communication_factor": 1.3,
+      "positive_ratio": 0.9921875,
+      "samples": 512,
+      "label_counts": [
+        4,
+        508
+      ]
+    },
+    {
+      "client_id": 12,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.994140625,
+      "samples": 512,
+      "label_counts": [
+        3,
+        509
+      ]
+    },
+    {
+      "client_id": 13,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.68359375,
+      "samples": 512,
+      "label_counts": [
+        162,
+        350
+      ]
+    },
+    {
+      "client_id": 14,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.98046875,
+      "samples": 512,
+      "label_counts": [
+        10,
+        502
+      ]
+    },
+    {
+      "client_id": 15,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.87109375,
+      "samples": 512,
+      "label_counts": [
+        66,
+        446
+      ]
+    },
+    {
+      "client_id": 16,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.94921875,
+      "samples": 512,
+      "label_counts": [
+        26,
+        486
+      ]
+    },
+    {
+      "client_id": 17,
+      "capability": "medium",
+      "capacity": 9,
+      "compute_factor": 1.2,
+      "communication_factor": 1.0,
+      "positive_ratio": 0.0,
+      "samples": 512,
+      "label_counts": [
+        512,
+        0
+      ]
+    },
+    {
+      "client_id": 18,
+      "capability": "high",
+      "capacity": 12,
+      "compute_factor": 0.7,
+      "communication_factor": 0.8,
+      "positive_ratio": 0.265625,
+      "samples": 512,
+      "label_counts": [
+        376,
+        136
+      ]
+    },
+    {
+      "client_id": 19,
+      "capability": "high",
+      "capacity": 12,
+      "compute_factor": 0.7,
+      "communication_factor": 0.8,
+      "positive_ratio": 0.068359375,
+      "samples": 512,
+      "label_counts": [
+        477,
+        35
+      ]
+    }
+  ]
+}

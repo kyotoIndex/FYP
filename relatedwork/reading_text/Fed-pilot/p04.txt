@@ -1,0 +1,140 @@
+, , Zhang et al.
+transformer blocks, can reduce certain activation memory consump-
+tion. However, previous works do not clearly model the impact of
+freezing LoRA modules on overall memory cost reduction.
+Let 𝑚 := {𝑚 (1), 𝑚(2), · · ·, 𝑚(𝑙 ) } represent the LoRA allocation
+map for the model {𝜽, 𝚯0}, where 𝑚 ( 𝑗 ) = 1 if the LoRA module in
+𝑗-th block, i.e., 𝜽 ( 𝑗 ), is trainable, otherwise 𝑚 ( 𝑗 ) = 0 if it is frozen.
+Let J = { 𝑗 | 𝑚 ( 𝑗 ) = 1, ∀𝑗 }, the overall memory computation with
+partial LoRA allocation should be:
+C (𝑚) = C𝑝 + C𝑜 (𝑚) + C𝑎 (𝑚) + C𝑐, (3)
+where C𝑜 (𝑚) = 𝑏𝜁 𝜑({𝜽 ( 𝑗 ) } 𝑗 ∈ J) and
+C𝑎 (𝑚) = 𝑏𝜂
+∑︁
+𝑗 ∈ J
+𝜎𝑑
+( 𝑗 ) + 𝑏𝜂
+𝑙∑︁
+𝑗=min( J )
+𝜎𝑠
+( 𝑗 ) . (4)
+Freezing LoRA modules affects only the memory cost of optimizer
+states and activations. The memory consumption of dynamic ac-
+tivations (the first term in (4)) is associated only with trainable
+LoRA modules. The memory consumption of static activations (the
+second term in (4)) depends on the earliest trainable LoRA modules,
+i.e., min(J ), since static activations from all layers after min(J )-
+th layer must be stored for backpropagation [1]. This formulation
+indicates that, in addition to reducing memory usage for optimizer
+states and dynamic activations, partial LoRA allocation has the
+potential to reduce the memory usage for static activations, though
+it must be carefully designed. In the following, we discuss two naive
+allocation strategies and analyze their memory consumption.
+Two Naive Cases: Memory Saver and Memory Hogger. Memory
+Saver makes the last 𝑢 LoRA modules trainable, resulting in the
+LoRA allocation map is 𝑚MS = {0 for 𝑗 ∈ [ 1, 𝑙 − 𝑢], 1 for 𝑗 ∈
+[𝑙 − 𝑢 + 1, 𝑙]}. Memory Hogger makes the first 𝑢 LoRA modules
+trainable, yielding the LoRA allocation map 𝑚MH = {1 for 𝑗 ∈
+[1, 𝑢], 0 for 𝑗 ∈ [ 𝑢 + 1, 𝑙]}. Despite both having the same number
+of trainable LoRA modules, these strategies differ in their memory-
+saving capabilities, particularly in reducing static activation mem-
+ory, as CMH − CMS = 𝑏𝜂 Í𝑙 −𝑢
+𝑗=1 𝜎𝑠
+( 𝑗 ), which can be substantial as
+demonstrated in Figure 1(a).
+4 Our Fed-pilot Framework for Federated
+Fine-Tuning over Heterogeneous Clients
+In this section, we introduce Fed-pilot, a novel federated fine-tuning
+framework that allocates partial LoRA modules for clients with
+limited memory capacities to perform local training. Specifically,
+let K𝑖 represent the memory capacity of client 𝑖, and assume each
+client has its own LoRA allocation map𝑚𝑖. The map 𝑚𝑖 is designed
+such that the memory consumption, i.e., C (𝑚𝑖 ), does not exceed
+the client’s memory capacityK𝑖. In Fed-pilot, clients have a local
+copy of the pre-trained weights 𝚯0 and aim to collaboratively train
+the global LoRA modules 𝜽 following these steps: (1) At each round
+𝑡, the server randomly selects a subset of clients S𝑡 and broadcasts
+the current global LoRA module 𝜽 𝑡 to them. Each selected client
+initializes its model as {𝜽 𝑡
+𝑖 , 𝚯0} with 𝜽 𝑡
+𝑖 = 𝜽 𝑡 ; (2) Each selected
+client determines its optimal LoRA allocation map 𝑚𝑡
+𝑖 based on
+its memory capacity K𝑖 and freezes the LoRA module in the 𝑗-
+th transformer block, i.e., 𝜽 𝑡
+𝑖, ( 𝑗 ), if 𝑚𝑡
+𝑖, ( 𝑗 ) = 0; (3) Selected clients
+update only their trainable LoRA modules to obtain𝜽 𝑡 +1
+𝑖 ; (4) Clients
+Head
+…
+LoRA Allocation for Client𝑖
+𝑤(1)
+0LoRA
+𝑤(2)
+0LoRA
+𝑤(𝑙)
+0LoRA
+Embedding Frozen
+Trainable
+Server
+BroadcastUpload
+Client 1 Client 2 Client 𝑖
+𝜹𝑖
+𝑡+1 𝜽𝑔𝑡
+Aggregation Rule
+Global Update 𝜽𝑔𝑡+1
+…
+1
+LoRA 
+Allocation
+Allocation
+Map 𝑚𝑖
+𝑡
+Memory
+Capacity 𝐾𝑖
+5
+Client 3
+0 1 1…
+2
+Model 
+Fine-Tuning
+3
+Local 
+Update 𝜽𝑖
+𝑡+1
+6
+4
+Figure 2: The overall framework of Fed-pilot with optimal
+LoRA allocation over heterogeneous clients.
+obtain their model updates,𝜹𝑡 +1
+𝑖 := 𝜽 𝑡 +1
+𝑖 −𝜽 𝑡
+𝑖 ; (5) Clients upload the
+model updates to the server; (6) Server aggregates all the received
+updates and computes a new global model 𝜽 𝑡 +1 for the next round
+of training. This process iterates for 𝑇 rounds until the fine-tuned
+model {𝜽𝑇 , 𝚯0} converges. We illustrate the pipeline of our Fed-
+pilot framework in Figure 2.
+To ensure fine-tuning performance under the memory constraints,
+we optimize the LoRA allocation using knapsack optimization (Sec-
+tion 4.1) and design a new aggregation rule for the heterogeneous
+local model updates (Section 4.2).
+4.1 Optimizing LoRA Allocation under
+Heterogeneous Memory Constraints
+4.1.1 Knapsack Optimization Problem. The knapsack optimization
+problem aims to maximize the total value of selected items while
+ensuring that their combined weight does not exceed a predefined
+capacity. In this context, value corresponds to the utility or benefit
+of an item, while weight represents its associated cost or resource
+consumption. The capacity defines the maximum allowable total
+weight for the selected items.
+In our setting, we employ knapsack optimization to maximize
+fine-tuning performance by optimizing the LoRA allocation map
+for each client under memory constraints. Specifically, for every
+client 𝑖 ∈ [ 𝑣], we define the following constrained optimization
+problem:
+max𝑚𝑖
+∑︁
+𝑗 ∈ [𝑙 ]
+𝑚𝑖, ( 𝑗 )𝐺 (𝜽 𝑖, ( 𝑗 ) ), subject to C (𝑚𝑖 ) ≤ K 𝑖 . (5)

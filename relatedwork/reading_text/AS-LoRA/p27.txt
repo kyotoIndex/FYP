@@ -1,0 +1,32 @@
+compared to the standard RDP accountant. For a subset of kernel-based experiments, we instead use
+the RDP accountant due to technical limitations in the PRV implementation under those settings.
+We employ Poisson subsampling using the UniformWithReplacementSampler provided by Opa-
+cus. Each data point is independently sampled with probability q=B/N k, where B is the expected
+batch size and Nk denotes the dataset size of client k. This sampling scheme ensures correct privacy
+accounting for DP-SGD.
+I.2 Model and LoRA Configuration
+For language tasks, we apply LoRA to all transformer layers, specifically to the query and value
+projection matrices. The LoRA modules are configured with a dropout rate of 0.05 and without bias
+terms (i.e.,bias="none").
+For vision tasks, LoRA is similarly applied to the query and value projections across all layers. In
+addition, the classifier head is trained jointly without LoRA adaptation.
+I.3 Tokenization and Input Processing
+For GLUE tasks, the maximum sequence length is set to 128, while for SQuAD tasks it is set to 384.
+For question answering, we tokenize the input using the following setting:
+tokenizer(question, context, truncation="only_second",
+max_length=L, padding="max_length", return_offsets_mapping=True)
+I.4 Implementation Details
+All experiments are conducted in float32 precision to ensure numerical stability under differential
+privacy. We reinitialize the model, optimizer, and privacy engine at each communication round to
+avoid unintended state accumulation in the privacy accountant.
+During training, only the selected LoRA components are optimized according to the layer-wise mode
+configuration, while all other parameters remain frozen.
+J Additional Experiments
+Unless otherwise specified, all experiments follow the settings described in Section 5 and Appendix I.
+J.1 Effect of random projection
+Figure 7: Comparison of LoRA-A score ratio with and without random projection across different
+batch sizes.
+To examine whether the benefit of random projection is related to channel-wise gradient outliers,
+we vary the batch size in DP-SGD, since larger batches can average stochastic gradient fluctuations
+and reduce the effect of outliers. As shown in Table 9, the performance gap between Proposed and
+27

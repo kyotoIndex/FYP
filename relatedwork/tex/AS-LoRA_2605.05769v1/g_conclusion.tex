@@ -1,0 +1,13 @@
+\vspace{-3mm}
+
+\section{Conclusion} \label{sec:conclusion}
+
+In this paper, we proposed AS-LoRA, an adaptive optimization framework for LoRA in differentially private FL. 
+Different to the prior work on federated LoRA whose optimization is fixed or layer-tied, AS-LoRA introduces a layer-wise adaptive selection mechanism that dynamically determines which component to update based on a theoretically grounded score function. 
+We provided theoretical analysis showing that AS-LoRA eliminates the irreducible reconstruction error floor of static methods and achieves accelerated convergence with implicit flatter solution, without incurring additional privacy cost. Empirically, AS-LoRA consistently outperforms prior methods across language and vision tasks under non-IID and differentially private settings.
+
+\textbf{Limitations and future works.}
+Our current analysis and algorithm focus on layer-wise greedy selection. While this design enables tractable analysis and strong empirical performance, it does not explicitly account for possible dependencies across layers. In practice, the mode selection dynamics in Appendix~\ref{app:mode_selection} suggest that, particularly for language tasks, cross-layer structure may exist in the selection process. Extending AS-LoRA to a joint layer-wise decision framework that models such inter-layer correlations is an important direction for future work.
+
+\textbf{Broader impacts.}
+The proposed method advances differentially private FL, which has clear positive societal impact by enabling collaborative model training without exposing private user data—relevant. Potential negative impacts are limited: the method is an optimization technique for fine-tuning foundation models and does not directly enable new harmful capabilities. Improving DP fine-tuning efficiency could in principle lower barriers to deploying powerful models, but this is a general concern shared by all efficiency improvements in machine learning and not specific to this work.

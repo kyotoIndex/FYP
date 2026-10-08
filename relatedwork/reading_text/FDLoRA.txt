@@ -1,0 +1,1652 @@
+
+
+===== PDF PAGE 1 =====
+
+FDLoRA: Personalized Federated Learning of Large Language
+Model via Dual LoRA Tuning
+Yao Lu1†, Jiaxing Qi1†, Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+Sino-German Joint Software Institute, Beihang University, Beijing, China1
+Concordia Institute for Information Systems Engineering, Concordia University, Montreal, Canada2
+ABSTRACT
+Large language models (LLMs) have emerged as important compo-
+nents across various fields, yet their training requires substantial
+computation resources and abundant labeled data. It poses a chal-
+lenge to robustly training LLMs for individual users (clients). To
+tackle this challenge, the intuitive idea is to introduce federated
+learning (FL), which can collaboratively train models on distributed
+private data. However, existing methods suffer from the challenges
+of data heterogeneity, system heterogeneity, and model size, re-
+sulting in suboptimal performance and high costs. In this work,
+we proposed a variant of personalized federated learning (PFL)
+framework, namely FDLoRA, which allows the client to be a single
+device or a cluster and adopts low-rank adaptation (LoRA) tuning.
+FDLoRA sets dual LoRA modules on each client to capture per-
+sonalized and global knowledge, respectively, and only the global
+LoRA module uploads parameters to the central server to aggregate
+cross-client knowledge. Finally, an adaptive fusion approach is em-
+ployed to combine the of the dual LoRAs. This enables FDLoRA to
+make effective use of private data distributed across different clients,
+thereby improving performance on the client without incurring
+high communication and computing costs. We conducted extensive
+experiments in two practice scenarios. The results demonstrate
+that FDLoRA outperforms six baselines in terms of performance,
+stability, robustness, computation cost, and communication cost.
+KEYWORDS
+Personalized Federated Learning, LLM, LoRA Tuning, Low Com-
+munication
+ACM Reference Format:
+Yao Lu1†, Jiaxing Qi1†, Zhongzhi Luan1, Shaohan Huang1, Carol Fung2,
+Hailong Yang1, Depei Qian1 . 2018. FDLoRA: Personalized Federated Learn-
+ing of Large Language Model via Dual LoRA Tuning. InProceedings of
+Make sure to enter the correct conference title from your rights confirma-
+tion emai (Conference acronym ’XX).ACM, New York, NY, USA, 16 pages.
+https://doi.org/XXXXXXX.XXXXXXX
+†These authors contributed equally to this work.
+Corresponding authors:{jiaxingqi, luan.zhongzhi}@buaa.edu.cn.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+©2018 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-XXXX-X/18/06
+https://doi.org/XXXXXXX.XXXXXXX
+1 INTRODUCTION
+Recently, large language models (LLM), such as ChatGPT [46] and
+LLaMA [42], have gained significant attention across various do-
+mains. As LLMs become more prevalent, tailoring them to specific
+tasks becomes increasingly necessary. For example, LLM can be
+customized to analyze local medical data for different institutions
+in the medical scenario [ 36]. This customization often relies on
+supervised fine-tuning (SFT), a process where LLMs are adapted to
+domain-specific data through various techniques [26]. The current
+primary SFT technologies can be categorized into three groups [47]:
+fine-tuning, parameter-efficient fine-tuning (PEFT), and prompt-
+tuning. LoRA has attracted attention for its effectiveness in PEFT.
+By optimizing the rank-decomposition matrix, LoRA can train low-
+rank parameter matrices in LLMs while freezing the original pa-
+rameters (see Section 2). LoRA not only enhances the performance
+of LLMs on domain-specific tasks but also mitigates the need for
+extensive labeled data [19]. This is particularly valuable and effi-
+cient in scenarios where such data and computational resources
+are scarce.
+Let us consider the following scenario: Internet service providers
+(ISPs) collect a large amount of logs to record network activity,
+system events, and potential threats. However, the cost of manually
+analyzing these logs is huge. Recently, there has been a lot of work
+on using LLM to analyze private logs and determine whether an
+anomaly occurs in the system [ 34, 48], which requires manual
+labeling of a large amount of logs. Although the goal of ISPs is to
+use LLM to analyze private logs to improve system reliability, the
+limited number of labeled logs is an obstacle to the effective use of
+the LLM capability. In addition, because log data is very valuable
+and private, ISPs will not share the private logs with each other.
+Therefore, the problem arises:How to take advantage of LLM in
+similar practical application scenarios?
+The integration of FL with LLMs offers a promising opportunity
+for collaborative learning across clients [31, 53]. However, the in-
+herent challenge of data heterogeneity, where the distribution of
+data across clients is non-identically and independently distributed
+(non-IID), poses significant obstacles [ 7, 30]. This often leads to
+suboptimal performance of the global model due to convergence to
+the worst performing client, referred to as the "bucket effect" [3]. To
+address this challenge, recent efforts have combined personalized
+federated learning (PFL) with techniques such as LoRA tuning to
+train personalized local models for each client and mitigate the tra-
+ditional "bucket effect" [47, 51]. The PFL aims to tailor the training
+process to individual clients, taking into account their unique data
+distributions and learning objectives, which allows the model to
+capture not only cross-client knowledge (i.e., global/shared knowl-
+edge) but also client-specific knowledge (i.e., local/personalized
+knowledge). By personalizing the training process, PFL seeks to
+arXiv:2406.07925v2  [cs.DC]  6 Jul 2026
+
+===== PDF PAGE 2 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+mitigate the negative effects of data heterogeneity and improve the
+performance of each client [23]. Nonetheless, the computational
+and communication overhead associated with handling LLM param-
+eters, which rapidly increasing from millions to billions, remains a
+significant challenge for these methods.
+To tackle these challenges, we take inspiration from literature
+on previous works [ 12, 22], to integrate the LLM customization
+process into a variant of PFL framework. By doing so, we can gain
+insight from logs from different ISPs while maintaining privacy and
+improving performance. Each ISP acts as a client and contributes
+labeled data to LLM training without directly sharing sensitive
+information, thereby improving the stability of their respective
+systems by effectively leveraging distributed data sources.
+In this paper, we proposed a fusion-enhanced and low communi-
+cation framework for LLM customization by integrating the LoRA
+tuning and variant PFL, a.k.a FDLoRA. In variant PFL, there are
+𝑁 clients, each client uses private data to fine-tune LLM locally,
+and each client updates a replica of LLM. Instead of performing
+only one update, each client performs several updates locally. Then,
+exchanging parameters at each 𝐻-step to bring their parameters
+back into sync. In particular, the framework initializes two LoRA
+modules for LLM in each client, the personalized LoRA module and
+the global LoRA module, which capture personalized and global
+knowledge, respectively. The personalized LoRA module will not
+share parameters with other clients, thus ensuring that LLM adapts
+to local data. The global LoRA module uploads parameters to the
+server for aggregation operations, thereby integrating the knowl-
+edge of different clients. Furthermore, in order to preserve the basic
+knowledge learned by the LLM from the large corpus, we freeze
+the parameters of the LLM. Finally, we utilized a gradient-free opti-
+mization technique to adaptively fuse the parameters of both LoRA
+modules, enhancing the performance of the client’s local task. Our
+primary contribution can be summarized as follows:
+• We proposed FDLoRA, a novel fusion-enhanced and low
+communication framework. To the best of our knowledge,
+this is the first work that integrates dual LoRA and variant
+PFL for LLM customization.
+• We utilized both the LoRA module and gradient-free adaptive
+fusion approach, which effectively captured personalized and
+global knowledge and improved the performance of each
+client.
+• We conducted experiments in log analysis and medical di-
+agnosis, demonstrating superior performance and stability.
+Our method can effectively reduce computation and com-
+munication costs.
+The rest of this paper is organized as follows. In Section 2, we
+introduce the background and techniques related to our work. In
+Section 3, we put forward our framework and describe the design
+in detail. In Section 4, we demonstrate extensive experiments to
+evaluate the effectiveness of the proposed method in comparison
+with other methods. In Section 5, we review the related works of
+PFL and PEFT. Finally, we conclude our work in Section 6.
+2 PRELIMINARIES
+In this section, we give a brief introduction to the problem defini-
+tion of personalized federated learning and parameter-efficient fine
+Table 1: Notations of problem settings.
+Notation Explanation
+DThe collective dataset across all clients.
+(𝑥, 𝑦)The data𝑥with label𝑦.
+𝑁The number of clients.
+𝑓(·;𝜃)The model with parameter𝜃.
+𝜃𝑝 The trainable parameters of personalized part.
+𝜃𝑠 The trainable parameters of the shared (global) part.
+L (ˆ𝑦, 𝑦)The loss function between ˆ𝑦and𝑦.
+G (·;w)The learnable parameters of fusion functionG.
+1
+Central Server
+Local Private
+Data
+Shared Model
+Parameter
+Communication
+1 1
+2 2 24 4 4
+3
+1 Local Training 2 Model Upload 3 Model Aggregation
+4 Model Download 5 Personalized Training
+5 5 5
+Personalized
+Model
+Federate Learning
+Personalized Federate Learning
+Figure 1: The illustration of both federated learning and per-
+sonalized federated learning. Personalized federated learn-
+ing aims to find a personalized model for each client.
+tuning with low-rank adaptation. The meanings of some notations
+used in subsequent sections are declared in Table 1.
+2.1 Problem Definition of FL & PFL
+FL as a disruptive machine learning paradigm has attracted signifi-
+cant attention from researchers and industry in recent years (Figure
+1, top). This paradigm involves training models on devices locally,
+mitigating privacy risks associated with transmitting private data
+to central servers, and providing a viable solution for collaborative
+learning among multiple clients.
+We assume that each client has its own local dataset, denoted
+as D (𝑖) =(𝑥, 𝑦) , where 𝑥 and 𝑦 are the model’s input and the ex-
+pected output, respectively. The collective dataset across all clients
+is denoted as D=
+
+D (𝑖) 	𝑁
+𝑖=1, where 𝑁 denoted the number of
+clients.
+Traditional FL trained the model 𝑓(𝑥 ; 𝜃 (𝑖) ) on client 𝑖 with pa-
+rameter𝜃 (𝑖) . The training objective can be formulated as:
+min
+𝜃
+L𝜃 := 1
+𝑁
+𝑁Í
+𝑖=1
+1
+| D(𝑖) |
+Í
+𝑥∈ D (𝑖)
+L (𝑓(𝑥;𝜃 (𝑖) ), 𝑦) (1)
+
+===== PDF PAGE 3 =====
+
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+where the𝜃=
+
+𝜃 (1) , 𝜃 (2) , . . . , 𝜃(𝑁) 	
+, the L (𝑓(𝑥 ; 𝜃 (𝑖) ), 𝑦) denoted
+the loss between the𝑓(𝑥;𝜃 (𝑖) )and𝑦on client𝑖.
+In contrast to traditional FL, research in PFL (Figure 1, bottom)
+aims to address two principal challenges. The first challenge is the
+poor convergence of heterogeneous data, particularly when learn-
+ing onnon-IIDdata. The accuracy of traditional methods, such as
+FedAvg, is significantly reduced when training on such data. This
+performance degradation is attributed to the phenomenon of client
+drift resulting from local training and synchronization onnon-IID
+data. The second challenge is the lack of personalized solutions. In
+a traditional FL setting, a single global shared model is trained to fit
+the "average client". Consequently, for local distributions that differ
+significantly from the global distribution, the shared model strug-
+gles to generalize effectively. This lack of personalization hinders
+generalization, especially in practical applications dealing with
+commonly encounterednon-IIDlocal data sets. In such cases, a
+single model is often insufficient.
+To address the aforementioned challenges, PFL divides each
+client’s knowledge into two distinct categories: general knowledge
+and client-specific knowledge. Innon-IIDscenarios, the data distri-
+butions of different clients are unique. PFL decomposes the model
+trained on client data into a shared part,𝜃𝑠, and a personalized part,
+𝜃𝑝, which is dedicated to learning general knowledge and client-
+specific knowledge, respectively. Formally, the training objective
+of the personalized part can be formulated as:
+min
+𝜃𝑝
+L𝜃𝑝 := 1
+𝑁
+𝑁Í
+𝑖=1
+1
+| D(𝑖) |
+Í
+𝑥∈ D (𝑖)
+L (𝑓(𝑥;𝜃 (𝑖)
+𝑝 ), 𝑦) (2)
+where 𝜃𝑝 =
+n
+𝜃 (1)
+𝑝 , 𝜃 (2)
+𝑝 , . . . , 𝜃(𝑁)
+𝑝
+o
+. Consequently, the PFL, which is
+designed to adapt to statistical heterogeneity, aims to achieve high
+accuracy across different types and degrees of heterogeneous data,
+all without prior knowledge of the data distributions.
+2.2 Low-rank Adaptation
+As the number of LLM parameters increases from millions to bil-
+lions, fine-tuning models by freezing a portion of the parameters
+becomes increasingly resource-intensive, making it cost-prohibitive.
+To tackle this challenge, researchers have recently proposed the
+Parameter-Efficient Fine-Tuning (PEFT) method [21]. The objective
+of PEFT is to enhance the performance of pre-trained LLMs on
+downstream tasks by reducing the number of fine-tuned parame-
+ters and computational complexity, thereby reducing training costs.
+Consequently, even when constrained by limited computational re-
+sources, the LLMs can adapt to downstream tasks, enabling efficient
+transfer learning.
+LoRA is currently the most popular PEFT method due to its su-
+perior performance compared to other techniques, such as adapter,
+prefix tuning, and fine-tuning. LoRA embeds domain-specific knowl-
+edge into low-rank parameter matrices without altering the original
+parameters (Figure 2). Given a parameter matrix 𝑊0 ∈R 𝑑×𝑘 , the
+low-rank decomposition can be utilized to represent parameter
+updatesΔ𝑊as follows:
+𝑊0 +Δ𝑊=𝑊 0 +𝐵𝐴(3)
+where 𝐵∈R 𝑑×𝑟 , 𝐴∈R 𝑟×𝑘 and 𝑟<<min(𝑑, 𝑘) . 𝑊0 is freeze in
+training stage, while𝐴and𝐵are trainable.
+Pretrained 
+weights
+W 
+Weight
+update
+∆W 
+Inputs
+Outputs𝒉𝒉∈ ℝ𝒌𝒌
+𝒙𝒙∈ ℝ𝒅𝒅
+Pretrained 
+weights
+W 
+Inputs
+Outputs𝒉𝒉∈ ℝ𝒌𝒌
+𝒙𝒙∈ ℝ𝒅𝒅
+𝑨𝑨∈ ℝ𝒅𝒅×𝒓𝒓
+𝑩𝑩∈ ℝ𝒓𝒓×𝒌𝒌
+LoRA matrices A and B 
+approximate the weight 
+update matrix ∆W 
+Figure 2: Comparison of principle between regular fine-
+tuning (left) and LoRA (right).
+By learning rank decomposition matrices while simultaneously
+freezing the original parameters, LoRA reduces the number of train-
+able parameters significantly (see Figure 4). This substantially di-
+minishes the storage requirements of LLMs tailored for specific
+tasks and facilitates efficient task switching during deployment
+without introducing inference latency.
+3 METHOD
+3.1 Problem Formulation
+The goal of this paper is to train the LoRA module for diverse clients
+incorporating the PFL technique to improve performance while
+maintaining data privacy and efficiency. Building upon this goal, we
+re-investigated the concept of the PFL in the LLMs era. In particular,
+we consider that knowledge should be divided into three parts:basic
+knowledge,domain-general knowledge, andpersonalized knowledge.
+Basic knowledgeis the knowledge that LLM learns from a large
+corpus, which is not aimed at specific tasks but forms the basis
+of learning.Domain-general knowledgeis shared by one or more
+tasks based on data in a specific domain.Personalized knowledge
+is learned from data distribution specific to each client (non-IID
+scenarios).
+Based on the above concepts, we propose a novel approach, a.k.a
+FDLoRA, in the context of PFL. Similar to PFL, we build a LoRA
+module as the shared part 𝜃𝑠 to learn domain-general knowledge
+from different clients. Moreover, another LoRA module is built as
+the personalized part𝜃 (𝑖)
+𝑝 to learn personalized knowledge for client
+𝑖. Note that the basic knowledge in LLM has not changed, but this
+part (denoted Θ) is extremely important as the basis of learning.
+Finally, a function G (·) is adopted to dynamically fusionbasic
+knowledge,domain-general knowledge, andpersonalized knowledge.
+The objective of FDLoRA is to minimize the sum of the loss of all
+clients’ models, i.e.,
+min
+𝜃𝑠 ,𝜃𝑝 ,w
+1
+𝑁
+𝑁Í
+𝑖=1
+1
+| D(𝑖) |
+Í
+𝑥∈ D (𝑖)
+L
+
+G (F(𝑥;𝜃 (𝑖)
+𝑝 , 𝜃𝑠,Θ);w (𝑖) )
+
+(4)
+wherew =
+
+w(𝑖) 	𝑁
+𝑖=1 is the learnable parameters of G of client
+𝑖, F=
+
+𝑓(𝑥;𝜃 𝑝 ), 𝑓(𝑥;𝜃 𝑠 ), 𝑓(𝑥;Θ)
+	
+is the mapping ofpersonalized
+knowledgepart,domain-general knowledgepart, andbasic knowledge
+part. We will subsequently elaborate on the design of the FDLoRA .
+
+===== PDF PAGE 4 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+OuterOpt
+Pretrained
+LLM
+Local 
+data
+Client-i Server
+Personalized 
+LoRA
+Other clients
+Global 
+LoRA
+Sync
+×T
+InnerOpt
+×K
+𝒘𝒘𝟏𝟏
+×
+𝒘𝒘𝟐𝟐
+×
++ =
+Sampled 
+data
+Evaluate
+Client-i
+AdaFusion
+Personalized 
+LLM
+Question 
+...
+User
+Q&A
+Merge
+1. Federated learning
+2. Adaptive Fusion 3. Inference
+Figure 3: Framework overview of FDLoRA.
+3.2 Framework Overview
+We introduce the overview of the FDLoRA framework in this sub-
+section. As shown in Figure 3, each client is comprised of four main
+components:LLM,Personalized LoRA module,Global LoRA
+module,andAdaptive Fusion module. The personalized LoRA
+primarily focuses on acquiring knowledge from local data and re-
+mains uninvolved in the federated learning process. The global
+LoRA aggregates knowledge from diverse clients. Specifically, each
+client uploads its global LoRA parameters to the central server.
+Then, by employing an external optimizer updates these parameters
+and subsequently broadcasts them to all clients, thereby completing
+a communication round of the federated learning process. Finally,
+the global LoRA parameters and personalized LoRA parameters
+are aggregated via the AdaFusion module. We will introduce the
+elaboration in the following subsections.
+3.3 Local Learning
+First, we start from the basic model, which can be initialized with
+pretrained LLM, such as LLaMA2 [42] and ChatGLM [13, 52]. We
+assume that there are 𝑁 clients, each capable of training a model
+replica, and 𝑁 shards of data with one for each worker. Then, we
+initialize personalized LoRA with parameters 𝜃𝑝, and utilize SFT to
+capture knowledge from local private data (Algorithm1,line 1-6).
+We formulate this process in each client as follows:
+𝜃 (𝑖)
+𝑝 ←𝑆𝐹𝑇(𝑓(𝐵;(Θ, 𝜃 (𝑖)
+𝑝 )))(5)
+where1 ≤𝑖≤𝑁 and B is randomly sample batch data from
+𝐷 (𝑖) .
+Finally, the average of all clients 𝜃 (𝑖)
+𝑝 is used to initialize the
+global LoRA parameters 𝜃𝑠 for the subsequent federated learning
+process (in line 7), which could reduce the computational cost in
+the first round. This process is formulated as follows:
+𝜃 (0)
+𝑠 ← 1
+𝑁
+𝑁∑︁
+𝑖=1
+𝜃 (𝑖)
+𝑝 (6)
+3.4 Federate Learning
+At this stage, there are two optimization processes. There is an
+outer optimization, which consists of 𝑇 outer steps. At each outer
+step 𝑡, gradients from each client are gathered, averaged, and sent
+to an outer optimizer (OuterOpt) to update the global LoRA module
+parameters (Algorithm1,line 17-18). Afterward, the global LoRA
+module parameters are re-dispatched to each client (Algorithm1,
+line 11).
+In each phase, each client performs its own inner optimization
+for 𝐾 steps independently and in parallel using an inner optimizer,
+denoted by InnerOpt. Each client samples data from local data and
+updates its personalized LoRA module parameters (Algorithm1,
+line 12). It should be noted that the inner optimization consists
+of 𝐾> 1steps; for instance, 𝐾= 3is the default setting in our
+experiments. Therefore, communication across clients is minimal.
+Once all clients have completed their inner optimization step,
+the cumulative gradients of each client are averaged. The resulting
+outer gradient is then utilized to update the global LoRA parameters,
+
+===== PDF PAGE 5 =====
+
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+Algorithm 1:FDLoRA Training Algorithm
+Input:D, dataset across all clients;𝑁, total number of
+clients;𝑇, total number of rounds;Θ, 𝜃 𝑝, 𝜃𝑠, initial
+LLM, personalized, global LoRA module;
+w={w 1, . . . ,w N}, parameters of gate function;𝐻,
+the asynchronous update frequency.
+Output: ˜𝑆=𝑓(·;Θ)
+// Stage 1. Local learning on𝑁clients
+1for𝑖=1to𝑁do
+// Training personalized LoRA module via
+supervised fine-tuning
+2for1 to n_batchesdo
+3B ←Randomly sample𝑏data fromD (𝑖)
+4𝜃 (𝑖)
+𝑝 ←𝑆𝐹𝑇(𝑓(𝐵;(Θ, 𝜃 (𝑖)
+𝑝 )))
+5end
+6end
+// Stage 2. Federate learning
+7𝜃 (0)
+𝑠 ← 1
+𝑁
+Í𝑁
+𝑖=1 𝜃 (𝑖)
+𝑝 ;// Initial global LoRA module
+8forouter step t = 1 to𝑇do
+// Update the personalized LoRA module every
+𝐻communication rounds
+9is_sync←𝑡%𝐻
+10forclient i = 1,. . . ,Ndo
+11𝜃 (𝑖) (𝑡)
+𝑠 ←𝜃 (𝑡−1)
+𝑠
+// Inner optimization
+12𝜃 (𝑖) (𝑡)
+𝑠 ←InnerOpt(𝜃 (𝑖) (𝑡)
+𝑠 ,D (𝑖) , 𝐾)
+13ifis_syncthen
+// Synchronize personalized and global
+LoRA module
+14𝜃 (𝑖)
+𝑝 ←𝜃 (𝑖) (𝑡)
+𝑠
+15end
+16end
+// Averaging outer gradients
+17Δ (𝑡) ← 1
+𝑁
+Í𝑁
+𝑖=1 (𝜃 (𝑡−1)
+𝑠 −𝜃 (𝑖) (𝑡)
+𝑠 )
+// Outer optimization
+18𝜃 (𝑡)
+𝑠 ←OuterOpt(𝜃 (𝑡−1)
+𝑠 ,Δ (𝑡) )
+19end
+// Stage 3. Adaptive fusion function
+20forclient i = 1, . . . , Ndo
+21w (𝑖) ←FusionOpt(𝜃 (𝑖)
+𝑝 ,w (i) )
+22end
+23return𝜃 𝑠, 𝜃𝑝,w
+serving as the starting point for the subsequent round of inner
+optimizations. Communication among workers is only necessary
+during this phase, occurring once every 𝐾 inner optimization steps.
+In total, a client undergoes𝑇×𝐾inner steps during this stage.
+Specifically, the inner optimizer (InnerOpt) is used as AdamW
+[56], which is a variant of the Adam optimizer that separates weight
+decay from the gradient update based on the observation that the
+weight decay formulation is different when applied to SGD and
+Adam. As for the outer optimizer (OuterOpt), we use Nesterov
+momentum [38], because it gave the best convergence in previous
+works [12]. When OuterOpt is set to SGD, the outer optimizer is
+equivalent to vanilla FedAVG [ 31]. If the total number of outer
+optimization steps (𝑇 ) is set to 1, then our approach reduces to
+’souping’ [44]. Finally, if the number of inner optimization steps (𝐾)
+is set to 1 and InnerOpt is set to SGD, our approach is equivalent
+to large-batch training with data parallelism.
+Overall, iterating the above process 𝑇 times, all clients contain
+a personalized LoRA and a global LoRA. The personalized LoRA
+contains the knowledge learned from the local data, and the global
+LoRA contains the knowledge of all clients and is aligned with the
+local knowledge by SFT. The degree of alignment can be adjusted by
+the inner optimization steps 𝐾. Increasing 𝐾 will give more atten-
+tion to local knowledge. This process ensures that, as the federated
+learning progresses through multiple iterations, each client’s global
+LoRA parameters are enriched with a harmonious blend of both
+local and global knowledge, contributing to a comprehensive and
+collaborative model refinement.
+3.5 Adaptive Fusion
+In this stage, we implement an element-wise method, a.k.a. AdaFu-
+sion, to adaptively combine both the personalized LoRA module and
+the global LoRA module. This process integrates the corresponding
+parameters of the LoRA modules, requiring the modules being com-
+bined to have the same rank 𝑟 to properly align the structures. For
+the client 𝑖, assuming that 𝑚𝑖 =𝐴 𝑖𝐵𝑖 and 𝑖= 1or2, the combined
+LoRA module ˆ𝑚can be formulated as follows:
+ˆ𝑚=(𝑤 1𝐴1 +𝑤 2𝐴2) (𝑤1𝐵1 +𝑤 2𝐵2)(7)
+The objective is to modify the coefficients w(i) ={𝑤 (𝑖)
+1 , 𝑤 (𝑖)
+2 } to
+enhance the performance on each client. To achieve this, a fusion
+optimizer (FusionOpt) is introduced. An intuitive approach is to im-
+plement the FusionOpt using gradient-based optimization methods,
+such as standard gradient descent. However, this approach neces-
+sitates the construction of a hypernetwork on each client, which
+can be challenging due to the substantial GPU memory and time
+requirements [22]. This is a significant challenge for heterogeneous
+clients. We observe that the number of optimized parameters is
+relatively small (only 𝑤 1 and 𝑤 2 in each client). Consequently, we
+opt for gradient-free methods for optimization rather than gradient
+descent.
+Inspired by previous work [22], we employ a black-box optimiza-
+tion technique to find the optimalw. This optimization process
+hinges on minimizing the cross-entropy loss, with the objective
+of determining the optimal coefficients 𝑤 1 and 𝑤 2 that minimize
+the loss L𝑐 across a set of few-shot examples denoted as 𝑄. Fur-
+thermore, we employ 𝐿1 regularization, which penalizes extreme
+values by imposing a constraint on the sum of the absolute values
+ofw. Consequently, the objective function is formulated as follows,
+which minimizes the combined loss and the regularization term.
+min
+w
+L=L 𝑐 +𝜆 (𝑖) |w (i) |(8)
+where𝜆is the hyperparameter.
+
+===== PDF PAGE 6 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+4 EV ALUATION
+In this section, we conducted a series of experiments on both log-
+based anomaly detection and medical diagnosis scenarios to answer
+the following research questions:
+• RQ1:How does FDLoRA perform compared to baselines
+under different federation setups?
+• RQ2:How does the communication round affect accuracy?
+• RQ3:How does the communication frequency affect accu-
+racy?
+• RQ4:How does the asynchronous update frequency affect
+accuracy?
+• RQ5:How effective are combine both personalized LoRA
+and global LoRA?
+• RQ6:How to balance communication and computation costs?
+• RQ7:What are the advantages of the AdaFusion compared
+with other implementations?
+4.1 Experiment Setup
+Dataset.To evaluate our approach and baselines on different sce-
+narios. We select two scenarios including both system log analy-
+sis and medical diagnosis. Specifically, we utilize three public log
+datasets from LogHub [54]: BGL [32], Spirit [37], and Thunderbird
+[32] in the system log analysis. For medical diagnosis, we employ
+the bio-medicine dataset 1. The statistic of data in both scenarios is
+present in Table 2.
+Characteristics.InScenario-1, three datasets exhibit varying
+sample sizes, ranging from 10,000 samples each. The input length
+distributions within these datasets vary significantly, indicating
+diverse data characteristics and potential challenges in handling
+inputs of different lengths. InScenario-2, five datasets are utilized,
+with the number of samples ranging from 500 to 2,000. Similarly,
+these datasets display diverse input length distributions, reflect-
+ing the heterogeneity present in federated learning settings. The
+analysis demonstrates the necessity of addressing the diverse data
+characteristics present in federated learning scenarios to achieve
+robust model performance.
+Data Preprocessing.In log analysis (Scenario-1), our primary fo-
+cus is on the task of log-based anomaly detection. First, the unstruc-
+tured logs within each dataset are formatted using the log parsing
+method. Then, the formatted logs are sorted based on timestamps
+and sequences are generated using fixed-size sliding windows (de-
+fault is 50). Following the existing work [34], we retain only the log
+content sequence, which excludes information such as timestamps.
+Finally, a conversation template (see appendix) is constructed to
+guide the LLM in determining whether the log content sequence is
+an anomaly. In bio-medicine (Scenario-2), we refer to the templates
+for instructions and conversation prompts in [9].
+Moreover, we employ the Dirichletnon-IIDsetting, a popular
+utilized framework in contemporary FL research [28, 30]. Within
+this framework, the data for each participating client is generated
+from a Dirichlet distribution denoted as 𝐷𝑖𝑟(𝛼) . The parameter 𝛼
+governs the shape of the distribution; as it increases, the degree
+of class imbalance within each client’s dataset diminishes. Conse-
+quently, the Dirichletnon-IIDsetting enables us to evaluate the
+1https://huggingface.co/datasets/AdaptLLM/medicine-tasks
+Table 2: Statistic of dataset used in the experiments.
+Scenario Dataset #Samples Input length
+distribution
+Scenario-1
+BGL 10,000 78~5,478
+Spirt 10,000 78~1,628
+Thunderbird 10,000 145~1,828
+Scenario-2
+ChemProt 500 2,690~4,690
+MPQ 610 816~2,050
+PubMedQA 1,000 413~2,940
+RCT 2,000 1,810~3,530
+USMLE 1,270 73~3,560
+performance of our methodologies across a diverse array ofnon-
+IIDscenarios, thereby providing insights into their robustness and
+adaptability. Unless otherwise specified, the default value for 𝛼 is
+assumed to be0.5in the following experiments.
+Finally, each client’s local data is further divided into training
+and testing sets in a ratio of 8:2. Consequently, the testing set is
+stored locally by each client, following the same distribution as the
+local training set.
+Baseline.To verify the effectiveness of FDLoRA, we compare it
+with six baselines. The details of each algorithm are as follows:
+• Local:Each client’s local LLM was trained with its local
+training set independently.
+• FedA VG [31]was a popular FL algorithm that aggregates
+model parameters by weighted averaging. The basic idea of
+FedAvg is to upload the parameters of local models to the
+server, where the server computes the average of all model
+parameters and sends this average back to all local devices.
+This process can be iterated many times until convergence
+is achieved.
+• FedKD [45]was a communication-efficient federated learning
+method, that utilizes adaptive mutual knowledge distillation
+and dynamic gradient compression.
+• FedAMP [23]introduced federated attentive message pass-
+ing to foster collaborations among clients with similar data
+in federated learning. Convergence proofs for convex and
+non-convex models are established. Additionally, a heuristic
+method enhances FedAMP’s performance with deep neural
+networks.
+• FedRep [10]presented a novel federated learning framework,
+emphasizing shared data representation and unique client-
+specific heads, achieving efficient convergence and superior
+performance in heterogeneous federated environments.
+• FedRoD [6]introduced a novel federated learning framework,
+Federated Robust Decoupling, which addressed the challenge
+of balancing generic and personalized model performance.
+By decoupling the model’s dual duties into two prediction
+tasks and leveraging robust loss functions, FedRoD achieved
+state-of-the-art performance.
+Implementation.We have chosen LLaMA2-7B [42] as the back-
+bone of LLM for our evaluation. LLaMA2-7B is an encoder-only
+architecture developed by Meta and has been pre-trained on over 1
+
+===== PDF PAGE 7 =====
+
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+0 1 2 3 4 5 6 7
+Number of Parameters 1e9
+Trainable Non-Trainable
+0.003B
+6.7B
+Figure 4: Trainable Parameters vs Non-Trainable Parameters.
+trillion tokens. Despite having a smaller parameter scale (7 billion
+parameters), it has demonstrated superior performance on various
+benchmarks, even outperforming GPT-3 (175 billion parameters)
+[16]. LLaMA2-7B may be a suitable choice for researchers and star-
+tups with resource constraints due to its compact parameter size.
+Then, we implement LoRA2 to significantly decrease computational
+and storage costs, while yielding performance comparable to a fully
+fine-tuned model. As shown in Figure 4, we compared the number
+of trainable parameters and the total number of parameters. The
+trainable parameters are only about0 .03𝐵, which is only ∼ 5%of
+the total parameters. Finally, we fine-tuning the LLaMA2-7B with
+FDLoRA framework. The details of the settings are as follows:
+For the inner optimization, each client’s local LLM was fine-
+tuned by LoRA with its local training set for 3 epochs with the
+learning rate 𝑙𝑟= 0.0002, batch size 𝑏= 1. The optimizer is
+PagedAdamW32bit 3 with the momentum𝑚= 0.9, learning rate de-
+cay 𝜂= 0.1, and weight decay 𝛾= 0.01. For the outer optimization,
+we set the learning rate 𝑙𝑟= 0.001, momentum 𝑚= 0.5, and the to-
+tal communication across all clients 𝑇= 30. For the adaptive fusion
+function, we set the max inference step is 5, and the regularization
+factor𝜆 (𝑖) =0.05in client𝑖.
+Evaluation Metrics.For theScenario-1, we use theF1 scoreto
+evaluate the accuracy of the log-based anomaly detection task. For
+theScenario-2, we compare the output to the groundtruth answer,
+and the accuracy of an individual data example is considered true
+if the model output matches the groundtruth. To facilitate clarity
+and consistency in our descriptions, we will use the termaccuracy
+uniformly in the subsequent sections.
+4.2 RQ1: Performance on different scenarios
+Experiment Settings.The performance of FDLoRA is compared
+with baseline methods on four datasets. We set the client number
+𝑁= 5, the local update epochs 𝐾= 3, the batch size 𝐵= 1, and the
+total communication round 𝑇= 30. Each client is assigned an equal
+number of samples, and the training and testing sets are split with
+a ratio of 8:2 for each client. The results are present in Table 3.
+FDLoRA emerges as the standout performer, consistently exhibit-
+ing the highest mean accuracy across both scenarios and varying
+values of 𝛼. This indicates FDLoRA’s robustness and effectiveness
+2https://huggingface.co/docs/peft/index
+3https://huggingface.co/docs/bitsandbytes/main/reference/optim/adamw
+in mitigating the challenges associated withnon-IIDdata distri-
+bution. The comparative analysis also reveals interesting trends
+regarding the impact of class imbalance on model performance. As
+𝛼 increases, denoting reduced class imbalance, all methods demon-
+strate improved performance, suggesting that models find it easier
+to learn with more balanced class distributions. However, the extent
+of improvement varies among methods, with FDLoRA consistently
+outperforming others. These findings underscore the importance of
+employing tailored federated learning approaches like FDLoRA to
+optimize model performance in scenarios characterized bynon-IID
+data distributions. Furthermore, the reported standard deviations
+highlight the variability in performance across multiple runs, em-
+phasizing the need for robustness in federated learning algorithms
+to ensure consistent results in real-world applications.
+In summary, the FDLoRA offers several advantages, including
+high performance, global collaboration capabilities, model robust-
+ness, and data privacy protection. These benefits make FDLoRA a
+powerful solution for FL problems and promote better cooperation
+among all parties involved.
+4.3 RQ2: Performance with varies
+communication round
+Experiment Settings.To evaluate the performance of varying
+communication rounds (𝑇 ), we increase𝑇 from 0 to 30. The number
+of clients is set to 𝑁 =3, 5 and 7, with a fixed number of local update
+iterations (𝐾= 3), and the batch size 𝐵= 1. The results are shown
+in Figure 5.
+It’s clear that as the number of communication rounds increases,
+there is a consistent improvement in average accuracy across dif-
+ferent scenarios, particularly when considering different numbers
+of clients. This consistency in performance regardless of the num-
+ber of clients suggests that the effect of communication rounds on
+accuracy is robust and generalizable across different scales of client
+populations. For example, when comparing the results across differ-
+ent values of 𝑁 (e.g. 𝑁= 3, 𝑁= 5, 𝑁= 10), we observe that in each
+case there is a noticeable trend of improving average accuracy as
+the number of communication rounds increases. This suggests that
+the collaborative nature of PFL, facilitated by increased communi-
+cation rounds, consistently leads to improved model performance,
+regardless of the number of participating clients.
+This consistency highlights the importance of communication
+rounds as a fundamental aspect of PFL, enabling effective coordi-
+nation and aggregation of decentralized model updates across a
+wide range of client populations. It suggests that, regardless of the
+specific deployment scenario or the size of the FL system, increas-
+ing the number of communication rounds can generally lead to
+improved model convergence and accuracy, thus emphasizing its
+importance in the FL paradigm.
+4.4 RQ3: Performance with varies
+communication frequency
+Experiment Settings.In practical scenarios, the communication
+overhead between clients can be significant, influenced by factors
+such as regional network conditions and heterogeneous hardware.
+Doing communication and aggregation operations at the end of
+each training iteration (i.e., when 𝐾= 1) may be the sub-optimal
+
+===== PDF PAGE 8 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+Table 3: Comparison results under Dirichletnon-IIDon bothScenario-1andScenario-2.
+Scenario-1 Scenario-2
+Method
+𝛼 0.1 0.5 1.0 0.1 0.5 1.0
+Local 61.30±2.01 59.07±1.35 57.50±0.61 56.30±0.83 53.80±0.68 50.80±0.59
+FedAVG 44.30±1.07 44.53±0.77 44.10±0.43 38.90±0.32 38.70±0.27 36.80±0.19
+FedKD 63.30±1.11 62.57±0.82 61.60±0.38 49.40±0.93 47.10±0.74 46.70±0.72
+FedAMP 73.90±1.81 70.20±1.25 69.80±0.89 50.10±2.33 47.80±1.91 46.60±1.76
+FedRep 73.70±1.67 72.87±0.83 65.90±0.71 48.10±0.32 47.30±0.34 42.40±0.46
+FedRoD 75.60±2.86 74.93±2.05 71.30±2.12 50.20±1.71 49.20±0.86 46.20±0.78
+FDLoRA 76.30±1.89 78.17±1.11 75.60±0.47 57.70±0.68 56.20±0.83 55.50±0.72
+0 5 10 15 20 25 30
+Communication Round
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8Average Accuracy
+N = 3, K = 3, = 0.5
+Scenario 1
+Scenario 2
+(a) N=3
+0 5 10 15 20 25 30
+Communication Round
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7Average Accuracy
+N = 5, K = 3, = 0.5
+Scenario 1
+Scenario 2
+ (b) N=5
+0 5 10 15 20 25 30
+Communication Round
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7Average Accuracy
+N = 10, K = 3, = 0.5
+Scenario 1
+Scenario 2
+ (c) N=10
+Figure 5: The average accuracy varies with the communication round for different settings of the number of clients 𝑁=3,5,10
+and InnerOpt step𝐾=3.
+10 20 30 40 50 60 70 80 90
+Training Steps (T × K)
+0.40
+0.45
+0.50
+0.55
+0.60
+0.65
+0.70Average Accuracy
+N = 5, = 0.5
+Communication every 1 steps
+Communication every 3 steps
+Communication every 5 steps
+(a) Scenario-1
+10 20 30 40 50 60 70 80 90
+Training Steps (T × K)
+0.25
+0.30
+0.35
+0.40
+0.45
+0.50
+0.55Average Accuracy
+N = 5, = 0.5
+Communication every 1 steps
+Communication every 3 steps
+Communication every 5 steps (b) Scenario-2
+Figure 6: Varying the communication frequency every 𝐾=
+{1,3,5}steps.
+choice. However, existing methods often consider communication
+every 𝐾≤ 20step. This setting may be too frequent for fine-tuning
+LLMs via LORA, considering the powerful learning capabilities of
+LLMs and the limited scale of local data. To determine an appro-
+priate communication frequency, we conducted experiments with
+different InnerOpt update frequencies, specifically 𝐾=1, 3, and 5.
+The results are shown in Figure 6.
+The results show notable trends in the performance of theFDLoRA
+under different InnerOpt update frequency (personalized step) and
+OuterOpt update frequency (communication round) settings. When
+comparing InnerOpt update frequencies (𝐾), both scenarios show
+a trend of improved average accuracy as the InnerOpt update fre-
+quency decreases. This suggests that incorporating more frequent
+communication, such as changing from 𝐾= 5(in purple) to 𝐾= 1
+(in blue), helps to improve LLM convergence and ultimately leads
+to better performance and the importance of more aggregation
+through communication in the training process. However, it’s worth
+noting that the rate of improvement can vary depending on the
+specific scenario and the frequency of updates.
+The results highlight the importance of adjusting both the up-
+date frequency of InnerOpt and OuterOpt in PFL systems. While
+more frequent communication generally leads to improved LLM
+convergence and accuracy, there is a delicate balance to be struck
+to reduce computational and communication overhead without
+compromising performance, particularly in scenarios with limited
+client resources or network conditions.
+4.5 RQ4: Performance with varies synchronous
+update frequency
+Experiment Settings.In FDLoRA, all clients perform supervised
+fine-tuning after receiving aggregated global parameters from the
+server (global LoRA). Subsequently, the client has the option to
+
+===== PDF PAGE 9 =====
+
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+0 5 10 15 20 25 30
+T
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8Average Accuracy
+N = 5, K = 3, Scenario-1
+Synchronous (H = 1)
+Asynchronous (H = 3)
+Asynchronous (H = 5)
+Asynchronous (H = 10)
+Asynchronous (H = T)
+Asynchronous (H = )
+Figure 7: Impact of different synchronous update frequency
+with 𝛼= 0.5. Note that when 𝐻= 1the asynchronous equiva-
+lent to synchronous, and when 𝐻=∞ the personalized LoRA
+module is frozen after local learning (Stage 1).
+choose whether to synchronize the parameters with the person-
+alized LoRA. To investigate the impact of different rounds of pa-
+rameter synchronization on performance, we conducted experi-
+ments by varying the synchronous update frequency, where 𝐻=
+{1, 3, 5, 10, 𝑇 ,∞}, and observed the resulting performance changes.
+The experimental results are shown in Figure 7.
+The experimental results provide insights into the impact of dif-
+ferent parameter synchronization frequencies on performance. First,
+in the synchronous (in blue) scenario, where parameters are syn-
+chronized between the personalized LoRA and the global LoRA after
+each InnerOpt step, we observe a stable and gradual improvement
+in accuracy with increasing communication round. This indicates
+that frequent parameter synchronization helps to maintain LLM
+alignment across clients, contributing to consistent performance im-
+provements. In contrast, asynchronous synchronization scenarios
+(𝐻> 1) show different performance trends. Asynchronous updates
+with H=3 and 𝐻= 5show fluctuating accuracy, suggesting that
+moderate synchronization frequencies may not always result in
+significant performance gains. However, asynchronous synchro-
+nization with 𝐻= 10(in red) and 𝐻=𝑇 (in purple) shows more
+consistent improvements in accuracy over time, suggesting that
+less frequent but more substantial parameter synchronization may
+be beneficial. Notably, in the asynchronous update scenario with
+𝐻=∞ (in teal), where parameters are not synchronized, we observe
+a decrease in accuracy compared to other synchronization frequen-
+cies, highlighting the importance of parameter synchronization in
+maintaining LLM performance.
+In summary, these results suggest that striking a balance be-
+tween synchronization frequency and performance gains is essen-
+tial for optimizingFDLoRA performance. Furthermore, the decrease
+in accuracy observed in the absence of parameter synchroniza-
+tion (𝐻=∞ ) underscores the need for parameter synchronization
+to maintain model alignment and performance across distributed
+clients.
+Table 4: The effect of both Personalized and Global LoRA
+module with𝛼=0.5.
+MethodsScenario-1 Scenario-2
+LLaMA2-7B (0-shot) 16.13 31.36
+LLaMA2-7B (5-shot) 23.51 32.69
+Personalized (standalone) 58.26 47.61
+Global (standalone) 61.30 56.30
+FDLoRA(Ours) 78.17 56.20
+4.6 RQ5: Effectiveness of combining
+personalized LoRA and global LoRA
+Experiment Settings.To validate the effectiveness of combining
+the personalized LoRA module with the global LoRA module, we
+conducted ablation experiments comparing it with the standalone
+personalized LoRA module and the standalone global LoRA module.
+We set the number of clients to𝑁=5, the number of communica-
+tion rounds to 𝑇= 30, and the synchronization frequency to 𝐻=𝑇 .
+Additionally, comparisons were made with standard LLMs under
+0-shotand5-shotsettings. The results are shown in Table 4
+We can see that the standalone personalized and global LoRA
+modules show significant improvements over the off-the-shelf model
+with both 0-shot and 5-shot settings. In particular, the personalized
+module achieves significantly higher accuracy than the off-the-shelf
+model in bothScenario-1andScenario-2, indicating its effectiveness
+in adapting to non-IDD data. Similarly, the global module also
+shows notable improvements over the off-the-shelf model, suggest-
+ing its ability to capture overarching patterns or preferences across
+the dataset. Notably, the global module outperforms the personal-
+ized module inScenario-1, while the personalized module performs
+slightly better inScenario-2. This discrepancy may indicate that the
+nature of the data or the characteristics of the users in each scenario
+affects the effectiveness of the modules differently. Furthermore,
+the combination of both personalized and global modules in the
+proposed approach yields the highest scores in both scenarios, sug-
+gesting that leveraging both individualized and general patterns
+leads to improved performance.
+In summary, the experimental results suggest that both personal-
+ized and global LoRA modules contribute significantly to improving
+performance compared to the off-the-shelf model. The personal-
+ized module excels in capturing personalized knowledge in each
+client, while the global module effectively captures general patterns
+across clients. The combination of both modules in the proposed
+approach leads to superior performance, indicating the importance
+of leveraging both personalized and general patterns in practice.
+This highlights the potential of hybrid approaches that integrate
+personalized and global perspectives to achieve better results in
+different scenarios.
+4.7 RQ6: Trade-off between communication cost
+and computational cost
+Experiment Settings.The baseline methods involve variations
+in communication, time, and compute/data usage. Specifically, the
+first baseline utilizes standard settings with a single GPU for both
+
+===== PDF PAGE 10 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+Table 5: Comparison of different batch size increasing strategies (𝛼=0.5).
+Method Communication Time Compute Data Average Accuarcy
+Scenario-1 Scenario-2
+Baseline 01×1×78.18 57.95
+Baseline,4×batch size with data parallelism4×𝑁1×4×77.74 56.48
+Baseline,4×batch size with microbatching 04×4×77.72 56.69
+Baseline,4×update 04×4×73.55 55.03
+FDLoRA4× 𝑇
+𝐾 1×4×77.39 55.83
+data processing and model training, while the second employs data
+parallelism with four GPUs. The third baseline increases the batch
+size per GPU by four, resulting in slower training times, while the
+fourth keeps the batch size constant but increases the accumulation
+factor to 4. The results are present in Table 5.
+InScenario-1, the baseline method employing data parallelism
+achieves optimal performance, benefiting from efficient commu-
+nication and compute/data utilization. However, approaches with
+increased batch size or accumulation factor suffer from longer train-
+ing times and lower average accuracy. This suggests that while
+parallelizing data across multiple GPUs can enhance performance,
+overly increasing batch size or accumulation factor may introduce
+bottlenecks in computation and negatively impact model conver-
+gence.
+InScenario-2, larger batch sizes outperform smaller ones in the
+baseline methods, indicating the potential benefits of aggregat-
+ing more data for training. However, an increase in the accumu-
+lation factor leads to performance degradation, highlighting the
+importance of balancing compute resources with training efficiency.
+These findings underscore the complex trade-offs involved in feder-
+ated learning, where optimizing communication and computation
+strategies is essential for achieving optimal model performance
+across diverse scenarios.
+The results demonstrate the intricate interplay between com-
+munication, computation, and model performance in federated
+learning. While certain strategies, such as data parallelism or larger
+batch sizes, may excel in specific scenarios, they may not general-
+ize well across different settings. FDLoRA emerges as a promising
+approach, striking a balance between communication and com-
+putation costs while maintaining competitive performance across
+diverse scenarios, including log anomaly detection and medical
+question answering.
+4.8 RQ7: Advantages of AdaFusion method
+Experiment Settings.To evaluate the advantages of theAdaFusion
+method over other fusion methods, we compared it with three
+baseline methods:1).Random, where weights between 0 and 1 are
+randomly assigned to the personalized LoRA (𝑤 1) and the global
+LoRA (𝑤 2);2).A verage, where the parameters of the two LoRA
+modules are arithmetically averaged (equivalent to 𝑤 1 = 0.5and
+𝑤 2 = 0.5);3).Sum, where the parameters of the two LoRA modules
+are added directly (equivalent to 𝑤 1 = 1.0and 𝑤 2 = 1.0). We
+evaluated the results under differentnon-IIDsettings (e.g., 𝛼=
+{0.1,0.5,1.0}), as shown in Table 6.
+InScenario-1,AdaFusionconsistently outperforms the other fu-
+sion methods across all 𝛼 values. This indicates thatAdaFusion
+effectively adapts to the varying degrees of data heterogeneity,
+achieving superior average accuracy compared to Random, Aver-
+age, and Sum fusion methods. Notably, the robust performance
+ofAdaFusionunderscores its ability to dynamically adjust fusion
+weights based on the characteristics of each client’s data distri-
+bution, leading to enhanced model convergence and predictive
+accuracy.
+However, the performance ofAdaFusioninScenario-2exhibits
+slight fluctuations across different 𝛼 values. WhileAdaFusiongen-
+erally maintains competitive accuracy at𝛼={ 0.1, 0.5}, it is inferior
+to the Sum fusion method at𝛼= 1.0. This discrepancy suggests that
+the efficacy of fusion methods may vary depending on the specific
+characteristics of the FL environment, such as the degree of data
+heterogeneity and the complexity of the learning task. Furthermore,
+it highlights the importance of considering the interplay between
+fusion methods and the inherent properties of the data distribution
+when designing FL algorithms.
+In summary, the results reveal the nuanced performance of fusion
+methods in FL scenarios with varying degrees of data heterogeneity.
+AdaFusion emerges as a robust fusion approach, demonstrating
+superior adaptability and performance inScenario-1across all 𝛼 val-
+ues. Its ability to dynamically adjust fusion weights based on local
+data characteristics enhances model convergence and predictive
+accuracy, making it well-suited for addressing the challenges of
+non-IIDdata distributions in FL. However, further investigation is
+warranted to understand the factors influencing the performance of
+fusion methods in different scenarios and to optimize their efficacy
+for diverse FL applications.
+5 RELATED WORK
+In this section, we briefly review the related work of personalized
+federate learning and parameter-efficient fine-tuning.
+Personalized federate learning (PFL).The primary objective of
+PFL is to address the challenge encountered in conventional fed-
+erated learning, where the global model lacks personalization for
+local tasks or datasets, leading to slow convergence and suboptimal
+performance in heterogeneous data (non-IID) scenarios. PFL tack-
+les this challenge through two key approaches [40]: global model
+personalization and learning personalized model.
+Global model personalization. To address the challenge of FL
+training onnon-IIDdata, the process of personalizing a global model
+globally can be divided into two stages. Firstly, a shared global
+model is trained via FL. Secondly, additional training is performed
+
+===== PDF PAGE 11 =====
+
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+Table 6: Comparison with different fusion methods (𝑁=5).
+Fusion Method
+𝛼 Scenario-1 Scenario-2
+0.1 0.5 1 0.1 0.5 1
+Random 32.88±5.81 36.33±5.46 41.61±4.81 48.15±2.97 48.73±3.37 48.43±1.35
+Average 36.94±2.66 46.57±2.87 43.21±1.90 39.53±1.77 39.77±1.58 43.28±0.85
+Sum 68.47±1.76 67.86±2.05 64.81±1.84 48.76±1.05 47.36±1.3149.18±1.11
+AdaFusion 76.30±1.89 78.17±1.11 75.60±0.47 57.70±0.68 56.20±0.8348.50±0.72
+on local data to adapt to personalization. It is important to note that
+this process can be further divided into data-based and model-based
+methods.
+The data-based method addresses the client drift problem, effec-
+tively convertingnon-IIDinto IID settings. Thus, the unresolved
+problem (non-IID) can be transferred to the resolved problem (IID)
+setting so that existing methods [31] can process it. Research has
+investigated the use of data augmentation methods to enhance
+statistical homogeneity. However, applying existing over-sampling
+and under-sampling methods directly to FL settings, where client
+data is distributed and private, is challenging. To overcome this,
+researchers have developed data augmentation techniques tailored
+for FL settings [17].
+Data-based approaches in FL mitigate client drift but often alter
+local data distributions, potentially losing valuable insights into
+client behavior diversity. Model-based global model personaliza-
+tion FL approaches aim to address this by either learning a robust
+global FL model for future client personalization or enhancing local
+model adaptation performance. These methods prioritize leverag-
+ing client behavior diversity to improve model personalization and
+adaptation, ensuring more effective and flexible FL outcomes. Re-
+searchers mainly use regularization [ 1], meta-learning [15], and
+transfer learning [8] to associate global models and local models
+for solution personalization. For instance, FedProx [27] addresses
+statistical and systems heterogeneity. It introduced a proximal term
+to ensure the aggregation of incompletely calculated partial infor-
+mation and provide theoretical convergence guarantees under non-
+identical data distributions and system-level constraints. pFedMe
+[39] leverages Moreau envelopes to regularize clients’ loss func-
+tions, separating personalized optimization from global learning.
+Theoretically, pFedMe achieves state-of-the-art convergence rates,
+with quadratic speedup for strongly convex and 2/3-order sublinear
+speedup for smooth nonconvex objectives. FedHealth [ 8] is the
+first federated transfer learning framework for wearable healthcare,
+which aggregates data via federated learning and tailors person-
+alized models through transfer learning, ensuring accuracy and
+privacy.
+Learning personalized model.Unlike global model personal-
+ization, the learning personalized model has only a single training
+stage to achieve the effect of model personalization. Furthermore,
+it can be divided into structure-based methods and similarity-based
+methods.
+Architecture-based PFL approaches customize model designs for
+individual clients. Techniques such as parameter decoupling [25]
+incorporate personalization layers for each client, while knowledge
+distillation methods [55] enable personalized model architectures
+for individual clients. Tailoring the architecture to each client’s spe-
+cific requirements improves the effectiveness and adaptability of
+federated learning systems, resulting in improved model personal-
+ization. SplitFed [41] merges FL and Split Learning (SL) to mitigate
+their drawbacks. SplitFed incorporates a refined architecture with
+differential privacy and PixelDP for enhanced data privacy and
+model robustness. He et al. proposed FedGKT [18], a group knowl-
+edge transfer training algorithm. FedGKT employs an alternating
+minimization approach to train small CNNs on edge nodes and
+periodically transfer their knowledge via knowledge distillation
+to a large server-side CNN. FedGKT reduced edge computation
+demand, lower communication bandwidth for large CNNs, and
+asynchronous training, while maintaining accuracy comparable to
+FedAvg.
+Similarity-based approaches focus on modeling client relation-
+ships to achieve personalization. These approaches aim to learn
+personalized models for each client, with related clients learning
+similar models [33]. Various types of client relationships are ex-
+plored in PFL research. Multi-task learning [20] and model inter-
+polation methods [7] consider pairwise client relationships, while
+clustering techniques [4] examine group-level client relationships.
+These approaches leverage client similarities to enhance model
+personalization and performance in FL scenarios. Huang et al. pro-
+posed FedAMP [23], which employs federated attentive message
+passing to facilitate collaborations among similar clients in feder-
+ated learning withnon-IIDdata. Convergence is established for both
+convex and non-convex models. Additionally, a heuristic method is
+introduced to enhance performance for clients using deep neural
+networks. HeteroFL [11] is tailored for heterogeneous clients with
+varying computation and communication capabilities, which allows
+for training heterogeneous local models with different complexi-
+ties while producing a single global inference model. It challenges
+the assumption of uniform model architectures across clients and
+demonstrates strategies to enhance federated learning training
+efficiency. Specifically, it achieves efficiency by adaptively distribut-
+ing subnetworks based on clients’ capabilities. FedGroup [14] has
+introduced a new data-driven distance measure and a newcomer de-
+vice cold start mechanism to improve scalability. The optimization
+process is divided into subgroups using the Kmeans++ algorithm,
+which can be combined with the FL optimizer FedProx to achieve
+even greater improvements.
+Parameter-efficient fine-tuning (PEFT).With the exponential in-
+crease in the number of parameters in state-of-the-art LLMs, fine-
+tuning for each downstream task has become exceedingly costly in
+
+===== PDF PAGE 12 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+terms of both time and resources. Xu et al. [49] aims to address this
+challenge by adapting LLMs to new tasks through the updating of
+only a small number of parameters, potentially including new ones.
+Several significant PEFT approaches have emerged to achieve this
+goal.
+• Adapter-based methods[ 5, 26] allow efficient fine-tuning
+of parameters by adding a small Adapter layer within the
+Transformer block. Each Adapter layer contains a lower
+projection matrix, an activation function, and an upper pro-
+jection matrix. The lower projection matrix maps the input
+features to the bottleneck dimension, the activation func-
+tion is used for non-linear transformation, and the upper
+projection matrix maps the bottleneck features back to the
+original dimensions. In this way, the adapter can introduce
+additional parameters to adapt to downstream tasks, while
+keeping most parameters unchanged.
+• Soft promptare learnable tensors concatenated with the
+input embeddings, which can be optimized to a dataset. How-
+ever, one disadvantage is that they are not human-readable,
+as they do not correspond directly to embeddings of ac-
+tual words. The soft prompt methods encompass several ap-
+proaches, including prompt tuning [24], prefix tuning [43],
+P-tuning [29], and multi-task prompt tuning [2].
+• Reparameterized-based methodsadds learnable parame-
+ters during the training process by constructing a low-rank
+representation of the original model parameters to achieve
+efficient fine-tuning of parameters. Such methods include
+Low-Rank Adaptation (LoRA) [19], LoRA Derivatives [50],
+and Hybrid PEFT [35].
+Compared with the previous works:Our work belongs to
+the category of reparameterized-based methods, but can also be ex-
+tended to other PEFT methods. Most related to our work is the work
+of [47, 51], who combined the ideas of LoRA and iteratively trained
+the target model. However, FDLoRA is specifically designed for
+practical scenarios where there is a scarcity of labeled data on each
+client and aims to minimize the number of fine-tuned parameters.
+In contrast to vanilla LoRA, our method carefully combines per-
+sonalized LoRA and global LoRA, leveraging a fusion optimizer to
+integrate diverse knowledge from each client. We have developed a
+novel PFL framework that enables the training of both personalized
+and global LoRA, effectively harnessing the collaborative potential
+across clients. This strategy enhances the overall knowledge utiliza-
+tion and performance. Finally, FDLoRA offers a practical solution
+for federated learning scenarios with limited labeled data on each
+client, while efficiently incorporating both personalized and global
+knowledge.
+6 CONCLUSION
+In this paper, we have presented FDLoRA, a novel variant of per-
+sonalized federated learning framework based on LoRA tuning,
+which overcomes the lack of labeled data and the gap between
+the high cost and suboptimal of existing FL-based frameworks in
+the popular LLM scenario. FDLoRA utilized dual LoRA modules
+to capture personalized and global knowledge, effectively lever-
+aging collaboration across all clients and reducing the number of
+trainable parameters. Moreover, it employed an adaptive fusion
+algorithm to combine the parameters of two LoRAs to improve the
+performance. It achieves state-of-the-art in both log analysis and
+medical diagnosis scenarios demonstrating stability and robustness
+with respect tonon-IIDdegree, the number of clients, and commu-
+nication rounds and frequency. Finally,FDLoRA outperforms other
+increase batch size strategies with respect to communication cost,
+time spent training and the amount of compute & data used.
+In our future work, we will explore the application of FDLoRA
+to more real-world scenarios and evaluate its effectiveness and
+practicality in industrial environments, such as natural language
+understanding, sentiment analysis, and recommendation systems.
+Moreover, we will continue to enhance the robustness and effi-
+ciency of FDLoRA by exploring advanced techniques for model
+optimization and communication compression.
+REFERENCES
+[1] Durmus Alp Emre Acar, Yue Zhao, Ramon Matas Navarro, Matthew Mattina,
+Paul N Whatmough, and Venkatesh Saligrama. 2021. Federated learning based
+on dynamic regularization.arXiv preprint arXiv:2111.04263(2021).
+[2] Akari Asai, Mohammadreza Salehi, Matthew E Peters, and Hannaneh Hajishirzi.
+2022. ATTEMPT: Parameter-efficient multi-task tuning via attentional mixtures
+of soft prompts.arXiv preprint arXiv:2205.11961(2022).
+[3] Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao, and Yaliang Li. 2024. Fed-
+erated Fine-tuning of Large Language Models under Heterogeneous Language
+Tasks and Client Resources.arXiv preprint arXiv:2402.11505(2024).
+[4] Christopher Briggs, Zhong Fan, and Peter Andras. 2020. Federated learning with
+hierarchical clustering of local updates to improve training on non-IID data. In
+2020 International Joint Conference on Neural Networks (IJCNN). IEEE, 1–9.
+[5] Dongqi Cai, Yaozong Wu, Shangguang Wang, Felix Xiaozhu Lin, and Mengwei
+Xu. 2022. Fedadapter: Efficient federated learning for modern nlp.arXiv preprint
+arXiv:2205.10162(2022).
+[6] Hong-You Chen and Wei-Lun Chao. 2021. On bridging generic and personalized
+federated learning for image classification.arXiv preprint arXiv:2107.00778(2021).
+[7] Minghui Chen, Meirui Jiang, Qi Dou, Zehua Wang, and Xiaoxiao Li. 2023. Fed-
+Soup: Improving Generalization and Personalization in Federated Learning via
+Selective Model Interpolation. InInternational Conference on Medical Image Com-
+puting and Computer-Assisted Intervention. Springer, 318–328.
+[8] Yiqiang Chen, Xin Qin, Jindong Wang, Chaohui Yu, and Wen Gao. 2020. Fedhealth:
+A federated transfer learning framework for wearable healthcare.IEEE Intelligent
+Systems35, 4 (2020), 83–93.
+[9] Daixuan Cheng, Shaohan Huang, and Furu Wei. 2024. Adapting Large Language
+Models via Reading Comprehension. InThe Twelfth International Conference on
+Learning Representations. https://openreview.net/forum?id=y886UXPEZ0
+[10] Liam Collins, Hamed Hassani, Aryan Mokhtari, and Sanjay Shakkottai. 2021.
+Exploiting shared representations for personalized federated learning. InInter-
+national conference on machine learning. PMLR, 2089–2099.
+[11] Enmao Diao, Jie Ding, and Vahid Tarokh. 2020. Heterofl: Computation and
+communication efficient federated learning for heterogeneous clients.arXiv
+preprint arXiv:2010.01264(2020).
+[12] Arthur Douillard, Qixuan Feng, Andrei A Rusu, Rachita Chhaparia, Yani Donchev,
+Adhiguna Kuncoro, Marc’Aurelio Ranzato, Arthur Szlam, and Jiajun Shen. 2023.
+DiLoCo: Distributed Low-Communication Training of Language Models.arXiv
+preprint arXiv:2311.08105(2023).
+[13] Zhengxiao Du, Yujie Qian, Xiao Liu, Ming Ding, Jiezhong Qiu, Zhilin Yang, and
+Jie Tang. 2022. GLM: General Language Model Pretraining with Autoregressive
+Blank Infilling. InProceedings of the 60th Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers). 320–335.
+[14] Moming Duan, Duo Liu, Xinyuan Ji, Renping Liu, Liang Liang, Xianzhang Chen,
+and Yujuan Tan. 2020. FedGroup: Efficient clustered federated learning via
+decomposed data-driven measure.arXiv preprint arXiv:2010.06870(2020).
+[15] Alireza Fallah, Aryan Mokhtari, and Asuman Ozdaglar. 2020. Personalized fed-
+erated learning with theoretical guarantees: A model-agnostic meta-learning
+approach.Advances in Neural Information Processing Systems33 (2020), 3557–
+3568.
+[16] Luciano Floridi and Massimo Chiriatti. 2020. GPT-3: Its nature, scope, limits, and
+consequences.Minds and Machines30 (2020), 681–694.
+[17] Weituo Hao, Mostafa El-Khamy, Jungwon Lee, Jianyi Zhang, Kevin J Liang,
+Changyou Chen, and Lawrence Carin Duke. 2021. Towards fair federated learning
+with zero-shot data augmentation. InProceedings of the IEEE/CVF conference on
+computer vision and pattern recognition. 3310–3319.
+[18] Chaoyang He, Murali Annavaram, and Salman Avestimehr. 2020. Group knowl-
+edge transfer: Federated learning of large cnns at the edge.Advances in Neural
+
+===== PDF PAGE 13 =====
+
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+Information Processing Systems33 (2020), 14068–14080.
+[19] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+Wang, Lu Wang, and Weizhu Chen. 2021. Lora: Low-rank adaptation of large
+language models.arXiv preprint arXiv:2106.09685(2021).
+[20] Shengyuan Hu, Zhiwei Steven Wu, and Virginia Smith. 2021. Private multi-task
+learning: Formulation and applications to federated learning.arXiv preprint
+arXiv:2108.12978(2021).
+[21] Zhiqiang Hu, Lei Wang, Yihuai Lan, Wanyu Xu, Ee-Peng Lim, Lidong Bing, Xing
+Xu, Soujanya Poria, and Roy Ka-Wei Lee. 2023. Llm-adapters: An adapter family
+for parameter-efficient fine-tuning of large language models.arXiv preprint
+arXiv:2304.01933(2023).
+[22] Chengsong Huang, Qian Liu, Bill Yuchen Lin, Tianyu Pang, Chao Du, and Min Lin.
+2023. Lorahub: Efficient cross-task generalization via dynamic lora composition.
+arXiv preprint arXiv:2307.13269(2023).
+[23] Yutao Huang, Lingyang Chu, Zirui Zhou, Lanjun Wang, Jiangchuan Liu, Jian Pei,
+and Yong Zhang. 2021. Personalized cross-silo federated learning on non-iid data.
+InProceedings of the AAAI conference on artificial intelligence, Vol. 35. 7865–7873.
+[24] Menglin Jia, Luming Tang, Bor-Chun Chen, Claire Cardie, Serge Belongie,
+Bharath Hariharan, and Ser-Nam Lim. 2022. Visual prompt tuning. InEuro-
+pean Conference on Computer Vision. Springer, 709–727.
+[25] Jiayin Jin, Jiaxiang Ren, Yang Zhou, Lingjuan Lyu, Ji Liu, and Dejing Dou. 2022.
+Accelerated federated learning with decoupled adaptive optimization. InInterna-
+tional Conference on Machine Learning. PMLR, 10298–10322.
+[26] Gyunyeop Kim, Joon Yoo, and Sangwoo Kang. 2023. Efficient Federated Learning
+with Pre-Trained Large Language Model Using Several Adapter Mechanisms.
+Mathematics11, 21 (2023), 4479.
+[27] Tian Li, Anit Kumar Sahu, Manzil Zaheer, Maziar Sanjabi, Ameet Talwalkar,
+and Virginia Smith. 2020. Federated optimization in heterogeneous networks.
+Proceedings of Machine learning and systems2 (2020), 429–450.
+[28] Tao Lin, Lingjing Kong, Sebastian U Stich, and Martin Jaggi. 2020. Ensemble
+distillation for robust model fusion in federated learning.Advances in Neural
+Information Processing Systems33 (2020), 2351–2363.
+[29] Xiao Liu, Kaixuan Ji, Yicheng Fu, Weng Lam Tam, Zhengxiao Du, Zhilin Yang,
+and Jie Tang. 2021. P-tuning v2: Prompt tuning can be comparable to fine-tuning
+universally across scales and tasks.arXiv preprint arXiv:2110.07602(2021).
+[30] Xiaosong Ma, Jie Zhang, Song Guo, and Wenchao Xu. 2022. Layer-wised model
+aggregation for personalized federated learning. InProceedings of the IEEE/CVF
+conference on computer vision and pattern recognition. 10092–10101.
+[31] Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, and
+Blaise Aguera y Arcas. 2017. Communication-efficient learning of deep net-
+works from decentralized data. InArtificial intelligence and statistics. PMLR,
+1273–1282.
+[32] Adam Oliner and Jon Stearley. 2007. What supercomputers say: A study of
+five system logs. In37th annual IEEE/IFIP international conference on dependable
+systems and networks (DSN’07). IEEE, 575–584.
+[33] Xiaomin Ouyang, Zhiyuan Xie, Jiayu Zhou, Jianwei Huang, and Guoliang Xing.
+2021. Clusterfl: a similarity-aware federated learning system for human activity
+recognition. InProceedings of the 19th Annual International Conference on Mobile
+Systems, Applications, and Services. 54–66.
+[34] Jiaxing Qi, Shaohan Huang, Zhongzhi Luan, Shu Yang, Carol Fung, Hailong Yang,
+Depei Qian, Jing Shang, Zhiwen Xiao, and Zhihui Wu. 2023. Loggpt: Exploring
+chatgpt for log-based anomaly detection. In2023 IEEE International Conference
+on High Performance Computing & Communications, Data Science & Systems,
+Smart City & Dependability in Sensor, Cloud & Big Data Systems & Application
+(HPCC/DSS/SmartCity/DependSys). IEEE, 273–280.
+[35] Bharat Runwal, Tejaswini Pedapati, and Pin-Yu Chen. 2024. From PEFT to DEFT:
+Parameter Efficient Finetuning for Reducing Activation Density in Transformers.
+arXiv preprint arXiv:2402.01911(2024).
+[36] Micah J Sheller, Brandon Edwards, G Anthony Reina, Jason Martin, Sarthak Pati,
+Aikaterini Kotrotsou, Mikhail Milchenko, Weilin Xu, Daniel Marcus, Rivka R
+Colen, et al. 2020. Federated learning in medicine: facilitating multi-institutional
+collaborations without sharing patient data.Scientific reports10, 1 (2020), 12598.
+[37] Jon Stearley and Adam J Oliner. 2008. Bad words: Finding faults in spirit’s syslogs.
+In2008 Eighth IEEE International Symposium on Cluster Computing and the Grid
+(CCGRID). IEEE, 765–770.
+[38] Ilya Sutskever, James Martens, George Dahl, and Geoffrey Hinton. 2013. On the
+importance of initialization and momentum in deep learning. InInternational
+conference on machine learning. PMLR, 1139–1147.
+[39] Canh T Dinh, Nguyen Tran, and Josh Nguyen. 2020. Personalized federated
+learning with moreau envelopes.Advances in Neural Information Processing
+Systems33 (2020), 21394–21405.
+[40] Alysa Ziying Tan, Han Yu, Lizhen Cui, and Qiang Yang. 2022. Towards person-
+alized federated learning.IEEE Transactions on Neural Networks and Learning
+Systems(2022).
+[41] Chandra Thapa, Pathum Chamikara Mahawaga Arachchige, Seyit Camtepe, and
+Lichao Sun. 2022. Splitfed: When federated learning meets split learning. In
+Proceedings of the AAAI Conference on Artificial Intelligence, Vol. 36. 8485–8493.
+[42] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yas-
+mine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhos-
+ale, et al. 2023. Llama 2: Open foundation and fine-tuned chat models.arXiv
+preprint arXiv:2307.09288(2023).
+[43] David Vos, Till Döhmen, and Sebastian Schelter. 2022. Towards parameter-
+efficient automation of data wrangling tasks with prefix-tuning. InNeurIPS 2022
+First Table Representation Workshop.
+[44] Mitchell Wortsman, Maxwell C Horton, Carlos Guestrin, Ali Farhadi, and Mo-
+hammad Rastegari. 2021. Learning neural network subspaces. InInternational
+Conference on Machine Learning. PMLR, 11217–11227.
+[45] Chuhan Wu, Fangzhao Wu, Lingjuan Lyu, Yongfeng Huang, and Xing Xie. 2022.
+Communication-efficient federated learning via knowledge distillation.Nature
+communications13, 1 (2022), 2032.
+[46] Tianyu Wu, Shizhu He, Jingping Liu, Siqi Sun, Kang Liu, Qing-Long Han, and
+Yang Tang. 2023. A brief overview of ChatGPT: The history, status quo and
+potential future development.IEEE/CAA Journal of Automatica Sinica10, 5
+(2023), 1122–1136.
+[47] Xinghao Wu, Xuefeng Liu, Jianwei Niu, Haolin Wang, Shaojie Tang, and Guogang
+Zhu. 2024. FedLoRA: When Personalized Federated Learning Meets Low-Rank
+Adaptation. https://openreview.net/forum?id=bZh06ptG9r
+[48] Junjielong Xu, Ziang Cui, Yuan Zhao, Xu Zhang, Shilin He, Pinjia He, Liqun Li, Yu
+Kang, Qingwei Lin, Yingnong Dang, et al. 2024. UniLog: Automatic Logging via
+LLM and In-Context Learning. InProceedings of the 46th IEEE/ACM International
+Conference on Software Engineering. 1–12.
+[49] Lingling Xu, Haoran Xie, Si-Zhao Joe Qin, Xiaohui Tao, and Fu Lee Wang. 2023.
+Parameter-efficient fine-tuning methods for pretrained language models: A criti-
+cal review and assessment.arXiv preprint arXiv:2312.12148(2023).
+[50] Shu Yang, Muhammad Asif Ali, Cheng-Long Wang, Lijie Hu, and Di Wang. 2024.
+MoRAL: MoE Augmented LoRA for LLMs’ Lifelong Learning.arXiv preprint
+arXiv:2402.11260(2024).
+[51] Liping Yi, Han Yu, Gang Wang, and Xiaoguang Liu. 2023. Fedlora: Model-
+heterogeneous personalized federated learning with lora tuning.arXiv preprint
+arXiv:2310.13283(2023).
+[52] Aohan Zeng, Xiao Liu, Zhengxiao Du, Zihan Wang, Hanyu Lai, Ming Ding,
+Zhuoyi Yang, Yifan Xu, Wendi Zheng, Xiao Xia, et al. 2022. Glm-130b: An open
+bilingual pre-trained model.arXiv preprint arXiv:2210.02414(2022).
+[53] Jianyi Zhang, Saeed Vahidian, Martin Kuo, Chunyuan Li, Ruiyi Zhang, Tong
+Yu, Guoyin Wang, and Yiran Chen. 2024. Towards building the federatedGPT:
+Federated instruction tuning. InICASSP 2024-2024 IEEE International Conference
+on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 6915–6919.
+[54] Jieming Zhu, Shilin He, Pinjia He, Jinyang Liu, and Michael R Lyu. 2023. Loghub:
+A large collection of system log datasets for ai-driven log analytics. In2023 IEEE
+34th International Symposium on Software Reliability Engineering (ISSRE). IEEE,
+355–366.
+[55] Zhuangdi Zhu, Junyuan Hong, and Jiayu Zhou. 2021. Data-free knowledge
+distillation for heterogeneous federated learning. InInternational conference on
+machine learning. PMLR, 12878–12889.
+[56] Zhenxun Zhuang, Mingrui Liu, Ashok Cutkosky, and Francesco Orabona. 2022.
+Understanding adamw through proximal methods and scale-freeness.Transac-
+tions on Machine Learning Research(2022).
+
+===== PDF PAGE 14 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+A1 CONVERSATION TEMPLATE
+As shown in Figure A1, we show two conversation templates (prompts)
+integrated with specific input parts (in red). These templates serve
+as structured input frameworks for guiding LLMs to generate de-
+sired outputs. By providing context and constraints through these
+prompts, LLMs can effectively process and respond to inputs in a
+targeted manner, enhancing the quality and relevance of generated
+outputs. This integration of prompts with input segments facilitates
+more precise and contextually appropriate responses from LLMs,
+contributing to improved performance and usability in various
+natural language processing tasks.
+Scenario-1:
+Below is a system log question and
+relevant logs are provided. Write a
+response that appropriately answer the
+question. Let us think step by step, just
+output the final answer. \n\n '###
+{input}\n\n''### Response:
+Scenario-2:
+<s>[INST] <<SYS>> \nYou are a helpful,
+respectful and honest assistant . Always
+answer as helpfully as possible, while
+being safe . Your answers should not
+include any harmful, unethical, racist,
+sexist, toxic, dangerous, or illegal content.
+Please ensure that your responses are
+socially unbiased and positive in
+nature.\n\nIf a question does not make any
+sense, or is not factually coherent, explain
+why instead of answering something not
+correct. If you don't know the answer to a
+question, please don't share false
+information.\n <</SYS>>\n\n{user_input}
+[/INST]
+Figure A1: Conversation template with both log-based anom-
+aly detection and medical diagnosis.
+A2 DATASET EXAMPLE
+Figure A2 shows the format of the training data in both scenarios.
+The format is important for the training process. All training data
+is stored in JSON format, a popular data format.
+A3 DATA PREPOSSESSING
+Figure A3 is the illustration of preprocessing raw log messages. Log
+messages typically exhibit a semi-structured format, comprising
+Scenario-1:
+{
+"conversation": [
+{
+“input”: “Question:\nPlease determine if the 
+given log messages are an anomaly or not. 
+If is an anomaly, output ‘yes’, otherwise, 
+output ‘no’. Do not output addition 
+words.\n###Logs:{log sequence}
+"output": "no"
+}
+]
+},
+Scenario-2:
+“user_input”: Crocin (25 and 50mg/kg) or vitamin E 
+improved histopathological damages, decreased MDA 
+and CK-MB, increased GSH content and attenuated the 
+increase of Bax/<< Bcl2 >> ratio, activation of caspase 
+3 and release of cytochrome c to the cytosol induced by 
+[[ DZN ]]. Please explain the relation. …
+Options: [ "product-of", "substrate_product-of", 
+"indirect-downregulator", "activator", "indirect-
+upregulator", "substrate", "upregulator", "inhibitor", 
+"agonist-activator", "downregulator", "agonist", 
+"antagonist", "agonist-inhibitor" ]
+“Answer”: indirect-downregulator
+Figure A2: Data example with both log-based anomaly detec-
+tion and medical diagnosis.
+Raw 
+Log
+1107192438 2005.01.31 sadmin1 Jan 31 09:27:18 
+sadmin1/sadmin1 DHCPDISCOVER from  
+00:11:85:c1:ef:0f via eth0: network 
+172.30.0/16: no free leases
+Content dhcpd DHCPDISCOVER from 00:11:85:c1:ef:0f via 
+eth0: network 172.30.0/16: no free leases :
+Event dhcpd: DHCPDISCOVER from <*> via <*>  network 
+<*> no free leases
+Params [00:11:85:c1:ef:0f, eth0:, 172.30.0/16: ]
+Parsing
+C5 C2 C2 C9 C1… …
+Sliding window
+Timeline
+Log Sequence
+Figure A3: The illustration of log preprocessing.
+two main components: a consistent part of the log event, and a vari-
+able part containing parameters. To prepare log data for anomaly
+detection model training, several preprocessing steps are necessary.
+Initially, both prefix and noise are eliminated through log filtering
+procedures to obtain the content part. Subsequently, automated log
+parsing techniques, such as Drain, are applied to extract both log
+
+===== PDF PAGE 15 =====
+
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+events and parameters. Once parsed, the logs are organized into dis-
+tinct groups using a fixed-size sliding window (the size default is 50),
+each comprising multiple log records. These groupings, designated
+as log sequences, serve as inputs for anomaly detection models
+and facilitate the identification of various patterns present in the
+log data. Note that based on existing work, the content part was
+selected to form the sequence to improve detection performance.
+A4 EXPERIMENT ENVIRONMENT DETAILS
+As shown in Table A1, we present the experimental hardware en-
+vironment and details of LLaMA2-7B. In particular, we used three
+homogenous devices, so 6×V100s were included in total.
+Table A1: The evaluated system and LLM specifications.
+System Overview
+CPU48-core Xeon(R) Gold 6126 CPU @ 2.60GHz
+GPU2×Tesla V100S
+Memeory Capacity187GB DRAM
+Operating SystemCentOS 7.5.1804
+CUDA12.1
+NVIDIA Driver530.30.02
+ML frameworkPytorch 2.1.2
+GPU Specification
+CUDA cores5120
+Memeory Capacity32GB
+Memeory Bandwidth900GB/s
+LLaMA2-7B
+#Tokens2.0T
+#Vocab32,000
+Seq.Length4K
+#Layer32
+
+===== PDF PAGE 16 =====
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+Received 20 February 2007; revised 12 March 2009; accepted 5 June 2009

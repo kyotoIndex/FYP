@@ -1,0 +1,55 @@
+Published as a conference paper at ICLR 2024
+Method # of params acc w/o DP acc@ϵ = 6 acc@ϵ = 3
+LoRA (rank 16) 3145728 (0.877%) 92.49% 86.87% 86.23%
+LoRA (rank 4) 786432 (0.220%) 91.40% 85.2% 85.35%
+FFA-LoRA (rank 16) 1572864 (0.440%) 92.49% 87.33 % 86.36%
+FFA-LoRA (rank 4) 393216 (0.110%) 92.20% 86.75% 86.22%
+QVP (rank 128) 1572864 (0.412%) 90.46% 84.23% 83.16%
+QVP (rank 64) 393216 (0.107%) 90.17% 86.41% 84.44%
+QVP (rank 32) 98304 (0.0272%) 87.31% 85.69% 84.31%
+QVP (rank 16) 24576 (0.00685%) 83.40% 84.44% 83.67%
+Table 6: Comparison between LoRA, FFA-LoRA and QVP adapters, including number of trainable
+parameters.
+the set of parameters that were initialized at0 is a valid and practical approach. This guided us to get
+an even more aggressive construction of adapters, which we refer to as QVP Adapters, formulated
+as below.
+For a weight matrix W ∈ Rd×k, we consider the model update to be projected to a low-rank matrix
+such that
+W = W0 + ∆W = W0 + Q0V P0,
+where Q0 ∈ Rd×r, V ∈ Rr×r, P0 ∈ Rr×k. Similar to FFA-LoRA, W0 is the pre-trained weight,
+and P0, Q0 follows a random Gaussian initialization. We consider V trainable and start with V0 =
+0, W0, Q0, P0 are kept frozen throughout the training process. We provide the performance of QVP
+adapters below in Table 6, and compare with LoRA and FFA-LoRA.
+For the experiments where these algorithms have the same parameter budget (r = 64 for QVP versus
+r = 4 for FFA-LoRA, etc.), QVP do not perform as good as the previously mentioned algorithms.
+But a unique advantage offered by QVP adapters is that it is possible to even further reduce the
+number of trainable parameters, and the algorithm is still able to learn meaningful features from
+data. The same is impossible for LoRA and FFA-LoRA since the rank r can not be smaller than 1
+for these methods. Therefore, QVP is potentially useful in the case where the parameter budget is
+extremely constrained, such as local private training in mobile devices.
+A.5 D IFFERENTIAL PRIVACY GUARANTEE
+We present the following corollary regarding the privacy guarantees in our experiments.
+Corollary 2.1 (Privacy Guarantee). Given Theorem 1 with moments accountant in (Abadi et al.,
+2016), the parallel composition and resistance to post-processing of DP , the mechanism updating
+FFS-LoRA with locally ran DP-SGD and FedAvg can satisfy (ϵ, δ)-DP given ∀i, q = |Bi|
+|Ni|, the
+number of total local updates T of each client and σ = O(
+q
+√
+T log(1/δ)
+ϵ ). (The exact σ is computed
+by the Pytorch’s Opacus package (Yousefpour et al., 2021) numerically givenq, T, ϵ, δ).
+Proof. Firstly, we consider the local datasets {Di}i∈[n]for the FL network to be disjoint chunks
+of the global dataset. The DP-SGD with FedAvg used in our paper to train LoRA or FFA-LoRA
+can be considered as (A) locally updating trainable parameters with DP-SGD, (B) averaging the
+trainable parameters from clients on the server, and (C) repeating the above two steps for some
+iterations. The privacy loss of (A) can be composed by moment accountants used in (Abadi et al.,
+2016). The privacy loss of all clients performing local updates can be composed by the parallel
+composition property of DP. The averaging on the server in (B) is a post-processing operation that
+does not introduce privacy loss. Privacy loss of multiple FL rounds of (C) can again be composed
+with moment accountants used in (Abadi et al., 2016). Eventually, we can convert the moment
+accountants to (ϵ, δ)-DP as Theorem 1 in (Abadi et al., 2016).
+A.6 E XPERIMENTS WITH DIFFERENT SCALING FACTOR α
+We conducted experiments with a selection of different α, we use α = 8 , r = 8 as baseline, and
+choose learning rate η according to the learning rate scaling discussed above. Our results are shown
+16

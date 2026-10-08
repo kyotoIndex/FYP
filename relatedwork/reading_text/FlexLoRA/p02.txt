@@ -1,0 +1,72 @@
+0 5 10 15 20 25 30
+Communication Round
+1.6
+1.8
+2.0
+2.2
+2.4
+2.6
+2.8Test Loss
+Test Loss of FedIT under Different LoRA Ranks
+FL Aggregation
+rank 1
+rank 8
+rank 200
+FlexLoRA
+Figure 1: Test loss of FlexLoRA and FedIT
+[43] across communication rounds under
+LoRA ranks of 1, 8, and 200. FlexLoRA
+demonstrates adaptability in an “extreme
+heavy tail” scenario and increasingly aligns
+with the performance of FedIT at the highest
+LoRA rank as rounds progress. Implementa-
+tion details are in Appendix A.
+W
+W₂W₁++...+Wj WAvg( )Aggregationw/heterogeneousranksGlobal Model(server side)
+DecomposedbySVDanddistributebasedonlocalranksGetting full-size LoRA
+Generalization ↑
+Global Model(client initializations)A₁B₁A₂B₂BjAj
+Task: Translation
+Task: Sentiment AnalysisTask:Q&A
+A₁×B₁ A₂×B₂ AjBj×Client 1: r =  r₁Client 2: r = r₂Client j: r = rj
+…
+A×BLocal Trainingr₁< r₂< … < rj
+Figure 2: Illustration of FlexLoRA. The server ini-
+tially constructs a full-size LoRA weight, which is
+then averaged across client-contributed weights with
+different ranks. The aggregated global weights are
+decoupled via SVD and sent back to clients.
+Despite its efficiency, LoRA’s use in FL is challenged by the heterogeneity of downstream tasks
+and available resources among clients, especially in cross-device scenarios [39, 5]. Traditional FL
+methods often suffer from “bucket effect”, converging to the use of the smallest viable LoRA rank for
+all clients, even though many clients typically have more resources that remain underutilized. A small
+LoRA rank, optimizing weights in a task-specific manner [16], can be sensitive to heterogeneous data
+distributions and compromised generalization when applied to all clients, as evidenced in Figure 1.
+Ideally, we hope all clients can fully leverage their advantages by sizing their local LoRA ranks with
+their resources to contribute models with less task-specific but more generalized knowledge.
+To address these challenges, we propose FlexLoRA, a simple yet effective FL aggregation scheme
+that enables the mixture of diverse LoRA weights across individual clients. It accounts for local
+resource and task differences and aims for a well-generalized global model. With the heterogeneous
+aggregation and redistribution of weights through Singular Value Decomposition (SVD), FlexLoRA
+ensures all clients contribute effectively, regardless of resource capacity. Thanks to the simplicity,
+FlexLoRA can be pluggable into a series of LoRA-based FL methods, unlocking their potential to
+leverage available yet under-utilized resources to contribute more generalized knowledge via larger
+LoRA ranks, which is also supported by our theoretical analysis.
+Our empirical study, simulating a cross-device federate fine-tuning scenario with thousands of clients
+on various of NLP tasks [ 39] and resource distributions, underscores the real-world applicabil-
+ity of FlexLoRA. Notably, FlexLoRA can be readily applied to several SOTA FL baselines in a
+plug-and-play manner and achieves significant performance enhancements, including 3.1% and 4%
+improvements in zero-shot Rouge-L scores and language understanding tasks such as overlap extrac-
+tion and textual entailment, demonstrating robust generalization capability. We further conduct an
+extensive study on the aggregation scheme and scalability of FlexLoRA, furnishing a more nuanced
+understanding of the underlying mechanisms that facilitate its effectiveness
+Our contributions can be summarized as follows:
+• We propose a simple-yet-effective scalable method to fully leverage local client resources for
+enhancing the global model’s generalization ability, supported by both theoretical analysis and
+extensive empirical evidence.
+• To our knowledge, this is the first work to demonstrate the feasibility of federated tuning of billion-
+sized LLMs across thousands of NLP tasks in large-scale, resource-heterogeneous scenarios.
+• We explore the interplay between LoRA ranks, client numbers, specific heterogeneous language
+tasks, and resource distributions, offering practical insights. Our code is made available at this link,
+inviting further research and application in real-world cross-device FL for LLMs.
+2

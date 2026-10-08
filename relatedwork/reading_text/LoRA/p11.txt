@@ -1,0 +1,84 @@
+Subspace similarity between different r. Given Ar=8 and Ar=64 which are the learned adapta-
+tion matrices with rank r = 8 and 64 using the same pre-trained model, we perform singular value
+decomposition and obtain the right-singular unitary matrices UAr=8 and UAr=64.7 We hope to an-
+swer: how much of the subspace spanned by the top i singular vectors in UAr=8 (for 1≤ i≤ 8) is
+contained in the subspace spanned by top j singular vectors of UAr=64 (for 1≤ j≤ 64)? We mea-
+sure this quantity with a normalized subspace similarity based on the Grassmann distance (See Ap-
+pendix G for a more formal discussion)
+φ(Ar=8, Ar=64, i, j) =||Ui⊤
+Ar=8 Uj
+Ar=64||2
+F
+min(i, j) ∈ [0, 1] (4)
+where Ui
+Ar=8 represents the columns of UAr=8 corresponding to the top-i singular vectors.
+φ(·) has a range of [0, 1], where 1 represents a complete overlap of subspaces and 0 a complete
+separation. See Figure 3 for how φ changes as we vary i and j. We only look at the 48th layer
+(out of 96) due to space constraint, but the conclusion holds for other layers as well, as shown
+in Section H.1.
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+1
+6
+12
+18
+23
+29
+35
+40
+46
+52
+58
+j
+12345678
+i
+Wq
+1
+6
+12
+18
+23
+29
+35
+40
+46
+52
+58
+j
+Wv
+1 2 3 4 5 6 7 8
+j
+Wq
+1 2 3 4 5 6 7 8
+j
+Wv
+(Ar = 64, Ar = 8, i, j)
+Figure 3: Subspace similarity between column vectors ofAr=8 and Ar=64 for both ∆Wq and ∆Wv.
+The third and the fourth ﬁgures zoom in on the lower-left triangle in the ﬁrst two ﬁgures. The top
+directions in r = 8 are included in r = 64, and vice versa.
+We make an important observation from Figure 3.
+Directions corresponding to the top singular vector overlap signiﬁcantly between
+Ar=8 and Ar=64, while others do not. Speciﬁcally, ∆Wv (resp. ∆Wq) of Ar=8
+and ∆Wv (resp. ∆Wq) of Ar=64 share a subspace of dimension 1 with normalized
+similarity > 0.5, providing an explanation of why r = 1 performs quite well in our
+downstream tasks for GPT-3.
+Since both Ar=8 and Ar=64 are learned using the same pre-trained model, Figure 3 indicates that
+the top singular-vector directions of Ar=8 and Ar=64 are the most useful, while other directions
+potentially contain mostly random noises accumulated during training. Hence, the adaptation matrix
+can indeed have a very low rank.
+Subspace similarity between different random seeds. We further conﬁrm this by plotting the
+normalized subspace similarity between two randomly seeded runs with r = 64, shown in Figure 4.
+∆Wq appears to have a higher “intrinsic rank” than ∆Wv, since more common singular value direc-
+tions are learned by both runs for ∆Wq, which is in line with our empirical observation in Table 6.
+As a comparison, we also plot two random Gaussian matrices, which do not share any common
+singular value directions with each other.
+7.3 H OW DOES THE ADAPTATION MATRIX ∆W COMPARE TO W ?
+We further investigate the relationship between∆W and W . In particular, does∆W highly correlate
+with W ? (Or mathematically, is ∆W mostly contained in the top singular directions of W ?) Also,
+7Note that a similar analysis can be carried out withB and the left-singular unitary matrices – we stick with
+A for our experiments.
+11

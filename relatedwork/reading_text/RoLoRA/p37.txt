@@ -1,0 +1,83 @@
+Proof. Let W2t =W 0 +A tBt be the global model parameters at the 2t-th communication round.
+Let W2t
+i,q =W 0 +A tBt
+i,q be the local model parameters of client i at the q-th local epoch of the
+2t-th communication round, where each client performs a total of Q local epochs. We define the
+following for convenience:
+The2t-th communication round:
+W2t =W 0 +A tBt (256)
+Theq-th local epoch of the2t-th communication round:
+W2t
+i,q =W 0 +A tBt
+i,q (257)
+The2t+ 1-th communication round:
+W2t+1 =W 0 +A tBt+1 =W 0 + 1
+N
+NX
+i=1
+AtBt
+i,Q (258)
+Theq-th local epoch of the2t+ 1-th communication round:
+W2t+1
+i,q =W 0 +A t
+i,qBt+1 (259)
+The2t+ 2-th communication round:
+W2t+2 =W 0 +A t+1Bt+1 =W 0 + 1
+N
+NX
+i=1
+At
+i,QBt+1 (260)
+According to chain rule,
+∇Bli(W) =A ⊤∇Wli(W)(261)
+∇Ali(W) =∇ Wli(W)B⊤ (262)
+Now we apply Assumption A4.2 to local update ofB, and get
+li(W2t
+i,1)≤l i(W2t) +⟨W 2t
+i,1 −W 2t,∇ Wli(W2t)⟩F + L
+2 ∥W2t
+i,1 −W 2t∥2
+F (263)
+By (256) and (257),
+W2t
+i,1 −W 2t =A t(Bt
+i,1 −B t)(264)
+=−ηA tAt⊤
+∇Wli(W2t,x 2t
+i,1)(265)
+whereηis the learning rate. Then
+li(W2t
+i,1)≤l i(W2t)−η⟨A tAt⊤
+∇Wli(W2t,x 2t
+i,1),∇ Wli(W2t)⟩F
++ L
+2 η2∥AtAt⊤
+∇Wli(W2t,x 2t
+i,1)∥2
+F (266)
+Taking expectation of (266),
+E[li(W2t
+i,1)]≤E[l i(W2t)]−η⟨A tAt⊤
+∇Wli(W2t),∇ Wli(W2t)⟩F + L
+2 η2E[∥AtAt⊤
+∇Wli(W2t,x 2t
+i,1)∥2
+F ]
+(267)
+The inner product term is lower bounded such that
+⟨AtAt⊤
+∇Wli(W2t),∇ Wli(W2t)⟩F =Tr[∇ Wli(W2t)
+⊤
+AtAt⊤
+∇Wli(W2t)](268)
+=Tr[A tAt⊤
+∇Wli(W2t)∇Wli(W2t)
+⊤
+](269)
+=⟨A tAt⊤
+,∇ Wli(W2t)∇Wli(W2t)
+⊤
+⟩F (270)
+≥c A∥∇Wli(W2t)∥2
+F (271)
+37

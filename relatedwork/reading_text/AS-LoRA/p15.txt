@@ -1,0 +1,10 @@
+B AS-LoRA Algorithm
+Figure 5: Detail of the proposed AS-LoRA framework.
+Figure 6: Detailed visualization of the proposed AS-LoRA score computation and mode selection
+procedures. (a) Component-wise scores are computed from the projected gradients of LoRA A and
+B matrices. Random projection mitigates the effect of channel-wise gradient outliers before applying
+the squared-gradient and curvature-aware score terms. (b) The server smooths the aggregated scores
+using EMA and performs layer-wise mode selection. During warm-up, AS-LoRA alternates between
+components, while after warm-up it uses a temperature-scaled score-based selection rule to produce
+the final mode vector.
+15

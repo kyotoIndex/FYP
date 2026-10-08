@@ -1,0 +1,78 @@
+FLOPs accounting.Following [ 62], we set Cbwd ≈2C fwd, so one local update step costs 3Cfwd.
+OverT= 100rounds withτ= 10local steps, the baseline FLOPs are:
+Fbase = 3τ T= 3×10×100 = 3,000C fwd.
+The proposed method uses a central-difference FD scheme requiring two forward passes per scoring
+target per round. With Ntarget = 24 targets (one active component per layer), the full per-round
+curvature scoring costs:
+Ffull =N target ×2×T= 24×2×100 = 4,800C fwd,
+yielding an overhead of 4,800/3,000 =160% over the baseline, which is prohibitive for resource-
+constrained deployments.
+We propose two complementary strategies to reduce this overhead. First, replacing the central-
+difference scheme with a one-sided scheme:
+ct
+a,k(n)≈
+Lt
+k(Wt +ϵ fd vt
+a,k(n))− L t
+k(Wt)
+ϵ2
+fd
+,
+halves the per-target cost by reusing Lt
+k(Wt) already computed during training. Second, applying
+curvature scoring only every f rounds reduces the number of scoring events from T to T /f. Under
+both strategies withf= 10, the curvature overhead becomes:
+Fcurv =N target ×1× T
+f = 24×10 = 240C fwd,
+reducing the overhead to240/3,000≈8%—a20×reduction from the original160%.
+Table 12: Comparison of curva-
+ture computation schedules in AS-
+LoRA under DP-SGD (ϵ= 3).
+Method MNLI (m) MNLI (mm)
+Periodic computation
+(f=5) 77.99±1.1779.39±1.07
+(f=10) 78.83±1.0879.76±0.80
+Late-phase computation
+(T ∗=80) 78.91±1.1179.87±0.95
+(T ∗=90) 78.85±0.8880.11±0.74
+Original
+Proposed (ours)79.15±0.2380.03±0.40
+Scheduling strategies.We consider two scheduling variants:(i)
+Periodic: compute curvature scores every f∈ {5,10} rounds
+and use ∥˜g∥2 otherwise.(ii) Late-phase: apply ∥˜g∥2 for the
+first T ∗ ∈ {80,90} rounds and switch to curvature scoring
+thereafter, motivated by the observation that ∥˜g∥2 dominates
+early optimization while g⊤
+a Haga becomes informative as ∥˜g∥2
+diminishes near convergence.
+Analysis.As shown in Table 12, late-phase scheduling ( T ∗=80)
+incurs only −0.24 degradation on MNLI (m) relative to the
+full method. Notably, T ∗=90 surpasses the full method on
+MNLI (mm) while reducing overhead from 160% to 8% (20×
+reduction). These results confirm that full per-round curvature
+scoring is unnecessary: selective scheduling preserves most of
+the performance gain at a fraction of the computational cost.
+J.7 Effect of gradient smoothing under DP-SGD
+Table 13: Effect of gradient smoothing
+methods under DP-SGD (ϵ= 3).
+Method MNLI (m) MNLI (mm)
+Proposed (w/o smoothing) 79.15±0.2380.03±0.40
+Gaussian 78.85±0.1479.74±0.21
+Laplacian79.48±0.1680.31±0.16
+EMA 77.70±0.1978.65±0.14
+We investigate whether applying smoothing to DP-SGD
+gradients can further improve utility, motivated by the
+observation that injected Gaussian noise in DP-SGD
+is high-frequency in nature and may be partially miti-
+gated by frequency-selective filtering. Specifically, we
+compare three smoothing strategies applied to the ag-
+gregated gradients: (i) a standard 5-tap Gaussian filter
+[1/16,4/16,6/16,4/16,1/16] as proposed in [ 46], (ii)
+Laplacian smoothing [47], and (iii) EMA across communication rounds
+The Gaussian noise injected by DP-SGD is i.i.d. across parameters and thus behaves as white noise
+in the parameter space, concentrating its energy uniformly across all frequencies.In contrast, the true
+gradient signal is typically smooth and sparse in the frequency domain, with energy concentrated at
+low frequencies.In the frequency domain, Laplacian smoothing acts as:
+ˆgsmooth(ω) = ˆg(ω)
+1 +σλ(ω) ,(60)
+30

@@ -1,0 +1,59 @@
+B.1 Visualization of AS-LoRA framework
+Fig 5 illustrates the overall workflow of the proposed AS-LoRA framework. At each communication
+round, the server first determines the layer-wise mode based on historical scores and broadcasts only
+the selected LoRA components. Each client then performs local updates using DP-SGD according to
+the assigned modes, computes component-wise scores, and uploads both the updated parameters and
+scores to the server. The server aggregates the selected components and updates the global scores,
+which are used for the next round of mode selection. This process enables adaptive, layer-wise
+optimization across communication rounds while mitigating aggregation error and unnecessary noise
+amplification. The overall training procedure of AS-LoRA is summarized in Algorithm 1.
+B.2 Score Computation and Mode Selection
+Figure 6 provides a detailed illustration of the score computation and mode selection procedures in
+AS-LoRA.
+Score Computation.Figure 6(a) depicts the score computation procedure performed on each client.
+As illustrated, the gradient of LoRA-A exhibits channel-wise outliers, where the gradient magnitude
+is highly concentrated in a small subset of channels. To mitigate this, a Gaussian random projection
+is applied to each gradient, redistributing the concentrated magnitude across dimensions and enabling
+more reliable score estimation. The score computation procedures with random projection are
+described in Algorithms 2–4.
+Mode Selection.Figure 6(b) illustrates the mode selection procedure. The server-side scores are
+smoothed via EMA to reduce round-to-round variance, and the mode for each layer is determined
+based on the smoothed scores. During the warm-up phase ( t≤t w), all layers follow a simple
+alternating schedule, where the A and B components are activated in alternation across rounds,
+and the mode vector M t(n)∈ {0,1} changes accordingly. After the warm-up phase ( t > t w),
+score-based selection is activated. The selection probability for each component is computed via a
+temperature-scaled softmax.
+Here, the temperature T t follows an annealing schedule that decays from an initial value T 0 to a
+minimum Tmin over training rounds. This annealing encourages exploration of both components
+in early rounds while gradually shifting toward exploitation of the higher-scoring component as
+training progresses. The final output is the mode vector M t ={M t(1), M t(2), . . . , Mt(N)},
+M t(n)∈ {0,1} , which specifies the active LoRA component for each layer at round t. The full
+mode selection procedure is summarized in Algorithm 5.
+C Preliminaries for Theoretical Analysis
+C.1 Background
+We analyze AS-LoRA along two axes:(i) layer-wise freedom—the ability to activate A(n) or B(n)
+independently per layer—and(ii) score-driven selection—the greedy rule arg maxa∈{A,B} S(n)
+a with
+S(n)
+a =∥g (n)
+a ∥2 − η
+2 (g(n)
+a )⊤H (n)
+a g(n)
+a . Each axis contributes a distinct and quantifiable advantage
+over the layer-tied or fixed-schedule baselines (FFA-LoRA [ 14], RoLoRA [ 15]). The analysis
+combines block-coordinate descent theory [23], Polyak–Łojasiewicz convergence [32], and DP-SGD
+privacy accounting [21, 29, 30].
+C.2 Setup
+Let L(W) = 1
+K
+PK
+k=1 Lk(W) be the federated loss over K clients with per-client dataset size
+m (total Km samples). For layer n∈[N] , the frozen weight is W (n)
+0 ∈R d×d and the LoRA
+update factorizes as B(n)A(n) with B(n) ∈R d×r, A(n) ∈R r×d, and rank r≪d , so that the
+effective weight is W (n) =W (n)
+0 +B (n)A(n) acting on an input X∈R d×m as W (n)X (n) =
+W (n)
+0 X+B (n)A(n)X (n)
+19

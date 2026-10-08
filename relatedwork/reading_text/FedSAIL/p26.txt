@@ -1,0 +1,21 @@
+Table 18: Primary compute server and benchmark training environment.
+Component Specification
+GPUs4×NVIDIA GeForce RTX 3090,24GiB memory each
+CPUs2×Intel Xeon Gold 5218R,40physical cores in total
+Host memory Approximately504GiB (OS-reported)
+Operating system Ubuntu 22.04.5 LTS
+Training runtime Python 3.9.21; PyTorch 2.5.1 with CUDA 12.4
+Libraries Transformers 4.42.3; Datasets 2.20.0
+Anonymous code release.The core implementation of FedSAIL is available at
+https://anonymous.4open.science/r/FedSAIL-4A7C/.
+The repository implements input-moment estimation and shrinkage, compact spectral messages, server-side
+subspace aggregation, the local action residual penalty, layer selection, and communication accounting. Syn-
+thetic CPU tests check these components against dense reference computations, including reparameterization
+invariance and penalty gradients. Experimental settings and evaluation conventions are documented in the
+preceding appendices.
+Installation and verification.The standalone package requires Python 3.10 or later and PyTorch. From the
+repository root, the following commands install the package and run its numerical tests without downloading
+models or datasets:
+python -m pip install -e ".[test]"
+PYTHONDONTWRITEBYTECODE=1 python -m pytest -p no:cacheprovider
+26

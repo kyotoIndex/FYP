@@ -1,0 +1,106 @@
+arXiv:2506.12213v1  [cs.LG]  13 Jun 2025
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 1
+Fed-HeLLo: Efficient Federated Foundation Model
+Fine-Tuning with Heterogeneous LoRA Allocation
+Zikai Zhang , Ping Liu , Jiahao Xu , Rui Hu*
+Abstract—Federated Learning (FL) has recently been utilized
+to collaboratively fine-tune foundation models (FMs) across
+multiple clients. Notably, federated low-rank adaptation (LoRA)-
+based fine-tuning methods have recently gained attention, which
+allows clients to fine-tune FMs with a small portion of train-
+able parameters locally. However, most existing methods do
+not account for the heterogeneous resources of clients or lack
+an effective local training strategy to maximize global fine-
+tuning performance under limited resources. In this work, we
+propose Fed-HeLLo, a novel federated LoRA-based fine-tuning
+framework that enables clients to collaboratively fine-tune an FM
+with different local trainable LoRA layers. To ensure its effective-
+ness, we develop several heterogeneous LoRA allocation (HLA)
+strategies that adaptively allocate local trainable LoRA layers
+based on clients’ resource capabilities and the layer importance.
+Specifically, based on the dynamic layer importance, we design
+a Fisher Information Matrix score-based HLA (FIM-HLA) that
+leverages dynamic gradient norm information. To better stabilize
+the training process, we consider the intrinsic importance of
+LoRA layers and design a Geometrically-Defined HLA (GD-
+HLA) strategy. It shapes the collective distribution of trainable
+LoRA layers into specific geometric patterns, such as Triangle,
+Inverted Triangle , Bottleneck, and Uniform. Moreover, we ex-
+tend GD-HLA into a randomized version, named Randomized
+Geometrically-Defined HLA (RGD-HLA), for enhanced model
+accuracy with randomness. By co-designing the proposed HLA
+strategies, we incorporate both the dynamic and intrinsic layer
+importance into the design of our HLA strategy. To thoroughly
+evaluate our approach, we simulate various complex federated
+LoRA-based fine-tuning settings using five datasets and three
+levels of data distributions ranging from IID to extreme Non-IID.
+The experimental results demonstrate the effectiveness and effi-
+ciency of Fed-HeLLo with the proposed HLA strategies. The code
+is available at https://github.com/TNI-playground/Fed HeLLo.
+Index Terms —Foundation Model Fine-Tuning, Federated
+Learning, Low-Rank Adaptation, Resource Heterogeneity
+I. I NTRODUCTION
+F
+OUNDATION models (FMs) [13], [16], [36], [37], [68],
+characterized by their extensive parameter counts ranging
+into millions or billions, serve as robust initial weights for a va-
+riety of downstream tasks [47], [52] via fine-tuning. However,
+employing FMs presents substantial challenges, especially the
+high computational costs of fine-tuning the model.
+To mitigate the high computational requirement of fine-
+tuning FMs, researchers have developed a variety of
+parameter-efficient fine-tuning (PEFT) methods. These meth-
+ods either selectively update a subset of model parameters or
+Zikai Zhang, Ping Liu, Jiahao Xu, Rui Hu are with the Department
+of Computer Science and Engineering, University of Nevada, Reno, Reno,
+NV , 89557, USA (e-mail: zikaiz@unr.edu; pingl@unr.edu; jiahaox@unr.edu;
+ruihu@unr.edu).
+*Rui Hu is the Corresponding Author: ruihu@unr.edu
+incorporate a small set of trainable layers, such as in prompt
+tuning [29], low-rank adaptation (LoRA) [25], and BitFit [59].
+Recent works [2], [21], [46], [62], [67] have started to
+explore the combination of FL and various PEFT methods
+due to their lightweight training structures. Federated Learning
+(FL) [27], [60] is a distributed machine learning framework
+that enables multiple clients to collaboratively update a global
+model. In the FL process, each client trains a local model on
+its private dataset and sends model updates to a central server
+for aggregation. Incorporating PEFT techniques in this process
+improves parameter efficiency, reducing both computational
+and communication overhead. In the literature, FedPrompt [67]
+and PromptFL [21] combine FL with prompt tuning, updating
+only the soft prompts to improve parameter and communica-
+tion efficiency. Due to the advantages of LoRA in handling
+complex downstream tasks with mid-size dataset [65], partic-
+ularly those involving significant domain shifts, several studies
+have explored federated LoRA-based fine-tuning methods [2],
+[62]. For instance, FedIT [62] combines FL with LoRA for
+federated instruction-tuning. SLoRA [2] introduces a novel ini-
+tialization method for LoRA layers to improve the convergence
+speed of LoRA in FL.
+Despite advancements in federated LoRA-based fine-tuning,
+the persistent challenges are the memory bottlenecks expe-
+rienced by clients with limited resources. While LoRA is
+designed to be parameter-efficient, it still requires substantial
+memory usage during training, similar to full-model fine-
+tuning [31]. As shown in Figure 1 (a), the memory usage
+for training a ViT-base [28] model including the memory for
+model parameters, optimizer states, and activations. The model
+parameters include the weights and biases of the frozen pre-
+trained model as well as trainable parameters. The optimizer
+states store gradients and necessary momentum estimates for
+trainable parameters. Activations are intermediate results in
+forward process that are stored for computing gradients in
+backpropagation. In this LoRA-based fine-tuning case, model
+parameters take only 3% of the memory, while optimizer states
+and activations together take 97% of the memory.
+Furthermore, as shown in Figure 1 (b), clients in real-
+world FL have heterogeneous memory capabilities, and the
+majority of them have low-resource devices with limited mem-
+ory capabilities. This presents substantial challenges to the
+deployment of federated LoRA-based fine-tuning, as clients
+with limited memory resources are not capable of completing
+the local training task effectively and efficiently. In this case,
+FL usually assigns local training tasks only to high-capability
+clients (known as exclusive learning [26]), which results in a
+significant loss of data from low-capability clients. Otherwise,

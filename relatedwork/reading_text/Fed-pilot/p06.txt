@@ -1,0 +1,97 @@
+, , Zhang et al.
+Table 1: Main results on CIFAR-100 dataset with ViT-base
+model in both IID and Non-IID settings.
+Methods Model Performance (Accuracy)
+IID Non-IID (20) Non-IID (10) Avg
+Baseline-EL 40.15 27.82 7.04 25.00
+Baseline-MH 53.36 29.77 7.92 30.35
+Baseline-MS 76.38 68.34 57.63 67.45
+FLoRA 1.61 0.90 0.78 1.09
+FlexLoRA 1.84 1.92 1.86 1.87
+HETLoRA 6.91 8.23 1.59 5.57
+FedRA 72.60 62.95 47.98 61.17
+Ours 80.09 73.35 63.93 72.45
+Table 2: Main results on LEDGAR dataset with BERT-base
+model in both IID and Non-IID settings.
+Methods Model Performance (MacroF1)
+IID Non-IID (20) Non-IID (10) Avg
+Baseline-EL 60.76 43.94 0.12 34.94
+Baseline-MH 61.58 6.59 0.22 22.79
+Baseline-MS 62.95 56.22 46.93 55.36
+FLoRA 0.10 0.07 0.01 0.06
+FlexLoRA 0.10 0.24 0.32 0.22
+HETLoRA 0.51 0.32 0.10 0.31
+FedRA 63.20 54.96 47.24 55.13
+Ours 63.17 56.31 48.87 56.11
+represents the number of clients training the 𝑗-th LoRA module
+at round 𝑡, and 𝛽𝑡
+( 𝑗 ) = 1
+𝑇Agg
+Í𝑡
+𝑡 ′=𝑡 −𝑇Agg+1 𝛼𝑡 ′
+( 𝑗 ) captures the average
+number of clients contributing to the 𝑗-th LoRA module over the
+past 𝑇Agg rounds. By compensating under-updated LoRA modules
+using historical global updates, ComAgg mitigates inconsistencies
+in data distribution across modules, ensuring more stable conver-
+gence.
+5 Evaluation
+5.1 Experimental Settings
+5.1.1 Memory Capacity Heterogeneity. We define four memory ca-
+pacity levels (Level 1-4) based on real-world NVIDIA GPUs. For FMs
+with millions of parameters, we set the client memory capacities to
+24 GB, 32 GB, 40 GB, and 48 GB for Level 1 through 4, respectively.
+For FMs with billions of parameters, the corresponding memory
+capacities are to 32 GB, 40 GB, 48 GB, and 80 GB. See Supplement
+Section B.2 for detailed capacity settings on different models. We
+assume that clients are distributed across these levels in a 4:3:2:1
+ratio, from the lowest to the highest memory capacity, reflecting the
+higher prevalence of low-memory clients in real-world scenarios.
+5.1.2 Data Heterogeneity. We evaluate our approach on five dis-
+tinct datasets while simulating varying levels of Non-IID settings,
+including category heterogeneity, task heterogeneity, and domain
+heterogeneity.
+Figure 3: The average accuracy vs. average memory utiliza-
+tion across methods on CIFAR-100 dataset.
+Category Heterogeneity. We use CIFAR-100 dataset [16] and
+LEDGAR dataset from LexGLUE [4] to simulate the category het-
+erogeneity settings by skewing the label distribution across clients.
+For the pre-trained model, we use ViT-base [9] for visual tasks and
+BERT-base [8] for language tasks.
+Task Heterogeneity.We use Natural Instruction (NI) dataset [28]
+and Dolly-15K [7] dataset that contain diverse natural language
+tasks to evaluate our approach under task heterogeneity. We use a
+Llama-like model Data-Juicer-1B [5] and the OPT-1.3B [34] as the
+pre-trained models for these two datasets, respectively.
+Domain Heterogeneity. We use a customized DomainNet
+dataset [22] (referred to as DomainNet-121), which contains six
+visual domains, to simulate the domain heterogeneity by assigning
+data from only one domain to each client. For this dataset, we use
+ViT-base [9] as the pre-trained model.
+We provide the details of data settings in Supplement Section C.
+5.1.3 Baselines. To evaluate the effectiveness of Fed-pilot, we im-
+plement seven baselines:
+Baseline-Exclusive Learning (EL) excludes clients that cannot
+train all LoRA modules. Baseline-Memory Saver (MS) allocates the
+last 𝑢 LoRA modules according to the capacity, prioritizing the
+training of more modules. Baseline-Memory Hogger (MH) allocates
+the first 𝑢 LoRA modules according to the capacity, emphasizing
+the utilization of shallow-layer features. HETLoRA [6] is a rank-
+based method designed to accommodate heterogeneous clients with
+varying LoRA ranks. FLoRA [29] assigns lower ranks to resource-
+constraint clients and shares stacked LoRA modules for updates.
+FlexLoRA [3] improves aggregation in rank-based methods using
+SVD. FedRA [24] randomly allocates a subset of LoRA modules for
+clients with limited memory capacities to train at each round.
+5.1.4 Implementation Details. We use PyTorch to implement our
+framework. All experiments are carried out on a server with 8
+× NVIDIA RTX A6000 GPUs. The total GPU hours for running
+all the experiments are over 3,000 GPU hours. For the configura-
+tion of models, hyper-parameters, and FL settings, please refer to
+Supplement Section B for more details.
+5.2 Experimental Results
+The best results are highlighted in grey .
+Results on CIFAR-100. Table 1 presents the main results on
+CIFAR-100 dataset. We report the Top-1 accuracy of the fine-tuned
+global model under both IID and two different Non-IID (20, 10) set-
+tings. Our method demonstrates substantial improvements over the

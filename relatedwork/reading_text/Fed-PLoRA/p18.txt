@@ -1,0 +1,55 @@
+Published as a conference paper at ICLR 2026
+All the above techniques are orthogonal and potentially complementary to our approach and could
+be integrated in specific scenarios. However, in the context of our work, these comparisons are
+less directly relevant to serve as comparisons. We will consider exploring such combinations in our
+future work.
+C EXPERIMENTALSETTINGS
+C.1 DATASETS ANDMODELS
+General Language Understanding Task.For evaluating general language understanding profi-
+ciency, we follow Hao et al. Haobo et al. (2024) that utilize six well-established datasets from the
+General Language Understanding Evaluation (GLUE) benchmark, as detailed by Wang et al. Wang
+et al. (2018). Specifically, the tasks included the Corpus of Linguistic Acceptability (CoLA), the
+Stanford Sentiment Treebank (SST-2), the Microsoft Research Paraphrase Corpus (MRPC), the
+Quora Question Pairs (QQP) dataset, Question NLI (QNLI), and the Recognizing Textual Entail-
+ment (RTE) dataset. Across all these GLUE tasks, the BERT-base model, introduced by Devlin et
+al. Devlin et al. (2019), is employed as the foundational pre-trained language model.
+General Instruction Following Task.To assess the framework’s performance on tasks requiring
+general instruction following, we benchmark on two prominent datasets, following the approach of
+Bai et al. Bai et al. (2024). The first dataset is Natural Instructions (NI), a large-scale collection of
+diverse NLP tasks structured as instructions, developed by Wang et al. Wang et al. (2022). For this
+dataset, we utilized a Llama-1B model, with weights sourced from the Data-Juicer project by Chen
+et al. Chen et al. (2024). The second dataset is Dolly-15K, an open-source dataset of instruction-
+followed records created by Databricks Conover et al. (2023), for which the OPT-1.3B model from
+Zhang et al. Zhang et al. (2022a) is employed.
+Domain-Specific Tasks.We further extend our evaluation to domain-specific applications, focus-
+ing on the challenging medical and financial domains.Medical Domain:Adhering to the exper-
+imental design outlined by Ye et al. Ye et al. (2024) and Flower Gao et al. (2025), we utilize the
+MedAlpaca dataset, curated by Han et al. Han et al. (2023), for the training phase of our medical
+domain tasks. The framework’s effectiveness is then evaluated on four widely recognized medi-
+cal question answering benchmarks: PubMedQA by Jin et al. Jin et al. (2019), MedMCQA by Pal
+et al. Pal et al. (2022), MedQA (USMLE-style questions) also by Jin et al. Jin et al. (2021), and
+CareQA Arias-Duart et al. (2025). For these demanding medical tasks, we employ the Mistral-7B-
+v0.3 model MistralAI (2023), leveraging QLoRA for 4-bit precision fine-tuning, as proposed by
+Dettmers et al. Dettmers et al. (2023).Financial Domain:For the financial domain, training is
+conducted on a financial sentiment analysis dataset derived from the FinGPT project by Yang et
+al. FinGPT (2023). Evaluation is performed on three established financial NLP benchmarks: the
+Financial PhraseBank (FPB) by Malo et al. Malo et al. (2014), the Financial Sentiment Analysis on
+News Headlines (FIQA) dataset by Maia et al. Maia et al. (2018), and the Twitter Financial News
+Sentiment (TFNS) dataset Neural Magic (2022). These financial experiments are carried out using
+the Llama-3.1-8B model from Meta Meta AI (2024), also fine-tuned with QLoRA in 4-bit precision.
+Reasoning Tasks.We additionally evaluate our framework on mathematical reasoning, using the
+MATH benchmark introduced by Hendrycks et al. Hendrycks et al. (2021). This dataset contains
+12,500 competition-style math problems, each tagged by subject (algebra, counting and probabil-
+ity, geometry, number theory, etc.) and difficulty level from 1 to 5. Unlike standard word-problem
+benchmarks, MATH emphasizes multi-step deduction and symbolic manipulation rather than direct
+pattern matching, making it a strong stress test for federated parameter-efficient tuning. Every prob-
+lem includes a full step-by-step solution, enabling training signals beyond final answer supervision.
+For these math tasks, we employ the Qwen3-4B-Instruct-2507 model, leveraging QLoRA for 4-bit
+precision fine-tuning, similar to the previous model settings.
+Data Heterogeneity.To evaluate the performance under diverse data distributions, we specifically
+assess task heterogeneity using the Natural Instructions, Dolly-15K, and GLUE datasets, as they
+naturally consist of varied instruction-based or classification-based tasks. We apply both pathologi-
+cal and Dirichlet partitioning methods: the pathological method skews the number of tasks or label
+categories available to each client, while the Dirichlet method primarily controls the number of sam-
+ples per client. For Natural Instructions, we use an extreme case where each client is assigned 20
+18

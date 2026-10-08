@@ -1,0 +1,51 @@
+2 Related Work
+2.1 Instruction tuning of Large Language Models
+Instruction tuning has emerged as a simple yet effective approach to enhance the generalizability of
+LLMs for complicated real-world tasks. This research area has recently gained increasing attention,
+particularly since the introduction of FLAN [85] that demonstrates significant zero-shot performance,
+and Instruct-GPT [ 62] that aligns GPT-3 [ 6] to follow human intents via supervised tuning and
+RLHF [13, 70]. The development of Instruct-GPT has been instrumental in the success of ChatGPT
+[60] and GPT-4 [61].
+In general, current research efforts can be broadly classified into two main categories based on
+the source of instructions: (1) human-annotated task prompts and feedback [62], and (2) machine-
+generated instruction-following data. For the latter, self-instruct [ 84] is utilized, where a strong
+teacher LLM is considered to generate a comprehensive collection of instructional data that a student
+LLM can then utilize to gain alignment capabilities. Thanks to the recently open-sourced LLM
+LLaMA [77], which has demonstrated performance on par with proprietary LLMs such as GPT-3, the
+open-source community now has ample opportunities to actively explore promising solutions to build
+their own LLMs capable of following language and multimodal instructions [11, 45, 63, 75, 88, 98].
+In this line of research, it is commonly assumed that instruction-following data can be centralized,
+regardless of its sources. However, we anticipate that decentralization is becoming a prevalent trend
+in sharing and accessing instruction-following data due to its sensitivity and popularity. As such, we
+propose the first attempt to address this issue using FL.
+Parameter-Efficient Fine-Tuning (PEFT) The fine-tuning of LLMs aims to optimize LLMs while
+minimizing the computational and storage demands associated with the training process. Various
+innovative methods have been proposed to achieve this goal, each with distinctive characteristics,
+including LoRA [ 31], P-Tuning [ 49], Prefix Tuning [ 42, 48], Prompt Tuning [ 38]. We suggest
+interested readers to refer to the DeltaPaper repository 4 and the Delta Tuning paper [20] for a com-
+prehensive understanding of the advanced PEFT methods. We consider LoRA in our FL framework
+due to its promising performance in recent studies on instruction tuning, including Alpaca-lora 5 and
+Baize [88]. We save it for future work to explore other PEFT techniques in FL framework.
+2.2 Federated Learning in NLP Tasks
+Federated Learning [55] is a decentralized and collaborative machine learning technique that enables
+data to remain on user devices. Significant research efforts have focused on addressing privacy
+and heterogeneity challenges and developing advanced FL methods [ 33, 52, 59, 92, 93]. These
+advancements include designing optimization methods with improved aggregation performance
+([10, 21, 28, 66, 68, 79, 102], increasing the framework’s robustness against adversarial attacks [72],
+devising effective client selection mechanisms [12, 25, 78, 95], enhancing personalization capabilities
+[18, 40, 80, 89], and boosting the overall efficiency of FL systems [37, 39, 54, 67, 74].
+Furthermore, recent research has explored the application of FL to NLP tasks, such as Language
+Modeling [29, 90], Text Classification [8, 44], Sequence Tagging [23, 32], and Dialogue Generation
+[41, 51]. Several open benchmarks and repositories support the study of federated NLP tasks,
+including the Leaf benchmark [7], FedNLP benchmark [43], FedML [30], FedScale [36], and FATE
+[50]. Recent research has also highlighted the importance of pretraining models for federated learning
+[9, 73, 76, 86], as they offer a more powerful initialization for training instead of starting from
+scratch. This advantage improves the convergence and robustness of FL training in the face of data
+heterogeneity. Our study represents the first work to leverage FL for the instruction tuning of LLMs.
+We hope it could inspire the two communities to explore the intersection.
+3 Federated Instruction Tuning
+In light of our review in FL and instruction tuning, we now proceed to our Federated Instruction
+Tuning (FedIT). This section is structured as follows: first, we introduce the overall framework
+4https://github.com/thunlp/DeltaPapers
+5https://github.com/tloen/alpaca-lora
+3

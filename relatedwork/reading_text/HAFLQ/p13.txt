@@ -1,0 +1,136 @@
+13
+sponse to bandwidth constraints, thereby eliminating discarded
+bits (reduced from 2.88 Mbits to 0). Finally, the inclusion of
+adaptive LLM quantization reduces GPU memory usage from
+519.13 MB to 360.12 MB while maintaining high accuracy
+(88.89%), thereby demonstrating its effectiveness in optimiz-
+ing resource consumption without compromising performance.
+VIII. C ONCLUSIONS
+In this paper, we proposed the Heterogeneous Adaptive
+Federated LoRA Fine-tuned LLM with Quantization frame-
+work to address privacy concerns in fine-tuning LLMs. To
+accommodate client resource heterogeneity, we first designed a
+salience-driven adaptive quantization scheme that dynamically
+adjusts the proportion of quantized transformer blocks based
+on both the computational capabilities of the clients and
+the importance of the blocks. To further address resource
+heterogeneity, we introduced an importance-based parameter
+truncation scheme at the local LLM. However, the truncation
+process inevitably resulted in performance degradation. To
+mitigate this, we developed an importance-based parameter
+freezing scheme at the local LLM. For the cloud server,
+we proposed an adaptive global model aggregation method
+to counter the information dilution problem caused by the
+zero-padding aggregation method. Moreover, we proposed
+an Importance-Aware Bandwidth-Adaptive Communication
+Quantization scheme, which prioritized the transmission of
+important LoRA rank-1 matrices with higher precision under
+bandwidth constraints. Experimental results demonstrated the
+effectiveness of our framework, with GPU memory usage
+decreasing by 31%, communication cost reduced by 49%, and
+model accuracy improving by 50%. These results highlights
+that our framework effectively supports federated fine-tuning
+of LLMs in real-world heterogeneous environments.
+REFERENCES
+[1] Y . Su, N. Yan, and Y . Deng, “Federated LLMs Fine-tuned with Adaptive
+Importance-Aware LoRA,”arXiv preprint arXiv:2411.06581, Nov. 2024,
+to appear in Proc. IEEE Int. Conf. Commun. (ICC), Jun. 2025.
+[2] W. X. Zhao, K. Zhou, J. Li, T. Tang, X. Wang, Y . Hou, Y . Min, B. Zhang,
+J. Zhang, Z. Dong et al. , “A survey of large language models,” arXiv
+preprint arXiv:2303.18223, Mar. 2023.
+[3] Y . Chang, X. Wang, J. Wang, Y . Wu, L. Yang, K. Zhu, H. Chen, X. Yi,
+C. Wang, Y . Wang et al. , “A survey on evaluation of large language
+models,” ACM Trans. Intell. Syst. Technol. , vol. 15, no. 3, pp. 1–45,
+Mar. 2024.
+[4] H. Naveed, A. U. Khan, S. Qiu, M. Saqib, S. Anwar, M. Usman,
+N. Akhtar, N. Barnes, and A. Mian, “A comprehensive overview of
+large language models,” arXiv preprint arXiv:2307.06435 , Oct. 2024.
+[5] B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas,
+“Communication-efficient learning of deep networks from decentralized
+data,” in Proc. Int. Conf. Artif. Intell. Stat. (AISTATS) . PMLR, 2017,
+pp. 1273–1282.
+[6] C. Zhang, Y . Xie, H. Bai, B. Yu, W. Li, and Y . Gao, “A survey on
+federated learning,” Knowl.-Based Syst., vol. 216, p. 106775, Mar. 2021.
+[7] J. Wen, Z. Zhang, Y . Lan, Z. Cui, J. Cai, and W. Zhang, “A survey
+on federated learning: challenges and applications,” Int. J. Mach. Learn.
+Cybern., vol. 14, no. 2, pp. 513–535, Feb. 2023.
+[8] A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman,
+A. Mathur, A. Schelten, A. Yang, A. Fan et al. , “The llama 3 herd of
+models,” arXiv preprint arXiv:2407.21783 , Aug. 2024.
+[9] Z. Zhou, X. Ning, K. Hong, T. Fu, J. Xu, S. Li, Y . Lou, L. Wang,
+Z. Yuan, X. Li et al., “A survey on efficient inference for large language
+models,” arXiv preprint arXiv:2404.14294 , Jul. 2024.
+[10] X. Zhu, J. Li, Y . Liu, C. Ma, and W. Wang, “A survey on model com-
+pression for large language models,” Trans. Assoc. Comput. Linguist. ,
+vol. 12, pp. 1556–1577, Nov. 2024.
+[11] G. I. Kim, S. Hwang, and B. Jang, “Efficient Compressing and Tuning
+Methods for Large Language Models: A Systematic Literature Review,”
+ACM Comput. Surv., Apr. 2025.
+[12] Z. Fang, Z. Lin, Z. Chen, X. Chen, Y . Gao, and Y . Fang, “Automated
+federated pipeline for parameter-efficient fine-tuning of large language
+models,” arXiv preprint arXiv:2404.06448 , Dec. 2024.
+[13] Z. Han, C. Gao, J. Liu, S. Q. Zhang et al. , “Parameter-efficient fine-
+tuning for large models: A comprehensive survey,” arXiv preprint
+arXiv:2403.14608, Sep. 024.
+[14] L. Xu, H. Xie, S.-Z. J. Qin, X. Tao, and F. L. Wang, “Parameter-efficient
+fine-tuning methods for pretrained language models: A critical review
+and assessment,” arXiv preprint arXiv:2312.12148 , Dec. 2023.
+[15] D. Zhang, T. Feng, L. Xue, Y . Wang, Y . Dong, and J. Tang,
+“Parameter-Efficient Fine-Tuning for Foundation Models,” arXiv
+preprint arXiv:2501.13787, Jan. 2025.
+[16] E. J. Hu, Y . Shen, P. Wallis, Z. Allen-Zhu, Y . Li, S. Wang, L. Wang,
+and W. Chen, “Lora: Low-rank adaptation of large language models,”
+arXiv preprint arXiv:2106.09685 , Oct. 2021.
+[17] J. Zhang, S. Vahidian, M. Kuo, C. Li, R. Zhang, T. Yu, G. Wang,
+and Y . Chen, “Towards building the federatedGPT: Federated instruction
+tuning,” in Proc. Int. Conf. Acoust. Speech Signal Process. (ICASSP) ,
+Apr. 2024.
+[18] Y . J. Cho, L. Liu, Z. Xu, A. Fahrezi, M. Barnes, and G. Joshi,
+“Heterogeneous lora for federated fine-tuning of on-device foundation
+models,” in Proc. Int. Workshop Federated Learn. Age Found. Models,
+NeurIPS 2023, Dec. 2023.
+[19] J. Bai, D. Chen, B. Qian, L. Yao, and Y . Li, “ Federated Fine-tuning
+of Large Language Models under Heterogeneous Tasks and Client
+Resources ,” arXiv preprint arXiv:2402.11505v2 , Feb. 2024.
+[20] J. Zhu, C. Lv, X. Wang, M. Wu, W. Liu, T. Li, Z. Ling, C. Zhang,
+X. Zheng, and X. Huang, “Promoting Data and Model Privacy in
+Federated Learning through Quantized LoRA,” in Proc. Empirical
+Methods Nat. Lang. Process. (EMNLP) , Nov. 2024.
+[21] 3rd Generation Partnership Project (3GPP), “Technical Specification
+Group Radio Access Network; Study on channel model for frequencies
+from 0.5 to 100 GHz (Release 16),” 3GPP TR 38.901 V16.1.0 , Dec.
+2019.
+[22] H. Meshgi, D. Zhao, and R. Zheng, “Optimal Resource Allocation
+in Multicast Device-to-Device Communications Underlaying LTE Net-
+works,” IEEE Trans. Veh. Technol., vol. 66, no. 9, pp. 8357–8371, Sep.
+2017.
+[23] E. Frantar and D. Alistarh, “SparseGPT: Massive Language Models Can
+be Accurately Pruned in One-Shot,” in Proc. Intern. Conf. Mach. Learn.
+ICML, Jul. 2023.
+[24] A. Krishnamoorthy and D. Menon, “Matrix inversion using Cholesky
+decomposition,” in Proc. Signal Process. Algorithms Archit. Arrang.
+Appl. (SPA), Sep. 2013.
+[25] T. Dettmers, M. Lewis, Y . Belkada, and L. Zettlemoyer, “ LLM.int8():
+8-bit Matrix Multiplication for Transformers at Scale ,” in Proc. Neural
+Inf. Process. Syst. (NIPS) , Dec. 2022.
+[26] E. Frantar, S. Ashkboos, T. Hoefler, and D. Alistarh, “Gptq: Accurate
+post-training quantization for generative pre-trained transformers,” in
+Proc. Int. Conf. Learn. Represent. (ICLR) , May 2023.
+[27] P. Molchanov, A. Mallya, S. Tyree, I. Frosio, and J. Kautz, “ Importance
+Estimation for Neural Network Pruning ,” in Proc. Conf. Comput. Vis.
+Pattern Recognit. (CVPR), Jun. 2019.
+[28] Q. Zhang, S. Zuo, C. Liang, A. Bukharin, P. He, W. Chen, and T. Zhao,
+“PLATON: Pruning Large Transformer Models with Upper Confidence
+Bound of Weight Importance,” in Proc. Intern. Conf. Mach. Learn.
+(ICML), vol. 162, Jul. 2022, pp. 26 809–26 823.
+[29] B. Jacob, S. Kligys, B. Chen, M. Zhu, M. Tang, A. Howard, H. Adam,
+and D. Kalenichenko, “Quantization and training of neural networks for
+efficient integer-arithmetic-only inference,” inProc. IEEE Conf. Comput.
+Vis. Pattern Recognit. (CVPR) , Jun. 2018, pp. 2704–2713.
+[30] A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, I. Sutskever et al.,
+“Language models are unsupervised multitask learners,” OpenAI blog ,
+vol. 1, no. 8, p. 9, Feb. 2019.
+[31] I. Casanueva, T. Tem ˇcinas, D. Gerz, M. Henderson, and I. Vuli ´c,
+“Efficient Intent Detection with Dual Sentence Encoders,” in Proc. 2nd
+Worksh. Nat. Lang. Process. Convers. AI (NLP4ConvAI) , Jul. 2020, pp.
+38–45.

@@ -8,3 +8,15 @@ results/_development/optimization_dev_20260918_v2/runs/** linguist-generated=tru
 results/rank_signal_20260918_v1/raw/** linguist-generated=true
 results/rank_signal_20260918_v1/analysis/*.csv linguist-generated=true
 results/rank_signal_20260918_v1/analysis/*.json linguist-generated=true
+
+# Preserve frozen experiment and paper source bytes across Windows/Linux checkouts.
+hetsa/** -text
+relatedwork/** -text
+hetsa/results/** linguist-generated=true
+relatedwork/reading_text/** linguist-generated=true
+relatedwork/tex/** linguist-vendored=true
+relatedwork/source_archives/** linguist-vendored=true
+hetsa/** whitespace=cr-at-eol
+# Frozen results and author/extracted paper files keep original whitespace.
+hetsa/results/** -whitespace
+relatedwork/** -whitespace

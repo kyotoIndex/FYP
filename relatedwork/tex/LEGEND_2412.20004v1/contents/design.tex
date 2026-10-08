@@ -1,0 +1,298 @@
+\vspace{-0.3cm}
+\subsection{\bluenote{Initialization and Update}}
+\vspace{-0.2cm}
+In each round, the device receives a set of LoRA layers from the PS to initialize and update the local model for local fine-tuning. 
+These LoRA layers are tailored to the device's capacity (\eg, computing and communication capacity), including information on which transformer layers to fine-tune and the ranks of those LoRA layers. 
+Specifically, device $i$ receives the LoRA layers $\widetilde{\theta}_i^h = \{ \widetilde{\theta}_{i, l}^h | l \in [L - {k}_i^h, L - 1] \}$ to initialize and update ${k}_i^h$ transformer layers close to the output, where $L$ denotes the number of transformer layers in the pre-trained model $\overline{\theta}$. 
+The LoRA layers $\widetilde{\theta}_{i, l}^h \in \widetilde{\theta}_i^h$ includes coupled LoRA matrices for all linear layers in transformer layer $l$.
+The coupled LoRA matrices include two components, \ie, the project-down matrix $\mathcal{B} \in \mathbb{R}^{m \times r}$ and the project-up matrix $\mathcal{A} \in \mathbb{R}^{r \times q}$, where $r$ denotes the rank of the LoRA matrix and is much smaller than both $m$ and $q$.
+Without loss of generality, for arbitary coupled LoRA matrices $\mathcal{B}_{i,l}^{h} \in \widetilde{\theta}_{i,l}^h$ and $\mathcal{A}_{i,l}^{h} \in \widetilde{\theta}_{i,l}^h$, the device injects the matrices into the linear layer $y = M_l \cdot x$ with pre-trained weight matrix $M_l$ in transformer layer $l$ as $\{ ( \mathcal{B}_{i,l}^{h}, \mathcal{A}_{i,l}^{h}, M_l ) | l \in \mathcal{L}_i^h \}$.
+Then, the forward propagation of the linear layer with initialized parameters $\{ \mathcal{B}_{i,l}^{h}, \mathcal{A}_{i,l}^{h}, M_l\}$ in $l$-th transformer layer on device $i$ in round $h$ can be expressed as: 
+\vspace{-0.2cm}
+\begin{equation}
+    y = M_l \cdot x + \mathcal{B}_{i,l}^{h} \cdot \mathcal{A}_{i,l}^{h} \cdot x
+    \vspace{-0.2cm}
+\end{equation}
+where $x$ is the given input tensor and $y$ is the respective output tensor of the initialized linear layer. 
+After that, the device initializes and updates the local model $\theta_i^h = \{ \widetilde{\theta}_i^h, \overline{\theta} \}$ for local fine-tuning in round $h$. 
+\vspace{-0.2cm}
+
+% This results in the initialization of the local model on the device, where each device has its own set of LoRA-modified parameters for fine-tuning.
+
+% The fine-tuning process involves performing forward propagation on the device using these initialized parameters. The input to each linear layer is processed by the original weight matrix and the LoRA matrices, which together determine the output of the layer.
+
+
+
+% a "project-down" matrix and a "project-up" matrix, which are used to modify the pre-trained model's parameters. These matrices are applied to the pre-trained model's weights by combining them with the original weights in a specific way. This results in the initialization of the local model on the device, where each device has its own set of LoRA-modified parameters for fine-tuning.
+
+
+% For a linear layer in transformer layer $l$
+% The received LoRA layers $\widetilde{\theta}_{i, l}^h$ in layer $l$ including six pairs of matrices for all linear layer $\Omega = \{ query, key, value, out, ffn1, ffn2 \}$ in the transformer layer \cite{zhang2022adaptive}, which can be expressed as $\widetilde{\theta}_{i,l}^h = \{\mathcal{B}_{i,l}^{h}, \mathcal{A}_{i,l}^{h, \sigma}| \sigma \in \Omega \}, l \in \mathcal{L}_i^h \}$, 
+% % \vspace{-0.2cm}
+% % \begin{equation}
+% %     \widetilde{\theta}_{i,l}^h = \{\mathcal{B}_{i,l}^{h, \sigma}, \mathcal{A}_{i,l}^{h, \sigma}| \sigma \in \Omega \}, l \in \mathcal{L}_i^h \}
+% %     \vspace{-0.1cm}
+% % \end{equation}
+% where $\mathcal{B}_{i,l}^{h, \sigma} \in \mathbb{R}^{m^\sigma \times r_l}$ and $\mathcal{A}_{i,l}^{h, \sigma} \in \mathbb{R}^{r_l \times q^\sigma}$ ($m^\sigma$ and $q^\sigma$ are the dimension sizes of pre-trained weight matrix $\overline{\theta}^{l, \sigma}$) is separately the project-down matrix and the project-up matrix of the LoRA layer with rank of $r_l$.  
+
+
+
+
+\subsection{Local Fine-Tuning} 
+\vspace{-0.1cm}
+After local model initialization, device $i$ fine-tunes the model on local dataset $\mathbb{D}_i$.
+During the process of local fine-tuning in round $h$, device $i$ is associated with the local loss function $f_i(\theta_i^h)$, where $\theta_i^h = \{ \widetilde{\theta}_i^h, \overline{\theta} \}$ is the local model.
+The loss of device $i$ on the local dataset $\mathbb{D}_i$ in round $h$ are as follows:
+\vspace{-0.3cm}
+\begin{equation}
+    f_i(\theta_i^h) = \frac{1}{|\mathbb{D}_i|} \sum_{\xi \in \mathbb{D}_i} F_i(\theta_i^h; \xi_i)
+    \vspace{-0.3cm}
+\end{equation}
+where $\xi_i$ is a batch of data samples in $\mathbb{D}_i$, and $F_i(\theta_i^h; \xi_i)$ is the local loss over $\xi_i$. 
+In general, the devices leverage stochastic gradient descent, \eg, AdamW \cite{loshchilov2017decoupled}, to iteratively update the LoRA layers based on the computed gradients over each batch of data samples in $\mathbb{D}_i$ \cite{lin2021fednlp, cai2022fedadapter}.
+Specifically, for a batch of local data samples $\xi_i$ on device $i$, the process of updating the LoRA layers $\widetilde{\theta}_i^{h}$ on device $i$ at local step $t$ in round $h$ is expressed as: 
+\vspace{-0.2cm}
+\begin{equation}
+    \widetilde{\theta}_i^{h,t} = \widetilde{\theta}_i^{h,t - 1} - \eta \cdot \nabla f_i(\widetilde{\theta}_i^{h, t - 1})
+    % \vspace{-0.1cm}
+\end{equation}
+where $\eta$ is the learning rate and $\nabla f_i(\widetilde{\theta}_i^{h, t - 1})$ is the gradient of the loss for LoRA layers $\widetilde{\theta}_i^{h, t - 1}$.
+When completing local fine-tuning, the devices send the updated local LoRA layers to the PS for aggregation.
+Simultaneously, the devices upload the relevant computing and communication information of the current round to PS for device resource estimation.
+\vspace{-0.2cm}
+
+\subsection{Capacity Estimation}
+\vspace{-0.1cm}
+The estimation of device capabilities (\eg, time-varying computing and communication capabilities) is essential for LEGEND to determine reasonable LoRA configurations for heterogeneous devices. 
+For arbitrary device $i$ in round $h$, LEGEND utilizes $\mu_i^h$ to denote the time required for updating all LoRA layers in a transformer layer during backpropagation, which can be recorded by the devices directly during the process of local fine-tuning, to indicate the computing capability. 
+Besides, since the upload bandwidth is usually much smaller than the download bandwidth in typical WANs \cite{mcmahan2017communication, konecny2016federated} and the size of LoRA layers is typically less than 1\% of the original model size \cite{zhang2023fedpetuning}, LEGEND employs the uploading time $\beta_i^h$ of transmitting a LoRA layer with unit rank from the device $i$ in round $h$ to the PS to indicate the communication capability.
+
+In round $h$, PS collects recent computing time $\hat{\mu}_i^h$ and uploading time $\hat{\beta}_i^h$ from device $i$ and maintains the historical status.
+Then, we use the moving average with the historical status of devices to estimate the capacities of the devices \cite{leroy2019federated}. 
+Accordingly, the PS estimates the computing time $\mu_i^h$ and the uploading time $\beta_i^h$ for device $i$ in round $h$ by calculating the moving average with $\rho \in [0, 1]$ (for example, $\rho = 0.8$ in our experiments) as:
+\vspace{-0.1cm}
+\begin{equation}
+\mu_i^h = \rho \cdot \mu_i^{h - 1} + (1 - \rho) \cdot \hat{\mu}_i^h, \forall i \in [1,n], \forall h \in [1,H]
+% \vspace{-0.1cm}
+\vspace{-0.1cm}
+\end{equation}
+\begin{equation}
+% \vspace{-0.1cm}
+\ \ \ \ \beta_i^h = \rho \cdot \beta_i^{h - 1} + (1 - \rho) \cdot \hat{\beta}_i^h, \forall i \in [1,n], \forall h \in [1,H]
+\vspace{-0.1cm}
+\end{equation}
+The primary focus of this work is not on improving status estimation techniques and advanced methods \cite{halperin2010predictable, yue2017linkforecast} can be easily integrated into LEGEND.
+\vspace{-0.2cm}
+
+\subsection{LoRA Configuration}
+\vspace{-0.1cm}
+LEGEND addresses the challenges of resource constraints and system heterogeneity by determining appropriate LoRA configurations, \ie, LoRA depth and rank distribution, for heterogeneous devices to promote fine-tuning efficiency. 
+Based on the observation in Sections \ref{lora-depth} and \ref{lora-distribution}, LEGEND adaptively assigns LoRA depth for device $i$ in round $h$ with gradually increasing rank distribution.
+% For simplicity, we denote the $k_i^h$ LoRA layers added to transformer layers close to the output as $\mathcal{L}_i^h =  \{ l | l \in [L - k_i^h, L - 1] \}, \forall i \in [1,n], \forall h \in [1,H]$, where $L$ represents the number of the transformer layers in a model.
+The LoRA configuration of device $i$ in round $h$ can be denoted as the rank distribution $R_i^h = \{ r_{i,l} | l \in [L - k_i^h, L - 1]\}$ that includes the LoRA depth $k_i^h$, where $r_{i,l}$ is the rank of the LoRA layers in $l$-th transformer layer.
+For simplicity, we use $\mathcal{L}_i^h = [L - k_i^h, L - 1]$ to represent the index of the deep $k_i^h$ transformer layers. 
+Assuming that the total rank of all $L$ transformer layers is $\psi$, the constraints of rank distribution for device $i$ in round $h$ are as:
+\vspace{-0.2cm}
+\begin{equation}
+    r_{i,l - 1} \leq r_{i,l}
+    \vspace{-0.1cm}
+\end{equation}
+\begin{equation}
+    \sum_{l \in \mathcal{L}_i^h} r_{i,l} \leq \psi
+    \vspace{-0.1cm}
+\end{equation}
+
+In round $h$, based on the estimation of computing and communication capacities, the completion time (including computing and communication time) on device $i$ is expressed as:
+\vspace{-0.3cm}
+\begin{equation}
+    % \vspace{-0.2cm}
+    t_i^h =  \hat{t_i} + k_i^h \cdot \mu_{i}^h + \sum_{l \in \mathcal{L}_i^h} r_{i,l} \cdot \beta_i^h
+    % \vspace{-0.1cm}
+\end{equation}
+where $\hat{t_i}$ represents the computing time of forward propagation in one round of local fine-tuning, $k_i^h \cdot \mu_{i}^h$ represents the total time for backpropagation during the process of local fine-tuning, and $\sum_{l \in \mathcal{L}_i^h} r_{i,l} \cdot \beta_i^h$ denotes the uploading time.
+Additionally, the waiting time for device $i$ can be represented as $t^h - t_i^h$, where $t^h = \max\{ t_i^h| i \in [1, n] \}$ denotes the completion time of the slowest device in round $h$. 
+Then, the average waiting time of all devices in round $h$ can be formulated as:
+% \vspace{-0.1cm}
+\begin{equation}
+    \mathcal{W}^h = \frac{1}{n} \sum_{i = 1}^n (t^h - t_i^h)
+    \vspace{-0.3cm}
+\end{equation}
+
+We define the computing resource consumption of the LoRA layers in a transformer layer with unit rank during local fine-tuning as $c$.
+In addition, we use $\hat{c}$ to denote the computing resource consumption for the pre-trained model $\overline{\theta}$ during the forward propagation, which is a constant.
+Then, assuming that the total computing resource budgets of device $i$ in round $h$ is $C_i^h$, the computing resource constraints can be expressed as follows:
+\vspace{-0.2cm}
+\begin{equation}
+    \label{constrain-comp}
+     \hat{c} + \sum_{l \in \mathcal{L}_i^h} r_{i,l} \cdot c \leq C_i^h
+     \vspace{-0.3cm}
+\end{equation}
+Similarly, we use $b$ to denote the communication consumption of LoRA layers in a transformer layer with unit rank.
+Let $B_i^h$ represent the total communication resource budget for device $i$ in round $h$. 
+Then, the communication resource constraints can then be formulated as:
+\vspace{-0.2cm}
+\begin{equation}
+    % \vspace{-0.1cm}
+    \label{constrain-comm}
+    \sum_{l \in \mathcal{L}_i^h} r_{i,l} \cdot b \leq B_i^h
+    \vspace{-0.3cm}
+\end{equation}
+
+Given a specific task in the FedFT system, LEGEND determines an appropriate LoRA configuration $R_i^h$ for device $i$ according to the estimation of the device's resource in round $h$ to minimize the overall fine-tuning time $\sum_{h = 1}^H t^h$. 
+Thus, we can formulate the problem as follows:
+
+% \vspace{0.1cm}
+\centerline{$\min \sum\limits_{h=1}^{H} t^h$}
+\vspace{-0.5cm}
+\begin{equation}\label{problem}
+    s.t.
+    \begin{cases}
+    % r_l = \lambda \cdot r_{l-1} + \lambda_2, l \in [L - k_i^h + 2, L], k_i^h \in [0, L - 1]\\
+    r_{i,l - 1} \leq r_{i,l}, & \forall l \in \mathcal{L}_i^h\\
+    \sum_{l \in \mathcal{L}_i^h} r_{i,l} \leq \psi, & \forall i \in [1, n] \\
+    t_i^h =  \hat{t_i} + k_i^h \cdot \mu_{i}^h + \sum_{l \in \mathcal{L}_i^h} r_{i,l} \cdot \beta_i^h, & \forall i \in [1, n]\\
+    \mathcal{W}^h = \frac{1}{n} \sum_{i=1}^n (t^h - t_i^h) \leq \epsilon, & \forall h \in [1, H]\\
+    \hat{c} + \sum_{l \in \mathcal{L}_i^h} r_{i,l} \cdot c \leq C_i^h, & \forall i \in [1, n] \vspace{0.5ex} \\
+    \sum_{l \in \mathcal{L}_i^h} r_{i,l} \cdot \hat{b} \leq B_i^h, & \forall i \in [1,n] \vspace{0.5ex} \\
+    %|\tau_i^h - \tau_j^h| \le D \ \ & \forall \  i,j,h
+    \end{cases}
+    \vspace{-0.1cm}
+\end{equation}
+\vspace{-0.4cm}
+
+
+The first set of inequalities denotes the constraints of rank distribution.
+% , \ie, assigning larger ranks to deeper layers.
+The second set of inequalities represents that the rank of all LoRA layers cannot exceed the given budget $\psi$. 
+The third set of equations represents the total time of local fine-tuning and uploading on device $i$ in round $h$.
+The fourth set of inequalities represents the average waiting time of all devices cannot exceed the predefined threshold $\epsilon > 0$.
+The last two sets of inequalities express that the accumulated computing and communication resources cost cannot exceed the computing and communication resource budgets of device $i$ in round $h$, respectively.
+
+
+% \begin{algorithm} [t]%[H]
+%     \caption{ LoRA Configuration Determination}\label{alg:lora-config}
+%     \textbf{Input:} Total rank budget $\psi$; estimation of devices' computing and communication capabilities $\mu_i^{h-1}$ and $\beta_i^{h-1}$; parameter $\lambda$. \\
+%     \textbf{Output:} LoRA configurations $\{R_i^h| i \in [1,n] \}$.
+%     \begin{algorithmic}[1]
+%         \STATE Generate the rank of the first layer 
+%             \vspace{-0.1cm}
+%             \begin{equation}
+%                 r_1 \leftarrow \frac{\psi \cdot (1 - \lambda)}{ \sum_{\sigma \in \Omega} (m^\sigma + q^\sigma) \cdot (1 - \lambda)^{L}}; \nonumber
+%                 \vspace{-0.2cm}
+%             \end{equation}
+%         \STATE Generate the global rank distribution 
+%             \vspace{-0.1cm}
+%             \begin{equation}
+%                 R^h \leftarrow \{r_l| r_1, r_l = \lambda \cdot r_{l - 1}, l \in [0, L - 1]\}; \nonumber
+%                 \vspace{-0.2cm}
+%             \end{equation}
+%             \vspace{-0.2cm}
+%         \STATE $\mu_{max}^{h-1} \leftarrow max(\{ \mu_{i}^{h-1}\})$; $\beta_{max}^{h-1} \leftarrow max(\{ \beta_{i}^{h-1}\})$;
+%         \STATE $\mu_{min}^{h-1} \leftarrow min(\{ \mu_{i}^{h-1}\})$; $\beta_{min}^{h-1} \leftarrow min(\{ \beta_{i}^{h-1}\})$;
+%         \STATE Calculate the gap between the maximum and minimum LoRA depth 
+%             \vspace{-0.1cm}
+%             \begin{equation}
+%                 \mathcal{\kappa} \leftarrow L \cdot min(\frac{\mu_{max}^{h-1} - \mu_{min}^{h-1}}{\mu_{max}^{h-1}}, \frac{\beta_{max}^{h-1} - \beta_{min}^{h-1}}{\beta_{max}^{h-1}}, 1); \nonumber
+%                 \vspace{-0.2cm}
+%             \end{equation}
+%         \FOR{{each} device $i \in [1, n]$}
+%             \STATE Get the appropriate LoRA depth gap for device $i$
+%                 \vspace{-0.1cm}
+%                 \begin{equation}
+%                     \kappa \leftarrow \lfloor \kappa \cdot (1 - 0.5 \cdot \frac{\mu_{max}^{h-1} - \mu_i^{h-1}}{\mu_{max}^{h-1} - \mu_{min}^{h-1}} - 0.5 \cdot \frac{\beta_{max}^{h-1} - \beta_i^{h-1}}{\beta_{max}^{h-1} - \beta_{min}^{h-1}}) \rfloor; \nonumber
+%                     \vspace{-0.2cm}
+%                 \end{equation}
+%             \STATE Get the LoRA depth for device $i$ 
+%                 \vspace{-0.1cm}
+%                 \begin{equation}
+%                     k_{i}^h \leftarrow L - \kappa; \nonumber
+%                     \vspace{-0.6cm}
+%                 \end{equation}
+%             \STATE Generate LoRA configuration for device $i$
+%                 \vspace{-0.1cm}
+%                 \begin{equation}
+%                     R_i^h \leftarrow \{ r_l| r_l \in R^h, l \in [L - k_i^h, L - 1] \} \nonumber;
+%                     \vspace{-0.2cm}
+%                 \end{equation}
+%         \ENDFOR
+%     \end{algorithmic}
+% \end{algorithm}
+
+\begin{algorithm}[t]
+\caption{ LoRA Configuration Determination}\label{alg:lora-config}
+\label{alg:device-group}
+\begin{algorithmic}[1]
+\Require Total rank budget $\psi$; the completion time of the devices $t_i^h$; parameter $\lambda$.
+\Ensure LoRA configuration $R_i^h = \{ r_{i,l}|l \in [L - k_i^h, L - 1] \}$.
+\Function{LoraConfiguration}{\ }: 
+\State Calculate the gap between the maximum and minimum LoRA depth in round $h$
+            \vspace{-0.4cm}
+            \begin{equation}
+                k^h \leftarrow \lceil L \cdot \frac{t^h - t_{i,\min}^h\}}{t^h} \rceil; \nonumber
+                \vspace{-0.4cm}
+            \end{equation}
+\State Determine the LoRA depth for device $i$ by
+    \vspace{-0.4cm}
+    \begin{equation}
+        \vspace{-0.4cm}
+        k_i^h \leftarrow \lceil k^h \cdot \frac{t^h - t_i^h}{t^h} \rceil; \nonumber
+    \end{equation}
+\State Get global rank distribution $R = \{r_l | l \in [0, L - 1]\}$ using an arithmetic sequence with a common difference of $\lambda$, where $r_l = r_{l - 1} + \lambda$.
+\State Adjust LoRA depth $k_i^h$ to ensure the configuration meets device-specific computing and communication constraints by Equations \ref{constrain-comp} and \ref{constrain-comm}.
+\State Generate LoRA configuration $R_i^h = \{ r_{i,l}^h| l \in [L - k_i^h, L - 1] \}$ for device $i$, where $r_{i,l}^h = r_l \in R$.
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+To solve the problem in Equation (\ref{problem}), we propose a greedy-based LoRA configuration determination algorithm, termed LCD, as shown in Algorithm \ref{alg:lora-config}. 
+First, the PS calculates the gap $k^h$ between the maximum and minimum LoRA depth (Line 2) according to the device status information. 
+Then, the completion time gap $k_i^h$ between device $i$ and the slowest is used to generate the appropriate LoRA depth to adapt heterogeneous devices (Line 3). 
+For example, the most powerful device is assigned with maximum LoRA depth $L$, the weakest device is assigned with LoRA depth of $L - k^h$, while other devices are assigned values within the gap $[L - k^h, L]$ based on their capabilities.
+Secondly, the PS gets the reasonable rank distribution $R = \{r_l | l \in [0, L - 1]$ for all transformer layers using an arithmetic sequence with a common difference of $\lambda$ in round $h$ (line 4). 
+% LEGEND adds LoRA layers into linear layers $\Omega = \{ query, key, value, out, ffn1, ffn2 \}$ of a transformer layer \cite{zhang2022adaptive}, and $m^\sigma$ and $q^\sigma$ are the dimension sizes of pre-trained weight matrix $\overline{\theta}^{l, \sigma}$.
+% We introduce a parameter $\lambda$ to guide the generation of LoRA configuration. 
+% To achieve efficient rank allocation, where layers closer to the output have higher ranks, 
+We use the parameter $\lambda$ to guide the generation of the rank distribution, where $\lambda$ indicates that the rank of LoRA layers added to the transformer layer $l$ is $\lambda$ greater than that of the adjacent transformer layer $l-1$, \ie, $r_l = r_{l - 1} + \lambda$.
+For instance, $\lambda = 1$ in our experiments by default. 
+% Note that this allocation may potentially exceed the rank budget, and we may iteratively decrease the rank of the LoRA layers from the shallow to the deep position so as to satisfy the budget.  
+% Note that more complex rank distributions are beyond the scope of this paper and are left as future research directions.
+% Secondly, the PS finds the maximum and minimum estimation of devices' computing and communication capabilities, respectively, \ie, $\mu_{max}^h$, $\beta_{max}^h$, $\mu_{min}^h$ and $\beta_{min}^h$ (Lines 3-4), which will 
+Then, we greedily adjust the LoRA depth to ensure the configuration meets the device's capacity (Line 5).
+Finally, based on global rank distribution $R$ and LoRA depth $k_i^h$, the PS generates the LoRA configuration $R_i^h = \{ r_{i,l}^h| l \in [L - k_i^h, L - 1] \}$ for device $i$ in round $h$ (Line 6).
+\vspace{-0.4cm}
+
+\subsection{LoRA Aggregation}
+\vspace{-0.1cm}
+After receiving the updated LoRA layers from all devices, the PS performs global aggregation.
+Since the LoRA depth varies across devices while the rank of each LoRA layer remains consistent across all devices, the PS performs adaptive layer-wise aggregation on the collected LoRA layers, \ie, aggregating each layer based on the number of devices contributing to that layer.
+We use $\widetilde{\theta}^{h+1}_l$ to represent the global LoRA layers in $l$-th transformer layer obtained by aggregating the respective LoRA layers from $n_l$ devices.
+Formally, the adaptive layer-wise aggregation of LoRA layers in transformer layer $l$ can be expressed as follows:
+\vspace{-0.3cm}
+\begin{equation}
+    \widetilde{\theta}^{h+1}_l = \frac{1}{n_l} \sum_{i = 1}^{n_l} \widetilde{\theta}_{i,l}^{h}
+    \vspace{-0.3cm}
+\end{equation}
+After aggregation, PS obtains a set of global LoRA layers $\widetilde{\theta}^{h+1} = \{ \widetilde{\theta}^{h+1}_l | l \in [0, L - 1] \}$, which will be used for assigning different LoRA layers for each device.
+% \vspace{-0.6cm}
+
+\subsection{LoRA Assignment}
+\vspace{-0.2cm}
+According to the obtained LoRA configuration, the PS assigns specific LoRA layers for each device.
+Specifically, based on the LoRA configuration $R_i^h = \{r_{i,l} | l \in \mathcal{L}_i^h\}$ and the aggregated set of global LoRA layers that can be expressed as:
+\vspace{-0.1cm}
+\begin{equation}
+    \widetilde{\theta}^{h} = \{ \widetilde{\theta}_{l}^{h} | l \in [0, L - 1] \}
+    \vspace{-0.1cm}
+\end{equation}
+LEGEND generates LoRA layers $\widetilde{\theta}_i^h$ for device $i$ by selecting the LoRA layers from global LoRA layers $\widetilde{\theta}^{h}$ as follows:
+\vspace{-0.1cm}
+\begin{equation}
+    \widetilde{\theta}_i^{h} = \{ \widetilde{\theta}_{i, l}^{h} | l \in \mathcal{L}_i^h\}
+    \vspace{-0.1cm}
+\end{equation}
+% where is the generated LoRA layers of $l$-th layer for device $i$ in round $h$.
+where $\widetilde{\theta}_{i, l}^{h} = \widetilde{\theta}_l^{h} \in \widetilde{\theta}^{h}$.
+Since the LoRA layers are all continuous layers at deep position, there is no need to send a separate LoRA configuration for local initialization and update.
+Thus, after obtaining the LoRA layers, the PS immediately distributes the LoRA layers to the respective devices. 
+\vspace{-0.5cm}
+

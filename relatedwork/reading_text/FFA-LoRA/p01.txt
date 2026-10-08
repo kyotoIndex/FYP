@@ -1,0 +1,55 @@
+Published as a conference paper at ICLR 2024
+IMPROVING LORA IN PRIVACY-PRESERVING FEDER -
+ATED LEARNING
+Youbang Sun∗
+Dept. of Mechanical & Industrial Engineering
+Northeastern University
+{sun.youb}@northeastern.edu
+Zitao Li, Yaliang Li & Bolin Ding
+Alibaba Group
+{zitao.l, yaliang.li,
+bolin.ding}@alibaba-inc.com
+ABSTRACT
+Low-rank adaptation (LoRA) is one of the most popular task-specific parameter-
+efficient fine-tuning (PEFT) methods on pre-trained language models for its good
+performance and computational efficiency. LoRA injects a product of two train-
+able rank decomposition matrices over the top of each frozen pre-trained model
+module. However, when applied in the setting of privacy-preserving federated
+learning (FL), LoRA may become unstable due to the following facts: 1) the ef-
+fects of data heterogeneity and multi-step local updates are non-negligible, 2) ad-
+ditive noise enforced on updating gradients to guarantee differential privacy (DP)
+can be amplified and 3) the final performance is susceptible to hyper-parameters.
+A key factor leading to these phenomena is the discordance between jointly opti-
+mizing the two low-rank matrices by local clients and separately aggregating them
+by the central server. Thus, this paper proposes an efficient and effective version
+of LoRA, Federated Freeze A LoRA (FFA-LoRA), to alleviate these challenges
+and further halve the communication cost of federated fine-tuning LLMs. The
+core idea of FFA-LoRA is to fix the randomly initialized non-zero matrices and
+only fine-tune the zero-initialized matrices. Compared to LoRA, FFA-LoRA is
+motivated by practical and theoretical benefits in privacy-preserved FL. Our exper-
+iments demonstrate that FFA-LoRA provides more consistent performance with
+better computational efficiency over vanilla LoRA in various FL tasks.
+1 I NTRODUCTION
+Recent years have witnessed tremendous success in the development of large language models
+(LLMs) (Touvron et al., 2023; OpenAI, 2023; Zhang et al., 2022a; Zeng et al., 2022). The appli-
+cations of LLMs range from a versatile chatbot for different writing tasks (OpenAI) to multi-modal
+systems (Driess et al., 2023; Wu et al., 2023; Bommasani et al., 2021). Besides the commercial-
+ized products based on general-purpose LLMs, people can also build their customized LLMs by
+utilizing their task-specific data to fine-tune pre-trained LLMs (Howard & Ruder, 2018). Since
+modern LLMs usually contain billions of parameters, fine-tuning on all parameters has prohibitively
+high computational costs. As a remedy, parameter efficient fine-tuning (PEFT) approaches (Ding
+et al., 2023), such as Low-Rank Adaptation (LoRA) (Hu et al., 2021) have been developed and
+commonly adapted in many downstream tasks. PEFT methods freeze the majority of parameters in
+pre-trained LLMs, and perform update on a small subset of parameters. Compared to full model
+fine-tuning, these approaches usually offer on-par or even better performance while significantly
+improving computational efficiency.
+In this paper, we focus on LoRA for its good performance and versatility for a wide spectrum of tasks
+with many variations. However, LoRA still requires sufficient training data to achieve significant
+improvement over the raw model. The data-limited parties can unite with others and adopt federated
+learning (FL) (Li et al., 2020) as the computation framework to fine-tune the model collaboratively.
+The parameter-efficient nature of LoRA is welcomed in FL due to its low communication costs and
+relatively low local computational burdens. Furthermore, if the data parties in FL (usually known
+as clients in FL) want to provably prevent local data leaking from their shared information in FL,
+∗Work was done while the first author Youbang Sun was an intern at Alibaba Group.
+1
+arXiv:2403.12313v1  [cs.LG]  18 Mar 2024

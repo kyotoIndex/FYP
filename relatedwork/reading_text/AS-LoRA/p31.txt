@@ -1,0 +1,49 @@
+where λ(ω) denotes the eigenvalue of the graph Laplacian at frequency ω and σ >0 is a smoothing
+coefficient.Since λ(ω)≈0 for low frequencies, the true gradient signal passes through largely intact,
+whereas high-frequency noise components are strongly suppressed as λ(ω) grows. By contrast, the
+5-tap Gaussian filter is a weighted average with fixed kernel[1/16,4/16,6/16,4/16,1/16] , which
+attenuatesallfrequency components including low-frequency signal, leading to signal distortion.
+EMA operates along the time axis rather than the parameter space, and therefore cannot exploit the
+spatial structure of DP noise within a single round, making it the least compatible with the spatial
+nature of DP-SGD noise.
+Table 13 reports the effect of each smoothing method under ϵ= 3 on the MNLI matched (m) and
+mismatched (mm) benchmarks. The results are consistent with our frequency-domain analysis. Lapla-
+cian smoothing is the only method that improves over the no-smoothing baseline, gaining +0.33 and
++0.28 pp on MNLI (m) and MNLI (mm), respectively. Gaussian filtering slightly degrades perfor-
+mance relative to the baseline (−0.30 pp on MNLI (m)), confirming that indiscriminate attenuation of
+all frequency components distorts the gradient signal. EMA yields the largest degradation (−1.45 pp
+on MNLI (m)), as temporal averaging across rounds is ill-suited for suppressing within-round spatial
+noise introduced by DP-SGD. These findings suggest that frequency-selective smoothing, specifically
+Laplacian smoothing, is the most compatible post-processing strategy for DP-SGD gradients.
+J.8 Analysis of Layer-wise Mode Selection Patterns.
+Figure 9 visualizes the layer-wise mode selection patterns over training rounds across different
+tasks, revealing several non-random and task-dependent behaviors. Overall, the proposed method
+does not produce uniformly alternating selections across layers; instead, each task exhibits its own
+characteristic layer-wise preference structure, indicating that the adaptive scores capture meaningful
+optimization differences between LoRA-A and LoRA-B components rather than inducing arbitrary
+switching behavior.
+For language understanding tasks such as QNLI, MNLI, SST-2, QQP, and SNLI, mode selection
+patterns often exhibit partially coherent structures across neighboring layers. Certain intermediate or
+upper layers consistently favor the same component over many rounds, while other layers switch more
+frequently. This suggests that the relative utility of LoRA-A and LoRA-B varies across Transformer
+depth, with different layers playing distinct roles in private federated adaptation depending on both
+task and layer.
+In contrast, vision tasks exhibit more mixed and fine-grained switching. On CIFAR-100 and Tiny-
+ImageNet, selected modes distribute more evenly across layers and rounds, with fewer large contigu-
+ous regions dominated by a single component. This implies that in vision tasks, the relative advantage
+between LoRA-A and LoRA-B varies more locally across rounds, leading to less stable layer-wise
+specialization than in language tasks.
+These observations have two key implications. First, they support the need for adaptive layer-wise
+mode selection, as a fixed global schedule cannot capture such heterogeneous preferences across
+tasks and layers. Second, recurring structures in language tasks suggest cross-layer dependencies not
+explicitly modeled by the current greedy formulation. Although each AS-LoRA layer independently
+selects its active component based on its score, the dynamics imply that groups of layers may prefer
+similar modes or evolve in a correlated manner over training rounds.
+This also highlights a limitation of the current framework. Our analysis and algorithm focus on
+layer-wise greedy selection, enabling tractable optimization and strong empirical performance, but do
+not exploit inter-layer correlations. Future work could extend AS-LoRA to a joint decision framework
+that models structured dependencies across layers, for example by encouraging coordinated mode
+assignments among related layers or learning higher-level scheduling policies over layer groups.
+Such extensions may improve global coordination and yield more efficient update schedules beyond
+the current independent layer-wise strategy.
+31

@@ -1,0 +1,72 @@
+Published as a conference paper at ICLR 2023
+Wq Wk Wv Wo Wf1 Wf2
+88.50
+88.75
+89.00
+89.25
+89.50
+89.75
+90.00
+MNLI Matched Acc
+88.58
+88.98
+89.36 89.28
+89.91 89.99
+(a) Selected weight matrix
+1,2,3 4,5,6 7,8,9 10,11,12
+78
+80
+82
+84
+86
+88MNLI Matched Acc
+77.87
+85.82
+88.15 88.6 (b) Selected layers
+Figure 1: Given the total trainable parameters as 0.28M, we apply LoRA only to selected weight matrices (left)
+or selected layers (right) of DeBERTaV3-base and compare the fine-tuning performance on MNLI-m. Figure 1a:
+we only fine-tune a selected type of weight matrix of every transformer layer, including query/key/value
+projection (Wq, Wk, Wv), output projection (Wo) in the self-attention, and two weight matrices (Wf1 , Wf2) in
+two-layer FFNs. In Figure 1b, we apply LoRA to every weight matrix of the selected layers.
+He et al., 2022) inserts small neural modules called adapters between the layers of the base model.
+Prefix tuning (Li & Liang, 2021) and prompt tuning (Lester et al., 2021) attach additional trainable
+prefix tokens to the input or hidden layers of the base model. These methods have shown to achieve
+comparable performance to full fine-tuning, while only updating less than 1% of the original model
+parameters, significantly releasing the memory consumption.
+Another line of research proposes to model the incremental update of the pre-trained weights in a
+parameter-efficient way, without modifying the model architecture (Zaken et al., 2021; Guo et al.,
+2020; Hu et al., 2022). Given a pre-trained weight matrix1 W (0), for example, diff pruning (Guo et al.,
+2020) models its incremental update ∆ as a sparse matrix. Diff pruning initializes ∆ as the same
+dimension as W (0) and then prunes ∆ element-wise based on the magnitude of the entries. As such,
+diff pruning can increase the parameter efficiency substantially by adaptively retaining important
+updates and pruning unimportant ones. Nonetheless, diff pruning has several limitations. First, it
+relies on low-level implementation to speed up the computation of unstructured sparse matrices,
+which is not well supported by existing deep learning frameworks. Therefore, we have to store ∆ as
+a dense matrix during training. Second, it needs to update every entry of ∆ with their gradients and
+then prune them. This results in similar computational cost as full fine-tuning (Guo et al., 2020).
+To overcome these drawbacks, Hu et al. (2022) propose a method named LoRA, which parameterizes
+∆ as a low-rank matrix by the product of two much smaller matrices:
+W = W (0) + ∆ = W (0) + BA, (1)
+where W (0), ∆ ∈ Rd1×d2, A ∈ Rr×d2 and B ∈ Rd1×r with r ≪ {d1, d2}. During fine-tuning, only
+A and B are updated. The rank r is chosen to be much smaller than the dimension of W (e.g., r = 8
+when d1 = d2 = 1024). With less than 0.5% additional trainable parameters, the training overhead
+can be reduced up to 70%, compared to full fine-tuning. However, LoRA achieves comparable or
+even better performance than full fine-tuning (Hu et al., 2022). Meanwhile, the product of two samll
+matrices is more friendly to implement and deploy than unstructured sparse matrices in diff pruning.
+LoRA still has limitations as it prespecifies the rank r of each incremental matrix ∆ identical. This
+ignores the fact that the importance of weight matrices varies significantly across modules and layers
+when fine-tuning pre-trained models. To illustrate this point, we present an concrete example in
+Figure 1. We compare the performance of LoRA when fine-tuning specific modules or layers with
+the same number of trainable parameters. Figure 1a shows that fine-tuning feed-forward networks
+(FFN) achieves better performance than self-attention modules. In addition, Figure 1b demonstrates
+that weight matrices in top layers are more important than those in bottom layers.
+Adding more trainable parameters to the critical weight matrices can lead to better model performance.
+In contrast, adding more parameters to those less important weight matrices yields very marginal
+gains or even hurt model performance. Given the parameter budget, i.e., the number of total trainable
+parameters, we always prefer to allocate more parameters to those important modules. Distributing
+the budget evenly to all weight matrices/layers, like LoRA and other methods (e.g., adapter and prefix
+tuning), often gives suboptimal performance. To this end, a natural question is:
+How can we allocate the parameter budget adaptively according to importance
+of modules to improve the performance of parameter-efficient fine-tuning?
+1Unless specified otherwise, we use W (0) to denote any pre-trained weight matrix.
+2

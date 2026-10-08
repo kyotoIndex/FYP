@@ -1,0 +1,54 @@
+guage models trained on a large amount of text – where ﬁne-tuning on task-speciﬁc data after pre-
+training on general domain data provides a signiﬁcant performance gain compared to training on
+task-speciﬁc data directly. Training larger Transformers generally results in better performance and
+remains an active research direction. GPT-3 (Brown et al., 2020) is the largest single Transformer
+language model trained to-date with 175B parameters.
+Prompt Engineering and Fine-Tuning. While GPT-3 175B can adapt its behavior with just a
+few additional training examples, the result depends heavily on the input prompt (Brown et al.,
+2020). This necessitates an empirical art of composing and formatting the prompt to maximize a
+model’s performance on a desired task, which is known as prompt engineering or prompt hacking.
+Fine-tuning retrains a model pre-trained on general domains to a speciﬁc task Devlin et al. (2019b);
+Radford et al. (a). Variants of it include learning just a subset of the parameters Devlin et al. (2019b);
+Collobert & Weston (2008), yet practitioners often retrain all of them to maximize the downstream
+performance. However, the enormity of GPT-3 175B makes it challenging to perform ﬁne-tuning in
+the usual way due to the large checkpoint it produces and the high hardware barrier to entry since it
+has the same memory footprint as pre-training.
+Parameter-Efﬁcient Adaptation. Many have proposed inserting adapter layers between existing
+layers in a neural network (Houlsby et al., 2019; Rebufﬁ et al., 2017; Lin et al., 2020). Our method
+uses a similar bottleneck structure to impose a low-rank constraint on the weight updates. The
+key functional difference is that our learned weights can be merged with the main weights during
+inference, thus not introducing any latency, which is not the case for the adapter layers (Section 3).
+A comtenporary extension of adapter is COMPACTER (Mahabadi et al., 2021), which essentially
+parametrizes the adapter layers using Kronecker products with some predetermined weight sharing
+scheme. Similarly, combining LoRA with other tensor product-based methods could potentially
+improve its parameter efﬁciency, which we leave to future work. More recently, many proposed
+optimizing the input word embeddings in lieu of ﬁne-tuning, akin to a continuous and differentiable
+generalization of prompt engineering (Li & Liang, 2021; Lester et al., 2021; Hambardzumyan et al.,
+2020; Liu et al., 2021). We include comparisons with Li & Liang (2021) in our experiment section.
+However, this line of works can only scale up by using more special tokens in the prompt, which
+take up available sequence length for task tokens when positional embeddings are learned.
+Low-Rank Structures in Deep Learning. Low-rank structure is very common in machine learn-
+ing. A lot of machine learning problems have certain intrinsic low-rank structure (Li et al., 2016;
+Cai et al., 2010; Li et al., 2018b; Grasedyck et al., 2013). Moreover, it is known that for many
+deep learning tasks, especially those with a heavily over-parametrized neural network, the learned
+neural network will enjoy low-rank properties after training (Oymak et al., 2019). Some prior works
+even explicitly impose the low-rank constraint when training the original neural network (Sainath
+et al., 2013; Povey et al., 2018; Zhang et al., 2014; Jaderberg et al., 2014; Zhao et al., 2016; Kho-
+dak et al., 2021; Denil et al., 2014); however, to the best of our knowledge, none of these works
+considers low-rank update to a frozen model for adaptation to downstream tasks . In theory liter-
+ature, it is known that neural networks outperform other classical learning methods, including the
+corresponding (ﬁnite-width) neural tangent kernels (Allen-Zhu et al., 2019; Li & Liang, 2018) when
+the underlying concept class has certain low-rank structure (Ghorbani et al., 2020; Allen-Zhu & Li,
+2019; Allen-Zhu & Li, 2020a). Another theoretical result in Allen-Zhu & Li (2020b) suggests that
+low-rank adaptations can be useful for adversarial training. In sum, we believe that our proposed
+low-rank adaptation update is well-motivated by the literature.
+7 U NDERSTANDING THE LOW-RANK UPDATES
+Given the empirical advantage of LoRA, we hope to further explain the properties of the low-rank
+adaptation learned from downstream tasks. Note that the low-rank structure not only lowers the
+hardware barrier to entry which allows us to run multiple experiments in parallel, but also gives
+better interpretability of how the update weights are correlated with the pre-trained weights. We
+focus our study on GPT-3 175B, where we achieved the largest reduction of trainable parameters
+(up to 10,000×) without adversely affecting task performances.
+We perform a sequence of empirical studies to answer the following questions: 1) Given a parameter
+budget constraint, which subset of weight matrices in a pre-trained Transformer should we adapt
+9

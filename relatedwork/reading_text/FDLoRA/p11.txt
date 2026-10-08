@@ -1,0 +1,99 @@
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+Table 6: Comparison with different fusion methods (𝑁=5).
+Fusion Method
+𝛼 Scenario-1 Scenario-2
+0.1 0.5 1 0.1 0.5 1
+Random 32.88±5.81 36.33±5.46 41.61±4.81 48.15±2.97 48.73±3.37 48.43±1.35
+Average 36.94±2.66 46.57±2.87 43.21±1.90 39.53±1.77 39.77±1.58 43.28±0.85
+Sum 68.47±1.76 67.86±2.05 64.81±1.84 48.76±1.05 47.36±1.3149.18±1.11
+AdaFusion 76.30±1.89 78.17±1.11 75.60±0.47 57.70±0.68 56.20±0.8348.50±0.72
+on local data to adapt to personalization. It is important to note that
+this process can be further divided into data-based and model-based
+methods.
+The data-based method addresses the client drift problem, effec-
+tively convertingnon-IIDinto IID settings. Thus, the unresolved
+problem (non-IID) can be transferred to the resolved problem (IID)
+setting so that existing methods [31] can process it. Research has
+investigated the use of data augmentation methods to enhance
+statistical homogeneity. However, applying existing over-sampling
+and under-sampling methods directly to FL settings, where client
+data is distributed and private, is challenging. To overcome this,
+researchers have developed data augmentation techniques tailored
+for FL settings [17].
+Data-based approaches in FL mitigate client drift but often alter
+local data distributions, potentially losing valuable insights into
+client behavior diversity. Model-based global model personaliza-
+tion FL approaches aim to address this by either learning a robust
+global FL model for future client personalization or enhancing local
+model adaptation performance. These methods prioritize leverag-
+ing client behavior diversity to improve model personalization and
+adaptation, ensuring more effective and flexible FL outcomes. Re-
+searchers mainly use regularization [ 1], meta-learning [15], and
+transfer learning [8] to associate global models and local models
+for solution personalization. For instance, FedProx [27] addresses
+statistical and systems heterogeneity. It introduced a proximal term
+to ensure the aggregation of incompletely calculated partial infor-
+mation and provide theoretical convergence guarantees under non-
+identical data distributions and system-level constraints. pFedMe
+[39] leverages Moreau envelopes to regularize clients’ loss func-
+tions, separating personalized optimization from global learning.
+Theoretically, pFedMe achieves state-of-the-art convergence rates,
+with quadratic speedup for strongly convex and 2/3-order sublinear
+speedup for smooth nonconvex objectives. FedHealth [ 8] is the
+first federated transfer learning framework for wearable healthcare,
+which aggregates data via federated learning and tailors person-
+alized models through transfer learning, ensuring accuracy and
+privacy.
+Learning personalized model.Unlike global model personal-
+ization, the learning personalized model has only a single training
+stage to achieve the effect of model personalization. Furthermore,
+it can be divided into structure-based methods and similarity-based
+methods.
+Architecture-based PFL approaches customize model designs for
+individual clients. Techniques such as parameter decoupling [25]
+incorporate personalization layers for each client, while knowledge
+distillation methods [55] enable personalized model architectures
+for individual clients. Tailoring the architecture to each client’s spe-
+cific requirements improves the effectiveness and adaptability of
+federated learning systems, resulting in improved model personal-
+ization. SplitFed [41] merges FL and Split Learning (SL) to mitigate
+their drawbacks. SplitFed incorporates a refined architecture with
+differential privacy and PixelDP for enhanced data privacy and
+model robustness. He et al. proposed FedGKT [18], a group knowl-
+edge transfer training algorithm. FedGKT employs an alternating
+minimization approach to train small CNNs on edge nodes and
+periodically transfer their knowledge via knowledge distillation
+to a large server-side CNN. FedGKT reduced edge computation
+demand, lower communication bandwidth for large CNNs, and
+asynchronous training, while maintaining accuracy comparable to
+FedAvg.
+Similarity-based approaches focus on modeling client relation-
+ships to achieve personalization. These approaches aim to learn
+personalized models for each client, with related clients learning
+similar models [33]. Various types of client relationships are ex-
+plored in PFL research. Multi-task learning [20] and model inter-
+polation methods [7] consider pairwise client relationships, while
+clustering techniques [4] examine group-level client relationships.
+These approaches leverage client similarities to enhance model
+personalization and performance in FL scenarios. Huang et al. pro-
+posed FedAMP [23], which employs federated attentive message
+passing to facilitate collaborations among similar clients in feder-
+ated learning withnon-IIDdata. Convergence is established for both
+convex and non-convex models. Additionally, a heuristic method is
+introduced to enhance performance for clients using deep neural
+networks. HeteroFL [11] is tailored for heterogeneous clients with
+varying computation and communication capabilities, which allows
+for training heterogeneous local models with different complexi-
+ties while producing a single global inference model. It challenges
+the assumption of uniform model architectures across clients and
+demonstrates strategies to enhance federated learning training
+efficiency. Specifically, it achieves efficiency by adaptively distribut-
+ing subnetworks based on clients’ capabilities. FedGroup [14] has
+introduced a new data-driven distance measure and a newcomer de-
+vice cold start mechanism to improve scalability. The optimization
+process is divided into subgroups using the Kmeans++ algorithm,
+which can be combined with the FL optimizer FedProx to achieve
+even greater improvements.
+Parameter-efficient fine-tuning (PEFT).With the exponential in-
+crease in the number of parameters in state-of-the-art LLMs, fine-
+tuning for each downstream task has become exceedingly costly in

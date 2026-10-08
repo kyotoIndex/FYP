@@ -1,0 +1,60 @@
+{
+  "protocol": "hetsa_lora_confirm_extension_v1",
+  "seed_ids": [
+    202,
+    303,
+    404,
+    505,
+    606
+  ],
+  "primary_window": [
+    26,
+    30
+  ],
+  "primary_metric": "local_accuracy",
+  "stats_unit": "seed",
+  "hashes_match": true,
+  "all_integrity_checks_pass": true,
+  "paired_statistics": [
+    {
+      "comparison": "hetsa_lora-resource_depth",
+      "metric": "local_accuracy_r26_30_mean",
+      "n_seeds": 5,
+      "mean_difference_pp": 11.87647058823529,
+      "sd_difference_pp": 5.59082585293093,
+      "ci95_lower_pp": 4.934543406424087,
+      "ci95_upper_pp": 18.81839777004649,
+      "all_seeds_pass_1pp_threshold": "true"
+    },
+    {
+      "comparison": "hetsa_lora-fedsa_lora",
+      "metric": "local_accuracy_r26_30_mean",
+      "n_seeds": 5,
+      "mean_difference_pp": -0.17058823529411793,
+      "sd_difference_pp": 0.474888440733047,
+      "ci95_lower_pp": -0.7602401153154654,
+      "ci95_upper_pp": 0.41906364472722957,
+      "all_seeds_pass_1pp_threshold": ""
+    },
+    {
+      "comparison": "hetsa_lora-fedhello",
+      "metric": "local_accuracy_r26_30_mean",
+      "n_seeds": 5,
+      "mean_difference_pp": 4.405882352941172,
+      "sd_difference_pp": 2.213153593263262,
+      "ci95_lower_pp": 1.657889213690878,
+      "ci95_upper_pp": 7.1538754921914665,
+      "all_seeds_pass_1pp_threshold": ""
+    },
+    {
+      "comparison": "hetsa_lora-fedlora",
+      "metric": "local_accuracy_r26_30_mean",
+      "n_seeds": 5,
+      "mean_difference_pp": 4.00980392156862,
+      "sd_difference_pp": 1.864820824893935,
+      "ci95_lower_pp": 1.6943230401971705,
+      "ci95_upper_pp": 6.325284802940069,
+      "all_seeds_pass_1pp_threshold": ""
+    }
+  ]
+}

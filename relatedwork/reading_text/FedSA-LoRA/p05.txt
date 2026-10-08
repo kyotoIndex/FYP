@@ -1,0 +1,235 @@
+Published as a conference paper at ICLR 2025
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+Layer
+0.00
+0.25
+0.50
+0.75
+1.00
+LoRA-A
+LoRA-B
+(a) IID
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+Layer
+0.00
+0.25
+0.50
+0.75
+1.00
+LoRA-A
+LoRA-B (b) moderate non-IID
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+Layer
+0.00
+0.25
+0.50
+0.75
+1.00
+LoRA-A
+LoRA-B (c) server non-IID
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+Layer
+0.00
+0.25
+0.50
+0.75
+1.00
+LoRA-A
+LoRA-B
+(d) IID
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+Layer
+0.00
+0.25
+0.50
+0.75
+1.00
+LoRA-A
+LoRA-B (e) moderate non-IID
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+Layer
+0.0
+0.5
+1.0
+LoRA-A
+LoRA-B (f) server non-IID
+Figure 2: Mean of pairwise cosine similarity of the learned A and B matrices across layers of
+a RoBERTa model locally fine-tuned with LoRA on the RTE task, with different levels of data
+heterogeneity. (a)-(c): value matrices; (d)-(f): query matrices. The learned A matrices are more
+similar across clients than the B matrices, and with increased data heterogeneity, the similarity ofB
+matrices between different clients decreases.
+where B ∈ Rk×r and A ∈ Rr×d, with r ≪ min(k, d). Then, the least squares loss is defined on
+the difference between ˆy and yt:
+L = E(xt,yt)[∥yt − (W0 + BA)xt∥2
+2]. (3)
+Below, we present the lemma on minimizing this loss while freezing either A or B. The proof is
+provided in Section A.1 in Appendix.
+Lemma 1. Fine-tuning B while fixing A = Q, with the goal of optimizing Eq. (3), yields:
+B∗ = ∆W E[xtxT
+t ]QT (QE[xtxT
+t ]QT )−1. (4)
+Fine-tuning A while fixing B = U and assuming U −1 exists, with the goal of optimizing Eq. (3),
+yields:
+A∗ = U −1∆W . (5)
+Remark 1. From this lemma, we can conclude that the optimal solution of A∗ is independent of
+the input data distribution, while B∗ is related to the input data distribution captured by E[xtxT
+t ].
+This indicates that A is responsible for learning general knowledge, while B focuses on modeling
+client-specific knowledge.
+To verify this empirically, we locally fine-tune a RoBERTa-large model (Liu et al., 2019) with LoRA
+(Hu et al., 2022) on the RTE task from the GLUE benchmark (Wang et al., 2018) using three clients.
+We model an IID data distribution and two non-IID data distributions. The two non-IID distributions
+are modeled by a Dirichlet distribution withα = 1 and α = 0.5, referred to as moderate non-IID and
+severe non-IID. Figure 2 shows the mean pairwise cosine similarity of the learnedA and B matrices
+across clients. These results indicate that the learned A matrices are more similar across clients than
+the B matrices, and with increased data heterogeneity, the similarity ofB matrices between different
+clients decreases. To demonstrate that the A matrices are indeed updated, as they are similar across
+different clients, we further illustrate the difference between the learned and initialized A matrices
+for each client in Figure 4 in Appendix. These results confirm that the A matrices are updated.
+This phenomenon is consistent with previous study about the asymmetry analysis in LoRA (Zhu
+et al., 2024). Based on these results, we argue that A matrices are responsible for learning general
+knowledge while B matrices focus on capturing client-specific knowledge.
+To demonstrate the generalizability of our findings, we further explore the relationship between the
+learned A and B matrices in other LoRA variants, such as rsLoRA (Kalajdzievski, 2023) and VeRA
+(Kopiczko et al., 2024). The observations, illustrated in Figures 5 and 6 in Appendix, show a similar
+phenomenon to LoRA. In this way, we uncover a general phenomenon when combining LoRA with
+FL, which serves as the foundation for our proposed method.
+5

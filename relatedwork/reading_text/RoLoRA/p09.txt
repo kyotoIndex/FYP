@@ -1,0 +1,43 @@
+Figure 4: Results with RoBERTa-Large models on GLUE under different fine-tuning parameter
+budgets, involving three clients with rank 4.
+consistently achieves the highest performance. The configurations are presented in Table 7 in
+Appendix.
+Effect of Number of Finetuning Parameters.In Figure 4, we compare three methods across five
+GLUE datasets. We apply LoRA module to every weight matrix of the selected layers, given different
+budgets of LoRA parameters. For each dataset, we experiment with three budgets ( P1,P 2,P 3)
+ranging from low to high. The corresponding layer sets that are attached with LoRA adapters,
+P1,P 2,P 3, are detailed in Table 12 in Appendix A5.2. The figures indicates that with sufficient
+number of finetuning parameters, FFA-LoRA can achieve comparable best accuracy as LoRA
+and RoLoRA, aligning with the results in [ 32]; as the number of LoRA parameters is reduced,
+the performance of the three methods deteriorates to varying degrees. However, RoLoRA, which
+achieves performance comparable to LoRA, demonstrates greater robustness compared to FFA-LoRA,
+especially under conditions of limited fine-tuning parameters. It is important to note that with the
+same finetuning parameters, the communication cost of RoLoRA and FFA-LoRA is always half of
+that of LoRA due to their parameter freezing nature. This implies that RoLoRA not only sustains its
+performance but also enhances communication efficiency. Additional results ofvarying ranksare
+provided in Figure 9, 10, and 11 in Appendix A5.4.
+BoolQ PIQA SIQA HellaSwag
+LoRA 61.42 ±0.29 33.19±9.8 31.88±3.95 21.23±2.82
+FFA-LoRA 53.43 ±4.3 35.49±9.55 10.63±8.44 11.81±4.53
+RoLoRA 61.83±0.22 61.26±3.3 39.76±0.41 27.49±2.34
+WinoGrande ARC-e ARC-c OBQA
+LoRA 31.36 ±5.02 27.36±0.89 32.03±1.14 26.07±2.32
+FFA-LoRA 1.61 ±2.14 6.88±0.42 7.93±0.89 15.0±5.41
+RoLoRA 47.67±0.75 33.19±1.29 40.13±1.73 31.67±1.4
+Table 3: Results with Llama-2-7B models on common-
+sense reasoning tasks. This involves 50 clients using rank
+8.
+Figure 5: Ablation study on learning
+vs. freezing A on MNLI task.
+5.2 Commonsense Reasoning Tasks
+Results.We evaluate RoLoRA against FFA-LoRA and LoRA on Llama-2-7B[ 35] for commonsense
+reasoning tasks. In Table 3, we compare the results of three methods with Llama-2-7B models
+on 8 commonsense reasoning tasks. The configurations are presented in Appendix A5.7. The
+performance is reported as the mean accuracy with standard deviations across 3 trials. RoLoRA
+consistently achieves the highest accuracy across all tasks, demonstrating significant improvements
+over both LoRA and FFA-LoRA. We also highlights that FFA-LoRA exhibits large performance
+variances across trials, such as a standard deviation of 9.55 for PIQA and 8.44 for SIQA, respectively.
+This significant variability is likely due to the initialization quality of parameter A, as different
+initializations could lead to varying optimization trajectories and final performance outcomes as
+discussed in Section 4. Additional results on this task are presented in Table 16 in Appendix A5.7.
+9

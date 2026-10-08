@@ -1,0 +1,65 @@
+across clients. Thus, within this diagnostic, the apparent agreement primarily reflects inherited initialization
+geometry and is insufficient evidence of a common representation learned through adaptation. We refer to
+Appendix B for the detailed experimental setting and numerical results.
+0 3 6 9 11
+0
+0.25
+0.50
+0.75
+1.00
+Mean pairwise projector Dice
+(a) IID
+0 3 6 9 11
+(b) α = 1
+0 3 6 9 11
+(c) α = 0.5
+0 3 6 9 11
+(d) IID
+0 3 6 9 11
+(e) α = 1
+0 3 6 9 11
+(f) α = 0.5
+Transformer layer
+Common initialization Independent initialization
+Ak row space (r = 8) Bk column space (r = 8) Gk dominant right subspace (s = 1)
+Figure 2: Cross-client subspace agreement for RoBERTa-base on RTE. For each initialization group, label
+heterogeneity increases from left to right, withα∈ {0.5,1.0}controlling Dirichlet label skew.
+2.2 Input-Aware Action Matrix
+If raw parameter similarity is an unreliable proxy for shared learning, where does the true cross-client shared
+component lie? We argue that the effect of a local update depends jointly on its weights and the hidden
+states it encounters. To characterize this, let h∈R p denote the hidden-state vector entering the adapted
+layer on client k, and let Ek denote the expectation under its local input distribution. Assuming Ek|h|2
+2 <∞ ,
+define Σk =E k
+
+hh⊤
+. Empirical version of Σk has been used to guide model merging (Jin et al., 2022;
+Salami et al., 2025), weight pruning (Frantar and Alistarh, 2023), and model compression (Wang et al., 2025),
+revealing its potential for shaping parameter effects. Here, we define the input-aware action matrix
+Gk :=∆ kΣ1/2
+k .(3)
+Note that when Σk =I p, (3) reduces to Gk =∆ k. More generally, if Σk =c kIp for some ck >0 , the right
+singular subspaces of ∆k are preserved. In contrast, anisotropic input moments can alter both the orientation
+and relative strength of these singular directions, revealing shared structure that may be hidden in the raw
+updates.Crucially, this representation evaluates update differences strictly through their effects on the local
+input distribution. For any alternative update e∆, we have:
+(∆k − e∆)Σ1/2
+k
+2
+F =E k
+(∆k − e∆)h
+2
+2
+
+.
+Thus, update differences are weighted by the local input distribution, where directions carrying little input
+energy are naturally discounted. Moreover, since Gk depends on the LoRA factors only through their product
+BkAk, it is invariant to any invertible reparameterization of the raw factors.
+Rather than synchronizing the entire action matrix, we can isolate its most critical geometric components.
+Let Vk,s contain the leading s right singular vectors of Gk, and define Pk,s =V k,sV⊤
+k,s. Among rank- s
+orthogonal projectors, Pk,s maximizes ∥GkP∥2
+F , thereby identifying the low-dimensional subspace where
+the adapter’s effect is most concentrated. This projector naturally provides a basis-invariant target for cross-
+client alignment. By employing guidance toward this subspace, clients are able to preserve their personalized
+5

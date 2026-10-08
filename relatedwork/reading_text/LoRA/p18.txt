@@ -1,0 +1,49 @@
+and STS-B (textual similarity, Cer et al. (2017)). The broad coverage makes GLUE benchmark a
+standard metric to evaluate NLU models such as RoBERTa and DeBERTa. The individual datasets
+are released under different permissive licenses.
+WikiSQL is introduced in Zhong et al. (2017) and contains 56, 355/8, 421 training/validation ex-
+amples. The task is to generate SQL queries from natural language questions and table schemata.
+We encode context as x ={table schema, query} and target as y ={SQL}. The dataset is release
+under the BSD 3-Clause License.
+SAMSum is introduced in Gliwa et al. (2019) and contains 14, 732/819 training/test examples. It
+consists of staged chat conversations between two people and corresponding abstractive summaries
+written by linguists. We encode context as ” \n” concatenated utterances followed by a ” \n\n”,
+and target as y ={summary}. The dataset is released under the non-commercial licence: Creative
+Commons BY-NC-ND 4.0.
+E2E NLG Challenge was ﬁrst introduced in Novikova et al. (2017) as a dataset for training end-to-
+end, data-driven natural language generation systems and is commonly used for data-to-text evalua-
+tion. The E2E dataset consists of roughly 42, 000 training, 4, 600 validation, and 4, 600 test exam-
+ples from the restaurant domain. Each source table used as input can have multiple references. Each
+sample input (x, y) consists of a sequence of slot-value pairs, along with a corresponding natural
+language reference text. The dataset is released under Creative Commons BY-NC-SA 4.0.
+DART is an open-domain data-to-text dataset described in Nan et al. (2020). DART inputs are
+structured as sequences of ENTITY — RELATION — ENTITY triples. With 82K examples in
+total, DART is a signiﬁcantly larger and more complex data-to-text task compared to E2E. The
+dataset is released under the MIT license.
+WebNLG is another commonly used dataset for data-to-text evaluation (Gardent et al., 2017). With
+22K examples in total WebNLG comprises 14 distinct categories, nine of which are seen during
+training. Since ﬁve of the 14 total categories are not seen during training, but are represented in
+the test set, evaluation is typically broken out by “seen” categories (S), “unseen” categories (U)
+and “all” (A). Each input example is represented by a sequence of SUBJECT — PROPERTY —
+OBJECT triples. The dataset is released under Creative Commons BY-NC-SA 4.0.
+D H YPERPARAMETERS USED IN EXPERIMENTS
+D.1 R OBERTA
+We train using AdamW with a linear learning rate decay schedule. We sweep learning rate, number
+of training epochs, and batch size for LoRA. Following Liu et al. (2019), we initialize the LoRA
+modules to our best MNLI checkpoint when adapting to MRPC, RTE, and STS-B, instead of the
+usual initialization; the pre-trained model stays frozen for all tasks. We report the median over 5
+random seeds; the result for each run is taken from the best epoch. For a fair comparison with the
+setup in Houlsby et al. (2019) and Pfeiffer et al. (2021), we restrict the model sequence length to 128
+and used a ﬁxed batch size for all tasks. Importantly, we start with the pre-trained RoBERTa large
+model when adapting to MRPC, RTE, and STS-B, instead of a model already adapted to MNLI.
+The runs with this restricted setup are marked with †. See the hyperparameters used in our runs
+in Table 9.
+D.2 D EBERTA
+We again train using AdamW with a linear learning rate decay schedule. Following He et al. (2021),
+we tune learning rate, dropout probability, warm-up steps, and batch size. We use the same model
+sequence length used by (He et al., 2021) to keep our comparison fair. Following He et al. (2021),
+we initialize the LoRA modules to our best MNLI checkpoint when adapting to MRPC, RTE, and
+STS-B, instead of the usual initialization; the pre-trained model stays frozen for all tasks. We report
+the median over 5 random seeds; the result for each run is taken from the best epoch. See the
+hyperparameters used in our runs in Table 10.
+18

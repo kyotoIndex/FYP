@@ -1,0 +1,37 @@
+, , Zhang et al.
+0 1 2 3 4 5 6 7 8 9 10 11
+Layer
+0
+20
+40
+60
+80
+100
+120
+140
+160
+180
+200
+220
+240
+260
+280
+300
+320
+340 Round
+Layer Selection Frequency per Round
+0
+2
+4
+6
+8
+10
+Figure 8: The selection frequency of LoRA modules in each attention layer across rounds.
+F Limitations
+Our LoRA allocation optimization is highly adaptable to various memory capacity levels, supporting devices ranging from consumer-grade
+GPUs to datacenter-grade GPUs. However, if a client cannot train even a single LoRA module, our method can easily combined with other
+techniques, such as offloading [14], checkpointing [23] to ensure participation without exceeding hardware limitations.
+G Future Work
+Our method is orthogonal to aggregation noise-reduction techniques such as FlexLoRA [3] and FLoRA [29], allowing for seamless integration
+to heterogeneous model aggregation. In future work, we plan to incorporate these methods while preserving optimal LoRA allocation across
+heterogeneous devices.

@@ -1,0 +1,80 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 10
+Fig. 5. The accuracy and training loss with respect to training rounds on CIFAR-100 dataset, across different data and device settings.
+parameters, FlexLoRA still falls behind, our method surpasses
+it by +0.77% in performance. Our method achieves a +0.59%
+improvement compared to FedRA. The resource efficiency
+trends remain consistent under Dolly-15K dataset. Our method
+reduces the average backward computational cost by 0.67
+TFLOPs and 0.34 TFLOPs compared to rank-based methods
+under the 6:3:1 RoC and 1:1:1 RoC distributions, respectively.
+It also lowers average memory usage by 1.09 GB and 0.57 GB
+for the two distributions. Additionally, our method maintains
+a low average communication cost compared to Exclusive
+Learning and FlexLoRA, while achieving a balanced trade-
+off in training time, requiring only 94.25 and 104.48 seconds
+per training round.
+Quantitative Results on DomainNet-121: In DomainNet-
+121 experiments, as shown in Table VI, Fed-HeLLo fur-
+ther demonstrates its effectiveness, particularly in handling
+Non-IID data. Under the 6:3:1 RoC distribution, Fed-HeLLo
+achieves an average accuracy of 57.30%, outperforming
+Straggler Learning by +19.60% and Exclusive Learning by
++22.25%. In the 1:1:1 RoC setting, Fed-HeLLo continures
+to outperform baseline methods, with a +9.09% improve-
+ment over HETLoRA in the “25/1” Non-IID scenario and a
++6.31% increase over Exclusive Learning. Even in the most
+challenging “15/1” Non-IID setting, Fed-HeLLo maintains its
+advantage, outperforming HETLoRA by +18.40%. On aver-
+age, Fed-HeLLo outperforms FedRA by +1.96% and +1.83%
+in the 6:3:1 and 1:1:1 RoC settings, respectively. FlexLoRA
+and FLoRA perform poorly on mid-sized model, showing
+significant performance drops across both RoC distributions.
+These results on the DomainNet-121 dataset reinforce Fed-
+HeLLo’s capability to handle diverse and challenging FL
+environments, ensuring high performance even under extreme
+conditions.
+D. Visualization of the Training Process
+We visualize the accuracy and loss curves during train-
+ing with four methods (i.e., Exclusive Learning, HETLoRA,
+FlexLoRA, and FedRA) and our approach on CIFAR-100
+dataset. As shown in Figure 5, the first row presents re-
+sults under the 6:3:1 RoC distribution, while the second
+row corresponds to the 1:1:1 RoC distribution. For each
+row, the first two plots illustrate accuracy and training loss
+under an IID data distribution, whereas the latter two depict
+results under a Non-IID setting. Taking the accuracy and
+training loss curves under the 6:3:1 RoC distribution in an
+IID setting as an example, the plots show that our method
+(green solid line) achieves the highest accuracy and converges
+faster than other approaches. Notably, FlexLoRA (blue dashed
+line) exhibits significantly lower accuracy, indicating poor
+performance in this setting. FedRA (pink dashed line) and
+HETLoRA (orange dashed line) converge more slowly than
+our method, with HETLoRA stabilizing at a lower accuracy.
+The right plot illustrates training loss, where our method
+consistently reduces loss faster and reaches a lower loss,
+demonstrating better convergence. Exclusive Learning (deep
+green dashed line) shows instability with sudden fluctuations
+at the beginning of the training rounds, suggesting instability
+under this distribution. These results highlight the effectiveness
+of our approach in achieving both superior accuracy and stable
+training convergence compared to existing methods. In the
+Non-IID setting of the 6:3:1 RoC distribution, our method
+converges slightly slower than FlexLoRA at the beginning,
+which aligns with the issue observed in the main results on the
+Natural Instruction dataset. Under the 1:1:1 RoC distribution,
+the performance gaps narrow slightly, but our method still
+outperforms other approaches, maintaining higher accuracy
+and better convergence stability.
+E. Ablation Study
+1) Cross-silo Setting Evaluation: Here, we conduct an
+ablation study to evaluate the stability of our proposed method
+under cross-silo client settings. Table VII presents the cross-
+silo evaluation results on CIFAR-100 dataset using the ViT-
+base model, with 20 clients under two different RoC settings:
+6:3:1 and 1:1:1. The table compares the performance of differ-
+ent methods across IID and two Non-IID scenarios (20/1.0 and
+10/1.0). Under the 6:3:1 RoC setting, Fed-HeLLo significantly
+outperforms the other methods, achieving the highest average
+accuracy of 54.14%. Specifically, Fed-HeLLo reaches 86.63%
+accuracy in the IID case, outperform FedRA by +0.44% and

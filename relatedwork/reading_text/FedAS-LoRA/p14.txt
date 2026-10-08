@@ -1,0 +1,266 @@
+14
+For a selected clienti∈ S t, applyingAssumption 1
+betweenU E
+t,i andU t+1,i gives
+E
+h
+fi(Ut+1,i)−f i(U E
+t,i)
+i
+≤E
+hD
+∇fi(U E
+t,i), Ut+1,i −U E
+t,i
+E
+F
+i
++ L
+2 E
+h
+∥Ut+1,i −U E
+t,i∥2
+F
+i
+≤ ηℓ
+2 G2
+max +
+ 1
+2ηℓ
++ L
+2
+
+D2
+sel,(40)
+where the second inequality follows from⟨X, Y⟩ F ≤
+ηℓ
+2 ∥X∥2
+F + 1
+2ηℓ
+∥Y∥ 2
+F ,Assumption 2, and (38).
+Combining (40) with (34) yields
+E[fi(Ut+1,i)−f i(Ut,i)]
+≤ −η ℓ(cA +c B)κEE
+
+∥∇fi(Ut,i)∥2
+F
+
++R sel,(41)
+whereR sel =Eη 2
+ℓ CACBG3
+max + 3LE
+2 η2
+ℓ (C4
+A +
+C4
+B)G2
+max + 3LE
+2 η4
+ℓ C2
+AC2
+BG4
+max+ ηℓ
+2 G2
+max+
+
+1
+2ηℓ
++ L
+2
+
+(1+
+ηg)2η2
+ℓ E2C4
+⋆ G2
+max.
+For an unselected clientj /∈ S t, although it performs no
+local update, its shared factor changes after aggregation:
+E[fj(Ut+1,j)−f j(Ut,j)]≤E
+
+⟨∇fj(Ut,j), Ut+1,j −U t,j⟩F
+
++L
+2 E
+
+∥Ut+1,j −Ut,j∥2
+F
+
+≤ρηℓ
+2 E
+
+∥∇fj(Ut,j)∥2
+F
+
++Runs,(42)
+whereR uns :=
+
+1
+2ρηℓ
++ L
+2
+
+η2
+gη2
+ℓ E2C4
+⋆ G2
+max.ρ >0is the
+parameter in⟨X, Y⟩ F ≤ ρηℓ
+2 ∥X∥2
+F + 1
+2ρηℓ
+∥Y∥ 2
+F , and the
+last inequality uses (39).
+Averaging (41) and (42) over all clientsi∈ Nyields
+E[Ft+1 −F t]≤ St
+N Rsel +
+
+1− St
+N
+
+Runs
+−η ℓ(cA +c B)κEE
+
+Gsel
+t
+
++ ρηℓ
+2 E[Guns
+t ],(43)
+whereG sel
+t := 1
+N
+P
+i∈St ∥∇fi(Ut,i)∥2
+F , andG uns
+t :=
+1
+N
+P
+i /∈St ∥∇fi(Ut,i)∥2
+F .
+ForG t :=G sel
+t +G uns
+t = 1
+N
+PN
+i=1 ∥∇fi(Ut,i)∥2
+F , when
+Gt = 0, the terms−η ℓ(cA +c B)κEE
+
+Gsel
+t
+
++ ρηℓ
+2 E[Guns
+t ]in
+(43) vanish. Otherwise, we have
+−η ℓ(cA +c B)κEE
+
+Gsel
+t
+
++ ρηℓ
+2 E[Guns
+t ](44)
+=−η ℓE
+h
+(cA+cB)κEλ− ρ
+2(1−λ)
+
+Gt
+i
+≤ −ηℓcE[G t],
+wherec:= (c A +c B)κEλ− ρ
+2(1−λ)>0with
+ρ < 2(cA+cB)κEλ
+(1−λ) , andλshould satisfy the gradient-mass
+coverage condition, as given by
+0< λ≤ Gsel
+t
+Gt
+,∀t.(45)
+Here, (45) requires the selected clients to account for at
+least a fixed fractionλof the total squared gradient mass
+in every round withG t >0. Equivalently,G sel
+t ≥λG t
+andG uns
+t ≤(1−λ)G t. This condition is imposed on the
+realized gradient mass rather than on the number or sampling
+distribution of the selected clients. Hence, it allows arbitrary
+client participation, provided that the selected subset does
+not capture an arbitrarily small fraction of the current
+gradient mass. Under full participation, one can setλ= 1.
+Under partial participation, any round-independent lower
+boundλ >0satisfying (45) is sufficient. Together with
+−0.6 −0.3 0.0 0.3
+Relative RSS decision margin
+(τ(r) − Δ(r))/(τ(r) + Δ(r))
+−0.6
+−0.3
+0.0
+0.3
+0.6
+Relative loss advantage
+(LB − LA)/(LB + LA)
+both Share-A
+both Share-B
+Fig. 3: Alignment Between RSS Decisions and Training-
+Loss Preference
+c >0, this condition ensures that the descent contributed by
+the selected clients dominates the possible objective increase
+of the unselected clients caused by the shared-factor update.
+Substituting (44) into (43) and rearranging gives
+ηℓcE[G t]≤E[F t −Ft+1]+ St
+N Rsel+
+
+1− St
+N
+
+Runs.(46)
+Summing (46) overt= 0, . . . , T−1and dividing by
+ηlcT, we obtain
+1
+N T
+T−1X
+t=0
+NX
+i=1
+E
+
+∥∇fi(Ut,i)∥2
+F
+
+≤ F0 −F ⋆
+ηℓcT
++ 1
+ηℓcT
+T−1X
+t=0
+St
+N Rsel+ 1
+ηℓcT
+T−1X
+t=0
+
+1− St
+N
+
+Runs,(47)
+which is exactly (14) and completes the proof.
+APPENDIXE
+FULLEXPERIMENTRESULTS
+Hyperparameters
+Tables V and VI show the learning rates used for LoRA-
+based methods and rsLoRA-based methods, respectively. For
+the VeRA-based methods, we chose the AdamW optimizer
+and used separate learning rates for the classification head
+and the adapted layers as used in VeRA. The learning rates
+used for VeRA-based methods are shown in Table VII.
+Evaluation of RSS-Based Sharing-Side Selection
+Alignment with Test-Accuracy Preference.:Table VIII
+provides the full comparison between the sharing-side de-
+cisions made by RSS and the empirical test accuracies
+of Share-A/Local-B and Share-B/Local-A. The experiments
+cover six evaluation sets, multiple client partitions, and

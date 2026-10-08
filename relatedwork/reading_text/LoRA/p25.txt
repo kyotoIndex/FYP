@@ -1,0 +1,71 @@
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+12345678
+Layer 1
+i
+Wq
+ Wv
+ Wq
+ Wv
+12345678
+Layer 32
+i
+12345678
+Layer 64
+i
+1
+6
+12
+18
+23
+29
+35
+40
+46
+52
+58
+j
+12345678
+Layer 96
+i
+1
+6
+12
+18
+23
+29
+35
+40
+46
+52
+58
+j
+1 2 3 4 5 6 7 8
+j
+1 2 3 4 5 6 7 8
+j
+(Ar = 8, Ar = 64, i, j)
+Figure 6: Normalized subspace similarity between the column vectors of Ar=8 and Ar=64 for both
+∆Wq and ∆Wv from the 1st, 32nd, 64th, and 96th layers in a 96-layer Transformer.
+H.4 A MPLIFICATION FACTOR
+One can naturally consider a feature ampliﬁcation factor as the ratio ∥∆W∥F
+∥U ⊤WV ⊤∥F
+, where U and V
+are the left- and right-singular matrices of the SVD decomposition of ∆W . (Recall U U⊤W V⊤V
+gives the “projection” of W onto the subspace spanned by ∆W .)
+Intuitively, when∆W mostly contains task-speciﬁc directions, this quantity measures how much of
+them are ampliﬁed by∆W . As shown in Section 7.3, for r = 4, this ampliﬁcation factor is as large
+as 20. In other words, there are (generally speaking) four feature directions in each layer (out of the
+entire feature space from the pre-trained model W ), that need to be ampliﬁed by a very large factor
+20, in order to achieve our reported accuracy for the downstream speciﬁc task. And, one should
+expect a very different set of feature directions to be ampliﬁed for each different downstream task.
+One may notice, however, for r = 64 , this ampliﬁcation factor is only around 2, meaning that
+most directions learned in ∆W with r = 64 are not being ampliﬁed by much. This should not
+be surprising, and in fact gives evidence (once again) that the intrinsic rank needed to represent
+the “task-speciﬁc directions” (thus for model adaptation) is low. In contrast, those directions in the
+rank-4 version of ∆W (corresponding to r = 4) are ampliﬁed by a much larger factor 20.
+25

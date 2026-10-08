@@ -1,0 +1,27 @@
+\vspace{-0.2cm}
+\bluenote{
+% 基于软件和库，代码量
+We implement our FedFT prototype based on the open-source FedPETuning framework \cite{zhang2022federated}, extending its functionality with approximately 2.1K lines of custom code. 
+The prototype is designed to support heterogeneous computing platforms, with a specific focus on commercial NVIDIA Jetson devices \cite{mittal2019survey}, including Jetson TX2, Jetson NX, and Jetson AGX.
+The software platform is built based on Docker Swarm \cite{merkel2014docker, naik2016building}, a distributed software development kit that helps build distributed systems with the ability to monitor the status of each device.
+For computing, we utilize PyTorch \cite{paszke2019pytorch} to facilitate the implementation of model fine-tuning on devices, ensuring platform independence while allowing platform-specific backend acceleration. 
+To accelerate the on-device fine-tuning, we utilize NVIDIA-provided development packages\footnote{https://forums.developer.nvidia.com/t/pytorch-for-jetson/72048} to take full advantage of the underlying hardware capabilities.
+For communication, we adopt MPI (Message Passing Interface) \cite{gabriel2004open}, which includes a collection of sending and receiving functions, \eg, \textit{comm.send(data, dest, tag)}/\textit{comm.recv(sour, tag)}, to streamline communication between the PS and devices.
+The prototype provides simple APIs to abstract away the problem of federated fine-tuning on heterogeneous computing platforms.
+For example, in the PS, we use docker API \textit{docker stack deploy} to deploy the fine-tuning process on both PS and the heterogeneous device with the customized container for different devices.
+The implementation addresses key challenges in supporting heterogeneous devices by developing flexible communication and fine-tuning protocols that can adapt to varying computational resources.
+}
+\vspace{-0.2cm}
+
+
+
+% \rednote{
+% The prototype FedFT system comprises two critical modules, \ie, communication and local fine-tuning. 
+% The communication module, implemented using Socket protocols, incorporates robust features such as heartbeat detection and efficient data transmission mechanisms. 
+% This ensures reliable server-device communication and synchronization in federated learning scenarios.
+% The local fine-tuning module is implemented using PyTorch, ensuring platform independence while allowing platform-specific backend acceleration. 
+% Critically, the backend libraries are optimized for specific hardware platforms and software versions. 
+% For Jetson devices, we utilized NVIDIA-provided development packages to accelerate training processes, taking full advantage of the underlying hardware capabilities.
+% PyTorch installation is carefully managed following NVIDIA developer forum instructions \footnote{https://forums.developer.nvidia.com/t/pytorch-for-jetson/72048}, with custom configurations for each Jetson device variant. 
+% The implementation addresses key challenges in heterogeneous device support by developing flexible communication and fine-tuning protocols that can adapt to varying computational resources.
+% }

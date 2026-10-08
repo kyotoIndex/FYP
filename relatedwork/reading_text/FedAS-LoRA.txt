@@ -1,0 +1,2599 @@
+
+
+===== PDF PAGE 1 =====
+
+1
+Rethinking Factor Sharing in Federated LoRA: A
+Rank-Aware Adaptive Approach
+Xinyi Xu1,* Bingnan Xiao 2,* Shuang Qin 1,† Gang Feng 1 Tony Q.S. Quek 3
+1University of Electronic Science and Technology of China
+2Fudan University
+3Singapore University of Technology and Design
+*Equal contribution. †Corresponding author.
+xinyixu@std.uestc.edu.cn, 22110720061@m.fudan.edu.cn, blueqs@uestc.edu.cn
+fenggang@uestc.edu.cn, tonyquek@sutd.edu.sg
+Abstract—Low-rank adaptation (LoRA) represents large
+language model (LLM) updates with two compact matrix
+factors, i.e.,AandB, providing an efficient way to fine-tune
+large models in federated learning paradigm. Inspired by the
+asymmetric roles of the LoRA factors, we study whetherA
+should be shared across clients whileBremains client-specific
+(Share-A/Local-B), or whetherBshould instead be shared
+whileAremains client-specific (Share-B/Local-A). With a least-
+squares surrogate, we reveal that Share-A/Local-B requires the
+client-specific LoRA update matrices to use a common rank-r
+input-side space, whereas Share-B/Local-A requires a common
+rank-routput-side space. The two strategies therefore incur
+different projection residuals, indicating that the preferred
+strategy is the one with the smaller aggregate residual across
+clients. With this insight, we propose Federated Adaptive
+Factor Sharing Low-Rank Adaptation (FedAS-LoRA), which
+selects the sharing side before training to enhance fine-tuning
+performance. To enable adaptive factor selection before train-
+ing, we design a Rank-Aware Shared-Subspace Sufficiency
+(RSS) metric, which effectively assesses whether a shared rank-
+rinput subspace is sufficient for the local data distributions
+using representations extracted from a frozen LLM backbone.
+Experiments across different tasks, data distributions, LoRA
+ranks, and participation settings confirm the effectiveness of
+RSS and the superior performance of FedAS-LoRA.
+I. INTRODUCTION
+Large language models (LLMs) have demonstrated strong
+capabilities in language understanding and generation, sup-
+porting a wide range of natural language processing ap-
+plications Brown et al. [2020], Touvron et al. [2023]. For
+pretrained LLMs, task-specific adaptations are needed before
+deployment to meet the requirements of different scenar-
+ios Houlsby et al. [2019], Li and Liang [2021], Hu et al.
+[2022]. In many practical settings, the data required for fine-
+tuning are distributed across clients or organizations and
+cannot be centralized due to privacy, ownership, or regu-
+latory constraints. Federated learning (FL) enables multiple
+clients to collaboratively fine-tune a model without sharing
+their private data McMahan et al. [2017], Li et al. [2020a].
+Nevertheless, full-model fine-tuning in FL incurs substantial
+computation, storage, and communication costs. Parameter-
+efficient fine-tuning provides a practical alternative by up-
+dating only a small set of additional parameters He et al.
+[2022]. In particular, low-rank adaptation (LoRA) keeps the
+pretrained LLM backbone frozen and represents each model
+update by two trainable low-rank factors, making it well
+suited to resource-constrained federated adaptation.
+One critical challenge of federated LoRA lies in aggre-
+gation mismatch. For an FL system withNclients, let the
+LoRA update of clientibe∆W i =B iAi. Independently
+averaging the two factorsB i andA i at the server yields
+ 1
+N
+NX
+i=1
+Bi
+ 1
+N
+NX
+i=1
+Ai
+
+̸= 1
+N
+NX
+i=1
+BiAi,(1)
+which differs from directly averaging the client model up-
+dates. Several studies have explored methods to address this
+mismatch Bian et al. [2025], Wang et al. [2026], Chen et al.
+[2026]. One representative line of work assigns asymmetric
+training and aggregation roles to the two LoRA factors. For
+example, FFA-LoRA fixes a common randomly initialized
+factorA 0, and only trains and aggregatesB i Sun et al.
+[2024b]. FedSA-LoRA instead keeps both factors trainable,
+aggregatesA i, and retainsB i locally for personalized adap-
+tation Guo et al. [2025]. Although such methods adopt
+different factor-handling strategies, they hard-code the roles
+ofAandBbefore training and apply the same assignment
+across diverse system settings.It remains unclear whether
+this hard-coded assignment is consistently superior, prompt-
+ing a reconsideration of the roles of the LoRA factors B and
+A in federated settings.
+To examine this question, we compare Share-A/Local-
+B and Share-B/Local-A under a label-balanced input-skew
+partition. As shown in Fig. 1, Share-B/Local-A outper-
+forms Share-A/Local-B, and the performance gap varies
+with LoRA rank. This observation does not imply that
+Share-B/Local-A is always preferable. Instead, it means that
+fixing a sharing side is unsuitable for all federated LoRA
+settings. We further analyze the structural asymmetry of
+the two LoRA factors through a least-squares surrogate.
+The resultant projection characterization shows that shar-
+ingAimposes a common rank-rinput-side representation
+across clients, whereas sharingBimposes a common rank-
+routput-side representation. Thus, the hard-coded sharing
+arXiv:2608.09742v1  [cs.LG]  10 Aug 2026
+
+===== PDF PAGE 2 =====
+
+2
+2 4 8 16
+LoRA rank r
+86.0
+86.5
+87.0
+87.5Accuracy (%)
+Share-A/Local-B Share-B/Local-A
+Fig. 1: Accuracy gap between Share-A/Local-B and Share-
+B/Local-A on the MNLI-m task under label-balanced input
+skew. The federated system includes 3 clients with full
+participation and 500 training rounds.
+side assignment is not globally optimal, since the appro-
+priate shared factor depends on whether a common rank-r
+input-side or output-side space yields a smaller aggregate
+projection residual across clients.
+Based on this insight, we propose Federated Adaptive Fac-
+tor Sharing Low-Rank Adaptation (FedAS-LoRA) frame-
+work, as illustrated in Fig. 2. FedAS-LoRA adaptively
+selects the shared factor before training instead of hard-
+coding the same policy. To guide this selection, we design
+a Rank-Aware Shared-Subspace Sufficiency (RSS) metric
+using sequence-level representations extracted from a frozen
+LLM backbone. RSS compares the second-order variation
+captured by a global rank-rinput subspace with that cap-
+tured by the corresponding client-specific subspaces. When
+the RSS deficit exceeds the calibrated threshold, FedAS-
+LoRA treats the global rank-rinput subspace as insufficient
+and selects Share-B/Local-A; otherwise, it selects Share-
+A/Local-B. We further establish that FedAS-LoRA con-
+verges to a stationary neighborhood under arbitrary client
+participation.
+Our main contributions are summarized as follows:
+•We provide the first projection-based comparison be-
+tween Share-A/Local-B and Share-B/Local-A in feder-
+ated LoRA. We reveal that Share-A/Local-B and Share-
+B/Local-A yield input-side and output-side projection
+residuals, respectively, which explains why fixed shar-
+ing strategies are not suitable for all federated settings.
+•Based on this insight, we design an RSS metric to effi-
+ciently determine the shared factor before training. With
+RSS, we propose FedAS-LoRA, which adapts different
+federated settings to enhance fine-tuning performance.
+•We prove the convergence of FedAS-LoRA under
+arbitrary client participation, extending the analysis
+beyond the full-participation setting. For either Share-
+A/Local-B or Share-B/Local-A strategy, we prove that
+the corresponding iterates converge to a stationary
+neighborhood.
+•Extensive experiments on diverse natural language
+tasks demonstrate the superiority of FedAS-LoRA over
+other methods, and validate the effectiveness of RSS-
+based adaptive sharing side selection.
+II. RELATEDWORK
+A. Federated Parameter-Efficient Fine-Tuning
+Parameter-efficient fine-tuning (PEFT) reduces the com-
+putation, memory, and communication costs of adapting
+pretrained models in federated learning. Existing studies
+apply prompt tuning and other compact trainable modules
+while keeping the pretrained backbone frozen Che et al.
+[2023], Sun et al. [2024a], Guo et al. [2024]. Low-rank
+adaptation (LoRA) represents each weight update with two
+low-rank factors, making it suitable for federated fine-tuning
+with limited client resources.
+Existing federated LoRA methods mainly address per-
+sonalization, resource heterogeneity, and aggregation er-
+ror Yang et al. [2025], Koo et al. [2025], Byun and
+Lee [2025], Shen et al. [2025]. FedDPA maintains global
+and personalized adapters to capture shared and client-
+specific knowledge Yang et al. [2024]. HetLoRA supports
+resource-heterogeneous clients through rank self-pruning
+and sparsity-weighted aggregation Cho et al. [2024], while
+FlexLoRA and FLoRA aggregate LoRA modules with dif-
+ferent ranks through reconstruction or stacking Bai et al.
+[2024], Wang et al. [2024]. FedEx-LoRA instead corrects
+the mismatch between factor-wise averaging and direct av-
+eraging of the resulting updates Singhal et al. [2025]. These
+methods determine shared and personalized components at
+the adapter level, or improve the aggregation of heteroge-
+neous LoRA updates.
+B. LoRA Factor Asymmetry and Factor-Wise Federated Ag-
+gregation
+The two LoRA factors can exhibit different optimization
+and representation behaviors. LoRA-FA freezesAand trains
+onlyBto reduce the memory cost of fine-tuning Zhang et al.
+[2023], whereas LoRA+ assigns different learning rates to
+the two factors Hayou et al. [2024]. Zhu et al. interpret
+Aas extracting input features andBas mapping these
+features to the output space Zhu et al. [2024]. HydraLoRA
+further adopts an asymmetric architecture with a sharedA
+and multipleBexperts Tian et al. [2024]. These studies
+establish factor asymmetry in centralized fine-tuning, but do
+not consider the division of shared and client-specific factors
+in federated learning.
+Factor-wise handling has also been explored in federated
+LoRA Chen et al. [2026], Wang et al. [2026], Xu et al.
+[2025]. FFA-LoRA fixes a common randomly initializedA
+and trains and aggregatesBSun et al. [2024b]. FedSA-
+LoRA trains both factors, sharesA, and retainsBlocally
+for personalization Guo et al. [2025]. RoLoRA alternates
+the optimization of the two factors during federated train-
+ing Chen et al. [2025], while FedRot-LoRA aligns client
+factors through orthogonal transformations before aggrega-
+tion Zhang et al. [2026]. Although these methods assign
+
+===== PDF PAGE 3 =====
+
+3
+Fig. 2: Illustration of (a) FFA-LoRA, (b) FedSA-LoRA, and (c) FedAS-LoRA. In FFA-LoRA,Ais fixed after initialization,
+whileBis trainable and shared with the server for aggregation. In FedSA-LoRA, bothAandBare trainable, whileAis
+shared andBis retained locally. In FedAS-LoRA, the server uses RSS to determine the sharing strategy before training.
+For either strategy, both factors are updated locally; each client uploads only the shared factor and retains the other factor
+locally.
+different training or aggregation roles to the two factors,
+the sharing side is either predetermined or not explicitly
+considered. Which LoRA factor should be shared across
+clients and which should remain client-specific remains
+underexplored.
+III. PRELIMINARIES ANDMOTIVATION
+This section formulates the federated LoRA factor-sharing
+problem and proves that a fixed sharing side is insufficient.
+We first define a general federated factor-sharing model
+covering Share-A, Share-B, and full-factor sharing, followed
+by a motivating example to illustrate that Share-B/Local-A
+can outperform Share-A/Local-B. Based on a least-squares
+surrogate, we characterize the structural asymmetry between
+the two LoRA factors in federated settings.
+A. Factor Sharing in Federated LoRA
+Consider a federated fine-tuning system with a server and
+Nclients, indexed byN={1,2, . . . , N}. Clientiowns
+a local datasetD i and optimizes a local objectivef i. For
+a target linear layer with frozen pretrained weightW 0 ∈
+Rdout×din, the LoRA update of each clientiis∆W i =B iAi.
+Here,A i ∈R r×din,B i ∈R dout×r, andr≪min{d in, dout}
+denotes the LoRA rank. Given an input representationx∈
+Rdin,A i mapsxto anr-dimensional latent representation,
+whileB i maps this representation to the output space.
+For federated LoRA settings, we consider a fixed shared
+factor typeQ∈ {A, B}. LetQ i =A i whenQ=Aand
+Qi =B i whenQ=Bfor brevity. The corresponding
+personalized federated objective is
+min
+{Ai,Bi}N
+i=1
+1
+N
+NX
+i=1
+fi(BiAi)
+s.t. Q i =Q j,∀i, j∈ N.
+(2)
+Here,f i(BiAi)denotes the local loss evaluated atW 0 +
+BiAi. WhenQ=A, the constraint sharesAacross clients
+while leavingB i client-specific, yielding Share-A/Local-B.
+WhenQ=B, it sharesBwhile leavingA i client-specific,
+yielding Share-B/Local-A. At training roundt, letQ t be
+the shared factor maintained by the server andQ e
+t,i its local
+copy at participating clientiafterelocal updates.
+In each training roundt, the following steps are executed:
+•Client selection and downlink transmission:The
+server selects an arbitrary subset ofS t ⊆ NwithS t
+clients, and broadcastsQ t,Q∈ {A, B}, to clients
+i∈ S t.
+•Local update:Each selected client initializes the local
+copy of every shared factor asQ 0
+t,i =Q t, and performs
+Elocal update steps with local learning rateη ℓ on
+its local datasetD i. During local training, the client
+updates all trainable LoRA factors in its local model,
+while keeping non-shared factors client-local.
+•Uplink Aggregation:After local training, each se-
+lected client uploads the update of the shared factor,
+∆Qt,i =Q E
+t,i −Q t, Q∈ {A, B}to the server for
+aggregation:
+Qt+1 =Q t +η g
+1
+St
+X
+i∈St
+∆Qt,i,(3)
+whereη g is the server learning rate.
+The sharing strategy determines which side of the LoRA
+adaptation is exposed to cross-client averaging and which
+side remains client-specific.
+B. Observation: Fixed Sharing Can Be Suboptimal
+One representative personalized federated LoRA design
+adopts Share-A/Local-B, i.e., sharing factorAwhile keeping
+Bi,∀i∈ Nclient-specific in each training round Guo et al.
+[2025]. However, it remains unclear whether sharingAis
+
+===== PDF PAGE 4 =====
+
+4
+always preferable to sharingB. To answer this question, we
+compare Share-A/Local-B and Share-B/Local-A on MNLI-
+m Wang et al. [2018] using a label-balanced input-skew
+partition. To create input skew while preserving label bal-
+ance, we construct a three-client partition based on the
+genre annotations provided by MNLI Wang et al. [2018].
+Each client is assigned premise–hypothesis pairs from one
+of three genres: telephone, government, and fiction. The
+partition is constructed such that the clients have nearly
+identical distributions over the three MNLI labels. Thus,
+the clients share the same prediction task and similar label
+distributions, while their inputs originate from different
+textual genres. This setting introduces genre-based input
+heterogeneity while controlling for label skew. Fig. 1
+compares their test accuracies forr∈ {2,4,8,16}. It is
+noted that Share-B/Local-A achieves better performance for
+all rank settings, while the accuracy advantage varies with
+the LoRA rankr, indicating that the performance difference
+between the two sharing strategies depends on the LoRA
+rankr.
+Fig. 1 demonstrates that Share-A/Local-B is not uniformly
+optimal across different FL settings. This observation mo-
+tivates the following question:For a given LoRA rankr
+and client data distributions, what determines which factor
+should be shared and which should remain client-specific?
+We next examine this question by analyzing the structural
+asymmetry between the two LoRA factors.
+C. Structural Asymmetry Between LoRA Factors
+For Share-A/Local-B and Share-B/Local-A in federated
+LoRA, although both strategies parameterize the update as
+BiAi, the two factors act on different sides of this product.
+Ai first maps the input into anr-dimensional representation,
+whereasB i maps that representation to the output. Sharing
+Atherefore enforces a common input representation, while
+sharingBenforces a common set of output directions.
+We clarify the difference with a single-layer least-squares
+surrogate. For each clienti∈ N, let∆ i ∈R dout×din denote
+its desired adaptation. The error of a rank-rLoRA update
+BiAi is then formulated as
+Li(Bi, Ai) =∥(∆ i −B iAi)Σ1/2
+i ∥2
+F ,(4)
+whereΣ i =E[x ix⊤
+i ]≻0withx i ∈R din denoting the input
+feature. Since each client uploads only the shared factor,
+the corresponding optimization problems can be formulated
+asE A = min A,{Bi}i
+1
+N
+PN
+i=1 ∥(∆i −B iA)Σ1/2
+i ∥2
+F and
+EB = min B,{Ai}i
+1
+N
+PN
+i=1 ∥(∆i −BA i)Σ1/2
+i ∥2
+F . Here,E A
+corresponds to Share-A/Local-B andE B to Share-B/Local-
+A, respectively. Based on the formulations ofE A andE B,
+we derive the following theorem to reveal the differences
+between Share-A/Local-B and Share-B/Local-A.
+Theorem 1.AssumeΣ i ≻0,∀i∈ N. MinimizingE A over
+{Bi}i andE B over{A i}i yields the following equivalent
+problems over the shared factorsAandB, respectively:
+EA = min
+A
+1
+N
+NX
+i=1
+∆iΣ1/2
+i (I−Π i,A)
+
+2
+F
+,(5)
+EB = min
+B
+1
+N
+NX
+i=1
+(I−Π B)∆iΣ1/2
+i
+
+2
+F
+.(6)
+whereΠ i,A = (AΣ 1/2
+i )⊤(AΣiA⊤)†(AΣ1/2
+i ), andΠ B =
+B(B ⊤B)†B⊤.
+FromTheorem 1, it is noted thatΠ i,A keeps the part that
+lies in the row space ofAΣ 1/2
+i , whileI−Π i,A keeps the part
+outside this space. Similarly,Π B keeps the part that lies in
+the column space ofB, whileI−Π B keeps the part outside
+this space. For Share-A/Local-B, with optimal{B i,∗}i,E A
+is dominated by∥∆ iΣ1/2
+i (I−Π i,A)∥2
+F ,∀i, which measures
+the residual not covered by the shared input-side space
+induced byA. For Share-B/Local-A, with optimal{A i,∗}i,
+∥(I−Π B)∆iΣ1/2
+i ∥2
+F inE B denotes the parts not covered
+by the shared output-side space induced byB. Therefore,
+Theorem 1shows a structural asymmetry between the two
+sharing strategies: sharingAconstrains the input-side space
+used by all clients, whereas sharingBconstrains the output-
+side space used by all clients.
+The structural asymmetry between (5) and (6) explains
+why the same LoRA rankrmay lead to different preferred
+sharing strategies. For fixed{∆ i,Σ i}N
+i=1,rdetermines the
+dimension of the shared input-side or output-side space.
+Increasingrrelaxes the rank constraint in both (5) and
+(6), so the optimal value of neither residual can increase.
+Therefore, neitherE A norE B can increase withr. Since the
+two residuals measure projection errors on different sides of
+∆iΣ1/2
+i , the differenceE A − EB is not generally invariant
+tor. Consequently, the preferred sharing strategy under the
+least-squares surrogate may depend on the target LoRA rank.
+The sharing strategy with the smaller residual is preferred,
+while the other factor remains client-specific. This leads to
+a design principle:share the side on which the clients have
+a common rank-rstructure, and keep the other side local.
+Since bothE A andE B depend on∆ i andΣ i, which are
+unavailable before fine-tuning, in the next section, we design
+a training-free metric to effectively choose the sharing side
+before training.
+IV. METHOD
+In this section, we design a rank-aware shared-subspace
+sufficiency metric, RSS, to determine the shared factor
+before training, and prove the convergence of FedAS-LoRA
+under arbitrary LoRA factor selection and client participa-
+tion.
+A. RSS-Based Sharing-Side Selection
+The goal of RSS is to estimate the preferred sharing factor
+to enhance federated fine-tuning performance.Theorem 1
+shows that this selection is determined by comparingE A
+
+===== PDF PAGE 5 =====
+
+5
+andE B associated with common rank-rinput- and output-
+side spaces, respectively. Since bothE A andE B depend
+on∆ i andΣ i, which are unavailable before training,
+RSS utilizes sequence-level representations extracted from a
+frozen LLM backbone to evaluate whether the shared rank-r
+input subspace is sufficient for the local data distributions.
+Specifically, it compares the projected global-mean-centered
+second moment captured by a global rank-rsubspace with
+that retained by client-specific rank-rsubspaces.
+Based on local datasetsD i with size|D i|=D i, we define
+the RSS score as
+RSS(r) =
+NX
+i=1
+pi
+Tr
+ 
+U ⊤
+g,rSiUg,r
+
+Tr
+ 
+U ⊤
+i,rSiUi,r
+
++ϵ ,(7)
+wherep i = DiPN
+i=1 Di
+, andϵ >0is a small constant for
+numerical stability.S i represents the centered covariance
+matrix of clientiwithU i,r containing its topreigenvectors,
+andU g,r contains the topreigenvectors ofS g =PN
+i=1 piSi.
+RSS(r)→1indicates that the global rank-rsubspace
+preserves as much client-specific representation energy as
+the locally optimal rank-rsubspaces.
+We further construct a thresholdτ(r)for the RSS deficit
+∆(r) = 1−RSS(r), accounting for the errors in randomly
+reassigning samples across clients and estimating local sub-
+spaces from finite data samples.τ(r)is formulated as
+τ(r) = max{τ null(r), τboot(r)},(8)
+whereτ null(r)is the95th percentile of the RSS deficits
+obtained by randomly reassigning samples across clients
+while preserving each client’s sample size, andτ boot(r)is
+the empirical95th percentile of the representation-energy
+losses obtained after re-estimating each client’s top-rsub-
+space from bootstrap resamples of its local data. Thus,
+∆(r)> τ(r)only when the deficit∆(r)exceeds both
+thresholds, and the sharing-side strategyM(r)is
+M(r) =
+(
+Share-B/Local-A,if ∆(r)> τ(r),
+Share-A/Local-B,if ∆(r)≤τ(r). (9)
+From (9), we can see that when∆(r)> τ(r), the loss in
+representation energy from using the global rank-rsubspace
+instead of the client-specific rank-rsubspaces exceeds both
+calibration thresholds. Since sharingArequires all clients
+to use a common input-side subspace, FedAS-LoRA selects
+Share-B/Local-A in this case. When∆(r)≤τ(r), the ob-
+served energy loss does not exceed the calibrated threshold,
+which leads to Share-A/Local-B.
+Before training starts, RSS is computed with representa-
+tions extracted by a frozen LLM backbone. It compares the
+representation energy retained by the global rank-rsubspace
+with that retained by the client-specific rank-rsubspaces.
+Together with the calibrated threshold, such comparison is
+used in (9) to decide whetherAis shared or kept client-
+specific. The details of the client and global subspaces, the
+two calibration terms, and the complete RSS workflow are
+provided in Appendix.
+B. Convergence Analysis
+Based on the designed RSS to determine the shared LoRA
+factor, we establish the convergence of FedAS-LoRA under
+arbitrary client subsetS t with|S t|=S t,∀t. This starts with
+the following assumptions.
+Assumption 1(Smoothness).For each clienti∈ N, the
+local objectivef i isL-smooth. For∀U 1, U2 ∈R dout×din,
+fi(U2)≤f i(U1) +⟨∇f i(U1), U2 −U 1⟩F + L
+2 ∥U2 −U 1∥2
+F .
+(10)
+Assumption 2(Unbiased and Bounded Stochastic Gra-
+dients).For any clienti, letG e
+t,i =∇f i(U e
+t,i;ξ e
+t,i)and
+¯Ge
+t,i =∇f i(U e
+t,i), respectively. The stochastic gradientG e
+t,i
+is unbiased and bounded withG max >0, i.e.,
+E
+
+Ge
+t,i |U e
+t,i
+
+= ¯Ge
+t,i and∥G e
+t,i∥F ≤G max.(11)
+Assumption 3(LoRA Parameter Bounds and Alignment).
+There exist constantsC A, CB >0andc A, cB >0such that
+∥Ae
+t,i∥F ≤C A and∥B e
+t,i∥F ≤C B.(12)
+Ae⊤
+t,i Ae
+t,i, ¯Ge⊤
+t,i ¯Ge
+t,i
+
+F ≥c A∥ ¯Ge
+t,i∥2
+F ,
+
+Be
+t,iBe⊤
+t,i , ¯Ge
+t,i ¯Ge⊤
+t,i
+
+F ≥c B∥ ¯Ge
+t,i∥2
+F .(13)
+Assumptions 1and2are standard in federated optimiza-
+tion Li et al. [2020b], Yu et al. [2019], Reddi et al. [2021].
+Assumption 3characterizes the bilinear LoRA parameter-
+ization, as widely used in federated LoRA analysis Guo
+et al. [2025], Chen et al. [2025], Park and Klabjan [2025].
+Specifically, the alignment inequalities inAssumption 3
+hold when the nonzero singular values ofA e
+t,i andB e
+t,i
+are uniformly bounded away from zero and the realized
+gradient has non-vanishing projections onto their induced
+row and column spaces, respectively. The norm bounds keep
+the factor iterates in a bounded region. By the chain rule for
+U=BA, the gradient ¯Ge
+t,i with respect toUinduces the
+gradients ¯Ge
+t,iAe⊤
+t,i andB e⊤
+t,i ¯Ge
+t,i with respect toB e
+t,i and
+Ae
+t,i, respectively. Since the alignment inequalities are im-
+posed only along the realized directions of ¯Ge
+t,i, they do not
+impose a global full-rank condition on the low-rank factors.
+The following result applies to any realized participation
+sequence that satisfies the gradient-mass coverage condition,
+as specified in the Appendix.
+Theorem 2.LetF ⋆ be a lower bound of the aggregate
+objective. For both Share-A/Local-B and Share-B/Local-A
+sharing strategies, the iterates of FedAS-LoRA satisfy
+1
+N T
+T−1X
+t=0
+NX
+i=1
+E
+
+∥∇fi(Ut,i)∥2
+F
+
+≤ F0 −F ⋆
+ηℓcT
++ 1
+ηℓcT
+T−1X
+t=0
+ St
+N Rsel +
+
+1− St
+N
+
+Runs
+
+,(14)
+wherecis a positive constant,C ⋆ := max{C A, CB},
+Rsel =Eη 2
+ℓ CACBG3
+max + 3LE
+2 η2
+ℓ (C4
+A +C 4
+B)G2
+max + 3LE
+2 ·
+η4
+ℓ C2
+AC2
+BG4
+max+ ηℓ
+2 G2
+max+( 1
+2ηℓ
++ L
+2 )(1+ηg)2η2
+ℓ E2C4
+⋆ G2
+max,
+
+===== PDF PAGE 6 =====
+
+6
+andR uns = ( 1
+2ρηℓ
++ L
+2 )η2
+gη2
+ℓ E2C4
+⋆ G2
+max. The proof of
+Theorem 2 is provided in the Appendix.
+Theorem 2shows that FedAS-LoRA reaches a stationary
+neighborhood under arbitrary client participation. The first
+term on the right-hand side (RHS) of (14) decreases as
+O(1/T), while the second term serves as the non-vanishing
+error induced by stochastic local updates, multiple local
+steps, and client sampling drift. The proof covers both
+sharing strategies since their local updates are identical:
+each selected client updates bothAandBbefore uploading
+only the shared factor. The only difference lies in the
+uploaded factor update, leading to a different drift bound,
+i.e.,∥Q E
+t,k −Q t∥F ≤η ℓECQGmax, whereQ∈ {A, B}.
+V. EXPERIMENTS
+In this section, we systematically evaluate the perfor-
+mance of FedAS-LoRA on two types of tasks: natural
+language understanding and natural language generation.
+A. Experimental Setup
+Datasets and implementation.:For natural language
+understanding tasks, we evaluate FedAS-LoRA with
+RoBERTa-large Liu et al. [2019] on the GLUE bench-
+mark Wang et al. [2018], including MNLI, SST-2, QNLI,
+QQP, and RTE. For natural language generation tasks, we
+evaluate FedAS-LoRA on the GSM8K dataset Cobbe et al.
+[2021] with LLaMA3-8B Meta AI [2024].
+For natural language understanding tasks, consistent with
+FedSA-LoRA Guo et al. [2025], we use the pre-trained
+RoBERTa-large model with 355M parameters Liu et al.
+[2019] from the HuggingFace Transformers library Wolf
+et al. [2020] as the backbone. LoRA modules are inserted
+into the query and value projection matrices of each attention
+layer. The default LoRA rank is set tor= 8with the
+scaling factorα= 16. For LoRA variants, rsLoRA adopts
+the same training configuration except for the rank-stabilized
+scaling rule Kalajdzievski [2023]. We use SGD for all
+LoRA- and rsLoRA-based methods. For VeRA Kopiczko
+et al. [2024], we setr= 256and use AdamW optimizer
+Loshchilov and Hutter [2019] with separate learning rates
+for the classification head and the adapted layers. Across
+all methods, we use a batch size of 128,E= 10,
+andT= 500. The local learning rateη l is tuned from
+{0.001,0.002,0.005,0.01,0.02,0.05}, and the global learn-
+ing rateη g is set to 1. Experiments are conducted on
+NVIDIA RTX 4090 GPUs. All results are reported as mean
+±standard deviation over three independent runs. See the
+Appendix for more experimental details.
+Benchmarks.:We compare FedAS-LoRA with repre-
+sentative federated LoRA methods and fixed factor-sharing
+policies.LoRAdenotes the standard federated implemen-
+tation that trains and aggregates both factorsA i andB i.
+FFA-LoRASun et al. [2024b] fixes a common randomly
+initialized factorAand only trains and aggregatesB i.
+FedDPA-LoRAYang et al. [2024] maintains global and
+personalized LoRA modules to capture shared and client-
+specific knowledge.FedSA-LoRAGuo et al. [2025] trains
+both factors, aggregatesA i, and retainsB i locally, i.e.,
+Share-A/Local-B.
+B. Main Results
+For natural language understanding tasks, consistent with
+FFA-LoRA Sun et al. [2024b], we randomly split the data
+across three clients for federated learning. We consider a
+non-IID setting using a Dirichlet distribution withα= 0.5,
+i.e., Dir(0.5). From Table I, we observe that FedAS-LoRA,
+FedAS-rsLoRA, and FedAS-VeRA consistently outperform
+the compared methods in terms of average accuracy, demon-
+strating the effectiveness of the proposed method. FedAS-
+LoRA achieves an average accuracy of90.77%, which is
+0.93 percentage points higher than that of FedSA-LoRA.
+These results indicate that applying the same fixed factor-
+sharing policy across tasks and adaptation variants can
+lead to suboptimal performance, supporting our design of
+selecting the sharing side according to the specific federated
+setting.
+For natural language generation, we evaluate LLaMA3-
+8B Meta AI [2024] on GSM8K using the Hugging-
+Face Transformers library Wolf et al. [2020]. Following
+FederatedScope-LLM Kuang et al. [2024], we split the data
+across three clients under an IID distribution and adopt the
+same optimization settings. LoRA, FFA-LoRA, and FedAS-
+LoRA achieve accuracies of 55.14%, 54.51%, and 56.28%,
+respectively, with generated examples in the Appendix.
+C. In-Depth Analyses
+We proceed to utilize LoRA-based methods to conduct
+analyses on the natural language understanding tasks of
+QNLI, SST-2, and MNLI-m to assess the impact of client
+sampling, data heterogeneity, and LoRA rank on model
+performance. Detailed comparisons of RSS decisions with
+Share-A/Local-B and Share-B/Local-A strategies, together
+with the communication cost analysis, are provided in the
+Appendix.
+1) Effect of Client Sampling:We consider10clients
+under both uniform and non-uniform sampling settings. For
+uniform sampling, we apply a sampling rate of 0.3 in
+each round. For non-uniform sampling, clientiparticipates
+independently according to a Bernoulli distribution with
+probability of0.1+0.4(i−1)/(N−1), i.e., the participation
+probabilities increase linearly from0.1to0.5. As shown
+in Table II, FedAS-LoRA consistently outperforms FedSA-
+LoRA across all evaluated tasks under both uniform and
+non-uniform sampling. Additional scalability results with
+N= 50clients are provided in the Appendix.
+2) Effect of Data Heterogeneity:We consider the perfor-
+mance of FedAS-LoRA under different data heterogeneity
+levels by examining IID data distributions, Dir(1), and
+Dir(0.5) under full client participation. Table III shows that
+FedAS-LoRA outperforms the compared baselines across
+the evaluated IID and Dirichlet partitions. Additional results
+
+===== PDF PAGE 7 =====
+
+7
+Method MNLI-m MNLI-mm SST-2 QNLI QQP RTE Avg.
+LoRA
+LoRA 88.36 ±0.08 88.65 ±0.05 95.19 ±0.09 90.80 ±0.89 85.42 ±1.27 85.84 ±0.36 89.04
+FFA-LoRA 86.46 ±0.04 87.47 ±0.09 95.53 ±0.03 89.24 ±0.84 86.38 ±0.53 87.05 ±0.07 88.69
+FedDPA-LoRA 88.77 ±0.06 88.02 ±0.10 96.10 ±0.05 89.92 ±0.59 86.60 ±0.81 87.36 ±0.15 89.46
+FedSA-LoRA 89.77 ±0.02 87.80 ±0.09 95.72 ±0.03 91.13 ±0.56 86.87 ±0.64 87.75 ±0.02 89.84
+FedAS-LoRA (Ours)89.95 ±0.06 88.86 ±0.49 97.17 ±0.19 92.94 ±0.39 87.95 ±0.56 87.77 ±0.04 90.77
+rsLoRA
+rsLoRA 84.46 ±0.27 86.99 ±0.13 96.49 ±0.09 89.29 ±1.44 86.11 ±0.87 86.42 ±0.22 88.29
+FFA-rsLoRA 89.10 ±0.12 87.85 ±0.25 96.10 ±0.08 89.13 ±0.58 86.02 ±0.34 86.98 ±0.09 89.20
+FedDPA-rsLoRA 89.36 ±0.19 88.67 ±0.29 96.79 ±0.10 90.89 ±1.17 86.68 ±0.02 86.71 ±0.28 89.85
+FedSA-rsLoRA 90.28 ±0.09 88.13 ±0.12 96.75 ±0.06 91.34 ±0.67 86.65 ±0.28 87.52 ±0.07 90.12
+FedAS-rsLoRA (Ours)90.61 ±0.10 89.79 ±0.23 97.02 ±0.07 91.90 ±0.45 87.11 ±0.11 87.58 ±0.08 90.67
+VeRA
+VeRA 89.57 ±0.02 87.79 ±0.11 94.33 ±0.17 91.94 ±0.52 88.67 ±0.48 85.63 ±0.20 89.66
+FFA-VeRA 87.06 ±0.13 86.72 ±0.41 93.12 ±0.35 90.59 ±0.11 87.22 ±0.04 85.15 ±0.29 88.31
+FedDPA-VeRA 87.98 ±0.46 86.78 ±0.36 94.39 ±0.48 91.56 ±0.31 88.71 ±0.35 86.24 ±0.06 89.28
+FedSA-VeRA 89.73 ±0.16 87.26 ±0.03 94.95 ±0.42 92.64 ±0.35 89.05 ±0.11 87.24 ±0.02 90.15
+FedAS-VeRA (Ours)90.28 ±0.54 88.38 ±0.32 95.87 ±0.12 93.08 ±0.11 89.26 ±0.22 87.22 ±0.03 90.68
+TABLE I: Performance of different methods on the GLUE benchmark. MNLI-m denotes MNLI with matched test sets, and
+MNLI-mm denotes MNLI with mismatched test sets.
+QNLI SST-2 MNLI-m
+LoRA 89.11 ±0.41 96.74 ±0.67 86.87 ±0.35
+FFA-LoRA 89.78 ±0.68 96.51 ±0.37 87.16 ±0.24
+FedDPA-LoRA 90.26 ±0.45 96.79 ±0.21 87.90 ±0.20
+FedSA-LoRA 90.34 ±0.67 96.72 ±0.44 88.16 ±0.27
+FedAS-LoRA (Ours)91.04 ±0.34 97.64 ±0.26 88.67 ±0.19
+LoRA 84.15 ±0.52 95.79 ±0.41 83.07 ±0.26
+FFA-LoRA 84.48 ±0.63 95.83 ±0.51 84.25 ±0.42
+FedDPA-LoRA 85.45 ±0.77 95.38 ±0.59 85.80 ±0.54
+FedSA-LoRA 86.11 ±0.50 96.50 ±0.62 86.27 ±0.43
+FedAS-LoRA (Ours)86.64 ±0.41 97.58 ±0.30 87.52 ±0.28
+TABLE II: Performance on QNLI, SST-2, and MNLI-m with
+N= 10clients under uniform and non-uniform sampling.
+The upper block uses a uniform per-round sampling rate of
+0.3, while the lower block uses independent client-specific
+Bernoulli sampling probabilities linearly spaced from0.1to
+0.5.
+under structured input-skew partitions are provided in Ap-
+pendix.
+3) Effect of LoRA Rank:We also explore the model
+performance over varying LoRA ranksr∈ {2,4,8,16}. The
+corresponding results are reported in Table IV. It is noted
+that FedAS-LoRA maintains competitive performance across
+the evaluated ranks. These results indicate that no sharing
+factor policy is consistently preferable across different ranks,
+demonstrating the effectiveness of the rank-aware sharing-
+side selection in FedAS-LoRA.
+VI. CONCLUSION
+In this paper, we studied which LoRA factor should be
+shared across clients and which should remain local during
+federated fine-tuning. Our investigations have shown that
+Method IID Dir(1)Dir(0.5)
+LoRA 90.85 ±0.08 90.96 ±0.46 90.80 ±0.89
+FFA-LoRA 89.51 ±0.25 90.39 ±0.42 89.24 ±0.44
+FedSA-LoRA 91.09 ±0.19 90.89 ±0.47 91.13 ±0.57
+FedAS-LoRA (Ours)91.12 ±0.22 91.58 ±0.11 92.94 ±0.39
+LoRA 95.27 ±0.02 95.41 ±0.04 95.19 ±0.09
+FFA-LoRA 95.45 ±0.03 95.70 ±0.10 95.53 ±0.03
+FedSA-LoRA 96.09 ±0.04 96.56 ±0.04 95.72 ±0.03
+FedAS-LoRA (Ours)96.10 ±0.02 96.79 ±0.04 97.17 ±0.19
+LoRA 88.30 ±0.02 87.78 ±0.05 88.36 ±0.08
+FFA-LoRA 88.69 ±0.03 88.90 ±0.06 86.46 ±0.04
+FedSA-LoRA 89.41 ±0.05 89.01 ±0.04 89.77 ±0.02
+FedAS-LoRA (Ours)89.43 ±0.04 89.02 ±0.03 89.95 ±0.06
+TABLE III: Performance comparison on the QNLI, SST-
+2, and MNLI-m tasks with various degrees of data hetero-
+geneity. From top to bottom, the three blocks correspond to
+QNLI, SST-2, and MNLI-m, respectively.
+Share-A/Local-B and Share-B/Local-A induce input-side
+and output-side projection residuals, respectively. To address
+the structural asymmetry, we proposed FedAS-LoRA, which
+selects the LoRA sharing factor before training and keeps
+the other factor client-specific. We designed a training-free
+RSS metric that compares the energy captured by global and
+local rank-rsubspaces to effectively determine the sharing
+factor. We established the convergence guarantees for both
+sharing strategies under arbitrary client participation. Ex-
+perimental results demonstrated that the preferred sharing
+side can change with the data distribution, adapter rank, and
+participation pattern, while FedAS-LoRA achieves superior
+performance across the evaluated settings.
+
+===== PDF PAGE 8 =====
+
+8
+Method QNLI SST-2 MNLI-m
+LoRA 87.12 ±0.16 95.41 ±0.19 88.48 ±0.27
+FFA-LoRA 86.45 ±0.83 94.90 ±0.22 88.61 ±0.09
+FedSA-LoRA 89.42 ±0.29 96.56 ±0.41 89.61 ±0.23
+FedAS-LoRA (Ours)89.46 ±0.27 96.79 ±0.21 89.63 ±0.15
+LoRA 90.25 ±0.32 95.67 ±0.48 87.38 ±0.35
+FFA-LoRA 91.05 ±0.21 94.78 ±0.49 90.62 ±0.46
+FedSA-LoRA 92.01 ±0.35 96.30 ±0.20 90.01 ±0.39
+FedAS-LoRA (Ours)92.80 ±0.23 96.33 ±0.14 90.28 ±0.25
+LoRA 90.80 ±0.29 95.19 ±0.09 88.36 ±0.08
+FFA-LoRA 89.24 ±0.24 95.53 ±0.03 86.46 ±0.04
+FedSA-LoRA 91.13 ±0.27 95.72 ±0.03 89.77 ±0.02
+FedAS-LoRA (Ours)92.94 ±0.39 97.17 ±0.19 89.95 ±0.06
+LoRA 88.47 ±0.52 94.95 ±0.19 88.75 ±0.27
+FFA-LoRA 88.25 ±0.55 94.92 ±0.16 88.23 ±0.13
+FedSA-LoRA 89.12 ±0.39 95.73 ±0.18 89.01 ±0.17
+FedAS-LoRA (Ours)89.56 ±0.19 95.72 ±0.16 89.73 ±0.07
+TABLE IV: Test accuracy on QNLI, SST-2, and MNLI-m
+with different LoRA ranksr. From top to bottom, the four
+blocks correspond tor= 2,r= 4,r= 8, andr= 16,
+respectively.
+REFERENCES
+Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao,
+and Yaliang Li. Federated fine-tuning of large
+language models under heterogeneous tasks and
+client resources. InAdvances in Neural Information
+Processing Systems, volume 37, pages 14457–
+14483, 2024. doi: 10.52202/079017-0461. URL
+https://proceedings.neurips.cc/paper_files/paper/2024/
+hash/1a134b50202088aa8c595cc99b310e5a-Abstract-
+Conference.html.
+Jieming Bian, Lei Wang, Letian Zhang, and Jie Xu. LoRA-
+FAIR: Federated LoRA fine-tuning with aggregation and
+initialization refinement. InProceedings of the IEEE/CVF
+International Conference on Computer Vision, pages
+3737–3746, 2025.
+Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind Nee-
+lakantan, Pranav Shyam, Girish Sastry, Amanda Askell,
+Sandhini Agarwal, Ariel Herbert-V oss, Gretchen Krueger,
+Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M.
+Ziegler, Jeffrey Wu, Clemens Winter, Christopher Hesse,
+Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray,
+Benjamin Chess, Jack Clark, Christopher Berner, Sam
+McCandlish, Alec Radford, Ilya Sutskever, and Dario
+Amodei. Language models are few-shot learners. In
+Advances in Neural Information Processing Systems, vol-
+ume 33, pages 1877–1901, 2020.
+Yuji Byun and Jaeho Lee. Towards federated low-rank
+adaptation of language models with rank heterogeneity. In
+Proceedings of the 2025 Conference of the Nations of the
+Americas Chapter of the Association for Computational
+Linguistics: Human Language Technologies (Volume 2:
+Short Papers), pages 356–362, Albuquerque, New Mex-
+ico, 4 2025. Association for Computational Linguistics.
+doi: 10.18653/v1/2025.naacl-short.30.
+Tianshi Che, Ji Liu, Yang Zhou, Jiaxiang Ren, Jiwen Zhou,
+Victor Sheng, Huaiyu Dai, and Dejing Dou. Federated
+learning of large language models with parameter-efficient
+prompt tuning and adaptive optimization. InProceedings
+of the 2023 Conference on Empirical Methods in Natural
+Language Processing, pages 7871–7888, Singapore, 2023.
+Association for Computational Linguistics. doi: 10.18653/
+v1/2023.emnlp-main.488. URL https://aclanthology.org/
+2023.emnlp-main.488/.
+Shuangyi Chen, Yuanxin Guo, Yue Ju, Hardik Dalal,
+Zhongwen Zhu, and Ashish Khisti. Robust federated
+finetuning of LLMs via alternating optimization
+of LoRA. InAdvances in Neural Information
+Processing Systems, volume 38, 2025. URL
+https://proceedings.neurips.cc/paper_files/paper/2025/
+file/adf17e7346b6be4c2f2bb40de572e5bc-Paper-
+Conference.pdf.
+Yiming Chen, Ruanjun Li, Jiawei Shao, Lifeng Sun, Chi
+Zhang, Jun Zhang, and Xuelong Li. Federated LoRA
+fine-tuning of LLMs with only transmitting matrix A or
+B.IEEE Transactions on Mobile Computing, pages 1–
+17, May 2026. doi: 10.1109/TMC.2026.3696859. Early
+Access, Art. no. 11535031.
+Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, and
+Gauri Joshi. Heterogeneous LoRA for federated fine-
+tuning of on-device foundation models. InProceedings
+of the 2024 Conference on Empirical Methods in Nat-
+ural Language Processing, pages 12903–12913, Miami,
+Florida, USA, November 2024. Association for Compu-
+tational Linguistics. doi: 10.18653/v1/2024.emnlp-main.
+717. URL https://aclanthology.org/2024.emnlp-main.717/.
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark
+Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plap-
+pert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano,
+Christopher Hesse, and John Schulman. Training ver-
+ifiers to solve math word problems.arXiv preprint
+arXiv:2110.14168, 2021. doi: 10.48550/arXiv.2110.
+14168. URL https://arxiv.org/abs/2110.14168.
+Pengxin Guo, Shuang Zeng, Yanran Wang, Huijie Fan, Feifei
+Wang, and Liangqiong Qu. Selective aggregation for low-
+rank adaptation in federated learning. InInternational
+Conference on Learning Representations, 2025. URL
+https://openreview.net/forum?id=iX3uESGdsO.
+Tao Guo, Song Guo, Junxiao Wang, Xueyang Tang, and
+Wenchao Xu. PromptFL: Let federated participants co-
+operatively learn prompts instead of models—federated
+learning in age of foundation model.IEEE Transactions
+on Mobile Computing, 23(5):5179–5194, 2024. doi:
+10.1109/TMC.2023.3302410.
+Soufiane Hayou, Nikhil Ghosh, and Bin Yu. LoRA+:
+Efficient low rank adaptation of large models. InPro-
+ceedings of the 41st International Conference on Machine
+Learning, volume 235 ofProceedings of Machine Learn-
+ing Research, pages 17783–17806. PMLR, 2024. URL
+
+===== PDF PAGE 9 =====
+
+9
+https://proceedings.mlr.press/v235/hayou24a.html.
+Junxian He, Chunting Zhou, Xuezhe Ma, Taylor Berg-
+Kirkpatrick, and Graham Neubig. Towards a unified view
+of parameter-efficient transfer learning. InInternational
+Conference on Learning Representations, 2022. URL
+https://openreview.net/forum?id=0RDcd5Axok.
+Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna
+Morrone, Quentin de Laroussilhe, Andrea Gesmundo,
+Mona Attariyan, and Sylvain Gelly. Parameter-efficient
+transfer learning for NLP. InProceedings of the 36th In-
+ternational Conference on Machine Learning, volume 97
+ofProceedings of Machine Learning Research, pages
+2790–2799. PMLR, 2019.
+Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-
+Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu
+Chen. LoRA: Low-rank adaptation of large language
+models. InInternational Conference on Learning Repre-
+sentations, 2022. URL https://openreview.net/forum?id=
+nZeVKeeFYf9.
+Damjan Kalajdzievski. A rank stabilization scaling factor for
+fine-tuning with LoRA.arXiv preprint arXiv:2312.03732,
+2023. doi: 10.48550/arXiv.2312.03732. URL https://arxiv.
+org/abs/2312.03732.
+Jabin Koo, Minwoo Jang, and Jungseul Ok. Towards
+robust and efficient federated low-rank adaptation with
+heterogeneous clients. InProceedings of the 63rd Annual
+Meeting of the Association for Computational Linguistics
+(Volume 1: Long Papers), pages 416–429, Vienna, Aus-
+tria, 7 2025. Association for Computational Linguistics.
+doi: 10.18653/v1/2025.acl-long.19.
+Dawid Jan Kopiczko, Tijmen Blankevoort, and Yuki M.
+Asano. VeRA: Vector-based random matrix adapta-
+tion. InInternational Conference on Learning Repre-
+sentations, 2024. URL https://openreview.net/forum?id=
+NjNfLdxr3A.
+Weirui Kuang, Bingchen Qian, Zitao Li, Daoyuan Chen,
+Dawei Gao, Xuchen Pan, Yuexiang Xie, Yaliang Li,
+Bolin Ding, and Jingren Zhou. FederatedScope-LLM:
+A comprehensive package for fine-tuning large language
+models in federated learning. InProceedings of the
+30th ACM SIGKDD Conference on Knowledge Discovery
+and Data Mining, pages 5260–5271, New York, NY ,
+USA, 2024. Association for Computing Machinery. doi:
+10.1145/3637528.3671573. URL https://doi.org/10.1145/
+3637528.3671573.
+Tian Li, Anit Kumar Sahu, Ameet Talwalkar, and Virginia
+Smith. Federated learning: Challenges, methods, and
+future directions.IEEE Signal Processing Magazine, 37
+(3):50–60, 2020a. doi: 10.1109/MSP.2020.2975749.
+Xiang Li, Kaixuan Huang, Wenhao Yang, Shusen Wang, and
+Zhihua Zhang. On the convergence of FedAvg on non-
+IID data. InInternational Conference on Learning Rep-
+resentations, 2020b. URL https://openreview.net/forum?
+id=HJxNAnVtDS.
+Xiang Lisa Li and Percy Liang. Prefix-Tuning: Optimizing
+continuous prompts for generation. InProceedings of the
+59th Annual Meeting of the Association for Computational
+Linguistics and the 11th International Joint Conference on
+Natural Language Processing (Volume 1: Long Papers),
+pages 4582–4597, Online, 2021. Association for Compu-
+tational Linguistics. doi: 10.18653/v1/2021.acl-long.353.
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-
+dar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke
+Zettlemoyer, and Veselin Stoyanov. RoBERTa: A ro-
+bustly optimized BERT pretraining approach.arXiv
+preprint arXiv:1907.11692, 2019. doi: 10.48550/arXiv.
+1907.11692. URL https://arxiv.org/abs/1907.11692.
+Ilya Loshchilov and Frank Hutter. Decoupled weight decay
+regularization. InInternational Conference on Learn-
+ing Representations, 2019. URL https://openreview.net/
+forum?id=Bkg6RiCqY7.
+Brendan McMahan, Eider Moore, Daniel Ramage, Seth
+Hampson, and Blaise Agüera y Arcas. Communication-
+efficient learning of deep networks from decentralized
+data. InProceedings of the 20th International Conference
+on Artificial Intelligence and Statistics, volume 54 of
+Proceedings of Machine Learning Research, pages 1273–
+1282. PMLR, 2017.
+Meta AI. Introducing Meta Llama 3: The most capable
+openly available LLM to date. https://ai.meta.com/blog/
+meta-llama-3/, April 2024. Published April 18, 2024.
+Haemin Park and Diego Klabjan. Communication-efficient
+federated low-rank update algorithm and its connection
+to implicit regularization. InInternational Conference on
+Learning Representations, 2025. URL https://openreview.
+net/forum?id=DdPeCRVyCd.
+Sashank J. Reddi, Zachary Charles, Manzil Zaheer, Zachary
+Garrett, Keith Rush, Jakub Kone ˇcný, Sanjiv Kumar, and
+H. Brendan McMahan. Adaptive federated optimiza-
+tion. InInternational Conference on Learning Repre-
+sentations, 2021. URL https://openreview.net/forum?id=
+LkFG3lB13U5.
+Zhanming Shen, Tianqi Xu, Hao Wang, Jian Li, and Miao
+Pan. pFedGPT: Hierarchically optimizing LoRA aggrega-
+tion weights for personalized federated GPT models. In
+Proceedings of the 2025 Conference on Empirical Meth-
+ods in Natural Language Processing, pages 4766–4778,
+Suzhou, China, 11 2025. Association for Computational
+Linguistics. doi: 10.18653/v1/2025.emnlp-main.239.
+Raghav Singhal, Kaustubh Ponkshe, and Praneeth
+Vepakomma. FedEx-LoRA: Exact aggregation for
+federated and efficient fine-tuning of large language
+models. InProceedings of the 63rd Annual Meeting
+of the Association for Computational Linguistics
+(Volume 1: Long Papers), pages 1316–1336, Vienna,
+Austria, July 2025. Association for Computational
+Linguistics. doi: 10.18653/v1/2025.acl-long.67. URL
+https://aclanthology.org/2025.acl-long.67/.
+Jingwei Sun, Ziyue Xu, Hongxu Yin, Dong Yang, Daguang
+Xu, Yudong Liu, Zhixu Du, Yiran Chen, and Holger R.
+Roth. FedBPT: Efficient federated black-box prompt
+tuning for large language models. InProceedings of
+the 41st International Conference on Machine Learn-
+ing, volume 235 ofProceedings of Machine Learning
+
+===== PDF PAGE 10 =====
+
+10
+Research, pages 47159–47173. PMLR, 2024a. URL
+https://proceedings.mlr.press/v235/sun24j.html.
+Youbang Sun, Zitao Li, Yaliang Li, and Bolin Ding.
+Improving LoRA in privacy-preserving federated learn-
+ing. InInternational Conference on Learning Repre-
+sentations, 2024b. URL https://openreview.net/forum?id=
+NLPzL6HWNl.
+Chunlin Tian, Zhan Shi, Zhijiang Guo, Li Li, and
+Chengzhong Xu. HydraLoRA: An asymmetric LoRA
+architecture for efficient fine-tuning. InAdvances in
+Neural Information Processing Systems, volume 37, pages
+9565–9584, 2024. doi: 10.52202/079017-0304. URL
+https://proceedings.neurips.cc/paper_files/paper/2024/
+hash/123fd8a56501194823c8e0dca00733df-Abstract-
+Conference.html.
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Mar-
+tinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste
+Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, Aure-
+lien Rodriguez, Armand Joulin, Edouard Grave, and Guil-
+laume Lample. LLaMA: Open and efficient foundation
+language models.arXiv preprint arXiv:2302.13971, 2023.
+doi: 10.48550/arXiv.2302.13971.
+Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill,
+Omer Levy, and Samuel R. Bowman. GLUE: A multi-
+task benchmark and analysis platform for natural language
+understanding. InProceedings of the 2018 EMNLP Work-
+shop BlackboxNLP: Analyzing and Interpreting Neural
+Networks for NLP, pages 353–355, Brussels, Belgium,
+2018. Association for Computational Linguistics. doi:
+10.18653/v1/W18-5446. URL https://aclanthology.org/
+W18-5446/.
+Haoran Wang, Xiong Wang, Yuqing Li, Jing Chen, Junyi
+Zhang, Nan Yan, Kun He, and Wei Wang. Federated
+LoRA fine-tuning with pipelined error-mitigated aggre-
+gation and matrix-wise freezing. InFindings of the
+Association for Computational Linguistics: ACL 2026,
+pages 5749–5762, San Diego, California, United States,
+July 2026. Association for Computational Linguistics.
+doi: 10.18653/v1/2026.findings-acl.284. URL https://
+aclanthology.org/2026.findings-acl.284/.
+Ziyao Wang, Zheyu Shen, Yexiao He, Guoheng Sun,
+Hongyi Wang, Lingjuan Lyu, and Ang Li. FLoRA:
+Federated fine-tuning large language models with
+heterogeneous low-rank adaptations. InAdvances in
+Neural Information Processing Systems, volume 37, pages
+22513–22533, 2024. doi: 10.52202/079017-0708. URL
+https://proceedings.neurips.cc/paper_files/paper/2024/
+hash/28312c9491d60ed0c77f7fff4ad86dd1-Abstract-
+Conference.html.
+Adina Williams, Nikita Nangia, and Samuel R. Bowman.
+A broad-coverage challenge corpus for sentence under-
+standing through inference. InProceedings of the 2018
+Conference of the North American Chapter of the Asso-
+ciation for Computational Linguistics: Human Language
+Technologies, Volume 1 (Long Papers), pages 1112–1122,
+New Orleans, Louisiana, 6 2018. Association for Compu-
+tational Linguistics. doi: 10.18653/v1/N18-1101.
+Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chau-
+mond, Clement Delangue, Anthony Moi, Pierric Cistac,
+Tim Rault, Remi Louf, Morgan Funtowicz, Joe Davison,
+Sam Shleifer, Patrick von Platen, Clara Ma, Yacine Jer-
+nite, Julien Plu, Canwen Xu, Teven Le Scao, Sylvain
+Gugger, Mariama Drame, Quentin Lhoest, and Alexander
+Rush. Transformers: State-of-the-art natural language
+processing. InProceedings of the 2020 Conference
+on Empirical Methods in Natural Language Processing:
+System Demonstrations, pages 38–45, Online, 2020. Asso-
+ciation for Computational Linguistics. doi: 10.18653/v1/
+2020.emnlp-demos.6. URL https://aclanthology.org/2020.
+emnlp-demos.6/.
+Binqian Xu, Haiyang Mei, Zechen Bai, Jinjin Gong, Rui
+Yan, Guosen Xie, Yazhou Yao, Basura Fernando, and
+Xiangbo Shu. You only communicate once: One-shot
+federated low-rank adaptation of MLLM. InAdvances in
+Neural Information Processing Systems, volume 38, 2025.
+Yiyuan Yang, Guodong Long, Tao Shen, Jing Jiang, and
+Michael Blumenstein. Dual-personalizing adapter for
+federated foundation models. InAdvances in Neural
+Information Processing Systems, volume 37, pages
+39409–39433, 2024. doi: 10.52202/079017-1245. URL
+https://proceedings.neurips.cc/paper_files/paper/2024/
+hash/45a30141c6719e9cfedfb51f1c665a37-Abstract-
+Conference.html.
+Yiyuan Yang, Guodong Long, Qinghua Lu, Liming Zhu,
+Jing Jiang, and Chengqi Zhang. Federated low-rank adap-
+tation for foundation models: A survey. InProceedings
+of the Thirty-Fourth International Joint Conference on
+Artificial Intelligence, pages 10779–10787. International
+Joint Conferences on Artificial Intelligence Organization,
+8 2025. doi: 10.24963/ijcai.2025/1196. Survey Track.
+Hao Yu, Sen Yang, and Shenghuo Zhu. Parallel restarted
+SGD with faster convergence and less communication:
+Demystifying why model averaging works for deep learn-
+ing.Proceedings of the AAAI Conference on Artificial
+Intelligence, 33(01):5693–5700, July 2019. doi: 10.1609/
+aaai.v33i01.33015693. URL https://doi.org/10.1609/aaai.
+v33i01.33015693.
+Haoran Zhang, Dongjun Kim, Seohyeon Cha, and Haris
+Vikalo. FedRot-LoRA: Mitigating rotational misalign-
+ment in federated LoRA. InForty-third International
+Conference on Machine Learning, 2026. URL https:
+//arxiv.org/abs/2602.23638.
+Longteng Zhang, Lin Zhang, Shaohuai Shi, Xiaowen Chu,
+and Bo Li. LoRA-FA: Efficient and effective low rank rep-
+resentation fine-tuning.arXiv preprint arXiv:2308.03303,
+2023. doi: 10.48550/arXiv.2308.03303. URL https://arxiv.
+org/abs/2308.03303.
+Jiacheng Zhu, Kristjan Greenewald, Kimia Nadjahi,
+Haitz Sáez De Ocáriz Borde, Rickard Brüel Gabriels-
+son, Leshem Choshen, Marzyeh Ghassemi, Mikhail
+Yurochkin, and Justin Solomon. Asymmetry in low-rank
+adapters of foundation models. InProceedings of the 41st
+International Conference on Machine Learning, volume
+235 ofProceedings of Machine Learning Research, pages
+
+===== PDF PAGE 11 =====
+
+11
+62369–62385. PMLR, 2024. URL https://proceedings.mlr.
+press/v235/zhu24c.html.
+APPENDIXA
+TRAININGPROCESS OFFEDAS-LORA
+Algorithm 1summarizes the training flow of FedAS-
+LoRA. Before federated training, the server computes RSS
+from the sequence-level representations extracted by the
+frozen LLM backbone and determines the sharing policy
+M(r)according to (9). The selected policy remains fixed
+throughout training. Specifically, Share-A/Local-B setsQ=
+A, whereas Share-B/Local-A setsQ=B.
+At each training roundt, the server selects a nonempty
+client subsetS t ⊆ Nand sends the current shared factor
+Qt to the selected clients. Each selected client initializes its
+shared-factor copy withQ t, restores its retained factor, and
+updates both LoRA factors forElocal steps. It then uploads
+only the shared-factor increment∆Q t,i =Q E
+t,i −Q t and
+retains the updated nonshared factor locally. The server ag-
+gregates the received increments according to (3), while the
+client-local factors of unselected clients remain unchanged.
+For clarity,Algorithm 1is written for one LoRA-adapted
+layer.
+APPENDIXB
+DESIGNDETAILS OF THERSS METRIC
+This section provides the construction of the client and
+global subspaces in (7), followed by the two calibration
+terms in (8).
+Client and global subspaces.:Leth(x)∈R dh denote
+the sequence-level representation of inputxextracted from
+the frozen LLM backbone. Given the client datasets{D i}N
+i=1
+withD i =|D i|, the global representation mean is
+¯h= 1PN
+j=1 Dj
+NX
+j=1
+X
+(x,y)∈Dj
+h(x).(15)
+For each clienti∈ N, we then define
+Si = 1
+Di
+X
+(x,y)∈Di
+ 
+h(x)− ¯h
+ 
+h(x)− ¯h
+⊤
+.(16)
+All clients are centered using the same global mean ¯h.
+Hence,S i reflects both the variation of clienti’s represen-
+tations and the difference between its representation mean
+and the global mean.
+LetU i,r ∈R dh×r contain the toprorthonormal eigen-
+vectors ofS i. The global matrix isS g = PN
+i=1 piSi =PN
+i=1
+DiPN
+i=1 Di
+Si, withU g,r ∈R dh×r containing its topr
+orthonormal eigenvectors. By the Rayleigh–Ritz principle,
+Tr(U⊤
+i,rSiUi,r)is the maximum representation energy that
+a rank-rorthonormal subspace can retain for clienti. In
+contrast,Tr(U ⊤
+g,rSiUg,r)is the energy retained for the same
+client by the global rank-rsubspace. Their ratio in (7)
+therefore measures how much of clienti’s locally attainable
+rank-renergy is preserved by the global subspace. RSS
+averages these ratios across clients using{p i}N
+i=1.
+Algorithm 1FedAS-LoRA
+1:Input:Client datasets{D i}N
+i=1, frozen LLM backbone,
+rankr, initial LoRA factors, roundsT, local stepsE,
+local learning rateη ℓ, and server learning rateη g.
+2:At the server, computeRSS(r),∆(r) = 1−RSS(r),
+andτ(r), and determineM(r)according to (9).
+3:ifM(r) =Share-A/Local-Bthen
+4:SetQ=A; the server maintainsQ t =A t, and client
+iretainsB t,i locally.
+5:else
+6:SetQ=B; the server maintainsQ t =B t, and client
+iretainsA t,i locally.
+7:end if
+8:fort= 0,1, . . . , T−1do
+9:The server selects a nonempty subsetS t ⊆ Nwith
+St =|S t|and sendsQ t to each clienti∈ S t.
+10:foreach clienti∈ S t in paralleldo
+11:SetQ 0
+t,i =Q t and initialize the nonshared factor
+from clienti’s retained local state.
+12:fore= 0,1, . . . , E−1do
+13:Sample a mini-batchξ e
+t,i and setU e
+t,i =B e
+t,iAe
+t,i.
+14:ComputeG e
+t,i =∇f i(U e
+t,i;ξ e
+t,i).
+15:UpdateB e+1
+t,i =B e
+t,i −η ℓGe
+t,iAe⊤
+t,i .
+16:UpdateA e+1
+t,i =A e
+t,i −η ℓBe⊤
+t,i Ge
+t,i.
+17:end for
+18:Upload∆Q t,i =Q E
+t,i −Q t; retainB E
+t,i ifQ=A,
+orA E
+t,i ifQ=B.
+19:end for
+20:The server updatesQ t+1 =Q t+ηgS−1
+t
+P
+i∈St ∆Qt,i.
+21:Each clientj /∈ S t keeps its client-local factor
+unchanged.
+22:end for
+23:returnThe shared factorQ T and the retained client-
+local factors.
+Random-split calibration.:A nonzero deficit may arise
+even when samples are randomly assigned to clients. To
+measure this variation, we randomly reassign the samples
+while preserving the client sizes{D i}N
+i=1. For theb-th
+reassignment, we recompute the client and global subspaces
+Si andS g. LetRSS (b)
+null(r)denote the resulting RSS score
+and define
+∆(b)
+null(r) = 1−RSS (b)
+null(r).(17)
+The random-split calibration term is
+τnull(r) =Q 0.95
+n
+∆(b)
+null(r)
+o
+b
+
+,(18)
+whereQ 0.95 denotes the empirical95th percentile. Thus,
+τnull(r)measures the RSS deficit that can be produced by
+random reassignment under the same client sizes.
+Bootstrap calibration.:The estimated local subspaces
+can also vary because each client has finitely many samples.
+For theb-th bootstrap replicate, clientidrawsD i samples
+
+===== PDF PAGE 12 =====
+
+12
+Algorithm 2RSS Computation Workflow
+1:Input:Client datasets{D i}N
+i=1, frozen LLM backbone,
+rankr, andϵ >0.
+2:Extract the sequence-level representationh(x)for every
+sample using the frozen LLM backbone.
+3:Compute the global representation mean ¯hfrom all
+client samples.
+4:foreach clienti∈ Ndo
+5:ComputeS i according to (16).
+6:end for
+7:ComputeRSS(r)according to (7), and set∆(r) = 1−
+RSS(r).
+8:foreach random reassignment indexed bybdo
+9:Randomly reassign the samples across clients while
+preserving the client sizes{D i}N
+i=1.
+10:Recompute the client and global rank-rsubspaces
+from the reassigned datasets.
+11:ComputeRSS (b)
+null(r)using (7), and set∆ (b)
+null(r) =
+1−RSS (b)
+null(r).
+12:end for
+13:Computeτ null(r)according to (18).
+14:foreach bootstrap replicate indexed bybdo
+15:foreach clienti∈ Ndo
+16:DrawD i samples with replacement fromD i.
+17:Using the same global mean ¯h, recompute the client
+matrix and letU (b)
+i,r contain its toprorthonormal
+eigenvectors.
+18:end for
+19:Computee (b)
+boot(r)according to (19).
+20:end for
+21:Computeτ boot(r)according to (20).
+22:Setτ(r) = max{τ null(r), τboot(r)}.
+23:if∆(r)> τ(r)then
+24:SetM(r) =Share-B/Local-A.
+25:else
+26:SetM(r) =Share-A/Local-B.
+27:end if
+28:returnRSS(r),∆(r),τ(r), andM(r).
+with replacement fromD i. Using the same global mean
+¯h, we recompute the client matrix and letU (b)
+i,r contain its
+toprorthonormal eigenvectors. The corresponding loss of
+representation energy is
+e(b)
+boot(r) =
+NX
+i=1
+pi
+
+1−
+Tr
+
+U(b)⊤
+i,r SiU(b)
+i,r
+
+Tr
+ 
+U ⊤
+i,rSiUi,r
+
++ϵ
+
+
++
+,(19)
+where[z] + = max{z,0}. The bootstrap calibration term is
+τboot(r) =Q 0.95
+n
+e(b)
+boot(r)
+o
+b
+
+.(20)
+Here,τ boot(r)measures the loss caused by re-estimating the
+client-specific rank-rsubspaces from finite samples.
+The final threshold in (8) is the larger ofτ null(r)and
+τboot(r). Therefore,∆(r)> τ(r)only when the observed
+RSS deficit exceeds both the random-split variation and
+the finite-sample subspace error. The sharing policy is then
+determined by (9).
+Algorithm 2summarizes the computation process of
+RSS, whose quantities are computed before federated op-
+timization without gradients, LoRA warm-up, or trained
+LoRA factors.
+Relation to Theorem 1.:Theorem 1shows that, under
+the least-squares surrogate, the preferred sharing strategy
+is determined by comparing the aggregate input-side and
+output-side projection residuals,E A andE B. Directly eval-
+uating these residuals before training is infeasible because
+they depend on the client-specific desired adaptations∆ i,
+which are unavailable at that stage. RSS therefore does
+not directly estimateE A,E B, or their difference. Instead,
+it evaluates whether the common rank-rinput-side structure
+required by Share-A/Local-B is sufficient for the local data
+distributions, using sequence-level representations extracted
+from the frozen LLM backbone. When∆(r)> τ(r), the
+observed RSS deficit exceeds both the random-split variation
+and the finite-sample subspace error, indicating that the
+global rank-rinput subspace is insufficient. FedAS-LoRA
+therefore selects Share-B/Local-A. Otherwise, the observed
+deficit does not exceed the calibrated threshold, and Share-
+A/Local-B is selected. Thus, RSS serves as a training-
+free sharing-side selector motivated by Theorem 1, rather
+than a direct estimator of the two projection residuals. Its
+agreement with the empirically better fixed sharing strategy
+is reported in Table VIII.
+APPENDIXC
+PROOF OFTHEOREM1
+For the Share-A/Local-B case, fixA∈R r×din, and let
+Yi = ∆ iΣ1/2
+i andX i =AΣ 1/2
+i . Optimizing the client-
+local factorB i gives the least-squares problemmin Bi ∥Yi −
+BiXi∥2
+F , and the corresponding solution is given by
+B⋆
+i (A) =Y iX ⊤
+i (XiX ⊤
+i )† = ∆iΣiA⊤(AΣiA⊤)†.(21)
+With the definition ofΠ i,A inTheorem 1, we have
+B⋆
+i (A)Xi =Y iΠi,A. Therefore,
+min
+Bi
+∥(∆i −B iA)Σ1/2
+i ∥2
+F =∥Y i(I−Π i,A)∥2
+F
+=
+∆iΣ1/2
+i (I−Π i,A)
+
+2
+F
+.(22)
+Averaging over the clients and minimizing over the shared
+factorAyields (5).
+For Share-B/Local-A, fixB∈R dout×r and again letY i =
+∆iΣ1/2
+i . SinceΣ i ≻0, the change of variablesC i =A iΣ1/2
+i
+is bijective. The local problem can therefore be written as
+minCi ∥Yi −BC i∥2
+F . TakingC ⋆
+i =B †Yi gives
+A⋆
+i (B) =C ⋆
+i Σ−1/2
+i =B †∆i.(23)
+
+===== PDF PAGE 13 =====
+
+13
+The fitted value satisfiesBC ⋆
+i =BB †Yi = Π BYi, where
+ΠB is the orthogonal projector onto the column space ofB.
+It follows that
+min
+Ai
+∥(∆i −BA i)Σ1/2
+i ∥2
+F =∥(I−Π B)Yi∥2
+F
+=
+(I−Π B)∆iΣ1/2
+i
+
+2
+F
+.(24)
+Averaging over the clients and minimizing over the shared
+factorByields (6), which completes the proof.
+APPENDIXD
+PROOF OFTHEOREM2
+For clientiat local stepeof roundt, letU e
+t,i =B e
+t,iAe
+t,i
+andU t,i =U 0
+t,i. We define the aggregate objective asF t =
+1
+N
+PN
+i=1 fi(Ut,i)and recall thatC ⋆ = max{C A, CB}. By
+Assumption 2and Jensen’s inequality, we have
+∥ ¯Ge
+t,i∥F ≤E
+
+∥Ge
+t,i∥F |U e
+t,i
+
+≤G max.(25)
+During local training, both LoRA factors are updated
+according toB e+1
+t,i =B e
+t,i −η ℓGe
+t,iAe⊤
+t,i , Ae+1
+t,i =A e
+t,i −
+ηℓBe⊤
+t,i Ge
+t,i. Thus, we have
+U e+1
+t,i −U e
+t,i =−η ℓBe
+t,iBe⊤
+t,i Ge
+t,i −η ℓGe
+t,iAe⊤
+t,i Ae
+t,i
++η 2
+ℓ Ge
+t,iAe⊤
+t,i Be⊤
+t,i Ge
+t,i.(26)
+ApplyingAssumption 1to the increment (26) gives
+fi(U e+1
+t,i )−f i(U e
+t,i)≤
+
+ ¯Ge
+t,i, U e+1
+t,i −U e
+t,i
+
+F
++ L
+2 ∥U e+1
+t,i −U e
+t,i∥2
+F .(27)
+For the first term on the RHS of (27), based on the
+unbiasedness ofG e
+t,i andAssumption 3, we have
+−ηℓE
+h
+ ¯Ge
+t,i, Be
+t,iBe⊤
+t,i Ge
+t,i
+
+F
+i
+≤ −ηℓcB∥ ¯Ge
+t,i∥2
+F ,
+−ηℓE
+h
+ ¯Ge
+t,i, Ge
+t,iAe⊤
+t,i Ae
+t,i
+
+F
+i
+≤ −ηℓcA∥ ¯Ge
+t,i∥2
+F .(28)
+For theη 2
+ℓ Ge
+t,iAe⊤
+t,i Be⊤
+t,i Ge
+t,i term in (26), we have
+η2
+ℓ
+
+
+ ¯Ge
+t,i, Ge
+t,iAe⊤
+t,i Be⊤
+t,i Ge
+t,i
+
+F
+ ≤η 2
+ℓ ∥ ¯Ge
+t,i∥F ∥Ge
+t,i∥2
+F
+∥Ae
+t,i∥F ∥Be
+t,i∥F ≤η 2
+ℓ CACBG3
+max.(29)
+where the first inequality is due to the Cauchy–Schwarz
+inequality, and the second inequality comes fromAssump-
+tions 2and3.
+With (28), (29) and the Cauchy–Schwarz inequality, we
+obtain
+∥U e+1
+t,i −U e
+t,i∥2
+F ≤3η 2
+ℓ (C4
+A +C 4
+B)G2
+max
++ 3η4
+ℓ C2
+AC2
+BG4
+max.(30)
+Combining the upper bounds above with (27), the second
+term on the RHS of (27) is bounded, as given by
+E
+
+fi(U e+1
+t,i )−fi(U e
+t,i)
+
+≤ −ηℓ(cA+cB)E
+
+∥ ¯Ge
+t,i∥2
+F
+
++η 2
+ℓ CACBG3
+max + 3L
+2 η2
+ℓ (C4
+A +C 4
+B)G2
+max
++ 3L
+2 η4
+ℓ C2
+AC2
+BG4
+max,(31)
+Summing (31) overe= 0, . . . , E−1gives
+E
+
+fi(U E
+t,i)−f i(Ut,i)
+
+≤ −η ℓ(cA +c B)
+E−1X
+e=0
+E
+
+∥ ¯Ge
+t,i∥2
+F
+
++Er loc,(32)
+wherer loc =η 2
+ℓ CACBG3
+max + 3L
+2 η2
+ℓ (C4
+A +C 4
+B)G2
+max +
+3L
+2 η4
+ℓ C2
+AC2
+BG4
+max.
+For the accumulated local gradientsPE−1
+e=0 E
+
+∥ ¯Ge
+t,i∥2
+F
+
+in
+(32), we have
+E−1X
+e=0
+E
+
+∥ ¯Ge
+t,i∥2
+F
+
+=E
+"
+ ¯G0
+t,i
+2
+F +
+E−1X
+e=1
+ ¯Ge
+t,i
+2
+F
+#
+≥E
+h ¯G0
+t,i
+2
+F
+i
+≥κEE
+h
+∥∇fi (Ut,i)∥2
+F
+i
+,(33)
+whereκ∈[0, 1
+E ]. Substituting (33) into the preceding bound
+yields
+E
+
+fi(U E
+t,i)−f i(Ut,i)
+
+≤
+Erloc −ηℓ(cA+cB)κEE
+
+∥∇fi(Ut,i)∥2
+F
+
+, i∈ S t.(34)
+We next bound the changes in the shared factor during
+local training and server aggregation. Telescoping the cor-
+responding local factor updates gives
+∥AE
+t,i −A t∥F ≤η ℓECBGmax,for Share-A/Local-B,
+∥BE
+t,i −B t∥F ≤η ℓECAGmax,for Share-B/Local-A.
+(35)
+where both inequalities come from the triangle inequality,
+Assumptions 2and3. Consequently, either choice of the
+shared factorQsatisfies
+∥QE
+t,i −Q t∥F ≤η ℓEC⋆Gmax, i∈ S t.(36)
+Based on the server update in (3), we obtain
+∥Qt+1 −Qt∥F =
+
+ηg
+St
+X
+k∈St
+(QE
+t,k −Qt)
+
+F
+≤ηgηℓEC⋆Gmax.
+(37)
+where the inequality follows from the triangle inequality and
+the upper bound of∥Q E
+t,k −Q t∥F in (36).
+After server aggregation, letU t+1,i denote the product
+formed fromQ t+1 and clienti’s retained local factor. For
+i∈ S t,U t+1,i andU E
+t,i have the same local factor and differ
+only inQ t+1 andQ E
+t,i. Forj /∈ St,U t+1,j andU t,j have the
+same local factor and differ only inQ t+1 andQ t. Based on
+Frobenius-norm submultiplicativity, we obtain
+∥Ut+1,i −U E
+t,i∥F ≤Dsel :=(1+η g)ηℓEC 2
+⋆ Gmax, i∈ S t,
+(38)
+∥Ut+1,j −Ut,j∥F ≤Duns :=η gηℓEC 2
+⋆ Gmax, j /∈ St.(39)
+where the selected-client bound uses∥Q t+1 −Q E
+t,i∥F ≤
+∥Qt+1 −Q t∥F +∥Q E
+t,i −Q t∥F , whereas the unselected-
+client bound contains only∥Q t+1 −Q t∥F .
+
+===== PDF PAGE 14 =====
+
+14
+For a selected clienti∈ S t, applyingAssumption 1
+betweenU E
+t,i andU t+1,i gives
+E
+h
+fi(Ut+1,i)−f i(U E
+t,i)
+i
+≤E
+hD
+∇fi(U E
+t,i), Ut+1,i −U E
+t,i
+E
+F
+i
++ L
+2 E
+h
+∥Ut+1,i −U E
+t,i∥2
+F
+i
+≤ ηℓ
+2 G2
+max +
+ 1
+2ηℓ
++ L
+2
+
+D2
+sel,(40)
+where the second inequality follows from⟨X, Y⟩ F ≤
+ηℓ
+2 ∥X∥2
+F + 1
+2ηℓ
+∥Y∥ 2
+F ,Assumption 2, and (38).
+Combining (40) with (34) yields
+E[fi(Ut+1,i)−f i(Ut,i)]
+≤ −η ℓ(cA +c B)κEE
+
+∥∇fi(Ut,i)∥2
+F
+
++R sel,(41)
+whereR sel =Eη 2
+ℓ CACBG3
+max + 3LE
+2 η2
+ℓ (C4
+A +
+C4
+B)G2
+max + 3LE
+2 η4
+ℓ C2
+AC2
+BG4
+max+ ηℓ
+2 G2
+max+
+
+1
+2ηℓ
++ L
+2
+
+(1+
+ηg)2η2
+ℓ E2C4
+⋆ G2
+max.
+For an unselected clientj /∈ S t, although it performs no
+local update, its shared factor changes after aggregation:
+E[fj(Ut+1,j)−f j(Ut,j)]≤E
+
+⟨∇fj(Ut,j), Ut+1,j −U t,j⟩F
+
++L
+2 E
+
+∥Ut+1,j −Ut,j∥2
+F
+
+≤ρηℓ
+2 E
+
+∥∇fj(Ut,j)∥2
+F
+
++Runs,(42)
+whereR uns :=
+
+1
+2ρηℓ
++ L
+2
+
+η2
+gη2
+ℓ E2C4
+⋆ G2
+max.ρ >0is the
+parameter in⟨X, Y⟩ F ≤ ρηℓ
+2 ∥X∥2
+F + 1
+2ρηℓ
+∥Y∥ 2
+F , and the
+last inequality uses (39).
+Averaging (41) and (42) over all clientsi∈ Nyields
+E[Ft+1 −F t]≤ St
+N Rsel +
+
+1− St
+N
+
+Runs
+−η ℓ(cA +c B)κEE
+
+Gsel
+t
+
++ ρηℓ
+2 E[Guns
+t ],(43)
+whereG sel
+t := 1
+N
+P
+i∈St ∥∇fi(Ut,i)∥2
+F , andG uns
+t :=
+1
+N
+P
+i /∈St ∥∇fi(Ut,i)∥2
+F .
+ForG t :=G sel
+t +G uns
+t = 1
+N
+PN
+i=1 ∥∇fi(Ut,i)∥2
+F , when
+Gt = 0, the terms−η ℓ(cA +c B)κEE
+
+Gsel
+t
+
++ ρηℓ
+2 E[Guns
+t ]in
+(43) vanish. Otherwise, we have
+−η ℓ(cA +c B)κEE
+
+Gsel
+t
+
++ ρηℓ
+2 E[Guns
+t ](44)
+=−η ℓE
+h
+(cA+cB)κEλ− ρ
+2(1−λ)
+
+Gt
+i
+≤ −ηℓcE[G t],
+wherec:= (c A +c B)κEλ− ρ
+2(1−λ)>0with
+ρ < 2(cA+cB)κEλ
+(1−λ) , andλshould satisfy the gradient-mass
+coverage condition, as given by
+0< λ≤ Gsel
+t
+Gt
+,∀t.(45)
+Here, (45) requires the selected clients to account for at
+least a fixed fractionλof the total squared gradient mass
+in every round withG t >0. Equivalently,G sel
+t ≥λG t
+andG uns
+t ≤(1−λ)G t. This condition is imposed on the
+realized gradient mass rather than on the number or sampling
+distribution of the selected clients. Hence, it allows arbitrary
+client participation, provided that the selected subset does
+not capture an arbitrarily small fraction of the current
+gradient mass. Under full participation, one can setλ= 1.
+Under partial participation, any round-independent lower
+boundλ >0satisfying (45) is sufficient. Together with
+−0.6 −0.3 0.0 0.3
+Relative RSS decision margin
+(τ(r) − Δ(r))/(τ(r) + Δ(r))
+−0.6
+−0.3
+0.0
+0.3
+0.6
+Relative loss advantage
+(LB − LA)/(LB + LA)
+both Share-A
+both Share-B
+Fig. 3: Alignment Between RSS Decisions and Training-
+Loss Preference
+c >0, this condition ensures that the descent contributed by
+the selected clients dominates the possible objective increase
+of the unselected clients caused by the shared-factor update.
+Substituting (44) into (43) and rearranging gives
+ηℓcE[G t]≤E[F t −Ft+1]+ St
+N Rsel+
+
+1− St
+N
+
+Runs.(46)
+Summing (46) overt= 0, . . . , T−1and dividing by
+ηlcT, we obtain
+1
+N T
+T−1X
+t=0
+NX
+i=1
+E
+
+∥∇fi(Ut,i)∥2
+F
+
+≤ F0 −F ⋆
+ηℓcT
++ 1
+ηℓcT
+T−1X
+t=0
+St
+N Rsel+ 1
+ηℓcT
+T−1X
+t=0
+
+1− St
+N
+
+Runs,(47)
+which is exactly (14) and completes the proof.
+APPENDIXE
+FULLEXPERIMENTRESULTS
+Hyperparameters
+Tables V and VI show the learning rates used for LoRA-
+based methods and rsLoRA-based methods, respectively. For
+the VeRA-based methods, we chose the AdamW optimizer
+and used separate learning rates for the classification head
+and the adapted layers as used in VeRA. The learning rates
+used for VeRA-based methods are shown in Table VII.
+Evaluation of RSS-Based Sharing-Side Selection
+Alignment with Test-Accuracy Preference.:Table VIII
+provides the full comparison between the sharing-side de-
+cisions made by RSS and the empirical test accuracies
+of Share-A/Local-B and Share-B/Local-A. The experiments
+cover six evaluation sets, multiple client partitions, and
+
+===== PDF PAGE 15 =====
+
+15
+LoRA ranksr∈ {2,4,8,16}. For each setting, RSS is com-
+puted before federated training, while the empirical winner
+is determined by comparing the test accuracies obtained at
+the best validation rounds of the two sharing strategies.
+Across the 38 evaluated settings, the RSS decision agrees
+with the empirically better sharing strategy in all 33 cases
+with a strict accuracy difference. The remaining five cases
+are marked as empirical ties in Table VIII. The preferred
+sharing side also changes with the data partition and LoRA
+rank. For example, QNLI and MNLI favor Share-A/Local-B
+under the evaluated IID settings, whereas Share-B/Local-A
+is preferred in most of their Dirichlet settings. For MNLI
+under Dirichletα= 1, the preferred strategy further changes
+from Share-B/Local-A atr= 4to Share-A/Local-B at
+r= 8. Similarly, SST-2 favors Share-A/Local-B under IID
+partitions but mainly favors Share-B/Local-A under the non-
+IID partitions. These results support the use of a partition-
+and rank-aware selection rule instead of a fixed sharing
+policy. RSS should nevertheless be interpreted as a sharing-
+side selector rather than an estimator of the final accuracy
+gap between the two strategies.
+Alignment with the training objective.:Table VIII
+compares the RSS decision with the final test-accuracy
+preference of the two fixed sharing strategies. We further
+examine whether the decision direction of RSS agrees with
+their relative behavior under the actual training objective.
+For visual illustration, we randomly sample several evaluated
+settings and compare their RSS decision margins with the
+corresponding training losses of Share-A/Local-B and Share-
+B/Local-A.
+For rankr, we define the relative RSS decision margin as
+mRSS(r) = τ(r)−∆(r)
+τ(r) + ∆(r) .(48)
+Since RSS selects Share-A/Local-B when∆(r)≤τ(r),
+a positivem RSS(r)favors Share-A/Local-B, whereas a
+negative value favors Share-B/Local-A. We also define the
+relative training-loss advantage as
+mloss = LB −L A
+LB +L A
+,(49)
+whereL A andL B denote the training losses obtained by
+Share-A/Local-B and Share-B/Local-A, respectively. Ac-
+cordingly,m loss >0means that Share-A/Local-B attains
+a lower training loss, whilem loss <0means that Share-
+B/Local-A attains a lower training loss.
+As shown in Fig. 3, all sampled cases lie in either the
+upper-right or lower-left quadrant. Thus, the sharing side
+Method MNLI-m MNLI-mm SST-2 QNLI QQP RTE
+LoRA 1E-2 1E-2 2E-2 1E-2 1E-2 1E-2
+FFA-LoRA 5E-2 5E-2 5E-2 2E-2 5E-2 2E-2
+FedDPA-LoRA 1E-2 1E-2 1E-2 5E-2 5E-2 1E-2
+FedSA-LoRA 2E-2 2E-2 1E-2 5E-3 2E-2 1E-2
+FedAS-LoRA 2E-2 2E-2 1E-2 5E-3 2E-2 1E-2
+TABLE V: Learning rates used for LoRA-based methods on
+the GLUE benchmark.
+Method MNLI-m MNLI-mm SST-2 QNLI QQP RTE
+rsLoRA 5E-3 5E-3 1E-2 2E-3 5E-3 2E-3
+FFA-rsLoRA 2E-2 2E-2 2E-2 1E-2 2E-2 1E-2
+FedDPA-rsLoRA 5E-3 5E-3 1E-2 1E-3 5E-3 1E-2
+FedSA-rsLoRA 5E-3 5E-3 5E-3 1E-3 2E-3 2E-3
+FedAS-rsLoRA 5E-3 5E-3 5E-3 1E-3 2E-3 2E-3
+TABLE VI: Learning rates used for rsLoRA-based methods
+on the GLUE benchmark.
+Method Position
+MNLI-
+m
+MNLI-
+mm SST-2 QNLI QQP RTE
+VeRA VeRA 1E-2 1E-2 2E-2 2E-3 2E-3 1E-2
+Head 6E-3 6E-3 2E-3 3E-4 3E-4 2E-4
+FFA-VeRA VeRA 2E-2 2E-2 1E-2 1E-2 1E-2 1E-2
+Head 2E-3 2E-3 6E-3 2E-4 6E-3 2E-4
+FedDPA-VeRA VeRA 1E-2 1E-2 1E-2 2E-3 2E-2 1E-2
+Head 6E-3 6E-3 6E-3 3E-4 2E-3 2E-4
+FedSA-VeRA VeRA 2E-3 2E-3 1E-2 1E-2 2E-3 1E-2
+Head 3E-5 3E-5 3E-4 3E-4 3E-4 1E-4
+FedAS-VeRA VeRA 2E-3 2E-3 1E-2 1E-2 2E-3 1E-2
+Head 3E-5 3E-5 3E-4 3E-4 3E-4 1E-4
+TABLE VII: Learning rates used for VeRA-based methods
+on the GLUE benchmark.
+selected by RSS also attains the lower training loss in these
+cases. This result provides additional evidence that the RSS
+decision is consistent with the optimization behavior of the
+two sharing strategies under the actual task objective.
+This directional agreement provides empirical support for
+the residual-based selection principle in Theorem 1. The
+theorem shows that the preferred sharing side is determined
+by which shared-subspace constraint yields the smaller ag-
+gregate projection residual. RSS translates this principle into
+a training-free decision rule by assessing whether the com-
+mon rank-rinput-side subspace required by Share-A/Local-
+B is sufficient for the client representations. When this
+subspace is sufficient, RSS favors Share-A/Local-B; other-
+wise, it favors Share-B/Local-A. The consistent training-loss
+preference therefore indicates that RSS identifies the sharing
+constraint that better fits the client data under the actual task
+objective. This result supports RSS as a practical proxy for
+the residual-based sharing-side preference characterized in
+Theorem VIII.
+Scalability Analysis under Uniform and Non-Uniform Client
+Sampling
+To further evaluate scalability, we increase the number
+of clients toN= 50under uniform and non-uniform
+sampling. As shown in Table IX, FedAS-LoRA achieves
+the highest accuracy on QNLI, SST-2, and MNLI-m under
+both sampling settings. Compared with FedSA-LoRA, its
+average accuracy is higher by 0.85 and 0.76 percentage
+points under uniform and non-uniform sampling, respec-
+tively. These results show that selecting the sharing side
+
+===== PDF PAGE 16 =====
+
+16
+Dataset Splitr RSS metric Accuracy (%) Alignment
+∆(r)τ(r)Decision Share-A Share-B Winner
+QNLI
+IID 42.46413×10 −5 3.91172×10 −5 Share-A92.2690.18Share-AMatch
+84.28222×10 −5 7.07299×10 −5 Share-A91.1290.66Share-AMatch
+Dirichletα= 0.5
+23.01960×10 −5 3.46345×10 −5 Share-A89.4688.84Share-AMatch
+45.89316×10 −5 3.80830×10 −5 Share-B 92.0192.80 Share-BMatch
+87.37366×10 −5 6.79052×10 −5 Share-B 91.1392.94 Share-BMatch
+161.33945×10 −4 1.31365×10 −4 Share-B 89.1289.56 Share-BMatch
+Dirichletα= 1 45.90747×10 −5 3.92434×10 −5 Share-B 93.2894.69 Share-BMatch
+88.31570×10 −5 6.96169×10 −5 Share-B 90.8991.58 Share-BMatch
+QQPDirichletα= 0.5 42.11905×10 −5 1.28376×10 −5 Share-B 85.6886.70 Share-BMatch
+84.14507×10 −5 1.67622×10 −5 Share-B 86.8787.95 Share-BMatch
+SST-2
+IID 43.89196×10 −4 5.07871×10 −4 Share-A96.6596.14Share-AMatch
+84.35904×10 −4 6.02930×10 −4 Share-A96.1095.87Share-AMatch
+Dirichletα= 0.5
+21.45398×10 −3 5.83336×10 −4 Share-B 96.5696.79 Share-BMatch
+41.84450×10 −3 5.25775×10 −4 Share-B96.33 96.33 TieActual tie
+82.20251×10 −3 6.38468×10 −4 Share-B 95.7297.17 Share-BMatch
+163.63222×10 −3 1.01451×10 −3 Share-B95.7395.72TieActual tie
+Dirichletα= 1 41.18446×10 −3 5.79445×10 −4 Share-B97.02 97.02 TieActual tie
+81.43308×10 −3 6.62178×10 −4 Share-B 96.5696.79 Share-BMatch
+MNLI-m
+IID 45.98420×10 −6 1.02906×10 −5 Share-A87.0686.11Share-AMatch
+82.91890×10 −5 4.13822×10 −5 Share-A89.4389.06Share-AMatch
+Dirichletα= 0.5
+21.03136×10 −4 1.11881×10 −5 Share-B 89.6089.63 Share-BMatch
+44.62360×10 −5 9.96230×10 −6 Share-B 90.0490.28 Share-BMatch
+89.33286×10 −5 3.98546×10 −5 Share-B 89.7589.95 Share-BMatch
+168.07826×10 −5 3.45278×10 −5 Share-B 89.0489.73 Share-BMatch
+Dirichletα= 1 41.37597×10 −5 1.02455×10 −5 Share-B 89.5089.62 Share-BMatch
+83.26219×10 −5 3.80408×10 −5 Share-A89.0288.37Share-AMatch
+MNLI-mm
+IID 45.98420×10 −6 1.02906×10 −5 Share-A86.6885.23Share-AMatch
+82.91890×10 −5 4.13822×10 −5 Share-A88.0787.91Share-AMatch
+Dirichletα= 0.5 44.62360×10 −5 9.96230×10 −6 Share-B 88.4789.97 Share-BMatch
+89.33286×10 −5 3.98546×10 −5 Share-B 87.8288.86 Share-BMatch
+Dirichletα= 1 41.37597×10 −5 1.02455×10 −5 Share-B 87.1488.79 Share-BMatch
+83.26219×10 −5 3.80408×10 −5 Share-A90.4489.97Share-AMatch
+RTE
+IID 42.07749×10 −3 3.52261×10 −3 Share-A88.1485.82Share-AMatch
+83.99091×10 −3 5.98761×10 −3 Share-A87.50 87.50 TieActual tie
+Dirichletα= 0.5 41.81187×10 −3 3.83366×10 −3 Share-A88.71 88.71 TieActual tie
+83.63808×10 −3 5.98369×10 −3 Share-A87.7786.34Share-AMatch
+Dirichletα= 1 41.82618×10 −3 3.55810×10 −3 Share-A87.1986.47Share-AMatch
+83.45208×10 −3 5.75546×10 −3 Share-A86.2685.35Share-AMatch
+TABLE VIII: RSS metric values, threshold decisions, and Share-A/Local-B versus Share-B/Local-A accuracies under the
+evaluated three-client settings.
+remains beneficial with a larger client population and uneven
+participation probabilities.
+Results under Structured Input Skew
+We further evaluate the compared methods under two
+structured input-skew partitions while controlling the client
+label distributions. For SST-2, we construct a label-balanced
+input-length-skew partition. Within each sentiment label, the
+samples are ordered according to their input lengths and
+divided into three non-overlapping groups of approximately
+equal size. Each client receives the corresponding length
+group from both sentiment labels. This construction keeps
+the positive and negative label proportions similar across
+clients, while making the client input-length distributions
+different.
+For MNLI, we construct a genre-based partition using
+the genre annotations provided by MultiNLI Williams et al.
+[2018]. The three clients contain premise–hypothesis pairs
+from the telephone, government, and fiction genres, respec-
+tively. We balance the entailment, neutral, and contradiction
+
+===== PDF PAGE 17 =====
+
+17
+Method Uniform Non-uniform
+LoRA 87.27 ±0.48 83.24 ±0.72
+FFA-LoRA 86.18 ±0.45 84.90 ±0.85
+FedDPA-LoRA 87.50 ±0.41 84.29 ±0.64
+FedSA-LoRA 88.12 ±0.55 85.68 ±0.44
+FedAS-LoRA (Ours)89.37 ±0.37 86.80 ±0.56
+LoRA 93.42 ±0.67 92.80 ±0.77
+FFA-LoRA 93.61 ±0.71 93.51 ±0.78
+FedDPA-LoRA 94.87 ±0.52 94.70 ±0.89
+FedSA-LoRA 95.01 ±0.58 96.48 ±0.77
+FedAS-LoRA (Ours)95.64 ±0.73 96.89 ±0.79
+LoRA 83.91 ±0.53 81.25 ±0.60
+FFA-LoRA 84.23 ±0.56 83.93 ±0.99
+FedDPA-LoRA 85.07 ±0.80 83.19 ±0.95
+FedSA-LoRA 86.89 ±0.83 84.28 ±0.99
+FedAS-LoRA (Ours)87.55 ±0.91 85.04 ±0.84
+TABLE IX: Performance on the QNLI, SST-2, and MNLI-m
+tasks under uniform and non-uniform client sampling with
+N= 50. From top to bottom, the three blocks correspond
+to QNLI, SST-2, and MNLI-m, respectively.
+Rank Method SST-2 MNLI-m
+r= 4
+LoRA 95.87 ±0.59 86.63 ±0.21
+FFA-LoRA 95.56 ±0.39 85.44 ±0.42
+FedSA-LoRA 92.98 ±0.45 87.07 ±0.11
+FedAS-LoRA (Ours)96.47 ±0.19 87.43 ±0.20
+r= 8
+LoRA 95.18 ±0.48 86.41 ±0.29
+FFA-LoRA 93.35 ±0.52 83.37 ±0.10
+FedSA-LoRA 94.04 ±0.44 86.19 ±0.11
+FedAS-LoRA (Ours)96.56 ±0.04 86.53 ±0.34
+TABLE X: Test accuracy under structured input-skew par-
+titions with different LoRA ranksr. SST-2 uses a label-
+balanced input-length-skew partition, while MNLI-m uses a
+label-balanced genre partition with telephone, government,
+and fiction clients.
+labels across the clients so that the main source of hetero-
+geneity is the textual genre rather than the label distribution.
+We report performance on the MNLI matched evaluation set,
+denoted as MNLI-m.
+As shown in Table X, FedAS-LoRA achieves the highest
+accuracy in all four evaluated settings. On SST-2, it obtains
+accuracies of96.47%and96.56%atr= 4andr= 8,
+respectively, exceeding LoRA by 0.60 and 1.38 percentage
+points. On MNLI-m, FedAS-LoRA reaches87.43%atr= 4
+and86.53%atr= 8, improving over LoRA by 0.80 and
+0.12 percentage points. It also exceeds FFA-LoRA by 1.99
+and 3.16 percentage points, and FedSA-LoRA by 0.36 and
+0.34 percentage points atr= 4andr= 8, respectively.
+These results show that selecting the sharing side remains
+beneficial when clients mainly differ in input characteristics
+rather than label proportions.
+Results on GSM8K with Llama 3 8B
+The results on the GSM8K dataset are shown in Table XI,
+demonstrating that the proposed FedAS-LoRA outperforms
+other methods in complex natural language generation tasks.
+From the given example, it can be seen that both LoRA
+and FFA-LoRA have reasoning errors, but FedAS-LoRA
+can reason accurately, demonstrating the superiority of the
+proposed method.
+Communication Cost
+Table XII compares the trainable parameter count, per-
+round communicated model size, per-round computation
+time, and the communication-round index of the best val-
+idation checkpoint. Share-A/Local-B and Share-B/Local-A
+train both LoRA factors and therefore retain the same
+number of trainable parameters as LoRA, i.e., 1.839M on
+MNLI-m and 1.838M on SST-2. However, each strategy
+communicates only the selected shared factor. Their per-
+round communicated model size is therefore 0.393M pa-
+rameters, which is 50% lower than the 0.786M parameters
+communicated by LoRA and FedDPA-LoRA.
+The reduction in per-round communication does not intro-
+duce substantial additional local computation. On MNLI-m,
+the per-round computation times of Share-A/Local-B and
+Share-B/Local-A are 14.14s and 14.18s, respectively, com-
+pared with 14.12s for LoRA. On SST-2, the corresponding
+times are 6.25s and 6.26s, compared with 6.24s for LoRA.
+FFA-LoRA has a slightly lower per-round computation time
+because it freezes one factor, whereas the two sharing
+strategies keep both factors trainable. FedDPA-LoRA incurs
+a higher parameter and computation cost because it main-
+tains additional global and personalized LoRA modules.
+These results show that factor-wise sharing reduces the
+communicated model size per round while preserving the
+training capacity of both LoRA factors.
+Relative Heterogeneity Amplification of Local LoRA
+Changes
+To further examine how client data heterogeneity af-
+fects the two LoRA factors, we compare the client-specific
+changes ofAandBafter local training on MNLI. We
+consider three non-IID partitioning schemes: Dirichlet dis-
+tributions withα= 1andα= 0.5, and the label-balanced
+MNLI-genre partition. For each scheme, we independently
+generate five three-client partitions using different partition
+seeds. Each non-IID partition is paired with an IID partition
+generated using the same seed. The model initialization
+and all training-related random seeds are fixed across the
+partition instances. Therefore, the variation across the five
+instances is caused by the client data partitions rather than
+by model initialization or stochastic training.
+For this analysis, the clients perform local training in-
+dependently without server aggregation. We measure the
+change in each LoRA factor relative to its common ini-
+tialization as∆Q i. We analyze these changes rather than
+the terminal factor values to exclude the initial factor values
+
+===== PDF PAGE 18 =====
+
+18
+LoRA FFA-LoRA FedAS-LoRA
+Accuracy55.14 ±0.25 54.51 ±0.32 56.28 ±0.18
+Question:Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, containing seeds, mealworms
+and vegetables to help keep them healthy. She gives the chickens their feed in three separate meals. In the
+morning, she gives her flock of chickens 15 cups of feed. In the afternoon, she gives her chickens another 25
+cups of feed. How many cups of feed does she need to give her chickens in the final meal of the day if the
+size of Wendi’s flock is 20 chickens?
+Output:Wendi gives her chickens 15 cups of
+feed in the morning and 25 cups of
+feed in the afternoon, for a total of
+15 + 25 = 40cups of feed. She has
+20 chickens, so each chicken needs
+40/20 = 2cups of feed in the final
+meal of the day. The answer is 2.[✗]
+Wendi feeds her chickens 15 cups of
+feed in the morning and 25 cups of
+feed in the afternoon. So she has
+already given them15 + 25 = 40
+cups of feed. She has 20 chickens.
+So she needs to give them
+40/20 = 2cups of feed each. The
+answer is 2.[✗]
+Wendi has 15 cups of feed in the
+morning and 25 cups in the
+afternoon. So she has15 + 25 = 40
+cups of feed. She has 20 chickens
+and she needs to give each chicken
+3 cups of feed. So she needs
+20×3 = 60cups of feed. She has
+40 cups of feed and she needs 60
+cups of feed. So she needs
+60−40 = 20more cups of feed.
+The answer is 20.[✓]
+TABLE XI: Performance of different methods on the GSM8K dataset and example answers generated by each method.
+Method Trainable Parm. Per-round Communicated Parm. Per-round Computation Cost Communication Round
+(MNLI-m / SST-2) MNLI-m SST-2 MNLI-m SST-2
+LoRA 1.839M / 1.838M 0.786M 14.12s 6.24s 186 210
+FFA-LoRA 1.446M / 1.445M 0.393M 13.94s 6.04s 477 467
+FedDPA-LoRA 2.626M / 2.625M 0.786M 19.46s 11.56s 454 398
+FedSA-LoRA 1.839M / 1.838M 0.393M 14.14s 6.25s 495 453
+FedAS-LoRA 1.839M / 1.838M 0.393M 14.18s 6.26s 472 384
+TABLE XII: Time and space costs for each method on the MNLI-m and SST-2 tasks. Communication Round denotes the
+communication-round index at which the best validation performance is obtained.
+from the interpretation. This is particularly important for
+factorA, which is randomly initialized with nonzero values
+under the standard LoRA initialization, whereas factorBis
+initialized to zero. Using∆Q i therefore places both factors
+on the same reference and focuses the analysis on the
+changes learned from each client’s local data.
+For a given partition and factorQ, we quantify the
+cross-client disagreement using the mean pairwise Frobenius
+distance
+DQ = 2
+N(N−1)
+X
+1≤i<j≤N
+∥∆Qi −∆Q j∥F .(50)
+For each non-IID partition instance, the relative heterogene-
+ity amplification is defined with respect to its seed-matched
+IID reference as
+RHA = Dnon-IID
+A /DIID
+A
+Dnon-IID
+B /DIID
+B
+.(51)
+An RHA value greater than one means that changing from
+the paired IID partition to the non-IID partition produces a
+larger proportional increase in the cross-client disagreement
+of∆Athan in that of∆B. Conversely, an RHA value below
+one indicates a larger relative increase in the disagreement of
+∆B. Since RHA compares the non-IID-to-IID amplification
+of each factor,RHA>1does not necessarily imply that
+DA > D B in absolute value.
+As shown in Fig. 4(a), the geometric-mean RHA is above
+one under all three non-IID partitioning schemes. Relative
+to their seed-matched IID references, the evaluated non-IID
+partitions therefore amplify the cross-client disagreement of
+∆Amore strongly than that of∆Bon average. Among the
+three settings, the MNLI-genre partition yields the largest
+overall RHA, and the five individual partition instances all
+remain above theRHA = 1reference line. This result indi-
+cates a relatively stable amplification of∆Adisagreement
+when the clients are separated by textual genre.
+The two Dirichlet settings show greater variation across
+partition instances. Although their geometric-mean RHA
+values are above one, each setting includes an individual
+instance with an RHA below one. Hence, the Dirichlet
+concentration parameter alone does not determine whether
+client heterogeneity increases the relative disagreement of
+∆Aor∆Bmore strongly. Even under the sameα, the result
+depends on the realized client partition. A fixed sharing
+policy based only on the nominal heterogeneity level is
+therefore insufficient, which supports the partition-aware
+design of RSS.
+Figs. 4(b) and 4(c) further show that the relative amplifi-
+cation varies across Transformer layers and projection types.
+For the query projection, the mean log RHA is positive
+in most layers under the three partitioning schemes. The
+
+===== PDF PAGE 19 =====
+
+19
+positive values are particularly evident in several middle
+and later layers under the MNLI-genre partition, indicating
+stronger relative disagreement in∆Aat these layers. The
+value projection exhibits a less uniform pattern. While many
+early and middle layers have positive mean log RHA, several
+later layers under the Dirichlet partitions have negative
+values, indicating stronger relative disagreement in∆B.
+These mixed layer-wise patterns show that an average factor-
+level trend does not fully characterize the behavior of all
+adapted layers and projections. This further supports eval-
+uating shared-subspace sufficiency from the representations
+of the actual client partition, as done by RSS.
+Overall, the relative disagreement between the two LoRA
+factors depends on the realized client partition and varies
+across Transformer layers and projection types. Therefore,
+neither the Dirichlet concentration parameter nor an average
+factor-level trend is sufficient to prescribe a fixed sharing
+side across federated settings. RSS addresses this issue by
+assessing, for the current client partition and target LoRA
+rankr, whether a shared rank-rinput subspace is sufficient
+for the local data distributions. These results support select-
+ing the sharing side according to the observed client partition
+rather than applying a fixed factor-sharing policy.
+
+===== PDF PAGE 20 =====
+
+20
+Dirichlet (1) Dirichlet (0.5) MNLI-genre
+0.5
+1.0
+1.5
+2.0
+2.5Relative heterogeneity amplification (RHA)
+Client-update heterogeneity across MNLI partitions
+(a) Overall relative heterogeneity amplification.
+0 5 10 15 20 23
+Transformer layer
+Dirichlet (1)
+Dirichlet (0.5)
+MNLI-genre
+Query projection
+−1.0 −0.5 0.0 0.5 1.0
+Mean log RHA across five seeds (negative: ΔB-relative; positive: ΔA-relative disagreement)
+(b) Layer-wise RHA for the query projection.
+0 5 10 15 20 23
+Transformer layer
+Dirichlet (1)
+Dirichlet (0.5)
+MNLI-genre
+Value projection
+−1.0 −0.5 0.0 0.5 1.0
+Mean log RHA across five seeds (negative: ΔB-relative; positive: ΔA-relative disagreement) (c) Layer-wise RHA for the value projection.
+Fig. 4: Relative heterogeneity amplification of LoRA factors across MNLI client partitions. The clients perform local training
+independently without server aggregation. For each of the three non-IID partitioning schemes, five three-client partitions
+are independently generated using different partition seeds. Each non-IID partition is paired with an IID reference partition
+generated using the same seed, while the model initialization and training-related random seeds are fixed across all partition
+instances. (a) Bars show the geometric mean across the five partition instances, white circles denote individual partition
+instances, and error bars represent one sample standard deviation in log-RHA space. The dashed line marksRHA = 1.
+(b,c) Layer-wise mean log RHA for the query and value projections, respectively. Both heatmaps use the same color scale;
+positive values indicate stronger relative disagreement in∆A, whereas negative values indicate stronger relative disagreement
+in∆B.

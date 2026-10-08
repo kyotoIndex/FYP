@@ -1,0 +1,60 @@
+According to previous studies [ 3, 35, 7], there exists ˜N and ˜N = O
+
+1
+nϵ2 log B(ϵ,H|C|)
+δ
+
+=
+O( k
+|C|ϵ2 log( RLf Lh
+ϵ−2ϕiLf Lh
+) − log δ
+|C|ϵ2 ).
+D Efficiency Improvement from LoRA under Different Ranks
+We calculate the % trainable parameters and active memory cost for LoRA under different ranks
+compared with full finetuning in our experiment setting, summarized in Table 5. Although the size
+of LoRA weights is small compared with the pretrained model because LoRA only tunes a small
+proportion of the trainable parameters, LoRA tuning is still much more efficient than full parameter
+finetuning, which highlights the necessity to scale LoRA rank size on clients with diverse computation
+resources. Table 6 illustrates the empirical time consumption for tuning client with LoRA and full
+finetuning.
+Table 5: Trainable parameters and memory cost for different LoRA configurations, and the corre-
+sponding efficiency improvement compared with full finetuning.
+LoRA Config % Trainable Parameters Memory Cost Improvement
+Type 1 r = 8 on all layers 0.12 % 34.71GB 833.3x / 1.83x
+Type 2 r = 30 on all layers 2.46 % 38.70GB 40.7x / 1.64x
+Type 3 r = 30 on atten layer,
+r = 200 on FFN layer 8.22 % 42.57GB 12.2x / 1.49x
+Type 4 r = 200 on all layers 12.22 % 46.54GB 8.2x / 1.37x
+Full finetuning N/A 100 % 63.62GB 1.0x / 1.0x
+Table 6: Speedup of LoRA tuning for each communication round.
+LoRA Rank (homo) Average time per client Speedup
+r=8 1 min 17 sec 2.31x
+r=200 2 1 min 41 sec 1.76x
+Full finetuning 2 min 57 sec 1.0x
+Table 7: Illustration of the original data structure for tasks in natural instruction dataset [39].
+Task Type Cause Effect Classification
+Task ID task828_copa_cause_effect_classification
+Definition In this task your given two statements. You must judge whether the second sentence is the cause
+or effect of the first one. Label the instances as “cause” or “effect” based on your judgment. The
+sentences are separated by a newline character.
+Positive
+Example
+Input: The women met for coffee. They wanted to catch up with each other.
+Output: cause
+Explanation: The women met for coffee because they wanted to catch up with each other.
+Negative
+Example
+Input: My body cast a shadow over the grass. The sun was rising.
+Output: effect
+Explanation: The rising of the sun isn’t an effect of casting a shadow over the grass.
+Instance Input: The woman tolerated her friend’s difficult behavior. The woman knew her friend was going
+through a hard time.
+Valid Output: [“cause”]
+E Implementation Details
+E.1 Hyperparameter Setting
+All FL experiments are conducted with a client participation rate of 0.05 in each round, and with
+an early stopping mechanism that terminates training if the validation loss does not improve over 3
+consecutive FL rounds. These values are adopted to better reflect the operational challenges inherent
+in real-world cross-device scenarios, which often involve limited device responsiveness and restricted
+15

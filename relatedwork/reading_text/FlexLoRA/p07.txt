@@ -1,0 +1,132 @@
+Table 2: The weighted average Rouge-L scores of unseen clients provide insights into the global
+model’s generalization ability. Results from baseline methods with homogeneous ranks (Line 3,
+denoted as Homo Rank) are compared with those incorporating FlexLoRA and HETLORA across
+various resource distributions (Line 4∼7). The significant test are presented in Appendix F.
+FedAvg FedIT SLoRA
+FlexLoRA HETLORA FlexLoRA HETLORA FlexLoRA HETLORA
+Homo Rank 56.53 ± 0.17 61.29 ± 0.93 60.01 ± 0.74
+Uniform 58.07 ± 0.27 56.85 ± 0.18 61.34 ± 1.09 60.74 ± 0.78 60.75 ± 0.60 60.74 ± 0.77
+Heavy-Tail-Light 57.39 ± 0.54 56.24 ± 0.30 61.88 ± 0.89 61.53 ± 0.93 60.40 ± 0.40 59.97 ± 0.62
+Normal 57.78 ± 0.33 56.50 ± 0.05 62.01 ± 0.91 61.03 ± 0.54 61.67 ± 1.07 61.14 ± 0.71
+Heavy-Tail-Strong 57.73 ± 0.08 55.74 ± 0.93 62.20 ± 1.12 61.06 ± 0.95 61.86 ± 1.24 61.29 ± 0.95
+0 1 2
+Improvement %
+Uniform
+Heavy-tail-light
+Normal
+Heavy-tail-strongCategory
+2.48
+1.52
+1.86
+2.18
+Answerability Classification
+0.0 0.5 1.0
+Improvement %
+1.02
+0.47
+1.12
+1.15
+Coreference Resolution
+0.0 0.5 1.0 1.5
+Improvement %
+1.74
+0.34
+0.66
+1.03
+Question Rewriting
+0 1 2
+Improvement %
+2.52
+1.53
+2.43
+1.44
+Keyword Tagging
+0 2 4
+Improvement %
+Uniform
+Heavy-tail-light
+Normal
+Heavy-tail-strongCategory
+3.96
+3.70
+2.04
+3.10
+Overlap Extraction
+0 1 2
+Improvement %
+2.18
+0.95
+1.81
+2.64
+Data to Text
+0.0 0.5 1.0 1.5
+Improvement %
+1.45
+1.78
+0.62
+1.53
+Word Analogy
+0.0 0.5 1.0 1.5
+Improvement %
+1.82
+0.70
+1.67
+1.16
+Title Generation
+0 1 2
+Improvement %
+Uniform
+Heavy-tail-light
+Normal
+Heavy-tail-strongCategory
+2.51
+1.49
+2.33
+1.90
+Textual Entailment
+0 1 2
+Improvement %
+2.04
+1.36
+0.44
+2.52
+Cause Effect Classification
+0.0 0.5 1.0 1.5
+Improvement %
+1.12
+1.57
+0.95
+1.82
+Dialogue Act Recognition
+0.5
+ 0.0 0.5 1.0
+Improvement %
+0.98
+-0.52
+0.11
+-0.56
+Grammar Error Correction
+Figure 4: Task-specific improvements achieved by FlexLoRA in comparison with the homogeneous
+rank implementation of FedAvg, across different resource distribution settings.
+Effect of Specific Resource Distributions.To gain further insight into the effect of FlexLoRA and the
+Effect of heterogeneity of LoRA ranks, in Table 10 in Appendix F, we list the percentage improvement
+for each FL methods when incorporating FlexLoRA in comparison with the respective standard
+homogeneous rank implementations. Notably, after integrating FlexLoRA, the average performance
+gains are 2.14% for FedAvg, 0.86% for FedIT, and 1.94% for SLoRA. These enhancements lend
+empirical support to our theoretical generalization analysis that clients utilizing higher LoRA ranks
+tend to exhibit improved generalization abilities. The most substantial performance improvements
+are observed in the heavy-tail-strong resource distribution, followed by the normal distribution. This
+is consistent with our expectations since the heavy-tail-strong distribution predominantly comprises
+clients with Type 4 LoRA configurations (rank 200). The limited presence of Type 1 clients (rank 8)
+in the normal distribution minimizes the risk of the global model being excessively influenced by
+task-specific LoRA weights. Therefore, FlexLoRA is able to leverage the heterogeneous resource
+distributions to boost the zero-shot generalization, and the gain from integrating FlexLoRA is directly
+related to the ratio of clients with heavy resources.
+4.4 Cross-Task Generalization
+Evaluation Setup. To assess the natural language understanding capabilities of the FlexLoRA-
+enhanced global model, we evaluate its performance on a range of downstream NLP tasks. Specif-
+ically, the model is tested on the English Track of the evaluation tasks from [ 39], featuring 12
+categories and 119 tasks. For each task, a random sample of 100 data points is chosen for testing. We
+summarize the average percentage improvement achieved by integrating FlexLoRA across different
+resource distributions in Table 3.
+7

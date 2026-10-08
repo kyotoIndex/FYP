@@ -1,0 +1,95 @@
+Figure 1: Illustration of FedNLP, FedLoRA, and LEGEND. FedNLP (left) fine-tunes all parameters of the LM; FedLoRA (mid)
+applies the same LoRA configuration to all devices; LEGEND (right) applies different LoRA configurations (e.g., LoRA depth)
+to devices with heterogeneous capabilities.
+where x ∈ Rq×s and y ∈ Rm×s are the input tensors and the
+output tensors, respectively, and s is the sequence length (i.e.,
+the number of tokens in a given sequence). As a generation of
+full fine-tuning [16], LoRA utilizes two bypass matrices (i.e.,
+B and A) with the low rank to perform fine-tuning without
+modifying the pre-trained weight matrix, thus LoRA can be
+applied to any transformer layers of the LMs. Fine-tuning
+LMs with LoRA can greatly reduce the number of trainable
+parameters (typically less than 1% [16,20]) while maintaining
+satisfactory fine-tuning performance.
+FedFT with LoRA. Considering a distributed system with
+one PS and n devices, FedFT is proposed to fine-tune the LMs
+through a loose federation of devices. Naturally, LoRA is
+introduced into FedFT (e.g., FedLoRA) to reduce computing
+and communication overhead [20,27]. The difference between
+FedFT (e.g., FedNLP) and FedLoRA is illustrated in Figure 1.
+FedLoRA only exchanges lightweight LoRA layers eθ instead
+of all cumbersome LMs θ in FedFT. The goal of FedLoRA
+is to find the optimal model θ∗ = {eθ∗, θ} minimizing the loss
+function f (θ) as follows:
+min
+θ={eθ,θ}
+f (θ) ≜ 1
+n
+n
+∑
+i=1
+fi(θi) (2)
+where fi(θi) = 1
+|Di| ∑ξi∈Di Fi(θi; ξi) denotes the loss function
+of the local model θi on device i and Fi(θi; ξi) is the loss over
+data samples ξi on local dataset Di. To minimize the local
+objective function, device i only updates the LoRA layers
+through the gradient descent algorithm (e.g., AdamW [33]).
+The optimization procedure for updating the LoRA layers eθh
+i
+on device i at local step t in round h can be expressed as:
+eθh,t
+i = eθh,t−1
+i − η · ∇ fi(eθh,t−1
+i ) (3)
+where η is the learning rate and ∇ fi(eθh,t−1
+i ) is the gradient of
+the loss for LoRA layers eθh,t−1
+i .
+After local fine-tuning, all devices send the updated LoRA
+layers to the PS for global aggregation as follows:
+eθh+1 = 1
+n
+n
+∑
+i=1
+eθh
+i (4)
+After global aggregation, the PS distributes the latest LoRA
+layers to all devices and moves to the next fine-tuning round.
+2.2 Importance of LoRA Position
+Existing LoRA-based frameworks (e.g., FedLoRA [20] and
+HetLoRA [27]) typically add LoRA layers to all transformer
+layers, which requires the complete backpropagation process
+to update all LoRA layers [34] and results in a slow con-
+vergence rate for fine-tuning pre-trained LMs on resource-
+constrained devices. As illustrated in Figure 2, we divide an
+LM (e.g., RoBERTa) into three parts representing different
+positions, i.e., shallow, medium and deep, respectively. Based
+on the backward direction of the backpropagation process,
+fine-tuning the continuous LoRA layers added to the trans-
+former layers at deep position is computationally efficient
+while achieving satisfactory fine-tuning performance. Wei
+et al. [35] provide rigorous theoretical insights into the con-
+vergence of partial LoRA layer fine-tuning. Besides, only
+the LoRA layers at deep position need to perform the back-
+propagation process and be transmitted to the PS, effectively
+reducing computing/communication overhead and speeding
+up the fine-tuning process. In addition, since pre-trained LMs
+have acquired powerful language understanding and gener-
+ation capabilities during the pre-training stage, fine-tuning
+the added LoRA layers to partial transformer layers at deep
+position can essentially achieve comparable fine-tuning per-
+formance [7, 36, 37].
+To demonstrate the importance of LoRA position, we con-
+duct a set of experiments for federated fine-tuning RoBERTa
+[38] on SST-2 [39] with 10 devices (more experimental setup
+details in Section 6.1). We train a 12-layer RoBERTa with
+LoRA layers added to partial transformer layers at different
+positions (as illustrated in Figure 2), including all layers (de-
+noted as Layers-A), shallow layers {#0, #1, #2, #3} (denoted
+as Layers-S), medium layers {#4, #5, #6, #7} (denoted as
+Layers-M), and deep layers {#8, #9, #10, #11} (denoted as
+Layers-D). As shown in Figure 3, we can derive the following
+conclusions:
+3

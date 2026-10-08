@@ -1,0 +1,61 @@
+Published as a conference paper at ICLR 2026
+balance undermines global aggregation, leading to degraded model performance and limiting the
+effective participation of weaker clients. These challenges highlight the urgent need for methods
+that can accommodate heterogeneous LoRA ranks across clients, thereby enabling effective and
+inclusive federated fine-tuning of LLMs.
+Existing studies Wang et al. (2024); Cho et al. (2024); Bai et al. (2024); Zhang et al. (2024b; 2025)
+on federated fine-tuning (FFT) with heterogeneous LoRA ranks primarily address the challenge of
+aggregating local LoRA modules with varying dimensions. For example, FLoRA Wang et al. (2024)
+proposes a stacking-based aggregation scheme, where local LoRA modules are concatenated to
+construct global modules, thereby accommodating heterogeneous ranks during aggregation. Beyond
+aggregation, local initialization poses another key challenge in heterogeneous-rank FFT. Since the
+global aggregated module may have a different rank from that of clients, mismatches naturally arise.
+For instance, HETLoRA Cho et al. (2024) initializes local modules by truncating the global LoRA
+matrices from lower to higher rank indices according to each client’s rank, whereas FLoRA resorts
+to random re-initialization in each round. Both strategies introduce substantial initialization noise,
+in contrast to homogeneous settings (e.g., FedIT), where local modules can be directly initialized
+with the global ones of identical rank.
+In this paper, we provide a unified analysis of initialization and aggregation noise across several rep-
+resentative methods for heterogeneous FFT. Building on these insights, we propose a novel heteroge-
+neous FFT framework,Fed-PLoRA, which incorporatesParallel One-Rank Adaptation (PLoRA).
+Unlike the classical LoRA approach that relies on a single multi-rank matrix, PLoRA constructs
+modules of any desired rank by combining multiple parallel one-rank matrices. This design natu-
+rally supports client resource heterogeneity through a novelSelect-N-Foldstrategy. Our theoretical
+results show that Fed-PLoRA achieves near-optimal local initialization while minimizing aggrega-
+tion noise, thereby enabling effective and inclusive fine-tuning in heterogeneous federated settings.
+Our main contributions are summarized as follows:
+• We present a unified analysis of initialization and aggregation noise in heterogeneous FFT
+with varying LoRA ranks. Guided by this analysis, we propose Fed-PLoRA, a lightweight
+framework that naturally accommodates heterogeneous client capacities while ensuring sta-
+ble initialization and low aggregation noise. Fed-PLoRA is lightweight and can be seam-
+lessly integrated into existing LoRA and FL pipelines.
+• Fed-PLoRA incorporates PLoRA, a new LoRA variant that substitutes a single multi-rank
+LoRA module with multiple parallel one-rank modules. Building on this design, we pro-
+pose the Select-N-Fold strategy, where each client trains only a subset of PLoRA modules
+according to its computational budget, while folding the remaining modules into the frozen
+pretrained weights.
+• Through extensive experiments on diverse LLM fine-tuning tasks, we demonstrate that
+Fed-PLoRA consistently outperforms existing heterogeneous LoRA-based FFT methods
+across varying client resource and data settings.
+2 FEDERATEDFINE-TUNINGSYSTEM
+We consider an FFT system consisting of a central server andvclients. The server maintains a
+global transformer-based pre-trained LLM, denoted byΘ 0, while each clienti∈[v]owns a local
+datasetD i. For LoRA-based FFT, LoRA can be applied to a pre-trained target moduleW 0 ∈R d×k
+(e.g., a query projection) within a transformer block ofΘ 0.
+LoRA constrains the update of the target module,∆W, through a low-rank factorization such that
+W 0 + ∆W=W 0 +BA, whereA∈R r×k,B∈R d×r, with the rankr≪min(d, k). In
+practice, LoRA is applied toLdistinct target modules withinΘ 0, denoted byW 0 :={W 0,l}L
+l=1.
+We define the corresponding collection of LoRA parameters asθ:={A,B}withA={A l}L
+l=1
+andB={B l}L
+l=1, and each pair{A l,B l}represents the low-rank matrices associated with thel-th
+target module. Given this setup, the problem of FFT can be formulated as follows:
+min
+θ
+L(θ) := 1
+v
+vX
+i=1
+Li(θ;Θ 0),(1)
+2

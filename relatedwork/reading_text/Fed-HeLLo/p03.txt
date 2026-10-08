@@ -1,0 +1,125 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 3
+for saving computational costs. FedBiOT [53] proposes a fed-
+erated LoRA-based fine-tuning algorithm that uses compressed
+pre-trained weights (named as emulator) on each client. By
+using an emulator that simulates the behavior of the original
+FMs on client, the computational cost for local training can be
+reduced. DP-LoRA [34] is a vanilla approach that incorporates
+a Gaussian-based differential privacy (DP) mechanism into
+federated LoRA-based fine-tuning. By adding noise to model
+updates, it protects clients’ privacy during the FL process.
+FFA-LoRA [46] introduces a LoRA layer initialization strategy
+to improve model accuracy and communication efficiency.
+By default, the LoRA weight matrix A (input projection) is
+initialized with small random values, and matrix B (output
+projection) is initialized as zero. They prove that fine-tuning
+only matrix B is sufficient for efficient model fine-tuning.
+However, these approaches often fail to account for the het-
+erogeneity in clients’ resources.
+FL with heterogeneous clients. To address the heteroge-
+neous resource capabilities of clients in FL, existing meth-
+ods [14], [24], [26], [33] can be broadly categorized into
+two types: width-wise scaling and depth-wise scaling. Width-
+wise scaling approaches [14], [24] prune model channels
+to create a smaller and more streamlined local model for
+clients with limited resources to update. Depth-wise scaling
+approaches [26], [33] assign only the first few layers of the
+model for resource-limited clients to update, thus reducing
+resource requirements for clients. However, these approaches
+focus on full-model training and cannot be directly applied to
+LoRA-based fine-tuning. There are several existing works [3],
+[10], [45], [50], [66] in federated LoRA-based fine-tuning
+consider clients with heterogeneous resources. HETLoRA [10]
+employs a heterogeneous LoRA rank strategy, allowing clients
+to train different numbers of LoRA ranks based on their mem-
+ory capacity, with a hierarchical aggregation rule where shared
+ranks are averaged across multiple clients, while higher ranks
+are aggregated among fewer clients. FLoRA [50] is designed
+to mitigate aggregation noise during federated LoRA-based
+fine-tuning. It introduces a stacking strategy for aggregation,
+where LoRA layer updates from clients are stacked along the
+rank dimension respectively, and then used to reconstruct the
+full weight matrices. For each next round, the LoRA layers are
+initialized on each clients and only the full weight matrices
+are updated. FlexLoRA [3] introduces a novel aggregation
+strategy that first aggregates LoRA weight matrices A and
+B separately. Then those aggregated LoRA weights are used
+to reconstruct the full weight matrices for each LoRA layer.
+Finally, they apply singular value decomposition (SVD) to
+redistribute the LoRA weight matrices among clients with
+varying ranks. However, reducing LoRA ranks in these rank-
+based methods can only reduce the memory cost of optimizer
+states, making them less effective in memory-constrained
+environments. FedRA [45] introduces a layer-wise LoRA
+allocation strategy that randomly selects partial LoRA layers
+in each round to address resource constraints among clients.
+However, this method overlooks the varying importance of
+different layers in the global model’s accuracy.
+In Table I, we provide an overall comparison of our ap-
+proach with the state-of-the-art (SOTA) methods discussed
+above. By evaluating four key aspects: whether to use PEFT
+techniques, whether to consider resource and model hetero-
+geneity, and whether incorporating a dynamic training strat-
+egy based on training-time model performance. Overall, our
+method demonstrates clear advantages over existing works.
+TABLE I
+COMPARED WITH SOTA W ORKS .
+Method PEFT Resource Hete. Model Hete. Dynamic Training
+FedTP [31] ✗ ✗ ✗ ✓
+FedIT [62] ✓ ✗ ✗ ✗
+SLoRA [2] ✓ ✗ ✗ ✗
+FedFMSL [56] ✓ ✗ ✗ ✓
+FedBiOT [53] ✓ ✗ ✗ ✓
+DP-LoRA [34] ✓ ✗ ✗ ✗
+FFA-LoRA [46] ✓ ✗ ✗ ✗
+FLoRA [50] ✓ ✓ ✓ ✗
+FlexLoRA [3] ✓ ✓ ✓ ✗
+HETLoRA [10] ✓ ✓ ✓ ✗
+FedRA [45] ✓ ✓ ✓ ✗
+Ours ✓ ✓ ✓ ✓
+III. O UR PROPOSED APPROACH : F ED-H ELLO
+In this section, we present Fed-HeLLo, a novel frame-
+work of federated LoRA-based fine-tuning. Fed-HeLLo is de-
+signed for training heterogeneous LoRA layers across different
+clients. To improve the global model’s performance in Fed-
+HeLLo, we design the HLA strategy that adaptively allocates
+trainable LoRA layers according to both the dynamic and
+intrinsic importance.
+A. FedHeLLo: Federated LoRA-based Fine-Tuning with Het-
+erogeneous LoRA Allocation
+The idea behind LoRA is to constrain the update of a pre-
+trained weight matrix W 0 ∈ Rd×k by a low-rank decom-
+position W 0 + ∆W = W 0 + BA, where B ∈ Rd×r,
+A ∈ Rr×k, and the rank r ≪ min(d, k). During training,
+W 0 remains frozen, and only A and B are updated. We
+consider a pre-trained model Φ0 = {W 0
+(1), · · · , W 0
+(l), W 0
+rest}
+with l transformer layers, where each transformer layer is
+W 0
+(j) with j ∈ [1, l], and W 0
+rest represents the remaining
+layers. LoRA is typically applied to specific modules within
+transformer layers, such as the attention weights [25]. We
+denote the LoRA layer added to the j-th transformer layer as
+θ(j) = {A(j), B(j)} and any additional trainable parameters in
+the embedding or classifier layers as ∆Wrest. Here, we define
+the set of trainable parameters as θ := {θ(1), · · · , A(l), B(l)},
+simplifying the representation by omitting ∆Wrest.
+We consider a federated LoRA-based fine-tuning system
+where n clients collaboratively fine-tune a global model Φ,
+consisting of frozen weights Φ0 and trainable parameters θ,
+under the coordination of a central server. Each client i ∈ [n]
+holds a local dataset Di ∼ P i, where Pi represents the data
+distribution specific to client i. The problem of federated
+LoRA-based fine-tuning can be formulated as follows:
+min
+θ
+L(θ) := 1
+n
+nX
+i=1
+Li(θ; Φ0), (1)
+where Li(θ; Φ0) := Ex∈Di[ℓ(θ; Φ0, x)] denotes the local loss
+of client i, and ℓ(θ; Φ0, x) is the loss function of the model

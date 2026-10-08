@@ -1,0 +1,15 @@
+Published as a conference paper at ICLR 2026
+Method Persistent Base Model (MB) Persistent Local Trainable Parameters (MB) Temporary Global Parameters (MB) Local Training (MB) Total Overhead (MB)
+HETLoRA 210.00 0.04 0.04→0 2717.91 -
+FLoRA 210.00 0.04 13.54→0 2717.91 +13.50→0FlexLoRA 210.00 0.04 0.04→0 2717.91 NoneFed–PLoRA (Ours)210.00 0.04 0.54→0 2717.91 +0.50→0
+Table 16: Memory overhead of Fed-PLoRA compared with SOTA methods.
+Memory Overhead.Here, we study the memory usage for the storage of the base model and
+local trainable LoRA/PLoRA parameters, the temporary memory for the received global parameters
+during local initialization, and the memory during local training. The results are obtained using
+FP16 BERT-base Devlin et al. (2019) with a global rank ofR=16. The batch size for local training
+is 16, and the input size is 512. We report the memory footprint on the weakest client with rank
+ri = 1in Table 16. The persistent base model and local LoRA/PLoRA parameters occupy the
+same amount of memory across all methods. When dealing with the received global parameters
+during local initialization, our method requires addtional 0.50 MB of temporary memory, which is
+negligible compared to the base model’s and local training memory costs.
+32

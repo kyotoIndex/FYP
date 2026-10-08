@@ -1,0 +1,54 @@
+Hyperparameters Adaptation MNLI-100 MNLI-1k MNLI-10K MNLI-392K
+Optimizer - AdamW
+Warmup Tokens - 250,000
+LR Schedule - Linear
+Batch Size - 20 20 100 128
+# Epoch - 40 40 4 2
+Learning Rate
+FineTune 5.00E-6
+PreﬁxEmbed 2.00E-04 2.00E-04 4.00E-04 5.00E-04
+PreﬁxLayer 5.00E-05 5.00E-05 5.00E-05 1.00E-04
+LoRA 2.00E-4
+PreﬁxEmbedlp 16 32 64 256
+Adaptation- PreﬁxEmbedli 8
+Speciﬁc PreﬁxTune lp = li = 8
+LoRA rq = rv = 8
+Table 17: The hyperparameters used for different GPT-3 adaptation methods on MNLI(m)-n.
+where our similarity is deﬁned as:
+φ(A, B, i, j) = ψ(Ui
+A, Uj
+B) =
+∑p
+i=1 σ2
+i
+p = 1
+p
+(
+1− d(Ui
+A, Uj
+B)2
+)
+This similarity satisﬁes that if Ui
+A and Uj
+B share the same column span, then φ(A, B, i, j) = 1 . If
+they are completely orthogonal, then φ(A, B, i, j) = 0. Otherwise, φ(A, B, i, j)∈ (0, 1).
+H A DDITIONAL EXPERIMENTS ON LOW-RANK MATRICES
+We present additional results from our investigation into the low-rank update matrices.
+H.1 C ORRELATION BETWEEN LORA M ODULES
+See Figure 6 and Figure 7 for how the results presented in Figure 3 and Figure 4 generalize to other
+layers.
+H.2 E FFECT OF r ON GPT-2
+We repeat our experiment on the effect of r (Section 7.2) in GPT-2. Using the E2E NLG Challenge
+dataset as an example, we report the validation loss and test metrics achieved by different choices
+of r after training for 26,000 steps. We present our result in Table 18. The optimal rank for GPT-2
+Medium is between 4 and 16 depending on the metric used, which is similar to that for GPT-3 175B.
+Note that the relationship between model size and the optimal rank for adaptation is still an open
+question.
+H.3 C ORRELATION BETWEEN W AND ∆W
+See Figure 8 for the normalized subspace similarity between W and ∆W with varying r.
+Note again that ∆W does not contain the top singular directions of W , since the similarity between
+the top 4 directions in ∆W and the top-10% of those in W barely exceeds 0.2. This gives evidence
+that ∆W contains those “task-speciﬁc” directions that are otherwise not emphasized in W .
+An interesting next question to answer, is how “strong” do we need to amplify those task-speciﬁc
+directions, in order for the model adaptation to work well?
+24

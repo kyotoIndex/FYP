@@ -1,0 +1,50 @@
+Method Dataset MNLI SST-2 MRPC CoLA QNLI QQP RTE STS-B
+Optimizer AdamW
+Warmup Ratio 0.1
+LR Schedule Linear
+DeBERTa XXL
+LoRA
+Batch Size 8 8 32 4 6 8 4 4
+# Epochs 5 16 30 10 8 11 11 10
+Learning Rate 1E-04 6E-05 2E-04 1E-04 1E-04 1E-04 2E-04 2E-04
+Weight Decay 0 0.01 0.01 0 0.01 0.01 0.01 0.1
+CLS Dropout 0.15 0 0 0.1 0.1 0.2 0.2 0.2
+LoRA Conﬁg. rq =rv = 8
+LoRAα 8
+Max Seq. Len. 256 128 128 64 512 320 320 128
+Table 10: The hyperparameters for DeBERTa XXL on tasks included in the GLUE benchmark.
+Dataset E2E WebNLG DART
+Training
+Optimizer AdamW
+Weight Decay 0.01 0.01 0.0
+Dropout Prob 0.1 0.1 0.0
+Batch Size 8
+# Epoch 5
+Warmup Steps 500
+Learning Rate Schedule Linear
+Label Smooth 0.1 0.1 0.0
+Learning Rate 0.0002
+Adaptation rq = rv = 4
+LoRA α 32
+Inference
+Beam Size 10
+Length Penalty 0.9 0.8 0.8
+no repeat ngram size 4
+Table 11: The hyperparameters for GPT-2 LoRA on E2E, WebNLG and DART.
+WikiSQL (Zhong et al., 2017), 768 for MNLI (Williams et al., 2018), and 2048 for SAMSum (Gliwa
+et al., 2019). We tune learning rate for all method-dataset combinations. See Section D.4 for more
+details on the hyperparameters used. For preﬁx-embedding tuning, we ﬁnd the optimal lp and li
+to be 256 and 8, respectively, totalling 3.2M trainable parameters. We use lp = 8 and li = 8 for
+preﬁx-layer tuning with 20.2M trainable parameters to obtain the overall best performance. We
+present two parameter budgets for LoRA: 4.7M (rq = rv = 1 or rv = 2) and 37.7M (rq = rv = 8
+or rq = rk = rv = ro = 2). We report the best validation performance from each run. The training
+hyperparameters used in our GPT-3 experiments are listed in Table 12.
+E C OMBINING LORA WITH PREFIX TUNING
+LoRA can be naturally combined with existing preﬁx-based approaches. In this section, we evaluate
+two combinations of LoRA and variants of preﬁx-tuning on WikiSQL and MNLI.
+LoRA+PreﬁxEmbed (LoRA+PE) combines LoRA with preﬁx-embedding tuning, where we insert
+lp + li special tokens whose embeddings are treated as trainable parameters. For more on preﬁx-
+embedding tuning, see Section 5.1.
+LoRA+PreﬁxLayer (LoRA+PL) combines LoRA with preﬁx-layer tuning. We also insert lp + li
+special tokens; however, instead of letting the hidden representations of these tokens evolve natu-
+20

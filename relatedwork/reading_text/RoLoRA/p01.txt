@@ -1,0 +1,51 @@
+Robust Federated Finetuning of LLMs via Alternating
+Optimization of LoRA
+Shuangyi Chen1∗
+University of Toronto
+shuangyi.chen@mail.utoronto.ca
+Yuanxin Guo1∗
+University of Toronto
+yuanxin.guo@mail.utoronto.ca
+Yue Ju
+Ericsson-GAIA Montréal
+yue.ju@ericsson.com
+Hardik Dalal
+Ericsson-GAIA Montréal
+hardik.dalal@ericsson.com
+Zhongwen Zhu
+Ericsson-GAIA Montréal
+zhongwen.zhu@ericsson.com
+Ashish Khisti
+University of Toronto
+akhisti@ece.utoronto.ca
+Abstract
+Parameter-Efficient Fine-Tuning (PEFT) methods like Low-Rank Adaptation
+(LoRA) optimize federated training by reducing computational and communication
+costs. We propose RoLoRA, a federated framework using alternating optimization
+to fine-tune LoRA adapters. Our approach emphasizes the importance of learning
+up and down projection matrices to enhance expressiveness and robustness. We use
+both theoretical analysis and extensive experiments to demonstrate the advantages
+of RoLoRA over prior approaches that either generate imperfect model updates
+or limit expressiveness of the model. We provide a theoretical analysis on a lin-
+ear model to highlight the importance of learning both the down-projection and
+up-projection matrices in LoRA. We validate the insights on a non-linear model
+and separately provide a convergence proof under general conditions. To bridge
+theory and practice, we conducted extensive experimental evaluations on language
+models including RoBERTa-Large, Llama-2-7B on diverse tasks and FL settings
+to demonstrate the advantages of RoLoRA over other methods.
+1 Introduction
+The remarkable performance of large language models (LLMs) stems from their ability to learn
+at scale. With their broad adaptability and extensive scope, LLMs depend on vast and diverse
+datasets to effectively generalize across a wide range of tasks and domains. Federated learning [28]
+offers a promising solution for leveraging data from multiple sources, which could be particularly
+advantageous for LLMs.
+Recently, Parameter-Efficient Fine-Tuning (PEFT) has emerged as an innovative training strategy
+that updates only a small subset of model parameters, substantially reducing computational and
+memory demands. A notable method in this category is LoRA [21], which utilizes low-rank matrices
+to approximate weight changes during fine-tuning. These matrices are integrated with pre-trained
+weights for inference, facilitating reduced data transfer in scenarios such as federated learning, where
+update size directly impacts communication efficiency. Many works integrate LoRA into federated
+setting [45, 1, 24, 6, 32]. FedPETuning [45] compares various PEFT methods in a federated setting.
+∗Equal contribution.
+39th Conference on Neural Information Processing Systems (NeurIPS 2025).
+arXiv:2502.01755v4  [cs.LG]  11 Oct 2025

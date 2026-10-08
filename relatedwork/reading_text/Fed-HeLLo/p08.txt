@@ -1,0 +1,102 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 8
+TABLE IV
+MAIN RESULTS OF FED-H ELL O COMPARED WITH BASELINES ON NATURAL INSTRUCTION DATASET .
+Methods
+Model Performance (Rouge-L) Avg Back. Comp.
+Cost (TFLOPs)
+Avg Memory
+Cost (GB)
+Avg Comm.
+Cost (MB/R)
+Avg Training
+Time (Sec/R)IID 20/1.0 15/1.0 Avg
+Straggler - 59.71 59.37 59.11 59.39 1.83 11.16 9.43 99.07
+Exclusive
+RoC
+6:3:1
+59.58 59.34 59.42 59.44 3.67 12.40 12.58 200.20
+HETLoRA 60.65 60.00 60.21 60.28 3.67 12.37 7.43 153.40
+FlexLoRA 61.93 60.10 60.86 60.96 3.67 12.37 806.44 205.40
+FLoRA 48.15 48.69 47.84 48.22 3.67 12.37 7.36 165.11
+FedRA 60.91 60.84 60.50 60.75 2.26 11.25 10.16 101.46
+Fed-HeLLo 66.18 61.33 59.94 62.48 2.26 11.28 10.16 100.59
+Exclusive
+RoC
+1:1:1
+63.03 59.96 59.58 60.85 3.67 12.40 12.58 160.50
+HETLoRA 62.47 60.39 60.24 61.03 3.67 12.38 8.92 159.20
+FlexLoRA 61.63 60.67 60.49 60.93 3.67 12.38 807.94 191.79
+FLoRA 48.05 46.38 48.88 47.77 3.67 12.38 16.82 143.36
+FedRA 61.84 61.41 60.49 61.24 2.76 11.64 11.02 98.55
+Fed-HeLLo 68.22 62.03 60.89 63.71 2.76 11.64 11.02 109.79
+TABLE V
+MAIN RESULTS OF FED-H ELLO COMPARED WITH BASELINES ON DOLLY-15K DATASET.
+Methods
+Model Performance (Rouge-L) Avg Back. Comp.
+Cost (TFLOPs)
+Avg Memory
+Cost (GB)
+Avg Comm.
+Cost (MB/R)
+Avg Training
+Time (Sec/R)IID 3/1.0 1/1.0 Avg
+Straggler - 57.89 57.76 57.83 57.82 0.86 10.49 9.43 51.69
+Exclusive
+RoC
+6:3:1
+57.98 58.80 57.92 58.23 1.73 11.72 12.58 108.41
+HETLoRA 58.44 58.92 53.03 56.79 1.73 11.70 7.60 86.48
+FlexLoRA 58.86 58.84 59.14 58.94 1.73 11.70 806.62 138.89
+FLoRA 40.69 41.47 44.68 42.28 1.73 11.70 7.58 114.42
+FedRA 59.32 59.28 58.76 59.12 1.06 10.57 10.14 103.46
+Fed-HeLLo 59.80 59.90 59.45 59.71 1.06 10.61 10.14 94.25
+Exclusive
+RoC
+1:1:1
+59.38 59.37 58.58 59.11 1.73 11.72 12.58 131.39
+HETLoRA 59.36 59.34 59.08 59.26 1.73 11.71 9.45 90.14
+FlexLoRA 58.82 58.98 58.68 58.82 1.73 11.71 808.47 133.51
+FLoRA 42.19 44.72 44.70 43.87 1.73 11.71 19.03 112.37
+FedRA 59.38 59.38 59.07 59.27 1.39 11.11 11.33 104.44
+Fed-HeLLo 59.41 59.40 59.20 59.33 1.39 11.14 11.33 104.48
+allocates min{ci}n
+i=1 trainable layers for all clients based on
+the straggler’s resource capability, i.e., in our case ci = l
+2,
+∀i ∈ [n]. Exclusive Learning excludes clients that are
+unable to train all LoRA layers. HETLoRA [10] is a fed-
+erated LoRA-based fine-tuning framework that supports het-
+erogeneous LoRA ranks across clients. For HETLoRA, we
+align the number of clients across three levels of resource
+capabilities with our method’s settings, with each group of
+clients capable of training LoRA layers at ranks 1, 4, or 16
+for classification tasks and 1, 1, or 8 for instruction fine-
+tuning tasks. FLoRA [50] assigns lower ranks to resource-
+constrainted clients and shares stacked LoRA modules for
+updates. FlexLoRA [3] improves aggregation in rank-based
+methods using SVD. FedRA [45] is a federated LoRA-based
+fine-tuning framework that generates a random allocation map
+to allocate trainable LoRA layers to clients for each round.
+C. Experimental Results
+We evaluate the effectiveness of our Fed-HeLLo framework
+on five datasets under three levels of data heterogeneity,
+comparing it with baseline methods. The main experimental
+results are summarized in Tables II, III, IV, V and VI,
+where the best results among all methods are highlighted in
+grey , and the average performance across all data settings
+is also reported. Additionally, we provide a comparison of
+several resource indicators, including the average backward
+computational cost per step across all clients, average memory
+usage per step, average communication cost per round, and
+average wall-clock training time per round. RoC represents
+the ratio of heterogeneous resource clients.
+Quantitative Results on CIFAR-100: We compare our
+method Fed-HeLLo with two baseline methods (i.e., Strag-
+gler and Exclusive Learning) and four SOTA heterogeneous
+federated LoRA-based fine-tuning methods (i.e., HETLoRA,
+FlexLoRA, FLoRA, and FedRA). Table II reports the compar-
+ison results. In CIFAR-100 experiments, Fed-HeLLo demon-
+strates substantial improvements across various settings. Under
+the 6:3:1 RoC distribution, Fed-HeLLo achieves an aver-
+age accuracy of 82.52%, surpassing Straggler Learning by
++21.02% and Exclusive Learning by +52.54%. Compared to

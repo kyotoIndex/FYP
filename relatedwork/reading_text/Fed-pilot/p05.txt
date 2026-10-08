@@ -1,0 +1,175 @@
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Here, 𝐺 (·) is the value function, defined in (7), which quantifies
+the contribution of the LoRA module within a specific transformer
+block to the global model’s performance.C (·)is the overall weight
+function, defined in(3), which measures the total memory consump-
+tion for a given allocation map. K𝑖 denotes the memory capacity
+of client 𝑖.
+The problem is NP-hard in the discrete setting. The classical
+heuristic approach to solving it is the greedy algorithm, which
+iteratively selects items based on their value-to-weight ratio until
+reaching capacity. However, unlike standard knapsack optimization,
+where item weights are static, the weight of each LoRA module
+𝜽 𝑖, ( 𝑗 ) dynamically adapts based on the previously assigned LoRA
+modules. Specifically, at each step ℎ ∈ [ 0, 𝑙 − 1], the weight of an
+item 𝜽 𝑖, ( 𝑗 ) is Cℎ
+𝑖, ( 𝑗 ) = C (𝑚ℎ
+𝑖 ) if ℎ = 0, otherwise,
+Cℎ
+𝑖, ( 𝑗 ) = 𝑏𝜁 𝜑(𝜽 𝑖, ( 𝑗 ) ) + 𝑏𝜂𝜎 𝑑
+( 𝑗 )
++ 𝑏𝜂
+𝑙∑︁
+𝑗 ′=min( Jℎ−1∪{ 𝑗 } )
+𝜎𝑠
+( 𝑗 ′ ) − 𝑏𝜂
+𝑙∑︁
+𝑗 ′=min( Jℎ−1 )
+𝜎𝑠
+( 𝑗 ′ ),
+where 𝑚ℎ
+𝑖 represents the allocation map at step ℎ and J ℎ−1 = { 𝑗 |
+𝑚ℎ−1
+𝑖, ( 𝑗 ) = 1, ∀𝑗 }. Note that these item weights will be normalized
+using min-max scaling at every step.
+4.1.2 Information Gain Score based Value Function. Here, we de-
+fine the value function used in our LoRA allocation optimization
+problem in (5), which quantifies the contribution of each LoRA
+module to fine-tuning performance. From an information-theoretic
+perspective, mutual information quantifies how much knowledge
+of one variable (e.g., a model parameter) reduces the uncertainty
+of another (e.g., task-specific loss) [17]. This suggests that a layer’s
+importance in fine-tuning can be measured by how much informa-
+tion it contributes to minimizing the loss [10]. However, directly
+computing mutual information in deep learning models is often
+intractable due to its high computational complexity.
+To make this concept computationally feasible, we approximate
+a layer’s contribution using its gradient norm, which reflects how
+much a parameter influences loss reduction. A higher gradient
+norm indicates that a layer plays a more active role in optimiza-
+tion, capturing critical information necessary for improving model
+performance. Based on this intuition, we introduce the IG score
+𝐼 ( 𝑗 ), a gradient-based metric that serves as a practical proxy for
+evaluating the information gain of the 𝑗-th LoRA module.
+𝐼 ( 𝑗 ) (𝜽, 𝐷IG) =
+⌈ |𝐷IG |/| 𝐵𝑒
+IG | ⌉∑︁
+𝑒=1
+∇ℓ (𝜽; 𝚯0, 𝐵𝑒
+IG) ( 𝑗 )
+2
+2 , (6)
+where 𝐷IG represents an IG dataset used to estimate the impact of
+each LoRA module, and 𝐵𝑒
+IG is a mini-batch sampled from 𝐷IG at
+the 𝑒-th forward-backward iteration.
+However, calculating this IG score is challenging in federated
+settings. The server must obtain an IG dataset that aligns with
+the distribution of local datasets [37]. However, if clients compute
+the IG score locally, the results may be sparse, when some LoRA
+modules are frozen and do not contribute to the gradient computa-
+tion. Furthermore, when clients have Non-IID data distributions, a
+globally computed IG score may fail to reflect the client-specific im-
+portance of LoRA modules, leading to suboptimal LoRA allocation
+strategies.
+To address these challenges of sparsity and data heterogeneity,
+we design a three-step IG score aggregation process. Specifically,
+at round 𝑡, each client computes the IG score for its local trainable
+LoRA modules using a small subset 𝐷IG
+𝑖 extracted from its local
+dataset, where the IG score for the𝑗-th LoRA module is calculated by
+𝐼 𝑡
+𝑖, ( 𝑗 ) = 𝐼 ( 𝑗 ) (𝜽 𝑡
+𝑖 , 𝐷IG
+𝑖 ) if 𝑚𝑡
+𝑖, ( 𝑗 ) = 1. Let V𝑡
+( 𝑗 ) = {𝑖; 𝑚𝑡
+𝑖, ( 𝑗 ) = 1, 𝑖 ∈ S 𝑡 }
+to represent the set of clients that train the 𝑗-th LoRA module at
+round 𝑡 and T 𝑡
+( 𝑗 ) = {𝑡 ′; V𝑡 ′
+( 𝑗 ) ≠ ∅, 𝑡′ ∈ ( 𝑡 − 𝑇IG, 𝑡]} to represent the
+set of past rounds in which at least one client trains the 𝑗-th LoRA
+module within the most recent 𝑇IG rounds. Note that the temporal
+aggregation window𝑇IG is selected to ensure that T 𝑡
+( 𝑗 ) ≠ ∅. Based
+on these, we define the value function of client 𝑖 as follows
+𝐺 (𝜽 𝑡
+𝑖, ( 𝑗 ) ) =
+𝐼 𝑡
+𝑖, ( 𝑗 ) + 1
+| T𝑡
+( 𝑗 ) |
+Í
+𝑡 ′ ∈ T𝑡
+( 𝑗 )
+¯𝐼 𝑡 ′
+( 𝑗 )
+𝑚𝑡
+𝑖, ( 𝑗 ) + 1
+with ¯𝐼 𝑡 ′
+( 𝑗 ) = 1
+|V𝑡 ′
+( 𝑗 ) |
+∑︁
+𝑖 ∈ V𝑡 ′
+( 𝑗 )
+𝐼 𝑡
+𝑖, ( 𝑗 ) . (7)
+To mitigate fluctuations and address sparsity in local scores, the
+value function first performs cross-client aggregation to compute
+an averaged IG score for each LoRA module. Then, it applies tem-
+poral averaging over the most recent𝑇IG rounds to further stabilize
+the score. Finally, to account for the unique data distribution of
+each client, the temporally smoothed average score is combined
+with the client’s local score, ensuring a balance between global
+knowledge and local adaptation in determining the final value of a
+LoRA module.
+4.2 Aggregation with Update Compensation
+With optimized LoRA allocation, clients with varying memory ca-
+pacities train different sets of LoRA modules, leading to diverse
+model updates. From a global perspective, this divergence causes
+variations in both the frequency and the scale of the parameter
+changes across LoRA modules. Specifically, some modules receive
+updates from a larger number of clients, while others receive up-
+dates from fewer clients. As a result, due to the Non-IID nature
+of client data, different layers may learn from distinct data distri-
+bution. In this case, simply averaging model updates can hinder
+convergence.
+To address this issue, we design a compensated aggregation rule
+(ComAgg), which dynamically compensates the layers that are less
+updated at the current round. Specifically, upon received the local
+model updates {𝜹𝑡 +1
+𝑖 }𝑖 ∈ S𝑡 from the selected clients at round 𝑡, the
+server aggregates them layer-wise as follows: for each 𝑗 ∈ [ 𝑙],
+𝜹𝑡 +1
+( 𝑗 ) =
+𝛽𝑡
+( 𝑗 )
+𝛼𝑡
+( 𝑗 ) + 𝛽𝑡
+( 𝑗 )
+𝜹𝑡
+( 𝑗 ) +
+𝛼𝑡
+( 𝑗 )
+𝛼𝑡
+( 𝑗 ) + 𝛽𝑡
+( 𝑗 )
+¯𝜹𝑡 +1
+( 𝑗 )
+with ¯𝜹𝑡 +1
+( 𝑗 ) = 1
+|S𝑡
+( 𝑗 ) |
+∑︁
+𝑖 ∈ S𝑡
+( 𝑗 )
+𝜹𝑡 +1
+𝑖, ( 𝑗 ), (8)
+where S𝑡
+( 𝑗 ) = {𝑖; 𝑚𝑡
+𝑖, ( 𝑗 ) = 1, 𝑖 ∈ S 𝑡 } represents the set of clients that
+train the 𝑗-th LoRA module at round𝑡. The coefficient𝛼𝑡
+( 𝑗 ) = |S𝑡
+( 𝑗 ) |

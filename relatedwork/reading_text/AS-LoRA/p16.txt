@@ -1,0 +1,105 @@
+Algorithm 1AS-LoRA
+1:Input:communication roundsT, clientsK, LoRA layersN
+2:InitializeA 0(n), B0(n)and server scores ˆS0
+A(n), ˆS0
+B(n)for alln
+3:fort= 1toTdo
+4:M t ← M( ˆSt−1
+A , ˆSt−1
+B )
+5:fork= 1toKin parallel do
+6:Update LoRA parameters using DP-SGD according toM t
+7:Compute local scoresS t
+A,k(n), St
+B,k(n)← S(·)
+8:Upload updated parameters and scores to the server
+9:end for
+10:forn= 1toNdo
+11:ifM t(n) = 0then
+12:A t(n)← 1
+K
+PK
+k=1 At
+k(n),B t(n)←B t−1(n)
+13:else
+14:B t(n)← 1
+K
+PK
+k=1 Bt
+k(n),A t(n)←A t−1(n)
+15:end if
+16:S t
+A(n)← 1
+K
+PK
+k=1 St
+A,k(n),S t
+B(n)← 1
+K
+PK
+k=1 St
+B,k(n)
+17: ˆSt
+A(n)←EMA
+
+ˆSt−1
+A (n), St
+A(n)
+
+, ˆSt
+B(n)←EMA
+
+ˆSt−1
+B (n), St
+B(n)
+
+18:end for
+19:end for
+20:Output:final LoRA parameters{A T (n), BT (n)}N
+n=1
+Algorithm 2Score ComputationS ∥g∥2(·)with Random Projection
+1: Input:local loss Lt
+k, LoRA parameters {At
+k(n), Bt
+k(n)}N
+n=1, projection matrices
+{RA(n), RB(n)}N
+n=1
+2:Output:local scores{S t
+A,k(n), St
+B,k(n)}N
+n=1
+3:forn= 1toNdo
+4:Compute gradients:
+gt
+A,k(n)← ∇ At
+k(n)Lt
+k, g t
+B,k(n)← ∇ Bt
+k(n)Lt
+k
+5:Apply Gaussian random projection:
+egt
+A,k(n)←g t
+A,k(n)RA(n),eg t
+B,k(n)←R B(n)gt
+B,k(n)
+6:Compute projected squared-gradient scores:
+St
+A,k(n)←
+egt
+A,k(n)
+2
+2
+St
+B,k(n)←
+egt
+B,k(n)
+2
+2
+7:end for
+8:return{S t
+A,k(n), St
+B,k(n)}N
+n=1
+16

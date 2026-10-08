@@ -1,0 +1,54 @@
+nication overhead. To quantify this, we compare the communicated parameters of full fine-tuning,
+FedIT, and FLORA over three communication rounds.
+Figure 6: The ratio of communicated parameter
+numbers to full fine-tuning.
+As Figure 6 shows, although FLORA transmits
+slightly more parameters than FedIT, it still sig-
+nificantly reduces the overhead compared to full
+fine-tuning. This is due to the fact that the primary
+communication load in federated fine-tuning, es-
+pecially with large models, is the initial full model
+parameter transmission. Subsequent rounds pri-
+marily involve smaller updates (e.g., LoRA ma-
+trices). Thus, even though FLoRA introduces
+additional communication for these updates, the
+overall impact on total communication costs re-
+mains marginal, making it comparable to FedIT’s
+costs. Despite the minor communication increase
+compared to FedIT, FL ORA enhances fine-tuning
+effectiveness and supports heterogeneous LoRA
+ranks, making it a preferable solution in federated
+fine-tuning.
+The Privacy Preservation of FLORA. The requirement of FLORA to stack the LoRA modules
+uploaded by all clients introduces a potential privacy concern, as malicious clients might infer the
+LoRA matrices of other clients through the global LoRA modules sent from the server. To address
+this issue, we split all the local LoRA modules into sub-modules with rank=1 and then stack the
+sub-modules together in random order. This approach prevents malicious clients from recovering
+the local LoRA modules from other clients. In addition, FL ORA is also compatible with standard
+privacy mechanisms such as encryption [2] and differential privacy (DP) [22], aligning it with the
+privacy-preserving nature of FL.
+6 Related Work
+Parameter-efficient Fine-tuning of LLMs. Parameter-efficient fine-tuning (PEFT) aims to reduce
+the number of trainable parameters. BitFit [ 23] fine-tunes only the biases while achieving similar
+accuracy with full fine-tuning. Other works such as [ 8] and [15] apply transfer learning that adds
+pre-trained adapter layers between transformer blocks. LoRA [ 9] adopts the product of two low-
+rank matrices to represent the gradient in full fine-tuning, which achieves memory-efficient fine-
+tuning. AdaLoRA [ 27] optimizes LoRA by adaptively allocating the parameter budget, which
+enhances the flexibility of LoRA. There are also many works regarding optimizing LoRA in various
+aspects [5; 6; 13].
+Federated Fine-tuning of LLMs. Federated fine-tuning aims to extract knowledge from multiple on-
+device datasets while preserving data privacy. FedIT [25] leverages the FL framework for fine-tuning
+LLMs. It uses LoRA as the local fine-tuning strategy. However, concerns related to the deficiency in
+supporting heterogeneous LoRA limit its utilization. [3] tries to solve this problem by zero-padding
+the local LoRA modules. However, this padding process causes additional computing overhead.
+Besides, it separately averages A and B modules, introducing noise to the global model.
+7 Conclusion
+In this work, we identified the limitations in current federated fine-tuning methods ( e.g., FedIT),
+and the challenges of applying federated fine-tuning in realistic settings, i.e., the heterogeneous
+LoRA ranks across clients. To overcome these practical challenges and broaden the applicability of
+federated fine-tuning, we introduced FLORA to enable the accurate aggregation on heterogeneous
+LoRA modules using the proposed stack-based LoRA aggregation mechanism. Our extensive
+experiments demonstrate that FLORA outperforms the SOTA method in both homogeneous and
+heterogeneous LoRA settings. Moreover, our inspiring results provide valuable insights for future
+research in the federated fine-tuning of large language models in a lightweight and accurate manner.
+9

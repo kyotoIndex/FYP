@@ -1,0 +1,319 @@
+{
+  "date": "2026-09-30",
+  "checks": "all assertions passed",
+  "t_critical_df4": 2.7764451051977987,
+  "hetsa": {
+    "seeds": [
+      202,
+      303,
+      404,
+      505,
+      606
+    ],
+    "endpoint": "mean client-local holdout accuracy over rounds 26-30",
+    "method_means_percent": {
+      "fedhello": 89.700000002,
+      "fedlora": 90.09607843,
+      "fedsa_lora": 94.27647058800001,
+      "hetsa_lora": 94.105882352,
+      "resource_depth": 82.229411766
+    },
+    "comparisons": {
+      "hetsa_lora-fedhello": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          7.225490199999996,
+          3.9803921500000006,
+          6.117647049999997,
+          2.5784313700000006,
+          2.1274509800000008
+        ],
+        "mean_difference_pp": 4.405882349999999,
+        "sd_difference_pp": 2.2131535937631366,
+        "ci95_pp": [
+          1.6578892101290283,
+          7.15387548987097
+        ],
+        "positive_seed_count": 5,
+        "simulated_time_reduction_percent": 43.13687178593742,
+        "payload_reduction_percent": 49.5863140237894
+      },
+      "hetsa_lora-fedlora": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          6.225490199999994,
+          3.4313725500000003,
+          5.696078429999996,
+          2.735294119999998,
+          1.9607843099999966
+        ],
+        "mean_difference_pp": 4.009803921999997,
+        "sd_difference_pp": 1.8648208262938175,
+        "ci95_pp": [
+          1.694323038890364,
+          6.32528480510963
+        ],
+        "positive_seed_count": 5,
+        "simulated_time_reduction_percent": 66.21389785325611,
+        "payload_reduction_percent": 68.37674075739845
+      },
+      "hetsa_lora-fedsa_lora": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          -0.1666666600000033,
+          0.029411759999997678,
+          0.3039215599999978,
+          -0.058823530000007285,
+          -0.9607843100000069
+        ],
+        "mean_difference_pp": -0.1705882360000044,
+        "sd_difference_pp": 0.4748884365118221,
+        "ci95_pp": [
+          -0.760240110780009,
+          0.4190636387800002
+        ],
+        "positive_seed_count": 2,
+        "simulated_time_reduction_percent": 42.485365883957705,
+        "payload_reduction_percent": 37.07991462599056
+      },
+      "hetsa_lora-resource_depth": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          13.509803919999996,
+          15.813725489999996,
+          17.96078431,
+          5.068627449999996,
+          7.029411759999993
+        ],
+        "mean_difference_pp": 11.876470585999996,
+        "sd_difference_pp": 5.590825853086672,
+        "ci95_pp": [
+          4.9345434039954155,
+          18.818397768004576
+        ],
+        "positive_seed_count": 5,
+        "simulated_time_reduction_percent": 41.238587305154525,
+        "payload_reduction_percent": 49.5863140237894
+      }
+    },
+    "cost": {
+      "fedhello": {
+        "simulated_seconds": 190.45310112,
+        "parameter_payload_mib": 851.2404053
+      },
+      "fedlora": {
+        "simulated_seconds": 320.53529302,
+        "parameter_payload_mib": 1357.040405
+      },
+      "fedsa_lora": {
+        "simulated_seconds": 188.30727389999998,
+        "parameter_payload_mib": 682.0404053
+      },
+      "hetsa_lora": {
+        "simulated_seconds": 108.30741042,
+        "parameter_payload_mib": 429.1404053
+      },
+      "resource_depth": {
+        "simulated_seconds": 184.29732934,
+        "parameter_payload_mib": 851.2404053
+      }
+    },
+    "cost_scope": "time: simulated parallel FL completion from measured local elapsed plus resource/network coefficients; communication: fp32 parameter payload MiB, not serialized wire bytes"
+  },
+  "pcla": {
+    "seeds": [
+      601,
+      631,
+      661,
+      691,
+      721
+    ],
+    "endpoint": "mean benchmark-dev accuracy over rounds 26-30; seed is the independent unit",
+    "methods": {
+      "deep_layer": {
+        "mean_accuracy_percent": 81.22935779816514,
+        "sample_sd_pp": 4.296515011299234,
+        "mean_total_train_seconds": 107.77425234012772,
+        "mean_total_probe_seconds": 0.0,
+        "mean_total_round_wall_seconds": 133.03479505989236,
+        "mean_total_serialized_traffic_bytes": 823422920.8
+      },
+      "fim_hla": {
+        "mean_accuracy_percent": 80.5,
+        "sample_sd_pp": 3.3275619523036104,
+        "mean_total_train_seconds": 143.4122566797072,
+        "mean_total_probe_seconds": 9.313825379987247,
+        "mean_total_round_wall_seconds": 178.40557168005034,
+        "mean_total_serialized_traffic_bytes": 823422293.6
+      },
+      "full_alt": {
+        "mean_accuracy_percent": 82.38990825688073,
+        "sample_sd_pp": 3.0216703926729136,
+        "mean_total_train_seconds": 175.93352256023792,
+        "mean_total_probe_seconds": 0.0,
+        "mean_total_round_wall_seconds": 203.65468808014413,
+        "mean_total_serialized_traffic_bytes": 1074404400
+      },
+      "layer_only": {
+        "mean_accuracy_percent": 80.58715596330276,
+        "sample_sd_pp": 4.18923760660604,
+        "mean_total_train_seconds": 128.01560685944278,
+        "mean_total_probe_seconds": 11.391919360379688,
+        "mean_total_round_wall_seconds": 165.4419979401864,
+        "mean_total_serialized_traffic_bytes": 823422805.6
+      },
+      "pcla": {
+        "mean_accuracy_percent": 81.95871559633028,
+        "sample_sd_pp": 3.284408474703064,
+        "mean_total_train_seconds": 190.171892239945,
+        "mean_total_probe_seconds": 11.455618820362725,
+        "mean_total_round_wall_seconds": 229.47152979993263,
+        "mean_total_serialized_traffic_bytes": 824378641.6
+      },
+      "random_layer": {
+        "mean_accuracy_percent": 77.18348623853211,
+        "sample_sd_pp": 6.238139997121331,
+        "mean_total_train_seconds": 144.65256689987146,
+        "mean_total_probe_seconds": 0.0,
+        "mean_total_round_wall_seconds": 169.87839039999525,
+        "mean_total_serialized_traffic_bytes": 823422191.2
+      }
+    },
+    "comparisons": {
+      "layer_only - deep_layer": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          -1.1009174311926606,
+          -3.050458715596327,
+          0.1376146788990784,
+          -1.1238532110091737,
+          1.9266055045871533
+        ],
+        "mean_difference_pp": -0.6422018348623859,
+        "sd_difference_pp": 1.833643517181571,
+        "ci95_pp": [
+          -2.9189709756864723,
+          1.6345673059617005
+        ],
+        "positive_seed_count": 2
+      },
+      "layer_only - fim_hla": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          -0.02293577981651307,
+          0.25229357798165486,
+          1.6972477064220226,
+          -0.8027522935779796,
+          -0.6880733944954143
+        ],
+        "mean_difference_pp": 0.0871559633027541,
+        "sd_difference_pp": 1.0030831605358534,
+        "ci95_pp": [
+          -1.1583362843390643,
+          1.3326482109445725
+        ],
+        "positive_seed_count": 2
+      },
+      "layer_only - full_alt": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          -1.3302752293578024,
+          -4.449541284403669,
+          0.8027522935779796,
+          -4.151376146788987,
+          0.11467889908257645
+        ],
+        "mean_difference_pp": -1.8027522935779805,
+        "sd_difference_pp": 2.408835666578375,
+        "ci95_pp": [
+          -4.79371681835752,
+          1.1882122312015593
+        ],
+        "positive_seed_count": 2
+      },
+      "layer_only - pcla": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          -0.8715596330275299,
+          -3.348623853211008,
+          0.3669724770642202,
+          -2.155963302752284,
+          -0.8486238532110058
+        ],
+        "mean_difference_pp": -1.3715596330275215,
+        "sd_difference_pp": 1.4203897154865417,
+        "ci95_pp": [
+          -3.135206406166051,
+          0.3920871401110082
+        ],
+        "positive_seed_count": 1
+      },
+      "layer_only - random_layer": {
+        "n": 5,
+        "per_seed_difference_pp": [
+          1.4908256880733939,
+          11.788990825688083,
+          3.371559633027521,
+          -0.5275229357798117,
+          0.894495412844043
+        ],
+        "mean_difference_pp": 3.403669724770646,
+        "sd_difference_pp": 4.891928167762925,
+        "ci95_pp": [
+          -2.670461362939494,
+          9.477800812480787
+        ],
+        "positive_seed_count": 4
+      }
+    },
+    "decision": {
+      "efficiency_retention": false,
+      "directional_score_vs_random": true,
+      "mainline_replaced": false
+    },
+    "scope": "recomputed from seed records in saved summary; not independent reanalysis of all round logs",
+    "mean_paired_train_reduction_vs_pcla_percent": 32.65633217559761
+  },
+  "files": [
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\hetsa\\results\\hetsa_lora_confirm_extension_v1\\analysis_v1\\seed_method_summary.csv",
+      "sha256": "3c0d84b2210a49da64809c6c5f1e01b0e747b2d59f1d17d86b21d7208ba83b42"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\hetsa\\results\\hetsa_lora_confirm_extension_v1\\analysis_v1\\paired_statistics.csv",
+      "sha256": "e57bfd5aacd812779c6334a33da29494c9268d690caeab8f47acd64476202309"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\hetsa\\results\\hetsa_lora_confirm_extension_v1\\analysis_v1\\cost_summary.csv",
+      "sha256": "ec1febb47c350973fdfdea1dd6ab356ed70c8f721fc15ca82c39fce81a8068dc"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\hetsa\\results\\hetsa_lora_confirm_extension_v1\\analysis_v1\\round30_server_summary.csv",
+      "sha256": "2ffb53afa01bdd03c467fa3f89c2531171e6d22b36feb0d6d005e1679cf27e16"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\relatedwork\\project_context\\pcla_v2_confirmatory\\results\\pcla_wl_ablation_v2\\summary.json",
+      "sha256": "39dc7dba072cdb6e5c5e6a7ddc1ef73a774cbca2c5180908fde8296079335697"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\hetsa\\src\\fedhello_sst2.py",
+      "sha256": "d22d5a3e58c6ce38e3484f907038bcc722cd41899b339cdf145919ac287d1caf"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\hetsa\\docs\\HETSA_LORA_V1.md",
+      "sha256": "0c4b787bda63d2e6fd7cfedad7eb4879861f04414007f72201f59c2dc2130e67"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\hetsa\\docs\\HETSA_LORA_CONFIRM_EXTENSION_V1.md",
+      "sha256": "cb4c9557893327d16e51457a77eb9c6cb80298a0d6eb5238a4f7fe1b3158f21a"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\relatedwork\\project_context\\pcla_v2_confirmatory\\docs\\PCLA_WL_LAYER_STATE_V1.md",
+      "sha256": "389b3988594582173c1c00d12f9c68e608addc14df3adb5002a569c4f52f4ed2"
+    },
+    {
+      "path": "F:\\FYP\\work\\hetsa-mainline-20261008\\relatedwork\\project_context\\pcla_v2_confirmatory\\docs\\PCLA_WL_ABLATION_V2.md",
+      "sha256": "5b8c61669a608f80be9e0d26a447e9d88a89d2757c482499695e4788eadef1f0"
+    }
+  ]
+}

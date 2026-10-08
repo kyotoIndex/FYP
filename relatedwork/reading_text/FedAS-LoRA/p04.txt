@@ -1,0 +1,146 @@
+4
+always preferable to sharingB. To answer this question, we
+compare Share-A/Local-B and Share-B/Local-A on MNLI-
+m Wang et al. [2018] using a label-balanced input-skew
+partition. To create input skew while preserving label bal-
+ance, we construct a three-client partition based on the
+genre annotations provided by MNLI Wang et al. [2018].
+Each client is assigned premise–hypothesis pairs from one
+of three genres: telephone, government, and fiction. The
+partition is constructed such that the clients have nearly
+identical distributions over the three MNLI labels. Thus,
+the clients share the same prediction task and similar label
+distributions, while their inputs originate from different
+textual genres. This setting introduces genre-based input
+heterogeneity while controlling for label skew. Fig. 1
+compares their test accuracies forr∈ {2,4,8,16}. It is
+noted that Share-B/Local-A achieves better performance for
+all rank settings, while the accuracy advantage varies with
+the LoRA rankr, indicating that the performance difference
+between the two sharing strategies depends on the LoRA
+rankr.
+Fig. 1 demonstrates that Share-A/Local-B is not uniformly
+optimal across different FL settings. This observation mo-
+tivates the following question:For a given LoRA rankr
+and client data distributions, what determines which factor
+should be shared and which should remain client-specific?
+We next examine this question by analyzing the structural
+asymmetry between the two LoRA factors.
+C. Structural Asymmetry Between LoRA Factors
+For Share-A/Local-B and Share-B/Local-A in federated
+LoRA, although both strategies parameterize the update as
+BiAi, the two factors act on different sides of this product.
+Ai first maps the input into anr-dimensional representation,
+whereasB i maps that representation to the output. Sharing
+Atherefore enforces a common input representation, while
+sharingBenforces a common set of output directions.
+We clarify the difference with a single-layer least-squares
+surrogate. For each clienti∈ N, let∆ i ∈R dout×din denote
+its desired adaptation. The error of a rank-rLoRA update
+BiAi is then formulated as
+Li(Bi, Ai) =∥(∆ i −B iAi)Σ1/2
+i ∥2
+F ,(4)
+whereΣ i =E[x ix⊤
+i ]≻0withx i ∈R din denoting the input
+feature. Since each client uploads only the shared factor,
+the corresponding optimization problems can be formulated
+asE A = min A,{Bi}i
+1
+N
+PN
+i=1 ∥(∆i −B iA)Σ1/2
+i ∥2
+F and
+EB = min B,{Ai}i
+1
+N
+PN
+i=1 ∥(∆i −BA i)Σ1/2
+i ∥2
+F . Here,E A
+corresponds to Share-A/Local-B andE B to Share-B/Local-
+A, respectively. Based on the formulations ofE A andE B,
+we derive the following theorem to reveal the differences
+between Share-A/Local-B and Share-B/Local-A.
+Theorem 1.AssumeΣ i ≻0,∀i∈ N. MinimizingE A over
+{Bi}i andE B over{A i}i yields the following equivalent
+problems over the shared factorsAandB, respectively:
+EA = min
+A
+1
+N
+NX
+i=1
+∆iΣ1/2
+i (I−Π i,A)
+
+2
+F
+,(5)
+EB = min
+B
+1
+N
+NX
+i=1
+(I−Π B)∆iΣ1/2
+i
+
+2
+F
+.(6)
+whereΠ i,A = (AΣ 1/2
+i )⊤(AΣiA⊤)†(AΣ1/2
+i ), andΠ B =
+B(B ⊤B)†B⊤.
+FromTheorem 1, it is noted thatΠ i,A keeps the part that
+lies in the row space ofAΣ 1/2
+i , whileI−Π i,A keeps the part
+outside this space. Similarly,Π B keeps the part that lies in
+the column space ofB, whileI−Π B keeps the part outside
+this space. For Share-A/Local-B, with optimal{B i,∗}i,E A
+is dominated by∥∆ iΣ1/2
+i (I−Π i,A)∥2
+F ,∀i, which measures
+the residual not covered by the shared input-side space
+induced byA. For Share-B/Local-A, with optimal{A i,∗}i,
+∥(I−Π B)∆iΣ1/2
+i ∥2
+F inE B denotes the parts not covered
+by the shared output-side space induced byB. Therefore,
+Theorem 1shows a structural asymmetry between the two
+sharing strategies: sharingAconstrains the input-side space
+used by all clients, whereas sharingBconstrains the output-
+side space used by all clients.
+The structural asymmetry between (5) and (6) explains
+why the same LoRA rankrmay lead to different preferred
+sharing strategies. For fixed{∆ i,Σ i}N
+i=1,rdetermines the
+dimension of the shared input-side or output-side space.
+Increasingrrelaxes the rank constraint in both (5) and
+(6), so the optimal value of neither residual can increase.
+Therefore, neitherE A norE B can increase withr. Since the
+two residuals measure projection errors on different sides of
+∆iΣ1/2
+i , the differenceE A − EB is not generally invariant
+tor. Consequently, the preferred sharing strategy under the
+least-squares surrogate may depend on the target LoRA rank.
+The sharing strategy with the smaller residual is preferred,
+while the other factor remains client-specific. This leads to
+a design principle:share the side on which the clients have
+a common rank-rstructure, and keep the other side local.
+Since bothE A andE B depend on∆ i andΣ i, which are
+unavailable before fine-tuning, in the next section, we design
+a training-free metric to effectively choose the sharing side
+before training.
+IV. METHOD
+In this section, we design a rank-aware shared-subspace
+sufficiency metric, RSS, to determine the shared factor
+before training, and prove the convergence of FedAS-LoRA
+under arbitrary LoRA factor selection and client participa-
+tion.
+A. RSS-Based Sharing-Side Selection
+The goal of RSS is to estimate the preferred sharing factor
+to enhance federated fine-tuning performance.Theorem 1
+shows that this selection is determined by comparingE A

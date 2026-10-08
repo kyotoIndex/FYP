@@ -1,0 +1,75 @@
+Rank Clients Num Method SST-2 QNLI MNLI QQP RTE Avg.
+4 3
+LoRA95.62 ±0.17 91.59±0.21 86.20±0.05 86.13±0.10 81.46±1.22 88.20
+FFA-LoRA 95.18 ±0.09 91.35±0.32 84.58±0.21 85.50±0.25 81.10±0.33 87.48
+FlexLoRA 94.91 ±0.18 90.16±0.49 85.16±0.69 85.69±0.17 79.3±1.05 87.04
+RoLoRA 95.49±0.16 91.64±0.30 85.70±0.04 86.14±0.06 82.43±0.84 88.28
+4 20
+LoRA 94.3 ±0.27 86.67±2.02 78.55±7.31 83.1±0.04 51.87±3.24 78.90
+FFA-LoRA 93.88 ±0.06 89.11±0.19 80.99±1.74 83.92±0.2 57.16±1.46 80.01
+FlexLoRA 90.97 ±1.78 54.36±0.36 53.30±14.59 69.18±10.39 53.19±1.45 64.20
+RoLoRA 94.88±0.18 90.35±0.37 85.28±1.04 85.83±0.1 78.82±1.7 87.03
+4 50
+LoRA 93.00 ±0.35 78.13±5.13 52.64±15.07 77.60±1.47 52.23±1.1 70.72
+FFA-LoRA 93.23 ±0.12 85.05±0.34 69.97±5.57 78.44±0.41 55.72±1.99 76.48
+FlexLoRA 54.08 ±5.5 55.4±2.03 39.14±2.35 72.00±7.64 52.71±0.00 54.67
+RoLoRA 94.80±0.17 90.00±0.63 82.98±3.36 85.71±0.18 75.57±2.88 85.81
+8 50
+LoRA 93.00 ±0.23 79.87±1.52 56.96±2.02 77.45±1.97 53.79±6.57 64.03
+FFA-LoRA 92.74 ±0.13 83.69±0.75 64.51±1.92 79.71±2.04 53.07±1.3 72.46
+FlexLoRA 50.92 ±0.00 56.92±1.04 37.43±2.80 66.40±4.74 52.59±0.21 52.85
+RoLoRA 94.53±0.17 90.1±0.45 85.17±0.41 85.25±0.13 76.3±4.9 86.27
+Table 1: Results for four methods with RoBERTa-Large models across varying client numbers (3, 20,
+50), maintaining a constant sample count during fine-tuning.
+Figure 3: Accuracies over rounds with RoBERTa-
+Large models on SST-2, QNLI, MNLI, and QQP.
+It involves 50 clients using rank 4.
+Effect of Number of Clients.In Table 1, we
+increased the number of clients from 3 to 20,
+and then to 50, ensuring that there is no overlap
+in the training samples each client can access.
+Consequently, each client receives a smaller frac-
+tion of the total dataset. The configurations are
+presented in Table 7 in Appendix. We observe
+that as the number of clients increases, while
+maintaining the same number of fine-tuning
+samples, the performance of the LoRA method
+significantly deteriorates for most datasets. In
+contrast, RoLoRA maintains its accuracy lev-
+els. The performance of FFA-LoRA also de-
+clines, attributed to the limited expressiveness
+of the random initialization of A for clients’ het-
+erogeneous data. FlexLoRA shows significant
+degradation especially under high client counts.
+Notably, RoLoRA achieves this accuracy while
+incurring only half the communication costs as-
+sociated with LoRA and FlexLoRA. A comparison when using rank-2 LoRA adapter is shown in
+Table 8 in Appendix.
+Furthermore, we have provided performance comparison of FLoRA and RoLoRA in the same settings
+in Table 11 in Appendix. RoLoRA consistently outperforms FLoRA across tasks and client counts.
+Additionally, Figure 3 illustrates the finetuning dynamics, highlighting that RoLoRA converges
+substantially faster than the other methods. An extended 100-round version is provided in Figure 8 in
+the Appendix, further demonstrating RoLoRA’s superior accuracy when all baselines have converged.
+Dir(0.5), #Clients = 10 Dir(1.0), #Clients = 15
+MNLI QQP MNLI QQP
+LoRA 81.19±0.2382.60±0.41 74.54±1.1981.49±0.60
+FFA-LoRA 75.60±0.2181.47±0.87 74.83±0.5978.62±1.67
+FlexLoRA 35.45±0.0063.24±0.09 35.45±0.0066.56±4.48
+RoLoRA 82.60±0.69 84.16±0.65 81.55±0.44 84.26±0.26
+Table 2: Performance comparison of methods on MNLI and
+QQP under different dirichlet distributions and client settings.
+We report the average and std. over three seeds.
+Effect of Non-IID Data Distribu-
+tion.Table 2 presents a perfor-
+mance comparison of LoRA, FFA-
+LoRA, FlexLoRA, and RoLoRA on
+the MNLI and QQP tasks under two
+federated settings: Dirichlet(0.5) with
+10 clients and Dirichlet(1.0) with 15
+clients. Here, the Dirichlet( α) pa-
+rameter controls how non-iid the data
+is across clients: a smaller α pro-
+duces highly skewed and heteroge-
+neous client data distributions, while
+a larger α yields more balanced, moderately non-iid splits. Across both tasks and settings, RoLoRA
+8

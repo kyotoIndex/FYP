@@ -1,0 +1,161 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 11
+TABLE VII
+CROSS -SILO EVALUATION ON CIFAR-100 WITH 20 CLIENTS AND TWO
+ROC SETTINGS .
+Dataset/Model CIFAR-100/ViT-base
+Metric Accuracy (%) ↑
+(Methods/Client Settings)/DH IID 20/1.0 10/1.0 Avg
+Straggler - 72.73 56.92 46.01 58.55
+Exclusive
+RoC
+6:3:1
+79.26 31.70 14.31 41.75
+HETLoRA 81.92 32.63 17.50 44.01
+FlexLoRA 38.57 15.06 10.22 21.27
+FLoRA 2.12 1.28 1.62 1.67
+FedRA 86.19 68.03 3.00 52.40
+Fed-HeLLo 86.63 69.29 6.49 54.14
+Exclusive
+RoC
+1:1:1
+84.98 54.70 4.98 48.22
+HETLoRA 86.60 60.89 41.92 63.13
+FlexLoRA 45.51 16.69 2.44 21.54
+FLoRA 2.99 1.68 1.86 2.17
+FedRA 87.64 74.68 53.28 71.86
+Fed-HeLLo 88.22 75.09 56.27 73.19
+TABLE VIII
+GD-HLA EVALUATION ON CIFAR-100 DATASET WITH TWO CLIENT
+SETTINGS : 100 CLIENTS WITH A ROC OF 6:3:1, AND 20 CLIENTS WITH A
+ROC OF 1:1:1.
+Dataset/Model CiFAR-100/ViT-base
+Metric Accuracy (%)↑
+(Methods/Client Settings)/DH IID 20/1.0 10/1.0 Avg
+Triangle (▷)
+10/100
+Clients
+RoC
+6:3:1
+84.02 53.51 54.18 63.90
+In-Triangle (◁) 78.50 69.03 58.47 68.66
+Uniform (≈) 84.12 70.85 55.83 70.26
+Bottleneck (▷ ◁) 84.16 78.19 71.02 77.79
+Triangle (▷)
+4/20
+Clients
+RoC
+1:1:1
+87.29 64.75 6.30 52.78
+In-Triangle (◁) 85.76 66.64 2.34 51.58
+Uniform (≈) 87.15 62.18 2.00 50.44
+Bottleneck (▷ ◁) 87.50 70.54 38.18 65.41
+HETLoRA by +4.71%. In the 20/1.0 Non-IID scenario, Fed-
+HeLLo achieves an accuracy of 69.29%, which is +37.59%
+higher than Exclusive Learning. However, all fix methods
+diverge in the “10/1.0” Non-IID case, showing low accuracies
+under 20%, which may be a result from the imbalance of data
+among clients and heterogeneous client’s model updates in
+this extreme Non-IID scenario. Under the 1:1:1 RoC setting,
+Fed-HeLLo continues to lead, achieving the highest average
+accuracy of 73.19%. In the IID scenario, Fed-HeLLo reaches
+88.22% accuracy, which is +0.58% better than FedRA and
++3.24% better than Exclusive Learning. In the 20/1.0 Non-
+IID case, Fed-HeLLo achieves an accuracy of 75.09%, which
+is +0.41% higher than FedRA and +14.20% higher than HET-
+LoRA. For the 10/1.0 Non-IID case, Fed-HeLLo’s accuracy
+drops to 56.27%, yet it outperforms FedRA by +2.99% and
+HETLoRA by +14.35%. FlexLoRA and FLoRA perform even
+worse in cross-silo settings, demonstrating poor generalization
+to both the number of clients and mid-size FMs.
+2) GD-HLA Evaluation: Table VIII illustrates the perfor-
+mance evaluation of GD-HLA on CIFAR-100 dataset, compar-
+ing four HLA patterns: Triangle, Inverted-Triangle, Uniform,
+and Bottleneck, under two client settings: 100 clients with a
+6:3:1 RoC and 20 clients with a 1:1:1 RoC. In the 100 client,
+6:3:1 RoC scenario, the Bottleneck HLA pattern consistently
+outperforms the others, achieving the highest average accuracy
+72.68
+71.22
+71.08
+59.61
+58.22
+52.91
+74.17
+73.01
+71.17
+84.64
+84.31
+83.69
+79.76
+79.16
+78.45
+53.89
+52.94
+45.97
+64.27
+61.84
+57.79
+20.73
+17.29
+11.65
+50.64
+47.93
+46.52
+67.10
+65.78
+62.74
+Straggler
+Exclusive
+GD-HLA
+RGD-HLA
+FIM-HLA
+Fed-HeLLo
+Fig. 6. The radar chart presents the results of the ablation study focused on
+evaluating the dynamic and intrinsic layer importance, specifically comparing
+our method with GD-HLA, RGD-HLA, FIM-HLA, and other baseline meth-
+ods. The studies are conducted on both the CIFAR-100 and LEDGAR datasets,
+using 100 clients with a RoC distribution of 1:1:1. The Top-3 results for each
+spoke are listed near the vertices from top to bottom, with corresponding
+colors.
+of 77.79%. Specifically, Bottleneck records an accuracy of
+84.16% in the IID setting, slightly surpassing Triangle and
+Uniform, which achieve 84.02% and 84.12% accuracy, respec-
+tively. In the Non-IID case (20/1.0), Bottleneck again leads
+with 78.19% accuracy, outperforming Uniform by +7.34%, In-
+Triangle by +9.16%, and Triangle by +24.68%. This trend con-
+tinues in the 10/1.0 Non-IID case, where Bottleneck achieves
+71.02% accuracy, outperforming Uniform by +15.19%, In-
+Triangle by +12.55%, and Triangle by +16.84%. In the 20
+client, 1:1:1 RoC scenario, Bottleneck HLA continues to out-
+performs other GD-HLA strategies, achieving an average accu-
+racy of 65.41%. Specifically, Bottleneck achieves an accuracy
+of 87.50% in the IID scenario, slightly higher than Triangle
+and Uniform, which recorded 87.29% and 87.15%, respec-
+tively. However, in the Non-IID (20/1.0) scenario, Bottleneck’s
+accuracy drops to 70.54%, yet it remains higher than Uniform
+by +8.36%, In-Triangle by +3.90%, and Triangle by +5.79%.
+For the extreme Non-IID (10/1.0) case, Bottleneck records an
+accuracy of 38.18%, outperforming the other patterns by a
+significant margin, indicating its effectiveness in handling high
+degrees of Non-IID data.
+3) The Dynamic and Intrinsic Layer Importance Evalua-
+tion: In designing the Fed-HeLLo framework, we demonstrate
+that incorporating both dynamic and intrinsic layer importance
+can enhance model performance. Figure 6 presents two radar
+charts comparing the performance of GD-HLA, RGD-HLA,
+FIM-HLA, two baseline methods (i.e., Straggler and Exclusive
+Learning), and our method, with each method represented
+by different colored lines. The evaluation is conducted on
+two datasets, CIFAR-100 and LEDGAR. The radial axes
+display various data distribution settings and overall average
+performance, with each point representing a specific data
+distribution scenario or an aggregated result.
+In the chart on the left, Fed-HeLLo (represented by the
+red line) consistently achieves high accuracy across all Non-
+IID settings, particularly excelling in the “5/1.0” and “10/1.0”
+settings, where it reaches 72.68% and 79.76%, respectively. It
+also leads in the “20/1.0” setting, achieving 84.64% in accu-
+racy. Compared to other methods, Straggler Learning (yellow)
+performs the worst, especially in the “20/1.0” setting, where
+its accuracy falls below 50%. Exclusive Learning (purple)
+and GD-HLA (blue) demonstrate moderate performance, with

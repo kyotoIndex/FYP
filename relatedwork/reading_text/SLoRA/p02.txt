@@ -1,0 +1,101 @@
+ters of the entire model. Besides, language models
+are not used in one application, and clients need
+to fine-tune them on several tasks. As a result,
+supporting multi-tasks can also be challenging, es-
+pecially in memory-constrained scenarios (e.g., for
+edge devices), because the required memory for the
+fine-tuned models grows linearly with the number
+of tasks.
+The next concern of shifting the fine-tuning to
+the client side is its overhead on their already lim-
+ited resources. Edge devices usually have very
+little bandwidth (especially up-link) as multiple
+users share the same resource. Furthermore, both
+communicating and training can be highly energy-
+consuming. Therefore, the direct use of FL for
+NLP tasks may limit its applicability.
+Recently, Parameter Efficient Fine Tuning
+(PEFT) (Hu et al., 2021; Li and Liang, 2021; Lester
+et al., 2021) has emerged as an alternative training
+strategy that does not require fine-tuning of all pa-
+rameters of the pre-trained model but only updates
+a small portion of the parameters (task-specific pa-
+rameters) while freezing most of the pre-trained
+weights of the model to their initial pre-trained val-
+ues. This approach has been shown to maintain task
+performance while reducing the parameter budget
+needed in the centralized setting. Furthermore, if
+one can successfully design a federated PEFT can
+also benefit from reduced communication costs.
+In this work, we first explore the performance of
+the existing centralized PEFT method in FL. We ob-
+serve that the gap between Full Fine Tuning (FFT)
+and PEFT increases, that the clients’ data distribu-
+tion gets more heterogeneous (Fig. 1). To this aim,
+we propose a new algorithm called Primed-LoRA
+designed for FL where its efficient variant, SLoRA,
+can achieve first parameter efficiency, second, re-
+duce training and communication cost, and finally
+closes the gap between PEFT and FFT.
+2 Related Work
+In the following, we summarize areas in the litera-
+ture closely related to federated parameter efficient
+fine-tuning.
+Parameter Efficient Fine Tuning (PEFT).In gen-
+eral, PEFT methods can be broadly classified into
+two main categories based on the nature of the
+tuned parameter. The first category fine-tunes a
+subset of existing parameters, including the classi-
+fication head, bias term (Zaken et al., 2021), and
+sparse subnetworks within the original pre-trained
+model for each task (Guo et al., 2020). The second
+category is module-based fine-tuning, where an ad-
+ditional set of parameters (e.g., modules) are added
+for each task. These modules are fine-tuned while
+freezing the entire pre-trained model.
+Different methods have been proposed depend-
+ing on the place where the modules are inserted
+into the model. One class adds bottleneck trainable
+modules serially to the model components such as
+adapters (Houlsby et al., 2019) and its variants
+(Pfeiffer et al., 2022; He et al., 2021). Another
+approach is to introduce modules added in paral-
+lel to model parameters such as LoRA (Hu et al.,
+2021) and prefix or prompt tuning added in paral-
+lel to the attention heads (Li and Liang, 2021) or
+embeddings (Lester et al., 2021). Recently, there
+have been several approaches for data-driven PEFT
+configuration selection for adding adapter modules
+(He et al., 2021; Zhou et al., 2023; Wang et al.,
+2022).
+PEFT in Federated Learning. Recent studies
+(Sun et al., 2022; Zhang et al., 2022) have investi-
+gated the performance of various PEFT methods
+within the context of Federated Learning (FL) for
+vision tasks. These studies considered different as-
+pects of federated learning, such as client stability,
+data distribution, and differential privacy settings.
+The findings indicated that PEFT could replace
+FFT without compromising performance while sig-
+nificantly reducing communication costs.
+While the previous works focused on vision and
+vision-language models, our study differs in several
+key aspects. Firstly, we specifically study the appli-
+cation of PEFT in the context of language models
+and additionally examine the effect of data hetero-
+geneity across clients on the performance of PEFT
+for NLP tasks. Secondly, our work extends beyond
+benchmarking different PEFT methods in the fed-
+erated setting to propose an approach that yields
+comparable performance to FFT even in extreme
+non-IID settings.
+Efficient Training in FL.Efficient training in FL
+has been extensively studied in the literature (Diao
+et al., 2020; Horvath et al., 2021; Alam et al., 2022;
+Niu et al., 2022; Kang et al., 2020; Li et al., 2020,
+2021). Efficient training in FL employs sparse train-
+ing at different levels. Some approaches only apply
+sparse training at the client side to update a full-
+size model retained at the server (Diao et al., 2020;
+Horvath et al., 2021; Alam et al., 2022; Niu et al.,
+2022). Other approaches utilize sparse training to

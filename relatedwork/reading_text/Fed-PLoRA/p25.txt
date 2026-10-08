@@ -1,0 +1,46 @@
+Published as a conference paper at ICLR 2026
+(specifically, before the LoRAAmatrix). In our Fed-PLoRA approach, theSelect-N-Foldstrategy
+involves merging non-selected parallel LoRA modules into the main target module. When these
+modules are folded, any dropout layers specifically associated with these folded LoRA paths are ef-
+fectively bypassed for those components in subsequent forward passes. This characteristic motivates
+an evaluation to understand how performance is affected by dropout under our folding mechanism.
+Table 12 presents a comparison on the Dolly-15K dataset (Rouge-L score), with client ranks set to
+(1, 8, 32). We compare a variant termed “Fed-PLoRA (Unfold, w/ Dropout)”, where we assume
+modules are frozen but kept unfolded, allowing standard LoRA dropout to be active on all PLoRA
+modules against our standard Fed-PLoRA configuration, but with higher computational costs. The
+results show minimal differences between the two approaches across both IID and non-IID data dis-
+tributions. In the IID setting, both configurations achieve a Rouge-L score of 60.07%. In the non-IID
+setting, “Fed-PLoRA (Unfold, w/ Dropout)” achieves 59.70%, while our method achieves 59.69%.
+These nearly identical results suggest that not using dropout on frozen layers does not affect the
+performance.
+D.5.6 MOREVISUALIZATION ONCOSINESIMILARITIES ACROSSPLORA MODULES.
+LoRA-A
+LoRA-B
+Layer 0Layer 1Layer 2Layer 3Layer 4Layer 5
+LoRA-A
+LoRA-B
+Layer 6Layer 7Layer 8Layer 9Layer 10Layer 11
+Figure 8: Cosine similarity heatmaps of PLoRA modules on the non-IID RTE dataset (averaged
+over all rounds). Each block reports pairwise similarities of modules across clients for LoRA-A and
+LoRA-B, spanning layers 0 through 11.
+To analyze the aggregation noise in Fed-PLoRA, we visualize the cosine similarity heatmaps across
+clients’ PLoRA modules for the Query weights in all 12 transformer layers of BERT-base, averaged
+over all rounds. BothAandBmodule similarities are shown. According to Section E, when
+At
+i,(j) ≈ A
+t
+(j) orB t
+i,(j) ≈ B
+t
+(j), aggregation noise of Fed-PLoRA is minimized. Figure 8 reveals
+consistently high similarity values (near 1.0) along diagonal and cross-wise patterns, particularly
+highlighted by the red arrow in Layer 0’s LoRA-A, suggesting strong similarity among certain ranks.
+Moreover, we observe that some consecutive layers maintain high inter-client similarity, indicating
+that even under non-IID settings, certain ranks learn overlapping or redundant features, potentially
+pointing to shared semantic structures across clients.
+This pattern emerges naturally from the design of Fed-PLoRA. Since each client receives the full set
+ofRglobal PLoRA modules and selects a subset for local training, all modules remain aligned
+in initialization across rounds. The random selection mechanism ensures that over time, every
+rank-jmodule is trained by a diverse subset of clients, leading to gradual synchronization of pa-
+rameters across the population. Furthermore, the frozen folded modules help preserve the global
+25

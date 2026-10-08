@@ -1,0 +1,92 @@
+Next we compute the global loss with a shared global model (a0, ¯bF F A). Note that we use Tr(.) to
+denote the trace of a matrix.
+1
+N
+NX
+i=1
+li(a0,b F F A)(234)
+= 1
+N
+NX
+i=1
+∥a∗(b∗
+i )⊤ −a 0(bF F A)⊤∥2 (235)
+= 1
+N
+NX
+i=1
+∥a∗(b∗
+i )⊤ −a ∗(¯b∗)⊤ +a ∗(¯b∗)⊤ −a 0(bF F A)⊤∥2 (236)
+= 1
+N
+NX
+i=1
+(∥a∗(b∗
+i )⊤ −a ∗(¯b∗)⊤∥2 +∥a ∗(¯b∗)⊤ −a 0(bF F A)⊤∥2
++ 2Tr((a∗(b∗
+i )⊤ −a ∗(¯b∗)⊤)⊤(a∗(¯b∗)⊤ −a 0(bF F A)⊤))(237)
+= 1
+N
+NX
+i=1
+(∥a∗(b∗
+i )⊤ −a ∗(¯b∗)⊤∥2 +∥a ∗(¯b∗)⊤ −a 0(bF F A)⊤∥2)
++ 2Tr((a∗ 1
+N
+NX
+i=1
+(b∗
+i )⊤ −a ∗(¯b∗)⊤)⊤(a∗(¯b∗)⊤ −a 0(bF F A)⊤))(238)
+= 1
+N
+NX
+i=1
+(∥a(b∗
+i − ¯b∗)⊤∥2 +∥a ∗(¯b∗)⊤ −a 0a0⊤
+a∗(¯b∗)⊤∥2)(239)
+= 1
+N
+NX
+i=1
+∥b∗
+i − ¯b∗∥2 + 1
+N
+NX
+i=1
+∥(Id −a 0a0⊤
+)a∗(¯b∗)⊤∥2 (240)
+= 1
+N
+NX
+i=1
+∥b∗
+i − ¯b∗∥2 + 1
+N
+NX
+i=1
+∥(Id −a 0a0⊤
+)a∗∥2∥¯b∗∥2 (241)
+=γ 2 +∥ ¯b∗∥2δ2
+0 (242)
+where (239) holds since the last term is 0, (240) and (241) hold since ∥uv⊤∥=∥u∥ · ∥v ⊤∥ for
+vectoruandv, (242) holds because of Definition A3.13.
+Proof of Theorem A.14
+Proof.In order to achieveϵ-recovery ofa ∗, we need
+δ0(1−c(1−(δ 0)2))T ≤ϵ(243)
+(1−c(1−(δ 0)2))T ≤ ϵ
+δ0 (244)
+Tlog (1−c(1−(δ 0)2))≤log( ϵ
+δ0 )(245)
+(246)
+We proceed such that
+T≥ log( ϵ
+δ0 )
+log (1−c(1−(δ 0)2)) (247)
+> log( ϵ
+δ0 )
+−c(1−(δ 0)2) (248)
+= 1
+c(1−(δ 0)2) log( δ0
+ϵ )(249)
+where (248) follows by usinglog(1−x)<−xfor|x|<1.
+34

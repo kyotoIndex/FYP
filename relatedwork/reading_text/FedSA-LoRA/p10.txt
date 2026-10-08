@@ -1,0 +1,59 @@
+Published as a conference paper at ICLR 2025
+Table 4: Performance comparison on the QNLI, SST2, and MNLI-m tasks with different number of
+clients. We apply full participation for FL system with 10 and 20 clients, and apply client sampling
+with rate 0.3 for FL system with 100 clients.
+Method QNLI SST2 MNLI-m
+10 clients 20 clients 100 clients 10 clients 20 clients 100 clients 10 clients 20 clients 100 clients
+LoRA 91.32 91.23 90.32 96.68 93.16 96.68 86.94 88.50 88.13
+FFA-LoRA 91.47 91.70 91.27 96.59 93.31 96.33 86.76 88.60 87.86
+FedSA-LoRA 91.97 92.54 91.48 96.83 94.21 97.02 88.59 89.05 88.82
+5.2.3 E FFECT OF LORA R ANK
+The adapter parameter budget (i.e., rank r) is a key factor in LoRA performance. In this section, we
+experiment with rank r ∈ {2, 4, 8, 16} on the QNLI, SST2, and MNLI-m tasks to test its influence
+on model performance, keeping other settings unchanged compared to Section 5.1.
+Table 5: Performance comparison on the QNLI, SST2, and MNLI-m tasks with different LoRA
+ranks r.
+Rank Method QNLI SST2 MNLI-m Rank Method QNLI SST2 MNLI-m
+r = 2
+LoRA 92.07 94.69 88.29
+r = 4
+LoRA 92.71 94.20 88.43
+FFA-LoRA 91.02 93.95 87.98 FFA-LoRA 92.97 94.61 88.24
+FedSA-LoRA 92.69 95.67 89.14 FedSA-LoRA 93.10 95.69 88.98
+r = 8
+LoRA 90.69 95.26 88.80
+r = 16
+LoRA 90.59 94.98 88.78
+FFA-LoRA 91.72 94.91 88.83 FFA-LoRA 91.62 94.13 89.25
+FedSA-LoRA 92.00 95.92 90.20 FedSA-LoRA 92.03 95.78 89.59
+The results, as shown in Table 5, demonstrate that the proposed FedSA-LoRA outperforms other
+methods across various LoRA rank values, showcasing the adaptability and robustness of FedSA-
+LoRA in different scenarios.
+5.3 N ATURAL LANGUAGE GENERATION
+For the natural language generation tasks, we adopt the pre-trained LLaMA3-8B (Meta, 2024) from
+the HuggingFace Transformers library (Wolf et al., 2020), using the GSM8K dataset (Cobbe et al.,
+2021) and the CodeSearchNet dataset (Husain et al., 2019) for evaluation. For the GSM8K dataset
+(Cobbe et al., 2021), Following (Kuang et al., 2023), we split the data into three clients under an IID
+distribution, and other optimization hyperparameters are the same as in that work. The results of
+LoRA, FFA-LoRA, and FedSA-LoRA are 46.23, 46.32, and 46.63, respectively, and the generated
+examples are shown in Table 9 in Appendix. From the given example, it can be seen that both LoRA
+and FFA-LoRA have reasoning errors, but FedSA-LoRA can reason accurately, demonstrating the
+superiority of the proposed method in complex natural language generation tasks.
+For an additional dataset on the code generation task. We choose the CodeSearchNet dataset (Hu-
+sain et al., 2019) and use the default non-IID partitioning provided in (Kuang et al., 2023). The
+performance scores for LoRA, FFA-LoRA, and our FedSA-LoRA are 58.34, 58.57, and 59.66, re-
+spectively, which further validates the effectiveness of our method in generation tasks.
+6 C ONCLUSION
+In this work, we discover that when combining LoRA with FL,A matrices are responsible for learn-
+ing general knowledge, while B matrices focus on capturing client-specific knowledge. Building
+upon this finding, we introduce Federated Share-A Low-Rank Adaptation (FedSA-LoRA), which
+employs two low-rank trainable matrices A and B to model the weight update, but only A matrices
+are shared with the server for aggregation. By sharing the A matrices that learn general knowledge
+with the server for aggregation, while keeping the B matrices that model client-specific knowledge
+locally, the learning abilities of LoRA combined with FL can be enhanced. Moreover, we explore
+the relationship between the learned A and B matrices in other LoRA variants, such as rsLoRA and
+VeRA, revealing a consistent pattern. Consequently, we extend our FedSA-LoRA method to these
+LoRA variants, resulting in FedSA-rsLoRA and FedSA-VeRA. By doing so, we establish a general
+paradigm for integrating LoRA with FL, offering guidance for future work on subsequent LoRA
+variants combined with FL.
+10

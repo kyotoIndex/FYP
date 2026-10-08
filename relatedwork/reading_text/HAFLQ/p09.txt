@@ -1,0 +1,131 @@
+9
+where clamp ( ·) constrains the value within the integer range.
+Note that the scale sv and zero point zv are scalar values
+applied element-wise to the vector v, which means each
+element of v is quantized independently.
+This process is applied separately to bi and ai, resulting
+in quantized vectors bi,q and ai,q, along with their respec-
+tive parameters sbi , zbi and sai , zai. The quantized vectors,
+together with their respective scales and zero points, are then
+transmitted to the cloud server.
+2) Dequantization at Cloud Server: Upon receiving the
+quantized vectors and respective scales and zero points, the
+server performs dequantization first to recover approximations
+of the original vectors:
+bi,dq = sbi · (bi,q − zbi), (36)
+ai,dq = sai · (ai,q − zai), (37)
+where the dequantization is applied to each quantized rank-
+1 matrix bi,q and ai,q using their respective scaling factors
+sai , sbi and zero points zai , zbi.
+VI. A DAPTIVE GLOBAL AGGREGATION AT THE CLOUD
+After dequantization, the server collects the uploaded LoRA
+parameters from all clients and aggregates them to form
+a new global model. For the truncation-based scheme, the
+upload dequantized LoRA parameters are BT
+k,dq and AT
+k,dq. In
+contrast, for the importance-based parameter freezing scheme,
+the upload dequantized LoRA parameters are BI
+k,dq and AI
+k,dq.
+Algorithm 2 Adaptive Aggregation of LoRA Parameters
+Require: Dequantized LoRA parameters BT
+k,dq, AT
+k,dq for
+each client k ∈ K in parameter truncation scheme or
+Dequantized LoRA parameters BI
+k,dq, AI
+k,dq in parameter
+freezing scheme.
+1: Initialize B(t+1)
+g and A(t+1)
+g to zero matrices; Initialize
+total norm list Z with zero value
+2: for k in K do
+3: for each j in Ik do
+4: Z[j] += zk // Equivalent to Z[j] = Z[j] + zk
+5: end for
+6: end for
+7: for k in K do
+8: Index i = 0
+9: for each j in Ik do
+10: if Truncation Scheme then
+11: B(t+1)
+g [:, j] += zk / Z [j] · BT
+k,dq[:, i]
+12: A(t+1)
+g [j, :] += zk / Z [j] · AT
+k,dq[i, :]
+13: else if Freezing Scheme then
+14: B(t+1)
+g [:, j] += zk / Z [j] · BI
+k,dq[:, i]
+15: A(t+1)
+g [j, :] += zk / Z [j] · AI
+k,dq[i, :]
+16: end if
+17: i = i + 1
+18: end for
+19: end for
+20: Broadcast B(t+1)
+g , A(t+1)
+g to all clients
+a) Adaptive Aggregation of LoRA Parameters: The adap-
+tive aggregation is shown in Algorithm 2 . Rather than ag-
+gregating LoRA parameters at the scale of the entire LoRA
+matrices, we perform aggregation at the decomposed rank-
+1 matrix level. For each rank-1 matrix, only the clients that
+update and upload that rank-1 matrix will participate in the
+aggregation process. Each client k contributes to the global
+model based on a sparsity-based norm zk, defined as
+zk =
+(
+∥BT
+k,dqAT
+k,dq∥F , Truncation scheme
+∥BI
+k,dqAI
+k,dq∥F , Freezing scheme , (38)
+where ∥ · ∥F denotes the Frobenius norm. The total norm list
+Z has a length of rg, and Z[j] accumulates the zk values from
+all clients that have updated the jth rank-1 matrix. This list
+is then used to normalize zk to obtain the contribution weight
+for each rank-1 matrix.
+VII. N UMERICAL RESULTS
+In our experiments, we utilize GPT2 [30] as the backbone
+model and test on the Banking77 classification dataset [31].
+The experiment involves 10 clients, one base station, and one
+server, with the dataset evenly distributed among these 10
+clients. We assume that different clients have diverse computa-
+tional capabilities, which correspond to different LoRA ranks
+or freezing ratios. Specifically, in the parameter truncation
+scheme, clients 0 to 2 have a LoRA rank of 2, clients 3 to
+5 have a LoRA rank of 4, and clients 6 to 9 have a LoRA
+rank of 8. The global model at the server is configured with a
+LoRA rank of 8. In the parameter freezing scheme, all clients
+and the cloud server maintain a uniform LoRA rank of 8.
+However, clients 0 to 2 have a freezing ratio of 0.75, clients
+3 to 5 have a freezing ratio of 0.5, and clients 6 to 9 have
+a freezing ratio of 0. All 10 clients participate in the training
+during each communication round. Additionally, the clients
+are positioned at increasing distances from the base station,
+ranging from 1100 meters to 2000 meters in increments of
+100 meters. Specifically, client 0 is located 1100 meters away,
+client 1 at 1200 meters, and so forth, with client 9 positioned
+at 2000 meters. The hyper-parameters for the experiments are
+shown in Table I, while the wireless simulation parameters are
+detailed in Table II.
+TABLE I: Experiment hyper-parameters.
+Parameter Value Parameter Value
+LoRA Dropout 0.1 LoRA Bias None
+LoRA Scaling Factor 32 LoRA Initialization Gaussian
+LoRA Target Module attn.c attn Optimizer Adam
+Learning Rate η 0.001 Weight Decay λ 0.001
+Token Padding Length 256 Token Truncation True
+Smoothing β1, β2 0.85, 0.85 Seed 0, 1, 42
+TABLE II: Wireless system parameters.
+Parameter Value Parameter Value
+Carrier Freq. f 2.4 GHz Bandwidth B0 100, 10 MHz
+Commu. Time Tul 10 ms UE Tx Power Pk 23 dBm
+PSD N bs
+0 -174 dBm/Hz Std. Dev. σ 7.8 dB

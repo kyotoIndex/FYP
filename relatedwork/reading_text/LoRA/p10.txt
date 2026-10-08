@@ -1,0 +1,47 @@
+to maximize downstream performance? 2) Is the “optimal” adaptation matrix ∆W really rank-
+deﬁcient? If so, what is a good rank to use in practice? 3) What is the connection between ∆W and
+W ? Does ∆W highly correlate with W ? How large is ∆W comparing to W ?
+We believe that our answers to question (2) and (3) shed light on the fundamental principles of using
+pre-trained language models for downstream tasks, which is a critical topic in NLP.
+7.1 W HICH WEIGHT MATRICES IN TRANSFORMER SHOULD WE APPLY LORA TO?
+Given a limited parameter budget, which types of weights should we adapt with LoRA to obtain
+the best performance on downstream tasks? As mentioned in Section 4.2, we only consider weight
+matrices in the self-attention module. We set a parameter budget of 18M (roughly 35MB if stored
+in FP16) on GPT-3 175B, which corresponds to r = 8 if we adapt one type of attention weights or
+r = 4 if we adapt two types, for all 96 layers. The result is presented in Table 5.
+# of Trainable Parameters = 18M
+Weight Type Wq Wk Wv Wo Wq, Wk Wq, Wv Wq, Wk, Wv, Wo
+Rank r 8 8 8 8 4 4 2
+WikiSQL (±0.5%) 70.4 70.0 73.0 73.2 71.4 73.7 73.7
+MultiNLI (±0.1%) 91.0 90.8 91.0 91.3 91.3 91.3 91.7
+Table 5: Validation accuracy on WikiSQL and MultiNLI after applying LoRA to different types of
+attention weights in GPT-3, given the same number of trainable parameters. Adapting both Wq and
+Wv gives the best performance overall. We ﬁnd the standard deviation across random seeds to be
+consistent for a given dataset, which we report in the ﬁrst column.
+Note that putting all the parameters in ∆Wq or ∆Wk results in signiﬁcantly lower performance,
+while adapting both Wq and Wv yields the best result. This suggests that even a rank of four
+captures enough information in ∆W such that it is preferable to adapt more weight matrices than
+adapting a single type of weights with a larger rank.
+7.2 W HAT IS THE OPTIMAL RANK r FOR LORA?
+We turn our attention to the effect of rank r on model performance. We adapt {Wq, Wv},
+{Wq, Wk, Wv, Wc}, and just Wq for a comparison.
+Weight Type r = 1 r = 2 r = 4 r = 8 r = 64
+WikiSQL(±0.5%) Wq 68.8 69.6 70.5 70.4 70.0
+Wq, Wv 73.4 73.3 73.7 73.8 73.5
+Wq, Wk, Wv, Wo 74.1 73.7 74.0 74.0 73.9
+MultiNLI (±0.1%)
+Wq 90.7 90.9 91.1 90.7 90.7
+Wq, Wv 91.3 91.4 91.3 91.6 91.4
+Wq, Wk, Wv, Wo 91.2 91.7 91.7 91.5 91.4
+Table 6: Validation accuracy on WikiSQL and MultiNLI with different rank r. To our surprise, a
+rank as small as one sufﬁces for adapting bothWq and Wv on these datasets while trainingWq alone
+needs a larger r. We conduct a similar experiment on GPT-2 in Section H.2.
+Table 6 shows that, surprisingly, LoRA already performs competitively with a very small r (more
+so for{Wq, Wv} than just Wq). This suggests the update matrix ∆W could have a very small
+“intrinsic rank”. 6 To further support this ﬁnding, we check the overlap of the subspaces learned by
+different choices of r and by different random seeds. We argue that increasing r does not cover a
+more meaningful subspace, which suggests that a low-rank adaptation matrix is sufﬁcient.
+6However, we do not expect a small r to work for every task or dataset. Consider the following thought
+experiment: if the downstream task were in a different language than the one used for pre-training, retraining
+the entire model (similar to LoRA withr =dmodel) could certainly outperform LoRA with a smallr.
+10

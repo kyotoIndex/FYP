@@ -1,0 +1,83 @@
+Adaptive Parameter-Efficient Federated Fine-Tuning on Heterogeneous Devices
+Jun Liu1,2, Yunming Liao1,2, Hongli Xu1,2, Yang Xu1,2, Jianchun Liu1,2, Chen Qian3
+1School of Computer Science and Technology, University of Science and Technology of China
+2Suzhou Institute for Advanced Research, University of Science and Technology of China
+3Department of Computer Science and Engineering, University of California at Santa Cruz
+Abstract
+Federated fine-tuning (FedFT) has been proposed to fine-tune
+the pre-trained language models in a distributed manner. How-
+ever, there are two critical challenges for efficient FedFT in
+practical applications, i.e., resource constraints and system
+heterogeneity. Existing works rely on parameter-efficient fine-
+tuning methods, e.g., low-rank adaptation (LoRA 1), but with
+major limitations. Herein, based on the inherent characteris-
+tics of FedFT, we observe that LoRA layers with higher ranks
+added close to the output help to save resource consumption
+while achieving comparable fine-tuning performance. Then
+we propose a novel LoRA-based FedFT framework, termed
+LEGEND, which faces the difficulty of determining the num-
+ber of LoRA layers (called, LoRA depth) and the rank of each
+LoRA layer (called, rank distribution). We analyze the cou-
+pled relationship between LoRA depth and rank distribution,
+and design an efficient LoRA configuration algorithm for het-
+erogeneous devices, thereby promoting fine-tuning efficiency.
+Extensive experiments are conducted on a physical platform
+with 80 commercial devices. The results show that LEGEND
+can achieve a speedup of 1.5-2.8× and save communication
+costs by about 42.3% when achieving the target accuracy,
+compared to the advanced solutions.
+1 Introduction
+The emergence of transformer [1] and its variants [2 –4]
+has catalyzed significant advancements in natural language
+processing (NLP), unveiling the immense potential for de-
+ploying NLP models on various devices. The existing NLP
+paradigm encompasses two stages, i.e., pre-training and fine-
+tuning [3,5]. Specifically, the language model (LM) is first pre-
+trained on a large corpus to learn general features and patterns.
+Subsequently, the LM is further fine-tuned on domain-specific
+data generated on devices to enhance the model performance
+for a specific task. However, it is infeasible to collect enough
+domain-specific data from devices for centralized fine-tuning
+1Note that LoRA in this context refers to not the long-range radio com-
+munication technique, but the deep learning fine-tuning technique.
+due to data privacy [6–8]. To fully utilize the massive data on
+devices, federated fine-tuning (FedFT) has been proposed to
+perform fine-tuning in a distributed manner [7]. In the typical
+FedFT framework, e.g., FedNLP [7], participating devices pe-
+riodically fine-tune the LMs on their local data, and push the
+local LMs to the parameter server (PS) for global aggregation
+without exposing their raw data. The fine-tuning procedure
+is repeated for multiple rounds until the LM converges or
+reaches the target accuracy [6, 9, 10]. FedFT not only protects
+individual privacy but also fully utilizes plenty of computing
+resources on devices to enhance the fine-tuning performance
+of the LMs.
+Challenges of FedFT. Although FedFT has demonstrated
+its advantages, it still faces the following two challenges in
+practical applications: (1)Resource constraints. Many devices
+such as smartphones and in-vehicle devices typically have
+limited resources (e.g., memory, computing power), which are
+orders of magnitude weaker than cloud servers [11–14]. How-
+ever, existing LMs,e.g., Llama [15], typically involve billions
+of parameters, requiring substantial computing power for fine-
+tuning [16], while resource-constrained devices always lead
+to very slow fine-tuning rates. (2) System heterogeneity. The
+devices commonly possess varying computing capabilities
+(e.g., CPU frequency) or communication capabilities ( e.g.,
+bandwidth), which could differ from each other by more than
+tenfold [17–19]. Specifically, there are huge gaps of com-
+puting/communication capabilities among different types of
+devices, and even among devices of the same type with di-
+verse configurations (e.g., smartphones, laptops) [13]. Due to
+system heterogeneity, fast devices should be forced to wait
+for slow ones, leading to prolonged waiting time and poor
+fine-tuning efficiency.
+Status Quo and Limitations. To handle the issue of re-
+source constraints, existing works rely on parameter-efficient
+fine-tuning methods [20], e.g., Adapter [21] and low-rank
+adaptation (LoRA) [16], which only fine-tune additional
+lightweight parameters (typically less than 1%). The Adapter
+method inserts additional blocks between two continuous
+transformer layers and only updates the parameters of the
+1
+arXiv:2412.20004v1  [cs.DC]  28 Dec 2024

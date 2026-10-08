@@ -1,0 +1,276 @@
+Published as a conference paper at ICLR 2025
+Then, for the second term on the right side of Eq. (13), according to the law of total expectation, we
+have:
+E
+hD
+U (t)
+i − W (t)
+i , ∇W Li(W (t)
+i )
+E
+F
+i
+= η2
+i,tE
+
+∇W Li(W (t)
+i , ξi,t)A(t)
+i
+⊤
+B(t)
+i
+⊤
+∇W Li(W (t)
+i , ξi,t), ∇W Li(W (t)
+i )
+
+F
+
+− ηi,tE
+
+∇W Li(W (t)
+i , ξi,t)A(t)
+i
+⊤
+A(t)
+i , ∇W Li(W (t)
+i )
+
+F
+
+− ηi,tE
+
+B(t)
+i B(t)
+i
+⊤
+∇W Li(W (t)
+i , ξi,t), ∇W Li(W (t)
+i )
+
+F
+
+= η2
+i,t
+
+∇W Li(W (t)
+i )A(t)
+i
+⊤
+B(t)
+i
+⊤
+∇W Li(W (t)
+i ), ∇W Li(W (t)
+i )
+
+F
+− ηi,t
+
+∇W Li(W (t)
+i )A(t)
+i
+⊤
+A(t)
+i , ∇W Li(W (t)
+i )
+
+F
+− ηi,t
+
+B(t)
+i B(t)
+i
+⊤
+∇W Li(W (t)
+i ), ∇W Li(W (t)
+i )
+
+F
+.
+Since 
+∇W Li(W (t)
+i )A(t)
+i
+⊤
+B(t)
+i
+⊤
+∇W Li(W (t)
+i ), ∇W Li(W (t)
+i )
+
+F
+≤
+∇W Li(W (t)
+i )A(t)
+i
+⊤
+B(t)
+i
+⊤
+∇W Li(W (t)
+i )
+
+∇W Li(W (t)
+i )
+
+F
+≤
+A(t)
+i
+
+B(t)
+i
+
+F
+∇W Li(W (t)
+i )
+
+3
+F
+≤ CACBG3,
+and if we assume there exists cA > 0 such that ∀t:
+D
+A(t)
+i
+⊤
+A(t)
+i , ∇W Li(W (t)
+i )⊤∇W Li(W (t)
+i )
+E
+F
+≥ cA
+∇W Li(W (t)
+i )
+
+2
+F
+,
+then we have:
+∇W Li(W (t)
+i )A(t)
+i
+⊤
+A(t)
+i , ∇W Li(W (t)
+i )
+
+F
+= Tr
+h
+∇W Li(W (t)
+i )A(t)
+i
+⊤
+A(t)
+i
+⊤
+∇W Li(W (t)
+i )
+i
+= Tr
+h
+A(t)
+i
+⊤
+A(t)
+i ∇W Li(W (t)
+i )⊤∇W Li(W (t)
+i )
+i
+=
+D
+A(t)
+i
+⊤
+A(t)
+i , ∇W Li(W (t)
+i )⊤∇W Li(W (t)
+i )
+E
+F
+≥ cA
+∇W Li(W (t)
+i )
+
+2
+F
+.
+And similarly if we assume there exists cB > 0 such that ∀t:
+D
+B(t)
+i
+⊤
+B(t)
+i , ∇W Li(W (t)
+i )⊤∇W Li(W (t)
+i )
+E
+F
+≥ cB
+∇W Li(W (t)
+i )
+
+2
+F
+,
+then we have:
+B(t)
+i B(t)
+i
+⊤
+∇W Li(W (t)
+i ), ∇W Li(W (t)
+i )
+
+F
+= Tr
+h
+B(t)
+i B(t)
+i
+⊤
+∇W Li(W (t)
+i )
+⊤
+∇W Li(W (t)
+i )
+i
+= Tr
+h
+∇W Li(W (t)
+i )⊤B(t)
+i B(t)
+i
+⊤
+∇W Li(W (t)
+i )
+i
+= Tr
+h
+∇W Li(W (t)
+i )∇W Li(W (t)
+i )⊤B(t)
+i B(t)
+i
+⊤i
+=
+
+∇W Li(W (t)
+i )∇W Li(W (t)
+i )⊤, B(t)
+i B(t)
+i
+⊤
+
+F
+≥ cB
+∇W Li(W (t)
+i )
+
+2
+F
+, (14)
+18

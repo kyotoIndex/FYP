@@ -1,0 +1,116 @@
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Yao Lu 1† , Jiaxing Qi1† , Zhongzhi Luan1, Shaohan Huang1, Carol Fung2, Hailong Yang1, Depei Qian1
+mitigate the negative effects of data heterogeneity and improve the
+performance of each client [23]. Nonetheless, the computational
+and communication overhead associated with handling LLM param-
+eters, which rapidly increasing from millions to billions, remains a
+significant challenge for these methods.
+To tackle these challenges, we take inspiration from literature
+on previous works [ 12, 22], to integrate the LLM customization
+process into a variant of PFL framework. By doing so, we can gain
+insight from logs from different ISPs while maintaining privacy and
+improving performance. Each ISP acts as a client and contributes
+labeled data to LLM training without directly sharing sensitive
+information, thereby improving the stability of their respective
+systems by effectively leveraging distributed data sources.
+In this paper, we proposed a fusion-enhanced and low communi-
+cation framework for LLM customization by integrating the LoRA
+tuning and variant PFL, a.k.a FDLoRA. In variant PFL, there are
+𝑁 clients, each client uses private data to fine-tune LLM locally,
+and each client updates a replica of LLM. Instead of performing
+only one update, each client performs several updates locally. Then,
+exchanging parameters at each 𝐻-step to bring their parameters
+back into sync. In particular, the framework initializes two LoRA
+modules for LLM in each client, the personalized LoRA module and
+the global LoRA module, which capture personalized and global
+knowledge, respectively. The personalized LoRA module will not
+share parameters with other clients, thus ensuring that LLM adapts
+to local data. The global LoRA module uploads parameters to the
+server for aggregation operations, thereby integrating the knowl-
+edge of different clients. Furthermore, in order to preserve the basic
+knowledge learned by the LLM from the large corpus, we freeze
+the parameters of the LLM. Finally, we utilized a gradient-free opti-
+mization technique to adaptively fuse the parameters of both LoRA
+modules, enhancing the performance of the client’s local task. Our
+primary contribution can be summarized as follows:
+• We proposed FDLoRA, a novel fusion-enhanced and low
+communication framework. To the best of our knowledge,
+this is the first work that integrates dual LoRA and variant
+PFL for LLM customization.
+• We utilized both the LoRA module and gradient-free adaptive
+fusion approach, which effectively captured personalized and
+global knowledge and improved the performance of each
+client.
+• We conducted experiments in log analysis and medical di-
+agnosis, demonstrating superior performance and stability.
+Our method can effectively reduce computation and com-
+munication costs.
+The rest of this paper is organized as follows. In Section 2, we
+introduce the background and techniques related to our work. In
+Section 3, we put forward our framework and describe the design
+in detail. In Section 4, we demonstrate extensive experiments to
+evaluate the effectiveness of the proposed method in comparison
+with other methods. In Section 5, we review the related works of
+PFL and PEFT. Finally, we conclude our work in Section 6.
+2 PRELIMINARIES
+In this section, we give a brief introduction to the problem defini-
+tion of personalized federated learning and parameter-efficient fine
+Table 1: Notations of problem settings.
+Notation Explanation
+DThe collective dataset across all clients.
+(𝑥, 𝑦)The data𝑥with label𝑦.
+𝑁The number of clients.
+𝑓(·;𝜃)The model with parameter𝜃.
+𝜃𝑝 The trainable parameters of personalized part.
+𝜃𝑠 The trainable parameters of the shared (global) part.
+L (ˆ𝑦, 𝑦)The loss function between ˆ𝑦and𝑦.
+G (·;w)The learnable parameters of fusion functionG.
+1
+Central Server
+Local Private
+Data
+Shared Model
+Parameter
+Communication
+1 1
+2 2 24 4 4
+3
+1 Local Training 2 Model Upload 3 Model Aggregation
+4 Model Download 5 Personalized Training
+5 5 5
+Personalized
+Model
+Federate Learning
+Personalized Federate Learning
+Figure 1: The illustration of both federated learning and per-
+sonalized federated learning. Personalized federated learn-
+ing aims to find a personalized model for each client.
+tuning with low-rank adaptation. The meanings of some notations
+used in subsequent sections are declared in Table 1.
+2.1 Problem Definition of FL & PFL
+FL as a disruptive machine learning paradigm has attracted signifi-
+cant attention from researchers and industry in recent years (Figure
+1, top). This paradigm involves training models on devices locally,
+mitigating privacy risks associated with transmitting private data
+to central servers, and providing a viable solution for collaborative
+learning among multiple clients.
+We assume that each client has its own local dataset, denoted
+as D (𝑖) =(𝑥, 𝑦) , where 𝑥 and 𝑦 are the model’s input and the ex-
+pected output, respectively. The collective dataset across all clients
+is denoted as D=
+
+D (𝑖) 	𝑁
+𝑖=1, where 𝑁 denoted the number of
+clients.
+Traditional FL trained the model 𝑓(𝑥 ; 𝜃 (𝑖) ) on client 𝑖 with pa-
+rameter𝜃 (𝑖) . The training objective can be formulated as:
+min
+𝜃
+L𝜃 := 1
+𝑁
+𝑁Í
+𝑖=1
+1
+| D(𝑖) |
+Í
+𝑥∈ D (𝑖)
+L (𝑓(𝑥;𝜃 (𝑖) ), 𝑦) (1)

@@ -1,0 +1,103 @@
+Brian Lester, Rami Al-Rfou, and Noah Constant. 2021.
+The power of scale for parameter-efficient prompt
+tuning. arXiv preprint arXiv:2104.08691.
+Ang Li, Jingwei Sun, Xiao Zeng, Mi Zhang, Hai Li,
+and Yiran Chen. 2021. Fedmask: Joint computation
+and communication-efficient personalized federated
+learning via heterogeneous masking. In Proceed-
+ings of the 19th ACM Conference on Embedded Net-
+worked Sensor Systems, pages 42–55.
+Tian Li, Anit Kumar Sahu, Ameet Talwalkar, and Vir-
+ginia Smith. 2020. Federated learning: Challenges,
+methods, and future directions. IEEE signal process-
+ing magazine, 37(3):50–60.
+Xiang Lisa Li and Percy Liang. 2021. Prefix-tuning:
+Optimizing continuous prompts for generation. arXiv
+preprint arXiv:2101.00190.
+Brendan McMahan, Eider Moore, Daniel Ramage,
+Seth Hampson, and Blaise Aguera y Arcas. 2017.
+Communication-efficient learning of deep networks
+from decentralized data. In Artificial intelligence and
+statistics, pages 1273–1282. PMLR.
+Yue Niu, Saurav Prakash, Souvik Kundu, Sunwoo Lee,
+and Salman Avestimehr. 2022. Federated learning
+of large models at the edge via principal sub-model
+training. arXiv preprint arXiv:2208.13141.
+Jonas Pfeiffer, Naman Goyal, Xi Victoria Lin, Xian Li,
+James Cross, Sebastian Riedel, and Mikel Artetxe.
+2022. Lifting the curse of multilinguality by
+pre-training modular transformers. arXiv preprint
+arXiv:2205.06266.
+Xinchi Qiu, Javier Fernandez-Marques, Pedro PB Gus-
+mao, Yan Gao, Titouan Parcollet, and Nicholas Don-
+ald Lane. 2022. Zerofl: Efficient on-device train-
+ing for federated learning with local sparsity. arXiv
+preprint arXiv:2208.02507.
+Sashank Reddi, Zachary Charles, Manzil Zaheer,
+Zachary Garrett, Keith Rush, Jakub Kone ˇcn`y,
+Sanjiv Kumar, and H Brendan McMahan. 2020.
+Adaptive federated optimization. arXiv preprint
+arXiv:2003.00295.
+Victor Sanh, Lysandre Debut, Julien Chaumond, and
+Thomas Wolf. 2019. Distilbert, a distilled version
+of bert: smaller, faster, cheaper and lighter. arXiv
+preprint arXiv:1910.01108.
+Guangyu Sun, Matias Mendieta, Taojiannan Yang, and
+Chen Chen. 2022. Exploring parameter-efficient fine-
+tuning for improving communication efficiency in
+federated learning. arXiv preprint arXiv:2210.01708.
+Yaqing Wang, Sahaj Agarwal, Subhabrata Mukherjee,
+Xiaodong Liu, Jing Gao, Ahmed Hassan Awadal-
+lah, and Jianfeng Gao. 2022. Adamix: Mixture-
+of-adaptations for parameter-efficient model tuning.
+arXiv preprint arXiv:2210.17451.
+Elad Ben Zaken, Shauli Ravfogel, and Yoav Gold-
+berg. 2021. Bitfit: Simple parameter-efficient
+fine-tuning for transformer-based masked language-
+models. arXiv preprint arXiv:2106.10199.
+Zhuo Zhang, Yuanhang Yang, Yong Dai, Lizhen Qu, and
+Zenglin Xu. 2022. When federated learning meets
+pre-trained language models’ parameter-efficient tun-
+ing methods. arXiv preprint arXiv:2212.10025.
+Han Zhou, Xingchen Wan, Ivan Vuli´c, and Anna Korho-
+nen. 2023. Autopeft: Automatic configuration search
+for parameter-efficient fine-tuning. arXiv preprint
+arXiv:2301.12132.
+A Priming LODA from FFT using SVD
+Singular Value Decomposition is a matrix decom-
+position method that helps us to rewrite a m × n
+matrix M as a multiplication of three matrices,
+M = UΣVT , where M ∈ Rm×n, U ∈ Rm×m,
+Σ ∈ Rm×n, V ∈ Rn×n and Σ is a rectangular
+diagonal matrix with descending diagonal terms 1.
+The accurate decomposition is not parameter effi-
+cient and generates matrices with large dimensions.
+Therefore, instead of the exact decomposition, we
+use an approximation that preserves most of the
+information in M (Our ∆W of interest through-
+out the paper). A common way to approximate a
+m × m matrix M ≈ ˜U ˜VT (where ˜U ∈ Rm×r,
+˜V ∈ R m×r and r ≪ m) is to take the first r
+columns of U and V which are associated with the
+largest singular values in Σ, and then constructing
+˜U = U[1:m,1:r]Σ[1:r,1:r] and ˜V = V[1:m,1:r]. Note
+that increasing the r value makes this approxima-
+tion more accurate as it approaches the true SVD
+but, at the same time, decreases the saving in the
+parameters.
+B Performance and cost of 20News group
+on DistilBERT
+Table 5 shows the training cost (time) of differ-
+ent baselines and components of SLoRA for the
+20News group dataset on the DistilBERT model.
+As expected, the cost of Stage 1 is similar to SFT,
+and the cost of Stage 2 is equal to that in LoRA.
+Table 6 summarizes the performance of differ-
+ent methods for the 20News group dataset on the
+DistilBERT model. As mentioned earlier, to have
+a fair comparison, we trained different methods
+for different rounds of federated learning and only
+fixed the communication cost. As shown in the
+1SVD decomposition is not unique, but we are concerned
+with the decomposition where the singular values are orga-
+nized in descending order

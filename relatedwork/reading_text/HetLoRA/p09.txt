@@ -1,0 +1,100 @@
+clients what will be the effective way to assign
+the ranks across clients for better convergence and
+performance? Another important next step of our
+work includes pursuing the theoretical convergence
+and generalization of heterogeneous LoRA.
+6 Limitations
+In this work, we address tackling system and data
+heterogeneity in federated fine-tuning of on-device
+foundation models. Our work is motivated by
+clients being able to carry different ranks for the
+LoRA fine-tuning method depending on their avail-
+able resources, and thus exploiting this character-
+istic to improve federated fine-tuning with het-
+erogeneous LoRA. However, our work assumes
+that the rank distribution across clients (which is
+analogous to how system resources are distributed
+across clients) is independent to the data distribu-
+tion. There can be scenarios in which this is not
+necessarily the case where the rank and data dis-
+tribution can be correlated. For instance, more
+affluent populations can have better off devices
+with larger resource capacity, and may have data
+distributions different to that of less affluent pop-
+ulations. Such correlation should be explored for
+future work to better understand the implications
+of heterogenoeus LoRA.
+References
+Sara Babakniya, Ahmed Roushdy Elkordy, Yahya H.
+Ezzeldin, Qingfeng Liu, Kee-Bong Song, Mostafa
+El-Khamy, and Salman Avestimehr. 2023. Slora:
+Federated parameter efficient fine-tuning of language
+models. CoRR, abs/2308.06522.
+Rishi Bommasani, Drew A. Hudson, and et. al.
+Ehsan Adeli. 2022. On the opportunities and
+risks of foundation models. arXiv preprint
+arXiv:2108.07258.
+Keith Bonawitz, Vladimir Ivanov, Ben Kreuter, Anto-
+nio Marcedone, H. Brendan McMahan, Sarvar Patel,
+Daniel Ramage, Aaron Segal, and Karn Seth. 2016.
+Practical secure aggregation for federated learning
+on user-held data. In NIPS Workshop on Private
+Multi-Party Machine Learning.
+Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, Sandhini Agarwal, Ariel Herbert-V oss,
+Gretchen Krueger, Tom Henighan, Rewon Child,
+Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu,
+Clemens Winter, Christopher Hesse, Mark Chen,
+Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin
+Chess, Jack Clark, Christopher Berner, Sam Mc-
+Candlish, Alec Radford, Ilya Sutskever, and Dario
+Amodei. 2020. Language models are few-shot learn-
+ers. arXiv preprint arXiv:2005.14165.
+Zhiqi Bu, Yu-Xiang Wang, Sheng Zha, and George
+Karypis. 2022. Differentially private bias-term only
+fine-tuning of foundation models. arXiv preprint
+arXiv:2210.00036.
+Jinyu Chen, Wenchao Xu, Song Guo, Junxiao Wang,
+Jie Zhang, and Haozhao Wang. 2022. Fedtune: A
+deep dive into efficient federated fine-tuning with
+pre-trained transformers. CoRR, abs/2211.08025.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. 2019. Bert: Pre-training of deep
+bidirectional transformers for language understand-
+ing. arXiv preprint arXiv:1810.04805.
+Danny Driess, Fei Xia, Mehdi S. M. Sajjadi, Corey
+Lynch, Aakanksha Chowdhery, Brian Ichter, Ayzaan
+Wahid, Jonathan Tompson, Quan Vuong, Tianhe
+Yu, Wenlong Huang, Yevgen Chebotar, Pierre Ser-
+manet, Daniel Duckworth, Sergey Levine, Vincent
+Vanhoucke, Karol Hausman, Marc Toussaint, Klaus
+Greff, Andy Zeng, Igor Mordatch, and Pete Florence.
+2023. Palm-e: An embodied multimodal language
+model. arXiv preprint arXiv:2303.03378.
+Google. 2022. Palm: Scaling language modeling with
+pathways. arXiv preprint arXiv:2204.02311.
+Google. 2023. Palm 2 technical report. arXiv preprint
+arXiv:2305.1040.
+Google DeepMind. 2023. Introducing palm2.
+https://blog.google/technology/ai/
+google-palm-2-ai-large-language-model/ .
+Tao Guo, Song Guo, and Junxiao Wang. 2023. Pfed-
+prompt: Learning personalized prompt for vision-
+language models in federated learning. In Proceed-
+ings of the ACM Web Conference 2023, WWW ’23,
+page 1364–1374, New York, NY , USA. Association
+for Computing Machinery.
+Tao Guo, Song Guo, Junxiao Wang, and Wenchao Xu.
+2022. Promptfl: Let federated participants cooper-
+atively learn prompts instead of models — feder-
+ated learning in age of foundation model. CoRR,
+abs/2208.11625.
+Venkatesan Guruswami and Ravi Kannan. 2012. Lec-
+ture notes in computer science theory for the infor-
+mation age.
+Neil Houlsby, Andrei Giurgiu, Stanisław Jastrzebski,
+Bruna Morrone, Quentin de Laroussilhe, Andrea
+Gesmundo, Mona Attariyan, and Sylvain Gelly. 2019.
+9

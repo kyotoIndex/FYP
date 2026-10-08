@@ -1,0 +1,1913 @@
+
+
+===== PDF PAGE 1 =====
+
+arXiv:2410.10200v2  [cs.LG]  20 Jun 2025
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated
+Fine-Tuning with Heterogeneous Clients
+Zikai Zhang, Rui Hu, Ping Liu, Jiahao Xu
+{zikaiz,ruihu,pingl,jiahaox}@unr.edu
+University of Nevada, Reno
+Reno, NV, USA
+Abstract
+Federated Learning enables the fine-tuning of foundation models
+(FMs) across distributed clients for specific tasks; however, its scal-
+ability is limited by the heterogeneity of client memory capacities.
+In this work, we propose Fed-pilot, a memory-efficient federated
+fine-tuning framework. It enables memory-constrained clients to
+participate in Low-Rank Adaptation (LoRA)-based fine-tuning by
+training only a subset of LoRA modules locally. Fed-pilot identifies
+the optimal selection of trainable LoRA modules as a knapsack
+optimization problem, maximizing model performance under mem-
+ory constraints for each client. To mitigate inconsistencies arising
+from heterogeneous module allocations and Non-IID data, Fed-pilot
+employs a novel aggregation rule that dynamically compensates
+for under-updated layers. Extensive experiments on five diverse
+datasets across various heterogeneous data settings demonstrate
+Fed-pilot’s effectiveness and efficiency compared to state-of-the-art
+methods. To the best of our knowledge, this is the first study on
+federated fine-tuning of FMs that integrates memory-constrained
+optimization. The code will be publicly available.
+CCS Concepts
+• Computing methodologies → Distributed computing method-
+ologies; Machine learning.
+Keywords
+Federated Learning, Low-Rank Adaptation, GPU Memory Con-
+straint
+1 Introduction
+Federated Learning (FL) [20] enables collaborative model training
+across distributed edge devices (clients) under the coordination
+of a central server. In this paradigm, data remains local, and only
+client-computed model updates are sent to the server to iteratively
+refine a shared global model. By reducing data collection costs and
+mitigating privacy risks, FL has emerged as a practical solution
+for scalable machine learning systems. Concurrently, Foundation
+Models (FMs) have become transformative across various domains
+due to their large scale and ability to generalize effectively across di-
+verse datasets. These models have driven significant advancements
+in natural language processing, computer vision, and other fields
+through task-specific fine-tuning [9, 27]. Recent developments, such
+as the Llama-family models [27], exemplify the rapid expansion of
+FMs to billions of parameters, showcasing their unprecedented scale
+and complexity. However, the large parameter count of FMs poses
+significant challenges for deployment in federated settings, as the
+associated computational and communication overhead severely
+limits their ability to efficiently utilize distributed data [24].
+Head
+…
+First LoRA Module
+Frozen
+𝑤LoRA
+Trainable
+𝑤LoRA
+𝑤LoRA
+Last LoRA Module
+Embedding
+Head
+…
+𝑤LoRA
+𝑤LoRA
+𝑤LoRA
+Embedding
+Transformer
+Block
+(c)
+(b)
+（a)
+Figure 1: (a) Accuracy vs. GPU memory consumption for fine-
+tuning the ViT-base model with trainable LoRA modules at
+different positions. (b) Breakdown of memory consumption
+of LoRA fine-tuning. (c) Comparison of training the first
+LoRA module vs. the last LoRA module while keeping the
+rest frozen. See Supplement B.3 for experimental details.
+To address the challenges of deploying FMs in federated set-
+tings, Parameter-Efficient Fine-Tuning (PEFT) [18] methods have
+been widely explored. Among these, Low-Rank Adaptation (LoRA)
+has demonstrated strong performance in efficiently fine-tuning
+FMs, particularly on mid-sized datasets [13]. LoRA achieves this
+by decomposing weight updates into low-rank matrices, training
+only these matrices while keeping the pre-trained weights frozen.
+This approach significantly reduces the number of trainable pa-
+rameters, lowering both the computational cost of training and
+the communication overhead for transmitting model updates in
+FL. Recent studies have explored LoRA’s effectiveness in federated
+fine-tuning [3, 6, 11, 29, 33, 35]. For example, FedIT [33] proposes
+a vanilla integration of LoRA and FedAvg [20], while methods like
+HETLoRA [6], FLoRA [29], and FlexLoRA [3] adjust LoRA ranks to
+accommodate clients’ varying computational capabilities, optimiz-
+ing resource usage in heterogeneous settings.
+However, these methods fail to address a critical challenge in
+fine-tuning FMs in federated settings: the memory bottleneck. Fine-
+tuning FMs requires substantial on-device GPU memory to store
+the CUDA context, model parameters, optimizer states, and inter-
+mediate activations necessary for gradient computation during
+back-propagation. Among these, activations dominate memory us-
+age, as illustrated in Figure 1(b). Although reducing the rank of
+LoRA modules lowers memory costs associated with optimizer
+states (e.g., gradients, momentum), it does not significantly allevi-
+ate the memory demand for activations. This memory requirement
+makes fine-tuning FMs challenging even on powerful GPU servers,
+let alone on those resource-constrained edge or end devices in
+federated settings.
+Recently, FedRA [24] was proposed to mitigate the memory bot-
+tleneck by training only a random subset of LoRA modules on each
+
+===== PDF PAGE 2 =====
+
+, , Zhang et al.
+client, while keeping the remaining modules frozen. However, this
+approach assumes that freezing any LoRA module results in equal
+memory savings and overlooks the varying importance of different
+modules in contributing to model performance, thereby resulting
+in limited memory efficiency. As shown in Figure 1(a), training the
+LoRA modules at different positions (i.e., within different trans-
+former blocks) leads to varying memory consumption and model
+accuracy. This discrepancy arises because freezing a layer elimi-
+nates the storage of dynamic activations, which are associated with
+linear functions, but does not reduce the memory required for static
+activations. Static activations, which are generated by non-linear
+functions, must be stored for gradient computation in subsequent
+trainable layers (refer to Supplement A for details). For example,
+training the first 𝑢 LoRA modules requires extra storage for static
+activations from module 𝑢 + 1 onward to compute gradients back
+to the 𝑢-th module, even though these modules are frozen.
+In this work, we introduce Fed-pilot, a novel memory-efficient
+method for federated fine-tuning of FMs across clients with het-
+erogeneous memory capacities. Fed-pilot identifies the o ptimal
+allocation of local trainable LoRA modules that maximize global
+model performance under memory constraints. To aggregate local
+LoRA updates, Fed-pilot introduces a compensated aggregation
+rule, which mitigates the inconsistencies across layers caused by
+Non-IID data distributions and heterogeneous LoRA allocation to
+ensure model convergence. Our main contributions are summarized
+as follows:
+• We propose Fed-pilot, a novel federated LoRA-based fine-
+tuning framework designed for clients with heterogeneous
+memory constraints. Fed-pilot enables clients with limited
+memory to dynamically train an optimal subset of LoRA
+modules, which can effectively reduce memory requirements
+during fine-tuning. To the best of our knowledge, this is the
+first study on federated fine-tuning of FMs that incorporates
+memory-constrained optimization.
+• We formulate the allocation of trainable LoRA modules as a
+knapsack optimization problem, aiming to maximize the fine-
+tuning performance under memory constraints. We model
+the GPU memory consumption of LoRA-based fine-tuning,
+including scenarios with partial LoRA allocation. We design
+an information gain (IG) score based value function to quan-
+tify the LoRA module’s contribution to model performance
+from local and global perspectives.
+• In addition, we design a novel aggregation rule ComAgg
+to mitigate the significant divergence among local model
+updates caused by heterogeneous LoRA allocation and Non-
+IID data.
+• We conduct extensive experiments using five datasets in IID
+and various Non-IID settings and compare Fed-pilot with
+state-of-the-art methods to demonstrate its effectiveness and
+efficiency.
+2 Related Work
+LoRA-based Federated Fine-Tuning. FL has been applied to
+the PEFT of FMs, enabling multiple clients to collaboratively fine-
+tune FMs without sharing their data [2, 25, 33]. There is growing
+interest in LoRA-based federated fine-tuning approaches, which
+are commonly known to be particularly effective in mid-sized data
+scenarios [13]. FedIT [33] proposes a vanilla federated fine-tuning
+method with LoRA and establishes benchmarks for PEFT in FL.
+SLoRA [2] is a two-stage approach that trains local models with
+sparse fine-tuning for several rounds and then switches to LoRA
+for PEFT. FFA-LoRA [25] enhances the privacy of federated fine-
+tuning using differential privacy. FedSA-LoRA [12] only shares the
+A matrices with the server for aggregation, due to their specific role
+in learning general knowledge. However, these methods assume
+homogeneous client resources.
+Federated Fine-Tuning under Heterogeneous Clients.While
+LoRA-based federated fine-tuning methods can save computational
+and communication costs, they still fail to fully accommodate train-
+ing across heterogeneous clients with varying memory capacities.
+A range of rank-based methods [3, 6, 29] attempt to address this
+by assigning different LoRA ranks according to clients’ memory
+capacities. HETLoRA [6] introduces a heterogeneous LoRA rank
+strategy, where clients train different numbers of LoRA ranks based
+on their memory capacity. Its aggregation rule follows a hierar-
+chical approach, ranks shared by multiple clients are averaged,
+while higher ranks are aggregated by fewer clients. FLoRA [ 29]
+introduces a stacking method for all LoRA ranks to mitigate the
+aggregation noise from aggregating low-rank compositions sepa-
+rately. FlexLoRA [3] utilizes singular value decomposition (SVD) to
+redistribute attention weight matrix for clients with varying ranks.
+However, reducing the LoRA rank does not result in significant
+memory reduction, making it an inefficient solution for memory-
+constrained settings. FedRA [24] proposes a layer-wise LoRA allo-
+cation strategy that randomly selects partial LoRA modules each
+round to handle resource disparities among clients. However, it
+fails to account for the non-linear nature of memory consumption
+and the varying impact of different layers on overall global model
+performance. A well-designed heterogeneous LoRA allocation is es-
+sential for achieving optimal performance in federated fine-tuning
+systems with memory constraints.
+Layer Freezing for Training Efficiency. Layer freezing has
+been used to improve the training efficiency of FMs [ 21, 32, 36].
+LISA [21] randomly selects a subset of layers to fine-tune in each
+training step, thereby reducing the number of trainable parameters.
+LIFT [36] fine-tunes only one FM layer per step and applies dif-
+ferent selection strategies throughout training, leading to reduced
+computational costs. IST [32] introduces a reinforcement learning-
+based method to select a subset of layers during fine-tuning. Other
+methods in FL [19, 30] also incorporate layer freezing to improve
+training efficiency. FibecFed [19] designed a Fisher Information
+Matrix-based scoring mechanism to selectively fine-tune a subset
+of LoRA modules for each client. FedFMSL [30] progressively un-
+freezes LoRA modules from higher to shallow layers for efficient
+training, relying on heuristic training-time accuracy gains to de-
+termine when to unfreeze more LoRA modules. However, these
+methods do not account for practical memory modeling, particu-
+larly the non-linear activation memory reduction by layer freezing.
+Our method optimizes LoRA allocation under memory constraints
+while preserving the global model performance.
+
+===== PDF PAGE 3 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+3 System Modeling
+3.1 Federated Fine-Tuning System
+We consider a federated fine-tuning system consisting of a central
+server and 𝑣 clients. The server has a global FM 𝚯 initialized with
+pre-trained weights 𝚯0. Each client 𝑖 ∈ [ 𝑣] owns a local dataset
+𝐷𝑖 ∼ P𝑖, where the size of 𝐷𝑖 and the data distribution P𝑖 can vary
+across clients. In federated fine-tuning, clients aim to collaboratively
+fine-tune the global model 𝚯 under the coordination of the server.
+In this work, we focus on transformer-based models [8, 9, 27, 34]
+consisting of 𝑙 transformer blocks {W (1), · · ·, W (𝑙 ) }, and embed-
+ding layers, along with head layers, denoted as W𝑟𝑒𝑠𝑡 . The pre-
+trained model is thus represented as𝚯0 = {W0
+(1), · · ·, W0
+(𝑙 ), W0
+𝑟𝑒𝑠𝑡 }.
+To fine-tune the global model efficiently, we apply the LoRA module
+(denoted as 𝜽 ( 𝑗 )) to the attention weight A ( 𝑗 ) ∈ R𝑑 ×𝑘 within the
+𝑗-th transformer block, where 𝑗 ∈ [ 1, 𝑙], and 𝑑 and 𝑘 represent the
+dimensions of the input and output feature space of attention lay-
+ers, respectively. The idea behind LoRA is to constrain ΔA ( 𝑗 ), the
+update of a pre-trained attention weight matrix A0
+( 𝑗 ), using a low-
+rank decomposition, such that A0
+( 𝑗 ) +ΔA ( 𝑗 ) = A0
+( 𝑗 ) + N ( 𝑗 ) M ( 𝑗 ),
+where N ( 𝑗 ) ∈ R𝑑 ×𝑟 , M ( 𝑗 ) ∈ R𝑟 ×𝑘, and the rank 𝑟 ≪ min(𝑑, 𝑘).
+Without loss of generality for subsequent optimization, we omit
+W𝑟𝑒𝑠𝑡 and define the LoRA modules for 𝚯 as 𝜽 := {𝜽 ( 𝑗 ) } 𝑗 ∈ [𝑙 ]
+with 𝜽 ( 𝑗 ) = {N ( 𝑗 ), M ( 𝑗 ) }.
+In this context, the problem of federated fine-tuning using LoRA
+can be formulated as follows:
+min
+𝜽
+L (𝜽 ) := 1
+𝑣
+𝑣∑︁
+𝑖=1
+L𝑖 (𝜽; 𝚯0), (1)
+where L𝑖 (𝜽; 𝚯0) := E𝑥 ∈𝐷𝑖 [ℓ (𝜽; 𝚯0, 𝑥)] denotes the local objective
+function of client 𝑖, and ℓ (𝜽 𝑖; 𝚯0, 𝑥) is the loss of the model {𝜽, 𝚯0}
+on a datapoint𝑥 sampled from 𝐷𝑖. We assume that clients download
+the pre-trained weights 𝚯0 from the server prior to fine-tuning and
+have sufficient memory capacity to store the model parameters.
+Ideally, the classic FedAvg algorithm [20] can be employed to solve
+this problem in a distributed manner. In FedAvg, at round 𝑡, clients
+download the global trainable model parameters 𝜽 𝑡 maintained
+by the server and update it using their local datasets to minimize
+their local objectives. Clients then upload their model updates to
+the server, which aggregates the updates to compute 𝜽 𝑡 +1 for the
+next round of fine-tuning. However, in practice, the large memory
+requirements for fine-tuning FMs, coupled with the heterogeneity
+of clients’ memory capacities, prevent some clients from accommo-
+dating the memory cost necessary for locally optimizing 𝜽.
+3.2 On-Device GPU Memory Consumption of
+LoRA-based Fine-Tuning
+FM fine-tuning requires substantial on-device GPU memory, pri-
+marily due to the complexity of the transformer model architecture.
+In federated settings with memory-limited clients, understanding
+the memory footprint of a FM fine-tuning task is crucial for design-
+ing memory-efficient approaches. Let C denotes the total memory
+consumption for a LoRA-based FM fine-tuning process. It can be
+represented as C = C𝑝 + C𝑜 + C𝑎 + C𝑐, where C𝑝, C𝑜, C𝑎 and C𝑐 rep-
+resent the memory consumption of model parameters, optimizers,
+activations and the CUDA context, respectively.
+(1) Model parameters include all weights and biases used during
+fine-tuning, encompassing both trainable and frozen parameters.
+Based on the federated fine-tuning problem formulation in (1), the
+memory consumption for storing model parameters in bytes can
+be expressed as C𝑝 := 𝜑 ({𝜽, 𝚯0}) where 𝜑 is defined as 𝜑 (𝒛) =
+𝜂𝑁 𝑤𝑒𝑖𝑔ℎ𝑡 (𝒛) + 𝜂𝑁𝑏𝑖𝑎𝑠 (𝒛). Here, 𝑁𝑤𝑒𝑖𝑔ℎ𝑡 (·) and 𝑁𝑏𝑖𝑎𝑠 (·) are the
+number of weights and bias in the model 𝒛, and 𝜂 is the number of
+bytes per parameter, which is determined by the precision (e.g., 2
+bytes for 16-bit precision).
+(2) Modern gradient-based optimizers like Adam [15] are widely
+used in FM fine-tuning. They maintain state information such as
+first-order and second-order gradient estimates for each trainable
+parameter. Consequently, the memory consumption for optimizer
+states scales linearly with the number of trainable model parameters
+and can be approximated as C𝑜 := 𝑏𝜁 𝜑(𝜽 ), where 𝜁 represents the
+number of optimizer states and 𝑏 is the batch size.
+(3) Unlike optimizer states, activation memory in transformer
+model fine-tuning grows non-linearly with the number of train-
+able parameters [1]. We distinguish between dynamic activations,
+which can be discarded by freezing certain parameters, and static
+activations, retained due to non-linear functions like GELU, Lay-
+erNorm, and Softmax (see Supplement A.1-A.4 for details). We
+calculate the size of dynamic and static activations for each trans-
+former block in {𝜽, 𝚯0}, when pre-trained weights 𝚯0 are frozen
+and the LoRA modules 𝜽 are trainable. As a result, the memory con-
+sumption for storing activations during the update of 𝜽 is given by:
+C𝑎 := 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑑
+( 𝑗 ) + 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑠
+( 𝑗 ), where 𝜎𝑑
+( 𝑗 ) and 𝜎𝑠
+( 𝑗 ) represents
+the size of dynamic and static activations for the 𝑗-th block.
+(4) Finally, the memory consumption of the CUDA context in-
+cludes GPU kernel launches, memory management, and other oper-
+ational resources. This component highly depends on the environ-
+ment, machine, and configuration, thus, we treat C𝑐 as a constant.
+Overall, the total memory consumption C is formulated as,
+C = 𝜑 ({𝜽, 𝚯0}) + 𝑏𝜁 𝜑(𝜽 ) + 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑑
+( 𝑗 )
++ 𝑏𝜂Í𝑙
+𝑗=1𝜎𝑠
+( 𝑗 ) + C𝑐 .
+(2)
+This indicates that reducing the size of 𝜽 can further lower the
+memory cost, similar to existing methods [ 3, 6, 29] that reduce
+the ranks of LoRA modules to save memory cost. However, this
+saving is limited. As shown in Figure.1(b), the overall memory cost
+is primarily dominated by activations. Reducing the ranks of LoRA
+modules has a minimal impact on the size of both dynamic and
+static activations.
+3.3 Reducing Memory Consumption with
+Partial LoRA Allocation
+To save GPU memory consumption, the primary contributor—activation
+memory cost—should be reduced. In fact, we can eliminate the need
+to store the dynamic activations for a transformer block by freezing
+its LoRA modules, as the entire block is frozen in this case. This is
+why FedRA [24], which randomly freezes LoRA modules in some
+
+===== PDF PAGE 4 =====
+
+, , Zhang et al.
+transformer blocks, can reduce certain activation memory consump-
+tion. However, previous works do not clearly model the impact of
+freezing LoRA modules on overall memory cost reduction.
+Let 𝑚 := {𝑚 (1), 𝑚(2), · · ·, 𝑚(𝑙 ) } represent the LoRA allocation
+map for the model {𝜽, 𝚯0}, where 𝑚 ( 𝑗 ) = 1 if the LoRA module in
+𝑗-th block, i.e., 𝜽 ( 𝑗 ), is trainable, otherwise 𝑚 ( 𝑗 ) = 0 if it is frozen.
+Let J = { 𝑗 | 𝑚 ( 𝑗 ) = 1, ∀𝑗 }, the overall memory computation with
+partial LoRA allocation should be:
+C (𝑚) = C𝑝 + C𝑜 (𝑚) + C𝑎 (𝑚) + C𝑐, (3)
+where C𝑜 (𝑚) = 𝑏𝜁 𝜑({𝜽 ( 𝑗 ) } 𝑗 ∈ J) and
+C𝑎 (𝑚) = 𝑏𝜂
+∑︁
+𝑗 ∈ J
+𝜎𝑑
+( 𝑗 ) + 𝑏𝜂
+𝑙∑︁
+𝑗=min( J )
+𝜎𝑠
+( 𝑗 ) . (4)
+Freezing LoRA modules affects only the memory cost of optimizer
+states and activations. The memory consumption of dynamic ac-
+tivations (the first term in (4)) is associated only with trainable
+LoRA modules. The memory consumption of static activations (the
+second term in (4)) depends on the earliest trainable LoRA modules,
+i.e., min(J ), since static activations from all layers after min(J )-
+th layer must be stored for backpropagation [1]. This formulation
+indicates that, in addition to reducing memory usage for optimizer
+states and dynamic activations, partial LoRA allocation has the
+potential to reduce the memory usage for static activations, though
+it must be carefully designed. In the following, we discuss two naive
+allocation strategies and analyze their memory consumption.
+Two Naive Cases: Memory Saver and Memory Hogger. Memory
+Saver makes the last 𝑢 LoRA modules trainable, resulting in the
+LoRA allocation map is 𝑚MS = {0 for 𝑗 ∈ [ 1, 𝑙 − 𝑢], 1 for 𝑗 ∈
+[𝑙 − 𝑢 + 1, 𝑙]}. Memory Hogger makes the first 𝑢 LoRA modules
+trainable, yielding the LoRA allocation map 𝑚MH = {1 for 𝑗 ∈
+[1, 𝑢], 0 for 𝑗 ∈ [ 𝑢 + 1, 𝑙]}. Despite both having the same number
+of trainable LoRA modules, these strategies differ in their memory-
+saving capabilities, particularly in reducing static activation mem-
+ory, as CMH − CMS = 𝑏𝜂 Í𝑙 −𝑢
+𝑗=1 𝜎𝑠
+( 𝑗 ), which can be substantial as
+demonstrated in Figure 1(a).
+4 Our Fed-pilot Framework for Federated
+Fine-Tuning over Heterogeneous Clients
+In this section, we introduce Fed-pilot, a novel federated fine-tuning
+framework that allocates partial LoRA modules for clients with
+limited memory capacities to perform local training. Specifically,
+let K𝑖 represent the memory capacity of client 𝑖, and assume each
+client has its own LoRA allocation map𝑚𝑖. The map 𝑚𝑖 is designed
+such that the memory consumption, i.e., C (𝑚𝑖 ), does not exceed
+the client’s memory capacityK𝑖. In Fed-pilot, clients have a local
+copy of the pre-trained weights 𝚯0 and aim to collaboratively train
+the global LoRA modules 𝜽 following these steps: (1) At each round
+𝑡, the server randomly selects a subset of clients S𝑡 and broadcasts
+the current global LoRA module 𝜽 𝑡 to them. Each selected client
+initializes its model as {𝜽 𝑡
+𝑖 , 𝚯0} with 𝜽 𝑡
+𝑖 = 𝜽 𝑡 ; (2) Each selected
+client determines its optimal LoRA allocation map 𝑚𝑡
+𝑖 based on
+its memory capacity K𝑖 and freezes the LoRA module in the 𝑗-
+th transformer block, i.e., 𝜽 𝑡
+𝑖, ( 𝑗 ), if 𝑚𝑡
+𝑖, ( 𝑗 ) = 0; (3) Selected clients
+update only their trainable LoRA modules to obtain𝜽 𝑡 +1
+𝑖 ; (4) Clients
+Head
+…
+LoRA Allocation for Client𝑖
+𝑤(1)
+0LoRA
+𝑤(2)
+0LoRA
+𝑤(𝑙)
+0LoRA
+Embedding Frozen
+Trainable
+Server
+BroadcastUpload
+Client 1 Client 2 Client 𝑖
+𝜹𝑖
+𝑡+1 𝜽𝑔𝑡
+Aggregation Rule
+Global Update 𝜽𝑔𝑡+1
+…
+1
+LoRA 
+Allocation
+Allocation
+Map 𝑚𝑖
+𝑡
+Memory
+Capacity 𝐾𝑖
+5
+Client 3
+0 1 1…
+2
+Model 
+Fine-Tuning
+3
+Local 
+Update 𝜽𝑖
+𝑡+1
+6
+4
+Figure 2: The overall framework of Fed-pilot with optimal
+LoRA allocation over heterogeneous clients.
+obtain their model updates,𝜹𝑡 +1
+𝑖 := 𝜽 𝑡 +1
+𝑖 −𝜽 𝑡
+𝑖 ; (5) Clients upload the
+model updates to the server; (6) Server aggregates all the received
+updates and computes a new global model 𝜽 𝑡 +1 for the next round
+of training. This process iterates for 𝑇 rounds until the fine-tuned
+model {𝜽𝑇 , 𝚯0} converges. We illustrate the pipeline of our Fed-
+pilot framework in Figure 2.
+To ensure fine-tuning performance under the memory constraints,
+we optimize the LoRA allocation using knapsack optimization (Sec-
+tion 4.1) and design a new aggregation rule for the heterogeneous
+local model updates (Section 4.2).
+4.1 Optimizing LoRA Allocation under
+Heterogeneous Memory Constraints
+4.1.1 Knapsack Optimization Problem. The knapsack optimization
+problem aims to maximize the total value of selected items while
+ensuring that their combined weight does not exceed a predefined
+capacity. In this context, value corresponds to the utility or benefit
+of an item, while weight represents its associated cost or resource
+consumption. The capacity defines the maximum allowable total
+weight for the selected items.
+In our setting, we employ knapsack optimization to maximize
+fine-tuning performance by optimizing the LoRA allocation map
+for each client under memory constraints. Specifically, for every
+client 𝑖 ∈ [ 𝑣], we define the following constrained optimization
+problem:
+max𝑚𝑖
+∑︁
+𝑗 ∈ [𝑙 ]
+𝑚𝑖, ( 𝑗 )𝐺 (𝜽 𝑖, ( 𝑗 ) ), subject to C (𝑚𝑖 ) ≤ K 𝑖 . (5)
+
+===== PDF PAGE 5 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Here, 𝐺 (·) is the value function, defined in (7), which quantifies
+the contribution of the LoRA module within a specific transformer
+block to the global model’s performance.C (·)is the overall weight
+function, defined in(3), which measures the total memory consump-
+tion for a given allocation map. K𝑖 denotes the memory capacity
+of client 𝑖.
+The problem is NP-hard in the discrete setting. The classical
+heuristic approach to solving it is the greedy algorithm, which
+iteratively selects items based on their value-to-weight ratio until
+reaching capacity. However, unlike standard knapsack optimization,
+where item weights are static, the weight of each LoRA module
+𝜽 𝑖, ( 𝑗 ) dynamically adapts based on the previously assigned LoRA
+modules. Specifically, at each step ℎ ∈ [ 0, 𝑙 − 1], the weight of an
+item 𝜽 𝑖, ( 𝑗 ) is Cℎ
+𝑖, ( 𝑗 ) = C (𝑚ℎ
+𝑖 ) if ℎ = 0, otherwise,
+Cℎ
+𝑖, ( 𝑗 ) = 𝑏𝜁 𝜑(𝜽 𝑖, ( 𝑗 ) ) + 𝑏𝜂𝜎 𝑑
+( 𝑗 )
++ 𝑏𝜂
+𝑙∑︁
+𝑗 ′=min( Jℎ−1∪{ 𝑗 } )
+𝜎𝑠
+( 𝑗 ′ ) − 𝑏𝜂
+𝑙∑︁
+𝑗 ′=min( Jℎ−1 )
+𝜎𝑠
+( 𝑗 ′ ),
+where 𝑚ℎ
+𝑖 represents the allocation map at step ℎ and J ℎ−1 = { 𝑗 |
+𝑚ℎ−1
+𝑖, ( 𝑗 ) = 1, ∀𝑗 }. Note that these item weights will be normalized
+using min-max scaling at every step.
+4.1.2 Information Gain Score based Value Function. Here, we de-
+fine the value function used in our LoRA allocation optimization
+problem in (5), which quantifies the contribution of each LoRA
+module to fine-tuning performance. From an information-theoretic
+perspective, mutual information quantifies how much knowledge
+of one variable (e.g., a model parameter) reduces the uncertainty
+of another (e.g., task-specific loss) [17]. This suggests that a layer’s
+importance in fine-tuning can be measured by how much informa-
+tion it contributes to minimizing the loss [10]. However, directly
+computing mutual information in deep learning models is often
+intractable due to its high computational complexity.
+To make this concept computationally feasible, we approximate
+a layer’s contribution using its gradient norm, which reflects how
+much a parameter influences loss reduction. A higher gradient
+norm indicates that a layer plays a more active role in optimiza-
+tion, capturing critical information necessary for improving model
+performance. Based on this intuition, we introduce the IG score
+𝐼 ( 𝑗 ), a gradient-based metric that serves as a practical proxy for
+evaluating the information gain of the 𝑗-th LoRA module.
+𝐼 ( 𝑗 ) (𝜽, 𝐷IG) =
+⌈ |𝐷IG |/| 𝐵𝑒
+IG | ⌉∑︁
+𝑒=1
+∇ℓ (𝜽; 𝚯0, 𝐵𝑒
+IG) ( 𝑗 )
+2
+2 , (6)
+where 𝐷IG represents an IG dataset used to estimate the impact of
+each LoRA module, and 𝐵𝑒
+IG is a mini-batch sampled from 𝐷IG at
+the 𝑒-th forward-backward iteration.
+However, calculating this IG score is challenging in federated
+settings. The server must obtain an IG dataset that aligns with
+the distribution of local datasets [37]. However, if clients compute
+the IG score locally, the results may be sparse, when some LoRA
+modules are frozen and do not contribute to the gradient computa-
+tion. Furthermore, when clients have Non-IID data distributions, a
+globally computed IG score may fail to reflect the client-specific im-
+portance of LoRA modules, leading to suboptimal LoRA allocation
+strategies.
+To address these challenges of sparsity and data heterogeneity,
+we design a three-step IG score aggregation process. Specifically,
+at round 𝑡, each client computes the IG score for its local trainable
+LoRA modules using a small subset 𝐷IG
+𝑖 extracted from its local
+dataset, where the IG score for the𝑗-th LoRA module is calculated by
+𝐼 𝑡
+𝑖, ( 𝑗 ) = 𝐼 ( 𝑗 ) (𝜽 𝑡
+𝑖 , 𝐷IG
+𝑖 ) if 𝑚𝑡
+𝑖, ( 𝑗 ) = 1. Let V𝑡
+( 𝑗 ) = {𝑖; 𝑚𝑡
+𝑖, ( 𝑗 ) = 1, 𝑖 ∈ S 𝑡 }
+to represent the set of clients that train the 𝑗-th LoRA module at
+round 𝑡 and T 𝑡
+( 𝑗 ) = {𝑡 ′; V𝑡 ′
+( 𝑗 ) ≠ ∅, 𝑡′ ∈ ( 𝑡 − 𝑇IG, 𝑡]} to represent the
+set of past rounds in which at least one client trains the 𝑗-th LoRA
+module within the most recent 𝑇IG rounds. Note that the temporal
+aggregation window𝑇IG is selected to ensure that T 𝑡
+( 𝑗 ) ≠ ∅. Based
+on these, we define the value function of client 𝑖 as follows
+𝐺 (𝜽 𝑡
+𝑖, ( 𝑗 ) ) =
+𝐼 𝑡
+𝑖, ( 𝑗 ) + 1
+| T𝑡
+( 𝑗 ) |
+Í
+𝑡 ′ ∈ T𝑡
+( 𝑗 )
+¯𝐼 𝑡 ′
+( 𝑗 )
+𝑚𝑡
+𝑖, ( 𝑗 ) + 1
+with ¯𝐼 𝑡 ′
+( 𝑗 ) = 1
+|V𝑡 ′
+( 𝑗 ) |
+∑︁
+𝑖 ∈ V𝑡 ′
+( 𝑗 )
+𝐼 𝑡
+𝑖, ( 𝑗 ) . (7)
+To mitigate fluctuations and address sparsity in local scores, the
+value function first performs cross-client aggregation to compute
+an averaged IG score for each LoRA module. Then, it applies tem-
+poral averaging over the most recent𝑇IG rounds to further stabilize
+the score. Finally, to account for the unique data distribution of
+each client, the temporally smoothed average score is combined
+with the client’s local score, ensuring a balance between global
+knowledge and local adaptation in determining the final value of a
+LoRA module.
+4.2 Aggregation with Update Compensation
+With optimized LoRA allocation, clients with varying memory ca-
+pacities train different sets of LoRA modules, leading to diverse
+model updates. From a global perspective, this divergence causes
+variations in both the frequency and the scale of the parameter
+changes across LoRA modules. Specifically, some modules receive
+updates from a larger number of clients, while others receive up-
+dates from fewer clients. As a result, due to the Non-IID nature
+of client data, different layers may learn from distinct data distri-
+bution. In this case, simply averaging model updates can hinder
+convergence.
+To address this issue, we design a compensated aggregation rule
+(ComAgg), which dynamically compensates the layers that are less
+updated at the current round. Specifically, upon received the local
+model updates {𝜹𝑡 +1
+𝑖 }𝑖 ∈ S𝑡 from the selected clients at round 𝑡, the
+server aggregates them layer-wise as follows: for each 𝑗 ∈ [ 𝑙],
+𝜹𝑡 +1
+( 𝑗 ) =
+𝛽𝑡
+( 𝑗 )
+𝛼𝑡
+( 𝑗 ) + 𝛽𝑡
+( 𝑗 )
+𝜹𝑡
+( 𝑗 ) +
+𝛼𝑡
+( 𝑗 )
+𝛼𝑡
+( 𝑗 ) + 𝛽𝑡
+( 𝑗 )
+¯𝜹𝑡 +1
+( 𝑗 )
+with ¯𝜹𝑡 +1
+( 𝑗 ) = 1
+|S𝑡
+( 𝑗 ) |
+∑︁
+𝑖 ∈ S𝑡
+( 𝑗 )
+𝜹𝑡 +1
+𝑖, ( 𝑗 ), (8)
+where S𝑡
+( 𝑗 ) = {𝑖; 𝑚𝑡
+𝑖, ( 𝑗 ) = 1, 𝑖 ∈ S 𝑡 } represents the set of clients that
+train the 𝑗-th LoRA module at round𝑡. The coefficient𝛼𝑡
+( 𝑗 ) = |S𝑡
+( 𝑗 ) |
+
+===== PDF PAGE 6 =====
+
+, , Zhang et al.
+Table 1: Main results on CIFAR-100 dataset with ViT-base
+model in both IID and Non-IID settings.
+Methods Model Performance (Accuracy)
+IID Non-IID (20) Non-IID (10) Avg
+Baseline-EL 40.15 27.82 7.04 25.00
+Baseline-MH 53.36 29.77 7.92 30.35
+Baseline-MS 76.38 68.34 57.63 67.45
+FLoRA 1.61 0.90 0.78 1.09
+FlexLoRA 1.84 1.92 1.86 1.87
+HETLoRA 6.91 8.23 1.59 5.57
+FedRA 72.60 62.95 47.98 61.17
+Ours 80.09 73.35 63.93 72.45
+Table 2: Main results on LEDGAR dataset with BERT-base
+model in both IID and Non-IID settings.
+Methods Model Performance (MacroF1)
+IID Non-IID (20) Non-IID (10) Avg
+Baseline-EL 60.76 43.94 0.12 34.94
+Baseline-MH 61.58 6.59 0.22 22.79
+Baseline-MS 62.95 56.22 46.93 55.36
+FLoRA 0.10 0.07 0.01 0.06
+FlexLoRA 0.10 0.24 0.32 0.22
+HETLoRA 0.51 0.32 0.10 0.31
+FedRA 63.20 54.96 47.24 55.13
+Ours 63.17 56.31 48.87 56.11
+represents the number of clients training the 𝑗-th LoRA module
+at round 𝑡, and 𝛽𝑡
+( 𝑗 ) = 1
+𝑇Agg
+Í𝑡
+𝑡 ′=𝑡 −𝑇Agg+1 𝛼𝑡 ′
+( 𝑗 ) captures the average
+number of clients contributing to the 𝑗-th LoRA module over the
+past 𝑇Agg rounds. By compensating under-updated LoRA modules
+using historical global updates, ComAgg mitigates inconsistencies
+in data distribution across modules, ensuring more stable conver-
+gence.
+5 Evaluation
+5.1 Experimental Settings
+5.1.1 Memory Capacity Heterogeneity. We define four memory ca-
+pacity levels (Level 1-4) based on real-world NVIDIA GPUs. For FMs
+with millions of parameters, we set the client memory capacities to
+24 GB, 32 GB, 40 GB, and 48 GB for Level 1 through 4, respectively.
+For FMs with billions of parameters, the corresponding memory
+capacities are to 32 GB, 40 GB, 48 GB, and 80 GB. See Supplement
+Section B.2 for detailed capacity settings on different models. We
+assume that clients are distributed across these levels in a 4:3:2:1
+ratio, from the lowest to the highest memory capacity, reflecting the
+higher prevalence of low-memory clients in real-world scenarios.
+5.1.2 Data Heterogeneity. We evaluate our approach on five dis-
+tinct datasets while simulating varying levels of Non-IID settings,
+including category heterogeneity, task heterogeneity, and domain
+heterogeneity.
+Figure 3: The average accuracy vs. average memory utiliza-
+tion across methods on CIFAR-100 dataset.
+Category Heterogeneity. We use CIFAR-100 dataset [16] and
+LEDGAR dataset from LexGLUE [4] to simulate the category het-
+erogeneity settings by skewing the label distribution across clients.
+For the pre-trained model, we use ViT-base [9] for visual tasks and
+BERT-base [8] for language tasks.
+Task Heterogeneity.We use Natural Instruction (NI) dataset [28]
+and Dolly-15K [7] dataset that contain diverse natural language
+tasks to evaluate our approach under task heterogeneity. We use a
+Llama-like model Data-Juicer-1B [5] and the OPT-1.3B [34] as the
+pre-trained models for these two datasets, respectively.
+Domain Heterogeneity. We use a customized DomainNet
+dataset [22] (referred to as DomainNet-121), which contains six
+visual domains, to simulate the domain heterogeneity by assigning
+data from only one domain to each client. For this dataset, we use
+ViT-base [9] as the pre-trained model.
+We provide the details of data settings in Supplement Section C.
+5.1.3 Baselines. To evaluate the effectiveness of Fed-pilot, we im-
+plement seven baselines:
+Baseline-Exclusive Learning (EL) excludes clients that cannot
+train all LoRA modules. Baseline-Memory Saver (MS) allocates the
+last 𝑢 LoRA modules according to the capacity, prioritizing the
+training of more modules. Baseline-Memory Hogger (MH) allocates
+the first 𝑢 LoRA modules according to the capacity, emphasizing
+the utilization of shallow-layer features. HETLoRA [6] is a rank-
+based method designed to accommodate heterogeneous clients with
+varying LoRA ranks. FLoRA [29] assigns lower ranks to resource-
+constraint clients and shares stacked LoRA modules for updates.
+FlexLoRA [3] improves aggregation in rank-based methods using
+SVD. FedRA [24] randomly allocates a subset of LoRA modules for
+clients with limited memory capacities to train at each round.
+5.1.4 Implementation Details. We use PyTorch to implement our
+framework. All experiments are carried out on a server with 8
+× NVIDIA RTX A6000 GPUs. The total GPU hours for running
+all the experiments are over 3,000 GPU hours. For the configura-
+tion of models, hyper-parameters, and FL settings, please refer to
+Supplement Section B for more details.
+5.2 Experimental Results
+The best results are highlighted in grey .
+Results on CIFAR-100. Table 1 presents the main results on
+CIFAR-100 dataset. We report the Top-1 accuracy of the fine-tuned
+global model under both IID and two different Non-IID (20, 10) set-
+tings. Our method demonstrates substantial improvements over the
+
+===== PDF PAGE 7 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Figure 4: Convergence performance on CIFAR-100 and LEDGAR datasets. Rank-based methods are excluded from the results
+as they diverge.
+Table 3: Main results on NI dataset with Llama-1B (Data-
+Juicer) model in both IID and Non-IID settings.
+Methods Model Performance (Rouge-L)
+IID Non-IID (20) Non-IID (15) Avg
+Baseline-EL 57.95 56.28 42.77 52.33
+Baseline-MH 58.58 58.08 56.78 57.81
+Baseline-MS 58.14 57.80 58.03 57.99
+FLoRA 42.63 40.84 37.72 40.39
+FlexLoRA 36.72 34.15 34.45 35.10
+HETLoRA 54.92 58.28 57.83 57.01
+FedRA 58.18 57.10 58.13 57.80
+Ours 58.73 58.59 59.30 58.87
+baseline methods. Compared to Baseline-MS, our method achieves
+improvements of +3.71%, +5.01%, and +6.30% across the three data
+distributions, respectively. This highlights the effectiveness of our
+proposed LoRA allocation optimization, indicating that fine-tuning
+as many LoRA modules as possible is not always beneficial. Our
+method also outperforms FedRA by an average of +11.28%, as FedRA
+relies on random sampling without considering either memory uti-
+lization or the contribution of each LoRA module to model accuracy.
+Compared to Baseline-EL and Baseline-MH, our method achieves
+average performance gains of +47.45% and +42.10%, respectively,
+and demonstrates much more stable performance under Non-IID
+settings. This is because these two methods cannot accommodate
+clients with low memory capacity. Rank-based methods such as
+FLoRA, FlexLoRA, and HETLoRA diverge due to inefficient memory
+management, and extreme low LoRA ranks.
+Results on LEDGAR. Table 2 presents the main results on
+LEDGAR dataset. We report Macro F1 score of the fine-tuned global
+model under both IID and Non-IID (20, 10) settings. Compared to
+FedRA, our method achieves an average improvement of +0.98%.
+Although it shows a slight drop under the IID distribution for our
+method compared to FedRA, it excels in handling Non-IID settings,
+with gains of +1.35% and +1.63% under “Non-IID (20)” and “Non-IID
+(10)” settings, respectively. These results highlight the adaptability
+of our framework to heterogeneous data distributions. Our method
+also outperforms Baseline-MS by +1.94% under the “Non-IID (10)”
+setting. Baseline-EL and Baseline-MH shows a significant decline
+compared to our method, underscoring the importance of incorpo-
+rating comprehensive client data information. Rank-based methods
+such as FLoRA, FlexLoRA, and HETLoRA still diverge when clients
+have extremely low LoRA ranks.
+Results on NI. Table 3 presents the main results on the NI
+dataset. We report the Rouge-L score of the fine-tuned global model
+under both IID and two different Non-IID (20, 15) settings. Our
+method demonstrates significant improvements over rank-based
+baselines, achieving average Rouge-L score gains of +18.48%, +23.77%,
+and +1.86% compared to FLoRA, FlexLoRA, and HETLoRA, respec-
+tively. These improvements are attributed to the inefficiency of
+rank-based methods in memory management, which restricts the
+rank of LoRA modules. Additionally, redistributed methods such as
+stacking and SVD can become unstable when the rank of LoRA mod-
+ules is extremely low. Compared to Baseline-EL and Baseline-MH,
+our method achieves improvements of +16.53% and +2.52%, respec-
+tively, under the Non-IID (15) setting, indicating strong adaptability
+to heterogeneous data distributions. Our method also consistently
+maintains stable performance gains across all data distributions
+when compared to Baseline-MS and FedRA. Notably, under the
+extreme Non-IID setting with 15 tasks per client, it outperforms
+these baselines by +1.27% and +1.17%, respectively. We would like
+to point out that the task-level Non-IID skew in natural language
+datasets does not fully reflect the effectiveness of task heterogeneity,
+which affects trends of the Rouge-L scores reported in the table.
+Results on Dolly-15K. Table 4 presents the main results on
+Dolly-15K dataset. We report Rouge-L scores of the fine-tuned
+global model under both IID and Non-IID (3, 1) settings. From the
+results, our method achieves the highest average Rouge-L score of
+59.39%, outperforming all baselines. Notably, our approach main-
+tains stable Rouge-L scores above 59% across all data distributions.
+In contrast, rank-based methods FLoRA and FlexLoRA achieve
+
+===== PDF PAGE 8 =====
+
+, , Zhang et al.
+Table 4: Main results on Dolly-15K dataset with OPT-1.3B
+model in both IID and Non-IID settings.
+Methods Model Performance (Rouge-L)
+IID Non-IID (3) Non-IID (1) Avg
+Baseline-EL 57.99 59.05 57.52 58.18
+Baseline-MH 58.39 58.33 56.07 57.59
+Baseline-MS 58.14 58.01 58.00 58.05
+FLoRA 40.33 40.49 40.37 40.39
+FlexLoRA 40.12 40.13 40.21 40.15
+HETLoRA 58.76 59.17 57.80 58.57
+FedRA 58.21 58.64 57.94 58.26
+Ours 59.46 59.36 59.37 59.39
+Table 5: Main results on DomainNet-121 dataset with ViT-
+base model in both IID and Non-IID settings.
+Methods Model Performance (Accuracy)
+IID Non-IID (50) Non-IID (25) Avg
+Baseline-EL 50.33 38.34 21.15 36.60
+Baseline-MH 50.19 38.20 19.61 36.00
+Baseline-MS 58.92 53.60 40.82 51.11
+FLoRA 1.10 1.04 1.01 1.05
+FlexLoRA 0.85 0.85 0.88 0.86
+HETLoRA 6.94 3.30 0.96 3.73
+FedRA 57.38 53.05 38.07 49.50
+Ours 59.36 54.40 42.20 51.98
+around 40% accuracy, likely due to their noise-alleviation aggrega-
+tion being ineffective when some LoRA modules with extreme low
+rank. Among them, FlexLoRA exhibits the lowest average Rouge-L
+score of 40.15%. Among the baselines, Baseline-EL, Baseline-MH,
+Baseline-MS, and FedRA perform similarly, with average scores
+ranging from 57.59% to 58.26%.
+Results on DomainNet-121. Table 5 presents the main results
+on DomainNet-121. For the domain heterogeneity, each client only
+contain dataset from one domain. Our method shows significant im-
+provements over the baseline methods. Specifically, our approach
+achieves average accuracy gains of +15.98% over Baseline-MH,
++15.38% over Baseline-EL, and +2.48% over FedRA. Even though
+Baseline-MS trains more LoRA modules, our approach still sur-
+passes it by +0.87% on average, demonstrating the effectiveness of
+our LoRA allocation strategy. This improvement remains consis-
+tent across all levels of data heterogeneity, further emphasizing the
+superiority of our approach. Rank-based methods diverge due to
+the same reasons we discussed above.
+5.3 Memory Utilization and Convergence
+Performance
+Accuracy and Memory Utilization Comparisons. To better
+understand the memory utilization across methods, we visual-
+ize the average accuracy versus average memory utilization on
+CIFAR-100 dataset. The average memory utilization is calculated
+by 1
+𝑣
+Í𝑣
+𝑖=1
+C (𝑚𝑖 )
+K𝑖
+. As shown in Figure 3, our method achieves the
+highest average model accuracy and memory utilization among all
+Figure 5: Accuracy over training time on CIFAR-100 dataset
+(other methods not shown in the figure diverges).
+Table 6: Ablation studies on IG score-based value function
+and aggregation rule ComAgg.
+Methods IID Non-IID (10) Avg
+Local IG score-based 75.81 58.80 67.30
+Global IG score-based (using proxy data)79.74 63.17 71.45
+FedAvg 75.86 57.35 66.60
+ComAgg with𝛼𝑡
+(𝑗) = 𝛽𝑡
+(𝑗) = 1 79.31 62.18 70.74
+Ours 80.09 63.93 72.01
+methods. Specifically, Baseline-EL excludes clients that cannot par-
+ticipate in full LoRA modules fine-tuning, resulting in only 25.00%
+memory utilization. Baseline-MH focuses more on LoRA modules
+in shallow layers and excludes clients that cannot even fine-tune
+the first LoRA modules, resulting in 49.59% memory utilization.
+FedRA randomly samples LoRA modules, leading to lower memory
+utilization compared to our memory optimization-based method.
+Rank-based methods such as FLoRA, FlexLoRA, and HETLoRA
+maintain high memory utilization but suffer from bad convergence
+when the LoRA ranks are too low. Baseline-MS has comparable
+memory utilization to ours, however, it heuristically selects as many
+as LoRA modules as possible in higher layers without considering
+their contribution. Our method outperforms Baseline-MS by +5.00%
+in accuracy.
+Convergence Performance. Figure 4 presents the convergence
+performance of baselines on CIFAR-100 and LEDGAR under two
+different Non-IID (20, 10) settings. Across all settings, our method
+consistently outperforms baselines and converges in a stable man-
+ner. FedRA and Baseline-MS select random or fixed LoRA modules
+within memory constraints, resulting in significantly lower accu-
+racy and Macro F1 scores compared to our approach on CIFAR-100
+and LEDGAR. Both Baseline-EL and Baseline-MH exhibit poor con-
+vergence, and Baseline-MH diverges significantly after few rounds.
+This indicates that limited client participation or training only a
+few shallow layers can lead to model divergence.
+5.4 Ablation Studies
+To evaluate the effectiveness of our IG score-based value function,
+we conduct two ablation studies on CIFAR-100 dataset. We compare
+our value function with other alternations that only use the local IG
+score 𝐼 𝑡
+𝑖 or a global IG score that is calculated using a proxy dataset
+sampled from the training data of clients.
+Table 6 presents results under both IID and Non-IID (10) settings.
+Our method consistently outperforms others, improving over the
+
+===== PDF PAGE 9 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Table 7: The impact the number of total clients. Experiments
+are conducted on CIFAR-100 with Non-IID (10) settings. Ac-
+curacies are reported.
+Method 50 100 200
+Baseline-MS 40.52 57.63 54.90
+FedRA 26.92 47.98 44.90
+Ours 59.46 63.93 63.50
+Table 8: The impacts of 𝑇IG and 𝑇Agg. Experiments were con-
+ducted on CIFAR-100 under the Non-IID (10) setting. Each
+row varies one hyperparameter while fixing the other.
+Varying Fixed Setting 5 10 20
+𝑇IG 𝑇Agg = 10, |𝐷IG| = 50 63.15 63.93 62.93
+𝑇Agg 𝑇IG = 10, |𝐷IG| = 50 63.24 63.93 63.41
+Local IG Score-based strategy by +4.28% and +5.13% for IID and Non-
+IID, respectively. This highlights the necessity of global information.
+Our method also surpasses the Global IG Score-based method by
++0.35% (IID) and +0.76% (Non-IID), demonstrating that proxy data
+alone is insufficient without local information.
+Aggregation Rules Evaluation. We compare our aggregation
+rules with FedAvg [20] and ComAgg variant with coefficients𝛼𝑡
+( 𝑗 ) =
+𝛽𝑡
+( 𝑗 ) = 1. As shown in Table 6, our method outperforms FedAvg
+by +4.23% in IID and +6.58% in Non-IID settings. The dynamic
+compensation strategy further improves ComAgg by +1.27% on
+average, demonstrating the benefits in mitigating model divergence.
+5.5 Impact of Hyperparameters
+We conduct experiments on CIFAR-100 dataset with the Non-IID
+(10) setting to evaluate the impact of hyperparameters such as the
+number of total clients, aggregation hyperparameters, and the size
+of the local IG dataset.
+The Number of Total Clients. We keep the client sampling
+rate to 10%, and vary the number of total clients to 50, 100, and 200.
+We only compare with Baseline-MS and FedRA, as other methods
+diverge in this Non-IID scenario. As shown in Table 7, our method
+consistently outperforms the baseline methods across all numbers
+of total client settings.
+Hyperparameters 𝑇IG and 𝑇Agg for Aggregation. Our default
+setting is 𝑇IG =10 and 𝑇Agg =10 . Varying 𝑇IG and 𝑇Agg show less
+than 1% fluctuation in accuracy and consistently outperform other
+compared methods (compared in Table 1). Nevertheless, we recom-
+mend selecting these hyperparameters based on the total number
+of clients and the client sampling rate.
+The size of local IG dataset |𝐷IG|. Our default setting uses
+|𝐷IG| = 50. As shown in Table 9, reducing |𝐷IG| to 5 or 10 results
+in only minor performance fluctuations, demonstrating that our
+method places minimal requirements on the size of the IG dataset.
+Since the IG scores are primarily used for model calibration, our
+method generalizes well even when clients have a limited amount
+of local data.
+Figure 6: Accuracy over communication cost on CIFAR-100
+dataset (other methods not shown in the figure diverged).
+Table 9: The impact of the size of local IG dataset |𝐷IG|. Ex-
+periments are conducted on CIFAR-100 under the Non-IID
+(10) setting.
+Fixed Setting 5 10 50
+𝑇Agg = 10, 𝑇IG = 10 62.78 62.60 62.93
+5.6 Computation and Communication
+Efficiency
+We evaluate the computational and communication efficiency of
+our method by observing model accuracy over the cumulative train-
+ing time and total communication cost during training, respectively.
+Compared to FedAvg, our method introduces additional computa-
+tional cost every 𝑇IG rounds for optimizing the LoRA allocation,
+but reduces communication costs for low-resource clients by trans-
+mitting fewer parameters.
+Computational Efficiency.Figure 5 presents the accuracy over
+training time for all methods on the Non-IID CIFAR-100 dataset.
+In this case, our method consistently achieves higher accuracy
+within the same training time (i.e., wall-clock time). Specifically,
+Baseline-EL and Baseline-MH diverge under the extreme Non-IID
+setting due to the lack of data from all the clients. Baseline-MS and
+FedRA do not incur additional computational costs compared to
+FedAvg, and therefore exhibit higher computational efficiency in
+the early stages (as shown in Figure 5, Non-IID 20). However, they
+suffer from accuracy degradation compared to our method due to
+their reliance on heuristic or stochastic LoRA allocation strategies.
+Although our method periodically incurs additional computational
+costs for LoRA allocation optimization, its accuracy gains lead to
+higher overall computational efficiency.
+Communication Efficiency. Figure 6 presents the accuracy
+over communication cost for all methods on the Non-IID CIFAR-100
+dataset. We calculate both uplink and downlink communication
+costs per client during the training. Baseline-EL and Baseline-MH
+diverge but still incur a large amount of communication cost. FedRA
+and Baseline-MS both select a subset of LoRA modules to update
+locally, which also helps reduce the uplink communication costs
+for low-resource clients. Baseline-MS shows slightly higher compu-
+tational efficiency in the early stages, as it enables more layers to
+be trained under the same memory constraint compared to FedRA
+and our method, leading to faster initial convergence. However,
+this benefit diminishes over time, as it restricts training to only the
+last few layers, leaving the earlier layers untouched, which ulti-
+mately results in lower communication efficiency compared to our
+
+===== PDF PAGE 10 =====
+
+, , Zhang et al.
+method. Overall, our method achieves a better trade-off between
+model accuracy and communication cost.
+6 Conclusion
+This paper presents Fed-pilot, a novel framework for optimizing
+LoRA allocation in federated fine-tuning while considering clients’
+memory capacities. We introduce the IG score to quantify each
+LoRA module’s importance and design the optimization process
+that maximizes global model performance under heterogeneous
+memory constraints. Additionally, we develop a novel aggregation
+rule to handle diverse model updates under optimal LoRA allocation.
+Evaluations on five distinct FM fine-tuning tasks demonstrate the
+effectiveness and efficiency of Fed-pilot.
+References
+[1] Arash Ardakani, Altan Haan, Shangyin Tan, et al. 2024. SlimFit: Memory-Efficient
+Fine-Tuning of Transformer-based Models Using Training Dynamics. In Pro-
+ceedings of the 2024 Conference of the NAACL: Human Language Technologies .
+6218–6236.
+[2] Sara Babakniya, Ahmed Roushdy Elkordy, Yahya H Ezzeldin, et al. 2023. SLoRA:
+Federated Parameter Efficient Fine-Tuning of Language Models. In International
+Workshop in Conjunction with NeurIPS 2023 .
+[3] Jiamu Bai, Daoyuan Chen, Bingchen Qian, Liuyi Yao, and Yaliang Li. 2024. Fed-
+erated fine-tuning of large language models under heterogeneous tasks and
+client resources. In The Thirty-eighth Annual Conference on Neural Information
+Processing Systems.
+[4] Ilias Chalkidis, Abhik Jana, Dirk Hartung, et al. 2022. LexGLUE: A Benchmark
+Dataset for Legal Language Understanding in English. In Proceedings of the 60th
+Annual Meeting of the ACL. Dubln, Ireland.
+[5] Daoyuan Chen, Yilun Huang, Zhijian Ma, Hesen Chen, Xuchen Pan, Ce Ge,
+Dawei Gao, Yuexiang Xie, Zhaoyang Liu, Jinyang Gao, et al. 2024. Data-juicer: A
+one-stop data processing system for large language models. In Companion of the
+2024 International Conference on Management of Data . 120–134.
+[6] Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, and Gauri Joshi. 2024. Het-
+erogeneous lora for federated fine-tuning of on-device foundation models. In
+Proceedings of the 2024 Conference on Empirical Methods in Natural Language
+Processing. 12903–12913.
+[7] Mike Conover, Matt Hayes, Ankit Mathur, Jianwei Xie, Jun Wan, Sam Shah,
+Ali Ghodsi, Patrick Wendell, Matei Zaharia, and Reynold Xin. 2023. Free dolly:
+Introducing the world’s first truly open instruction-tuned llm. Company Blog of
+Databricks (2023).
+[8] Jacob Devlin, Ming-Wei Chang, Kenton Lee, et al. 2019. BERT: Pre-training of
+Deep Bidirectional Transformers for Language Understanding. In Proceedings of
+the 2019 Conference of the NAACL: Human Language Technologies, Volume 1 .
+[9] Alexey Dosovitskiy, Lucas Beyer, et al. 2020. An Image is Worth 16x16 Words:
+Transformers for Image Recognition at Scale. In ICLR.
+[10] Marylou Gabrié, Andre Manoel, Clément Luneau, Nicolas Macris, Florent Krza-
+kala, Lenka Zdeborová, et al. 2018. Entropy and mutual information in models
+of deep neural networks. Advances in neural information processing systems 31
+(2018).
+[11] Yan Gao, Massimo Roberto Scamarcia, Javier Fernandez-Marques, Mohammad
+Naseri, Chong Shen Ng, Dimitris Stripelis, Zexi Li, Tao Shen, Jiamu Bai, Daoyuan
+Chen, et al. 2025. FlowerTune: A Cross-Domain Benchmark for Federated Fine-
+Tuning of Large Language Models. arXiv preprint arXiv:2506.02961 (2025).
+[12] Pengxin Guo, Shuang Zeng, Yanran Wang, Huijie Fan, Feifei Wang, and
+Liangqiong Qu. 2024. Selective Aggregation for Low-Rank Adaptation in Feder-
+ated Learning. arXiv preprint arXiv:2410.01463 (2024).
+[13] Edward J Hu, Phillip Wallis, Zeyuan Allen-Zhu, et al. 2021. LoRA: Low-Rank
+Adaptation of Large Language Models. In ICLR.
+[14] Binayak Kar, Widhi Yahya, Ying-Dar Lin, and Asad Ali. 2023. Offloading using tra-
+ditional optimization and machine learning in federated cloud–edge–fog systems:
+A survey. IEEE Communications Surveys & Tutorials 25, 2 (2023), 1199–1226.
+[15] Diederik P Kingma. 2014. Adam: A method for stochastic optimization. arXiv
+preprint arXiv:1412.6980 (2014).
+[16] Alex Krizhevsky, Geoffrey Hinton, et al. 2009. Learning multiple layers of features
+from tiny images. In Toronto, ON, Canada.
+[17] Solomon Kullback. 1997. Information theory and statistics . Courier Corporation.
+[18] Brian Lester, Rami Al-Rfou, and Noah Constant. 2021. The Power of Scale for
+Parameter-Efficient Prompt Tuning. In Proceedings of the 2021 Conference on
+EMNLP. 3045–3059.
+[19] Ji Liu, Jiaxiang Ren, Ruoming Jin, Zijie Zhang, Yang Zhou, Patrick Valduriez,
+and Dejing Dou. 2024. Fisher Information-based Efficient Curriculum Federated
+Learning with Large Language Models. In Proceedings of the 2024 Conference on
+Empirical Methods in Natural Language Processing . 10497–10523.
+[20] Brendan McMahan, Eider Moore, Daniel Ramage, et al. 2017. Communication-
+efficient learning of deep networks from decentralized data. In Artificial intelli-
+gence and statistics. PMLR.
+[21] Rui Pan, Xiang Liu, Shizhe Diao, Renjie Pi, Jipeng Zhang, Chi Han, and Tong
+Zhang. 2024. LISA: layerwise importance sampling for memory-efficient large
+language model fine-tuning. Advances in Neural Information Processing Systems
+37 (2024), 57018–57049.
+[22] Xingchao Peng, Qinxun Bai, Xide Xia, et al. 2019. Moment matching for multi-
+source domain adaptation. In Proceedings of the ICCV .
+[23] Jeff Rasley, Samyam Rajbhandari, Olatunji Ruwase, and Yuxiong He. 2020. Deep-
+speed: System optimizations enable training deep learning models with over
+100 billion parameters. In Proceedings of the 26th ACM SIGKDD international
+conference on knowledge discovery & data mining . 3505–3506.
+[24] Shangchao Su, Bin Li, and Xiangyang Xue. 2023. FedRA: A Random Allocation
+Strategy for Federated Tuning to Unleash the Power of Heterogeneous Clients.
+arXiv preprint arXiv:2311.11227 (2023).
+[25] Youbang Sun, Zitao Li, Yaliang Li, and Bolin Ding. 2024. Improving LoRA in
+Privacy-preserving Federated Learning. In The Twelfth International Conference
+on Learning Representations. https://openreview.net/forum?id=NLPzL6HWNl
+[26] Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois, Xuechen Li, Carlos
+Guestrin, Percy Liang, and Tatsunori B Hashimoto. 2023. Stanford alpaca: An
+instruction-following llama model.
+[27] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne
+Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal
+Azhar, et al. 2023. Llama: Open and efficient foundation language models. arXiv
+preprint arXiv:2302.13971 (2023).
+[28] Yizhong Wang, Swaroop Mishra, Pegah Alipoormolabashi, Yeganeh Kordi, Amir-
+reza Mirzaei, Atharva Naik, Arjun Ashok, Arut Selvan Dhanasekaran, Anjana
+Arunkumar, David Stap, et al. 2022. Super-NaturalInstructions: Generalization
+via Declarative Instructions on 1600+ NLP Tasks. In Proceedings of the 2022
+Conference on Empirical Methods in Natural Language Processing . 5085–5109.
+[29] Ziyao Wang, Zheyu Shen, Yexiao He, Guoheng Sun, Hongyi Wang, Lingjuan Lyu,
+and Ang Li. 2024. FLoRA: Federated Fine-Tuning Large Language Models with
+Heterogeneous Low-Rank Adaptations. In The Thirty-eighth Annual Conference
+on Neural Information Processing Systems .
+[30] Panlong Wu, Kangshuo Li, Ting Wang, Yanjie Dong, Victor CM Leung, and
+Fangxin Wang. 2024. FedFMSL: Federated Learning of Foundations Models With
+Sparsely Activated LoRA. IEEE Transactions on Mobile Computing (2024).
+[31] Mengwei Xu, Dongqi Cai, Yaozong Wu, Xiang Li, and Shangguang Wang. 2024.
+FwdLLM: Efficient federated finetuning of large language models with perturbed
+inferences. In USENIX ATC.
+[32] Kai Yao, Penglei Gao, Lichun Li, Yuan Zhao, Xiaofeng Wang, Wei Wang, and
+Jianke Zhu. 2024. Layer-wise Importance Matters: Less Memory for Better
+Performance in Parameter-efficient Fine-tuning of Large Language Models. In
+Findings of the Association for Computational Linguistics: EMNLP 2024. 1977–1992.
+[33] Jianyi Zhang, Saeed Vahidian, Martin Kuo, et al. 2023. Towards Building the Feder-
+atedGPT: Federated Instruction Tuning. In International Workshop in Conjunction
+with NeurIPS 2023.
+[34] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe, Moya Chen, Shuohui
+Chen, Christopher Dewan, Mona Diab, Xian Li, Xi Victoria Lin, et al. 2022. Opt:
+Open pre-trained transformer language models. arXiv preprint arXiv:2205.01068
+(2022).
+[35] Zikai Zhang, Ping Liu, Jiahao Xu, and Rui Hu. 2025. Fed-HeLLo: Efficient Feder-
+ated Foundation Model Fine-Tuning with Heterogeneous LoRA Allocation.arXiv
+preprint arXiv:2506.12213 (2025).
+[36] Ligeng Zhu, Lanxiang Hu, Ji Lin, and Song Han. 2023. Lift: Efficient layer-wise
+fine-tuning for large model models. (2023).
+[37] Zhuangdi Zhu, Junyuan Hong, and Jiayu Zhou. 2021. Data-free knowledge
+distillation for heterogeneous federated learning. In International conference on
+machine learning. PMLR, 12878–12889.
+
+===== PDF PAGE 11 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Supplement
+We provide more discussions and experiments of this work in the supplement and organize it as follows:
+• Supplement A: Additional details on memory consumption in LoRA-based FM fine-tuning.
+– In Subsection A.1, we provide an example of how to calculate activations with only a frozen linear layer.
+– In Subsection A.2, we provide an example of how to calculate activations with a frozen non-linear layer.
+– In Subsection A.3, we provide details on the type of activation in the ViT model.
+– In Subsection A.4, we provide a code of how to calculate memory consumption for a given LoRA allocation map with ViT-base.
+• Supplement B: We provide detailed information on the experimental settings, including the models, FL settings, GPU memory capacity
+configurations for each client and model level, the resources and infrastructure used for the experiments, and a detailed explanation
+of the experiments shown in Figure 1.
+– In Subsection B.1, we outline the FL-related settings and hyperparameters.
+– In Subsection B.2, we describe the capacity chooses for each model.
+– In Subsection B.3, we provide a detailed explanation of the experimental settings used for Figure 1.
+• Supplement C: Details on the preprocessing of all datasets are provided.
+• Supplement D: Additional results are presented in tables.
+• Supplement E: A comparative study on state-of-the-art methods is provided.
+• Supplement F: The limitations of our work are discussed.
+• Supplement G: Directions for future work are outlined.
+A GPU Memory Consumption of Model Fine-Tuning with LoRA
+A.1 Backpropagation for Linear Layers: Saving Dynamic Activation using Freezing
+We provide a simple example [1] demonstrating how gradients are backpropagated to the first layer of a neural network while its middle
+layer is frozen. To this end, let us perform backpropagation using a 3-layer neural network as an example. The architecture of this network is
+described as follows,
+y1 = xW1 + b1, (9)
+y2 = y1W2 + b2, (10)
+y3 = y2W3 + b3. (11)
+where {W1, W2, W3} and {b1, b2, b3} are the weights and biases of the network, respectively. In this example, x, y1, and y2 are input to
+the first layer, the second layer, and the third layer, respectively. The backpropagation equations for the lossL using the chain rule can be
+presented as follows,
+𝜕L
+𝜕W3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕W3
+= 𝜕L
+𝜕y3
+y2, (12)
+𝜕L
+𝜕b3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕b3
+= 𝜕L
+𝜕y3
+, (13)
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 y1, (14)
+𝜕L
+𝜕b2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕b2
+= 𝜕L
+𝜕y3
+W⊤
+3 , (15)
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 x, (16)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 . (17)
+where 𝜕 denotes the partial derivative, and 𝜕 L
+𝜕W3 is obtained by computing the loss.
+Training all three layers. To update all the network weights (i.e., W1, W2, W3), we need to store x, y1, and y2 during forward
+computations, as they are required in the gradient calculations.
+Training two layers while freezing the middle layer. In the case of freezing the middle layer, it is unnecessary to compute the
+gradient update for W2:
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 y1. (18)
+
+===== PDF PAGE 12 =====
+
+, , Zhang et al.
+Therefore, there is no need to store y1 during the forward pass. However, discarding y1 does not affect the backward computations of the
+first layer, since the updates for W1 and b1 are independent of y1:
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 x, (19)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 W⊤
+2 1. (20)
+This example illustrates how freezing an intermediate linear layer affects the backpropagation process. For a liner layer, activation can be
+discarded if the layer is frozen.
+A.2 Backpropagation for Non-Linear Layers: Static Activation Remains using Freezing
+Here, we demonstrate how non-linear transformations (such as Softmax, GELU, and LayerNorm) impact backpropagation in a 3-layer neural
+network. By extending the example in [1], the architecture of the network is defined as follows:
+y1 = xW1 + b1, (21)
+y2 = 𝜎 (y1W2 + b2), (22)
+y3 = y2W3 + b3. (23)
+where {W1, W2, W3} and {b1, b2, b3} are the weights and biases of the network, respectively. In this example, x, y1, and y2 are input to
+the first layer, the second layer, and the third layer, respectively. The non-linear function𝜎 (·) introduces non-linearity in the second layer.
+The backpropagation equations for the loss L using the chain rule can be presented as follows,
+𝜕L
+𝜕W3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕W3
+= 𝜕L
+𝜕y3
+y2, (24)
+𝜕L
+𝜕b3
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕b3
+= 𝜕L
+𝜕y3
+, (25)
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)y1, (26)
+𝜕L
+𝜕b2
+= 𝜕L
+𝜕y3
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕b2
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2), (27)
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+𝜕L
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 x, (28)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+𝜕L
+𝜕y3
+𝜕y2
+𝜕y2
+𝜕y1
+𝜕y1
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 . (29)
+Here, 𝜎 ′ (y1W2) represents the derivative of the non-linear function 𝜎 (·) applied to the linear transformation y1W2 + b2.
+Training all three layers. To update all the network weights (i.e., W1, W2, W3), we need to store x, y1, and y2 during forward
+computations, as they are required in the gradient calculations.
+Training two layers while freezing the middle layer. In the case of freezing the middle layer, it is unnecessary to compute the
+gradient update for W2:
+𝜕L
+𝜕W2
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)y1. (30)
+However, unlike the linear case, it is necessary to store y1 during the forward pass because the gradients for w1 and b1 depends on
+𝜎 ′ (y1W2 + b2). Discarding y1 would prevent the correct computation of gradients for W1 and b1, as their updates explicitly involve y1:
+𝜕L
+𝜕W1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 x, (31)
+𝜕L
+𝜕b1
+= 𝜕L
+𝜕y3
+W⊤
+3 𝜎 ′ (y1W2 + b2)W⊤
+2 . (32)
+This example illustrates how freezing an intermediate non-linear layer affects the backpropagation process. Unlike the linear case, where
+activations can be discarded when a layer is frozen, a non-linear layer requires storing its activations due to its role in computing the
+gradients of earlier layers.
+
+===== PDF PAGE 13 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+LayerNorm
+Linear 𝑊𝑄
+Linear 𝑊𝑄
+Linear 𝑊𝑄 Linear 𝑊𝑄
+Linear 𝑊𝑄
+Linear 𝑊𝐾 Linear 𝑊𝑄
+Linear 𝑊𝑄
+Linear 𝑊𝑉
+A
+B
+MatMul
+SoftMax
+MHSA
+A
+B
+A
+B A
+B
+A
+B
+A
+B
+Dense
+MatMul
+LayerNorm
+Dense
+GELU
+DenseFFN
+B: Batch      H: Hidden      T: Sequence      R: LoRA Rank 
+    Dynamic Activation           Static Activation
+Trainable
+9*B*T*H+2*B*T*T=B*T*(9H+2T)=B*197*(9*768+2*197)=1439282B=11.514256MB
+2*B*T*H+2*B*T*R=B*T*(2H+2R)=B*197*(2*768+2*16)=   398896B=3.191168MB
+Dynamic/Static=0.21
+Element Size=4
+optimizer_state_memory_ = 3 * sum(p.numel() * p.element_size() for p in model.parameters() if p.requires_grad)
+params_memory_ = sum(p.numel() * p.element_size() for p in model.parameters())
+activations_attention=Static+Dynamic
+B × T × H
+B × T × R
+B × T × H
+B × T × R
+B × T × H
+B × T × H 2 ×
+B × T × T
+B × T × H + B × T × T
+B × T × H
+B × T × 4 × H
+ViT
+Figure 7: Illustration of activation memory usage in a transformer block for the ViT-base model (the rest layers are frozen if
+not specified.
+Table 10: Details of transformer block of for ViT-base, including the internal layer types, descriptions, activation sizes, and
+type of activations [1].
+Table 11: Memory consumption estimates for training different LoRA modules.
+Module Type of Layer Description # Activations Type of Activations
+MHSA
+Dense attention.query 𝐵 × 𝑇 × 𝐻 Dynamic
+Dense attention.query.lora.B 𝐵 × 𝑇 × 𝑅 Dynamic
+Dense attention.value 𝐵 × 𝑇 × 𝐻 Dynamic
+Dense attention.value.lora.B 𝐵 × 𝑇 × 𝑅 Dynamic
+MatMul - 𝐵 × 𝑇 × 𝐻 (2×) Static
+Softmax - 𝐵 × 𝑇 × 𝑇 Static
+MatMul - 𝐵 × 𝑇 × 𝐻 & 𝐵 × 𝑇 × 𝑇 Static
+LayerNorm attention.output 𝐵 × 𝑇 × 𝐻 Static
+FFN GELU - 𝐵 × 𝑇 × 4𝐻 Static
+LayerNorm output 𝐵 × 𝑇 × 𝐻 Static
+A.3 Dynamic and Static Activations: An Example for ViT-base with LoRA module
+In the previous sections, we defined dynamic and static activations. Here, we provide a real example using the ViT-base [9] model, which
+consists of 12 transformer blocks with LoRA modules added to the attention layers. Figure 7 illustrates the activation memory usage in a
+transformer block of ViT-base, where only the LoRA modules are trainable.
+Among different operations, GELU, MatMul, Softmax, and LayerNorm involve static activations, as summarized in Table 11. Notably,
+MatMul and Softmax share the same activations—Softmax stores its output during the forward pass for reuse in backward computations,
+while MatMul requires its input for backpropagation. Since Softmax’s output serves as MatMul’s input during the forward pass, both
+operations rely on the same activations.
+
+===== PDF PAGE 14 =====
+
+, , Zhang et al.
+A.4 Code for Calculating GPU Memory Consumption
+We provided a script that estimates the memory consumption for the ViT-base model when using LoRA-based fine-tuning. The calculations
+include static and dynamic activation memory, parameter memory, optimizer memory, and GPU context. Three configurations are evaluated:
+training the full 12 LoRA modules, the first 6 LoRA modules, and the last 6 LoRA modules.
+1 from transformers import A u t o M o d e l F o r I m a g e C l a s s i f i c a t i o n
+2 from peft import LoraConfig , get_peft_model
+3
+4 def get_activation ( model , rank , sequence_size , hidden_size , batch_size ) :
+5 element_size = 4 # For float32
+6 s t a t i c _ a c t i v a t i o n _ p e r L = (9 * batch_size * sequence_size * hidden_size +
+7 2 * batch_size * sequence_size * sequence_size ) * element_size / (10**6)
+8 d y n a m i c _ a c t i v a t i o n _ p e r L = (2 * batch_size * sequence_size * hidden_size +
+9 2 * batch_size * sequence_size * rank ) * element_size / (10**6)
+10 param_memory = sum ( p . numel () * p . element_size () for p in model . parameters () ) / (10**6)
+11 opti mizer_me mory = 3 * sum ( p . numel () * p . element_size () for p in model . parameters () if p . requires_grad ) / (10**6)
+12
+13 return { ' static ': static_activation_perL ,
+14 ' dynamic ': dynamic_activation_perL ,
+15 ' param ': param_memory ,
+16 ' optimizer ': opt imizer_m emory }
+17
+18 # Model Configurations
+19 lora_layer = 12
+20 rank = 16
+21 model = A u t o M o d e l F o r I m a g e C l a s s i f i c a t i o n . from_pretrained (' google / vit - base - patch16 -224 - in21k ')
+22 config = LoraConfig (
+23 r = rank ,
+24 lora_alpha =16 ,
+25 target_modules =[ " query " , " value " ] ,
+26 lora_dropout =0.1 ,
+27 bias = " none "
+28 )
+29 net_glob = get_peft_model ( model , config )
+30
+31 # Context memory based on experimental values
+32 c o n t e x t _ m e m o r y _ 6 _ l a y e r = 2280 # MB
+33 c o n t e x t _ m e m o r y _ 1 2 _ l a y e r = 5800 # MB
+34
+35 # Activation Memory Calculation
+36 sequence_size = 197
+37 hidden_size = 768
+38 batch_size = 496
+39 me mo ry _c al cul at or = get_activation ( model , rank , sequence_size , hidden_size , batch_size )
+40
+41 # Full 12 Layers
+42 optim izer_mem ory = m em or y_ ca lcu la to r [ ' optimizer '] / lora_layer * 12
+43 model_memory = m em or y_c al cu la to r [ ' param ']
+44 ac ti va ti on _me mo ry = m em ory _c al cu lat or [ ' static '] * 12 + mem or y_ ca lc ula to r [ ' dynamic '] * 12
+45 print ( f " 12 Layers Memory Consumption : {( opt imizer_m emory + model_memory + ac ti va tio n_ me mo ry + c o n t e x t _ m e m o r y _ 1 2 _ l a y e r ) /
+(10**3) } GB \ n " )
+46
+47 # First 6 Layers
+48 optim izer_mem ory = m em or y_ ca lcu la to r [ ' optimizer '] / lora_layer * 6
+49 model_memory = m em or y_c al cu la to r [ ' param ']
+50 ac ti va ti on _me mo ry = m em ory _c al cu lat or [ ' static '] * 12 + mem or y_ ca lc ula to r [ ' dynamic '] * 6
+51 print ( f " First 6 Layers Memory Consumption : {( opt imizer_ memory + model_memory + ac ti va ti on_ me mo ry +
+c o n t e x t _ m e m o r y _ 6 _ l a y e r ) / (10**3) } GB \ n " )
+52
+53 # Last 6 Layers
+54 optim izer_mem ory = m em or y_ ca lcu la to r [ ' optimizer '] / lora_layer * 6
+55 model_memory = m em or y_c al cu la to r [ ' param ']
+56 ac ti va ti on _me mo ry = m em ory _c al cu lat or [ ' static '] * 6 + mem or y_ ca lc ula to r [ ' dynamic '] * 6
+57 print ( f " Last 6 Layers Memory Consumption : {( opt imizer_ memory + model_memory + ac ti va ti on_ me mo ry + c o n t e x t _ m e m o r y _ 6 _ l a y e r
+) / (10**3) } GB \ n " )
+Listing 1: Memory Consumption Estimation for ViT with LoRA
+The estimated memory consumption for different configurations is presented in Table 12.
+
+===== PDF PAGE 15 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Table 12: Memory consumption estimates for training different LoRA modules.
+Configuration Memory Consumption (GB)
+Full 12 modules 47.77
+First 6 modules 40.57
+Last 6 modules 23.44
+Table 13: FL settings for all experiments.
+Dataset/ConfigurationModel LoRA Client Training Round Learning Rate batch size 𝑇IG 𝑇Agg |𝐷IG|
+Natural InstructionLlama (Data-Juicer-1B) rank=8, lora_alpha=16, target_modules=[“q_proj”, “v_proj”] 50 (10%) 6 0.00005 8 1 2 50Dolly-15K OPT-1.3B rank=8, lora_alpha=16, target_modules=[“q_proj”, “v_proj”] 50 (10%) 25 0.00005 8 2 2 50CIFAR-100 ViT-base rank=16, lora_alpha=16, target_modules=[“query”, “value”] 100 (10%) 350 0.1 496 10 10 50LEDGAR BERT-base rank=16, lora_alpha=16, target_modules=[“query”, “value”] 100 (10%) 350 0.01 496 10 10 50DomainNet-121 ViT-base rank=16, lora_alpha=16, target_modules=[“query”, “value”] 100 (10%) 350 0.05 496 10 10 50
+Table 14: Memory capacity settings and context memory consumptions for heterogeneous client groups.
+Model/Capacity Level
+Level 1 (4/10 clients) Level 2 (3/10) Level 3 (2/10) Level 4 (1/10)
+GPU Type Context (MB) GPU Type Context (MB) GPU Type Context (MB) GPU Type Context (MB)
+Llama (Data-Juicer-1B)V100 32 GB 80 A100 40 GB 1,470 A6000 48 GB 2,870 H100 80 GB 5,650
+OPT-1.3B V100 32 GB 2,890 A100 40 GB 4,913 A6000 48 GB 6,862 H100 80 GB 8,811
+ViT-base A5000 24 GB 380 V100 32 GB 2,280 A100 40 GB 4,170 A6000 48 GB 5,800
+BERT-base A5000 24 GB 280 V100 32 GB 1,962 A100 40 GB 3,981 A6000 48 GB 5,700
+B Details on Experimental Settings
+B.1 FL Settings
+The table presents the FL settings used for all experiments, detailing the datasets, models, LoRA configurations, client distribution, training
+rounds, learning rates, batch sizes, and key hyperparameters. It includes five datasets: Natural Instruction, Dolly-15K, CIFAR-100, LEDGAR, and
+DomainNet-121. Different models were used, including Llama (Data-Juicer-1B), OPT-1.3B, ViT-base, and BERT-base. The LoRA configuration
+varies by dataset, specifying rank, scaling parameter (lora_alpha), and target modules such as 𝑞proj, 𝑣proj, 𝑞𝑢𝑒𝑟𝑦 , and 𝑣𝑎𝑙𝑢𝑒 . The number of
+participating clients differs, with CIFAR-100, LEDGAR, and DomainNet-121 using 100 clients (10% per round), while Natural Instruction
+and Dolly-15K involve 50 clients (10% per round). Training rounds range from 6 to 350, with learning rates varying between 0.00005 and
+0.1. Batch sizes are set to 8 and 496 for different models. Across all experiments, the local IG dataset size |𝐷IG| is fixed at 50, while other
+hyper-parameters are case-by-case.
+B.2 GPU Memory Capacity Settings
+Table 14 categorizes memory capacity settings and GPU Context memory consumption for different models across four client levels based
+on experimental results. Llama (Data-Juicer-1.3B) has the lowest context memory at 80 MB on Level 1 (V100 32 GB) and the highest at 5650
+MB on Level 4 (H100 80 GB). OPT-1.3B follows a similar trend, ranging from 2890 MB on Level 1 to 8811 MB on Level 4. ViT-base starts at
+380 MB on Level 1 (A5000 24 GB) and increases to 5800 MB on Level 4 (A6000 48 GB). BERT-base consumes the least memory, from 280 MB
+on Level 1 to 5700 MB on Level 4. These results illustrate the scaling of context memory with GPU capacity and the computational demands
+of different models under heterogeneous client conditions.
+The GPU configurations are flexible, and our Knapsack optimization algorithm can be applied to various GPU devices with various
+memory capacities.
+B.3 Experimental Settings for Figure 1
+In Figure 1, we present preliminary experiments to explore how different LoRA allocation strategies impact memory consumption and global
+model accuracy. The experiments use ViT-base, a transformer-based model with 12 encoder layers, where LoRA is applied to all 12 layers,
+specifically to the “query” and “value” components. The hyperparameters are set as follows: rank = 16, alpha = 16, and dropout ratio = 0.1.
+In the FL settings, the total number of users is 100, the selection rate is 10%, the total training rounds are 350, and the local round is set
+to 1. The batch size is 496, distributed across 8 GPUs (62 on each GPU). The local learning rate is 0.01, optimized using Adam. Results are
+evaluated on CIFAR-100 and divided according to an IID distribution.
+
+===== PDF PAGE 16 =====
+
+, , Zhang et al.
+we conduct experiments by training the first 1, first 6, last 1, last 6, and all 12 LoRA modules on the CIFAR-100 dataset, as shown in
+Figure. 1 (a). These strategies lead to varying memory consumption, which corresponds to different memory capacities commonly seen in
+real-world NVIDIA GPUs, such as NVIDIA RTX A2000 (12GB), NVIDIA RTX A5000 (24GB), NVIDIA Tesla A100 (40GB), NVIDIA RTX A6000
+(48GB). The GPU memory usage is calculated based on the method described in Section A.4. The memory consumption for contexts with 1,
+6, and 12 layers is derived from multiple experimental results and fixed at 100, 2,280, and 5,800 MB, respectively.
+Due to the presence of static activations [1], which cannot be discarded because of non-linear functions (e.g., GELU, LayerNorm, and
+Softmax), the memory consumption for training the first 1 or 6 layers approaches that of training all 12 layers. Additionally, the results
+reveal a notable performance disparity based on which LoRA modules are trained (e.g., a comparison between the “Last 6” and “First 6”
+strategies), highlighting the varying importance of different layers in the model.
+C Details of Dataset
+1 Natural Instruction: The Natural Instruction dataset [28] is a large-scale collection of human-written instructions designed to facilitate
+instruction-based learning for natural language processing models. It consists of a diverse set of tasks, covering various domains such as
+classification, summarization, translation, question answering, and reasoning. The dataset consists of 1,616 diverse natural language tasks
+with instructions and answers. In our experiments, data instances are formatted into prompts before being processed by the LLMs. We utilize
+the template provided by Alpaca [26] to format the datasets used in our experiments. In the pre-processing, we first filter out tokens with a
+total length larger than 512, which results in 613 tasks, with 50,348 training samples, and 5,517 testing samples. We simulate three levels of
+task heterogeneity from IID to extreme Non-IID, by varying the number of client’s data tasks to full, 20, and 15 for NI.
+2 Dolly-15K: The Dolly-15K dataset [7] is an open-source instruction-tuning dataset introduced by Databricks to improve the fine-tuning
+of large language models for instruction-following tasks. It comprises 15,000 human-generated prompt-response pairs spanning diverse
+domains such as open-ended question answering, summarization, brainstorming, and information extraction. Unlike many instruction-tuning
+datasets that rely on synthetic data, Dolly-15K ensures high-quality, natural language interactions through human-authored responses,
+making it a valuable resource for training and evaluating instruction-following models. For preprocessing, we applied the same prompts as
+in the NI dataset and filtered out samples exceeding 512 tokens in total length. This resulted in 10,936 training and 2,735 testing samples. To
+simulate different levels of task heterogeneity, we varied the number of tasks per client, creating three settings: IID (full task set per client),
+mild Non-IID (3 tasks per client), and extreme Non-IID (1 task per client).
+3 CIFAR-100: The CIFAR-100 dataset consists of 60,000 32×32 color images in 100 classes, with 600 images per class. There are 500
+training images and 100 testing images per class. For the Non-IID data distribution, we apply quantity and label skews to the dataset. For
+quantity skew, we use Dirichlet with 𝛼 = 1.0, and for label skew, we use pathological where the data on each client only contains the specific
+number of labels. This results in three levels of data distribution: {𝐼 𝐼 𝐷,(20/𝐷𝑖𝑟 ∼ 1.0), (10/𝐷𝑖𝑟 ∼ 1.0)}, where (20/𝐷𝑖𝑟 ∼ 1.0) means each
+client only contains 20 out of 100 categories of samples, and the number of samples obeys the Dirichlet distribution with 𝛼 = 1.0.
+4 LEDGAR-100: The LEDGAR dataset aims at contract provision classification. The contract provisions sourced from contracts obtained
+from the US Securities and Exchange Commission filings, which are publicly available from EDGAR. Each category represents the single
+main topic of the corresponding contract provision. There are 100 categories, with 60,000 samples for training and 10,000 for testing. The
+number of samples for each category is unbalanced. The data distribution skew is the same as that of CIFAR-100.
+5 DomainNet-121: The original DomainNet is a dataset of common objects in six different domains. All domains include 345 categories
+of objects and a total of 424.5k images. The domains include clipart, real, sketch, infograph, painting, and quickdraw. We craft DomainNet-121
+by selecting categories that all six domains have more than 50 images, resulting in 121 categories. Then, we randomly choose 50 images
+per category per domain, resulting in 300 images per category. Subsequently, we sample 5 images from each category in each domain for
+testing. There are 270 training images and 30 testing images per class. For Non-IID data distribution, we apply domain and category skews:
+{1𝐷/121𝐶, 1𝐷/50𝐶, 1𝐷/25𝐶)}, where 1𝐷/121 means each client contains 121 out of 121 categories and 1 out of 6 domains of samples.
+More specifically, the categories drawn from the original DomainNet are as follows:
+barn
+baseball_bat
+basket
+beach
+bear
+beard
+bee
+bird
+blueberry
+bowtie
+bracelet
+brain
+bread
+broccoli
+bus
+butterfly
+circle
+cloud
+cruise_ship
+dolphin
+dumbbell
+elephant
+eye
+eyeglasses
+feather
+fish
+flower
+foot
+frog
+giraffe
+goatee
+golf_club
+grapes
+grass
+guitar
+hamburger
+hand
+hat
+headphones
+helicopter
+hexagon
+hockey_stick
+horse
+hourglass
+house
+ice_cream
+jacket
+ladder
+leg
+lipstick
+megaphone
+monkey
+
+===== PDF PAGE 17 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+moon
+mushroom
+necklace
+owl
+panda
+pear
+peas
+penguin
+pig
+pillow
+pineapple
+pizza
+pool
+popsicle
+rabbit
+rhinoceros
+rifle
+river
+sailboat
+sandwich
+sea_turtle
+shark
+shoe
+skyscraper
+snorkel
+snowman
+soccer_ball
+speedboat
+spider
+spoon
+square
+squirrel
+stethoscope
+strawberry
+streetlight
+submarine
+suitcase
+sun
+sweater
+sword
+table
+teapot
+teddy-bear
+telephone
+tent
+The_Eiffel_Tower
+The_Great_Wall_of_China
+The_Mona_Lisa
+tiger
+toaster
+tooth
+tornado
+tractor
+train
+tree
+triangle
+trombone
+truck
+trumpet
+umbrella
+vase
+violin
+watermelon
+whale
+windmill
+wine_glass
+yoga
+zebra
+zigzag
+Metric for each dataset. For NI and Dolly-15K datasets, we use the Rouge-L metric. Rouge-L (Recall-Oriented Understudy for Gisting
+Evaluation - Longest Common Subsequence) is a widely used metric for evaluating the quality of text generated by large language models,
+particularly in summarization and text generation tasks. Unlike Rouge-N, which measures exact n-gram overlap, Rouge-L focuses on the
+Longest Common Subsequence (LCS) between the generated text and the reference text, capturing sentence-level fluency and coherence. Since
+LCS does not require consecutive word matches, it is better suited for evaluating paraphrased or loosely structured responses. The Rouge-L
+score consists of precision, recall, and F1-score, providing a balanced measure of how well the generated text aligns with the reference while
+allowing for flexible word order. This makes it particularly useful for assessing LLM outputs in real-world applications where exact phrasing
+may vary while preserving meaning. For CIFAR-100 and DomainNet-121 datasets, we evaluate the performance using accuracy, defined as
+the ratio of the number of correct predictions to the total number of predictions, i.e., Accuracy = Number of Correct Predictions
+Total Number of Predictions × 100%. In the
+case of the LEDGAR dataset, we compute the metrics Micro F1 and Macro F1. Micro F1 is calculated as: 2×Micro Precision×Micro Recall
+Micro Precision+Micro Recall , where
+Micro Precision and Micro Recall are defined as
+Í𝑁
+𝑖=1 𝑇 𝑃𝑖Í𝑁
+𝑖=1 (𝑇 𝑃𝑖 +𝐹 𝑃𝑖 ) and
+Í𝑁
+𝑖=1 𝑇 𝑃𝑖Í𝑁
+𝑖=1 (𝑇 𝑃𝑖 +𝐹 𝑁𝑖 ) , respectively. Here, 𝑇 𝑃𝑖 is the number of true positive
+predictions for class 𝑖, 𝐹 𝑃𝑖 is the number of false positive predictions for class 𝑖, 𝑁 is the total number of classes. On the other hand, Macro
+F1 is calculated individually for each class. It is computed by replacing Micro Precision and Micro Recall with Macro Precision and Macro
+Recall which are defined as, 1
+𝑁
+Í𝑁
+𝑖=1
+𝑇 𝑃𝑖
+𝑇 𝑃𝑖 +𝐹 𝑃𝑖 and 1
+𝑁
+Í𝑁
+𝑖=1
+𝑇 𝑃𝑖
+𝑇 𝑃𝑖 +𝐹 𝑁𝑖 , respectively. We use the Macro F1 score to evaluate the best result for the
+LEDGAR dataset.
+D More Results
+The LoRA Module Allocation Frequency. We visualize the selection frequency of LoRA modules in each attention layer across training
+rounds. The experiment is conducted on the CIFAR-100 dataset under the Non-IID (10) setting. As shown in Figure 8, our allocation
+optimization algorithm demonstrates stable LoRA selection patterns across rounds. The last six layers (layers 6 to 11) are most frequently
+selected throughout training. Layers 4 and 5 are chosen more often than layers 2 and 3 in most rounds. The first two layers are selected less
+frequently due to their higher memory consumption but are occasionally chosen in later rounds as other layers converge.
+E Comparative Study on Related Works
+In this section, we compare our approach with existing methods that are related to ours in terms of technical aspects and objectives. In
+Table 15, we present a comparative analysis of our method against state-of-the-art approaches in federated fine-tuning. The comparison
+considers four key aspects: whether is a PEFT (Parameter-Efficient Fine-Tuning)-based method, whether considers resource heterogeneity,
+whether considers trainable parameter heterogeneity, and whether incorporate dynamic training. While all listed methods support PEFT, most
+do not address resource heterogeneity, limiting their adaptability to devices with varying memory capacities. Methods such as HETLoRA,
+FLoRA, and FlexLoRA incorporate trainable parameter heterogeneity, allowing clients to train LoRA modules with different ranks, but they
+fail to accommodate resource constraints effectively. Additionally, only a few methods, including FedMS and FedBiOT, support dynamic
+training, where models can adapt their configurations during training. Our proposed method is the only approach that simultaneously
+supports PEFT, resource heterogeneity, trainable parameter heterogeneity, and dynamic training, making it a more flexible and scalable
+solution for federated fine-tuning in heterogeneous environments.
+
+===== PDF PAGE 18 =====
+
+, , Zhang et al.
+0 1 2 3 4 5 6 7 8 9 10 11
+Layer
+0
+20
+40
+60
+80
+100
+120
+140
+160
+180
+200
+220
+240
+260
+280
+300
+320
+340 Round
+Layer Selection Frequency per Round
+0
+2
+4
+6
+8
+10
+Figure 8: The selection frequency of LoRA modules in each attention layer across rounds.
+F Limitations
+Our LoRA allocation optimization is highly adaptable to various memory capacity levels, supporting devices ranging from consumer-grade
+GPUs to datacenter-grade GPUs. However, if a client cannot train even a single LoRA module, our method can easily combined with other
+techniques, such as offloading [14], checkpointing [23] to ensure participation without exceeding hardware limitations.
+G Future Work
+Our method is orthogonal to aggregation noise-reduction techniques such as FlexLoRA [3] and FLoRA [29], allowing for seamless integration
+to heterogeneous model aggregation. In future work, we plan to incorporate these methods while preserving optimal LoRA allocation across
+heterogeneous devices.
+
+===== PDF PAGE 19 =====
+
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Table 15: A comparative study with state-of-the-art works.
+Method PEFT Resource Heterogeneity Parameter Heterogeneity Dynamic Training
+FedIT [33] ✓ ✗ ✗ ✗
+SLoRA [2] ✓ ✗ ✗ ✗
+FedMS [30] ✓ ✗ ✗ ✓
+FwdLLM [31] ✓ ✗ ✗ ✗
+FFA-LoRA [25] ✓ ✗ ✗ ✗
+HETLoRA [6] ✓ ✓ ✓ ✗
+FLoRA [29] ✓ ✓ ✓ ✗
+FlexLoRA [3] ✓ ✓ ✓ ✗
+FedRA [24] ✓ ✓ ✓ ✗
+Ours ✓ ✓ ✓ ✓

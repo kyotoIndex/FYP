@@ -1,0 +1,60 @@
+r0 r1 r2
+r0
++r1
++r2
+r0+r1+r2r0 r1 r2
+FedIT                                The aggregation of local update             FLoRA(ours)
+Figure 2: Module stacking in FLORA is a noise-free aggregation for LoRA, while the module
+averaging in FedIT cannot accurately aggregate the local updates.
+where W ∈ Rm×n and W′ ∈ Rm×n denote the pre-trained and fine-tuned parameters of target
+modules (e.g., attention modules), respectively. A and B are low-rank decomposition of ∆W,
+where A ∈ Rr×n, B ∈ Rm×r, such that ∆W = BA with the identical dimensions as W and
+W′. The rank of LoRA, denoted by r, is typically significantly smaller than m and n, leading to
+dramatic parameter reduction of ∆W. During the fine-tuning phase, LoRA optimizes matrices A
+and B instead of directly updating W, thus achieving substantial savings in GPU memory usage.
+For example, in the context of the LLaMA-7B [19], the original dimension of attention modules is
+W ∈ R4096×4096, setting the LoRA rank to 16 reduces the decomposed matrices to A ∈ R16×4096
+and B ∈ R4096×16. This approach decreases the number of trainable parameters to merely 0.78% of
+the entire parameter of the pre-trained model, offering a significant GPU memory footprint reduction.
+FedIT: Averaging Homogeneous LoRA. The most widely used FL algorithm, i.e., FedAvg [14],
+aggregates all the local model updates by weighted averaging to update the global model in each
+communication round:
+W′ = W +
+KX
+k=1
+pk∆Wk = W + ∆W (2)
+where W′ and W denote the global model parameters before and after a communication round.
+∆Wk represents the local model update from the k-th client, with pk being the corresponding scaling
+factor that is typically weighted by the local data size, and ∆W represents the global model update.
+FedIT [25] directly integrates FedAvg with LoRA to enable federated fine-tuning, where each client
+fine-tunes LoRA modules with a homogeneous rank. Specifically, the clients download the pre-trained
+LLM from the server, locally initialize and fine-tune the LoRA modules, and then send the updated
+LoRA modules to the server. The server updates the global LoRA modulesA and B by independently
+applying weighted averaging across all local modules Ak and Bk:
+A =
+KX
+k=1
+pkAk, B =
+KX
+i=0
+pkBk. (3)
+This aggregation of FedIT is almost the same as FedAvg except that only the LoRA modules are
+trained and communicated. However, such a naive aggregation introduces additional issues for
+federated fine-tuning. First, each single module A or B is not the model update, and only BA
+represents the model update. Thus, averaging Ak and Bk independently to compute the aggregated
+gradients will introduce noises to the global model update. Here we use a simple example to explain
+how the noise is generated, and we assume that two clients are applying FedIT to perform federated
+fine-tuning. In a communication round, the two clients train A0, B0 and A1, B1 respectively. The
+local model updates ∆W0 and ∆W1 are the product of corresponding LoRA modules:
+∆Wk = BkAk, k ∈ {0, 1}. (4)
+According to Equation 2, the expected global model update ∆W can be obtained by weighted
+averaging ∆W0 and ∆W1:
+∆W = p0∆W0 + p1∆W1 = p0B0A0 + p1B1A1. (5)
+However, according to Equation 3, FedIT aggregatesA and B independently:
+∆W = BA = (p0B0 + p1B1)(p0A0 + p1A1)
+= p2
+0B0A0 + p2
+1B1A1 + p0p1(B0A1 + B1A0). (6)
+The global model update in Equation 6 differs from the expected one in Equation 2, mainly due
+to the underlined intermediate term that is obtained by the cross-product of LoRA modules from
+3

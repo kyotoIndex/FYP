@@ -1,0 +1,46 @@
+Published as a conference paper at ICLR 2026
+APPENDIX
+This appendix presents additional discussions and experimental details to support the main text. The
+content is organized as follows:
+• Appendix Section A: A code snippet illustrating how our method can be easily integrated
+into existing frameworks, as well as pseudo-code of Fed-PLoRA.
+• Appendix Section B: Extended literature review on related work.
+• Appendix Section C: Detailed description of experimental settings.
+–Subsection C.1: Dataset and model descriptions.
+–Subsection C.2: Settings for the main experiments, including FL configuration and
+infrastructure.
+–Subsection C.3: Settings for the experiments in Figure 7 and Figure 2.
+• Appendix Section D: Additional experimental results.
+–Subsection D.1: Results on the GLUE benchmark under the non-IID setting.
+–Subsection D.2: Results on the Dolly-15K dataset under both IID and non-IID set-
+tings.
+–Subsection D.3: Results on the Medical Question Answering datasets.
+–Subsection D.4: Results on the MATH reasoning datasets.
+–Subsection D.5: Ablation studies.
+* Subsection D.5.1: Effectiveness of different selection methods for PLoRA mod-
+ules.
+* Subsection D.5.2: Empirical observations on initialization and aggregation noise.
+* Subsection D.5.3: Impact of the number of clients, heterogeneity ratio, and local
+rank per client.
+* Subsection D.5.4: Effects of different PLoRA ranks.
+* Subsection D.5.5: Effects of Dropout.
+* Subsection D.5.6: Additional visualizations of cosine similarity across PLoRA
+modules.
+• Appendix Section E: Analysis of initialization and aggregation noise in existing methods.
+–Subsection E.1: Derivations for FLoRA.
+–Subsection E.2: Derivations for FlexLoRA.
+–Subsection E.3: Derivations for HETLoRA.
+–Subsection E.4: Detailed derivations of the aggregation noise for Fed-PLoRA.
+• Appendix Section F: Additional Studis.
+–Subsection F.1: Demonstration of the efficiency of the rank-based method on resource-
+constrained devices.
+–Subsection F.2: Theoretical and numerical analysis of the resource overhead for exist-
+ing methods and Fed-PLoRA.
+USE OFLLM STATEMENT
+For the preparation of this manuscript, AI assistants are utilized to aid in checking grammar, spelling,
+and punctuation.
+A CODE SNIPPET AND PSEUDO-CODE
+1# Implementation
+2# Just one line of code to apply Parallel One-Rank LoRA in PyTorch.
+3model=AutoModelForCausalLM.from_pretrained(model_name)
+15

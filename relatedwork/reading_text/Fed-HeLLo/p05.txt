@@ -1,0 +1,141 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 5
+Fig. 3. The convergence of fine-tuning different LoRA layers on ViT-base
+model in centralized settings across CIFAR100 and DomainNet-121 dataset.
+where Φ denotes the model’s parameters, l represents one
+layer of the model, d denotes a data sample from a proxy
+dataset DFIM, ∇ℓ(·) represents the model gradients, and ∥ · ∥2
+denotes the L2 norm. Here, a higher FIM score indicates a
+more important layer.
+In our case, we calculate the FIM score on the server
+to assess the layer importance, and propose the FIM-HLA
+strategy. Specifically, the server has a global model Φg =
+{θ, Φ0} and a proxy dataset DFIM sampled from server’s test
+dataset without prior knowledge of the data distribution of
+clients [6], [42]. The FIM score for each LoRA layer j is
+obtained by Γ(j) = FIM(θ(j), Φg, DFIM). Intuitively, client i
+with resource capability ci should select the top ci important
+layers according to the FIM scores.
+Instead of directly using the ranking of LoRA layers, we
+convert FIM scores into a smoother allocation probability
+distribution. Specifically, we divide clients’ resource capacities
+{ci}n
+i=1 into k levels, {c1, c2, . . . , ck} in an ascending order.
+Each level ch, h ∈ [k] indicates the number of LoRA layers a
+client can train. If a client always pick the first ch′ layers to
+train, for the first ch LoRA layers, the corresponding allocation
+probability is,
+ah =
+Pk
+h′=1 1(ch′ ≥ ch)
+Pk
+h′=1 ch′rh′
+, h ∈ [k], (5)
+where rh represents the ratio of clients which has the capabil-
+ity of ch. This gives us a base probability {a1, a2, . . . , ak} for
+different resource levels. Next, we cluster [22] the FIM scores
+{Γ(j)}l
+j=1 of LoRA layers into k groups {g1, g2, . . . gk} in a
+descending order. For the layer with a higher FIM score, it
+should has a larger allocation probability. Therefore, for each
+layer j ∈ gh, h ∈ [k], its allocation probability is set by aj. The
+allocation probabilities across all layers are then normalized so
+that their sum equals one. Finally, the allocation map mi for
+client i can be determined individually by randomly sampling
+ci LoRA layers without replacement based on the allocation
+probability distribution.
+2) Randomized Geometrically-Defined Heterogeneous
+LoRA Allocation for the Intrinsic Layer Importance: In
+Fed-HeLLo, FIM-HLA is conducted every round to generate
+allocation maps for clients. However, during the early training
+rounds, FIM scores do not provide an accurate estimation
+about the training state of the global model. To explore this,
+we conduct an experiment on LEDGAR dataset, comparing
+the convergence speed of our proposed FIM-HLA with
+a random allocation baseline, FedRA [45]. As shown in
+Figure 4, FIM-HLA achieves faster overall convergence
+compared to FedRA, but FedRA initially converges faster
+during the first 10 rounds. This discrepancy may result
+from FIM-HLA’s difficulty in capturing meaningful layer
+importance information early in training. To address this issue,
+we introduce a HLA method that provides an effective initial
+LoRA allocation by considering intrinsic layer importance.
+The intrinsic layer importance represents the natural role
+of each layer in feature extraction [19], [41]. For exam-
+ple, different tasks and datasets often require models to
+focus on specific feature hierarchies, where shallow layers
+capture edges, textures, and spatial structures, deep layers
+extract semantic meaning, object relationships, and contex-
+tual understanding. Object-centric datasets such as CIFAR-
+100 [28] and ImageNet [12] emphasize deep-layer seman-
+tic features, whereas datasets like the Describable Textures
+Dataset (DTD) [11] prioritize shallow-layer textural details.
+Inspired by these, we propose a Geometrically-Defined HLA
+(GD-HLA) strategy. This strategy allocates trainable LoRA
+layers to clients according to specific patterns that are effective
+at the global level, where the patterns are designed to consider
+the intrinsic LoRA layers importance. Specifically, we define
+four GD-HLAs, each resulting in a distinct global allocation
+pattern: Triangle (▷), Inverted Triangle (◁), Bottleneck (▷ ◁),
+and Uniform (≈). In the Triangle pattern (▷), clients prioritize
+training on shallower LoRA layers, allocating more resources
+to these layers due to their significant impact on coarse-
+grained feature modeling. In contrast, the Inverted Triangle
+pattern ( ◁) focuses on deeper LoRA layers, emphasizing the
+development of the ability to handle more semantic features.
+The Bottleneck pattern ( ▷ ◁) represents a trade-off between
+these two allocations, acknowledging the significance of both
+shallow and deep LoRA layers in feature modeling [61].
+Finally, the Uniform pattern ( ≈) assigns uniform significance
+to features across all layers, resulting in a uniform allocation
+by randomly selecting ci layers.
+Each strategy corresponds to a specific allocation mask for
+clients i, formalized as follows:
+m▷
+i =
+
+
+
+1, · · · , 1| {z }
+ci
+, 0, · · · , 0| {z }
+l−ci
+
+
+
+,
+m◁
+i =
+
+
+
+0, · · · , 0| {z }
+l−ci
+, 1, · · · , 1| {z }
+ci
+
+
+
+, (6)
+m▷ ◁
+i =
+
+
+
+1, · · · , 1| {z }
+⌈ci/2⌉
+, 0, · · · , 0| {z }
+l−ci
+, 1, · · · , 1| {z }
+⌊ci/2⌋
+
+
+
+,
+m≈
+i = {0, 1}l ∼ Uniform (ci/l) .
+Here, we extend the fixed GD-HLA to a randomized ver-
+sion, named Randomized Geometrically-Defined HLA (RGD-
+HLA). Specifically, using the allocation maps {m⋆
+i }n
+i=1 gen-
+erated by a pre-defined GD-HLA strategy ⋆, a prior allocation

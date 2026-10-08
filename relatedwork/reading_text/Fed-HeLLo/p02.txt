@@ -1,0 +1,115 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 2
+FL conducts local training based on the resources of the least
+powerful client (known as straggler learning [39]). This is
+sub-optimal because it wastes the resources of high-capability
+clients that could perform more computation.
+To address the memory constraint issue in heterogeneous
+resource settings, existing works [3], [10], [45], [50] employ
+training strategies where resource-limited clients use LoRA
+with smaller ranks [3], [10], [50] or update only partial LoRA
+layers [45]. Specifically, methods that use smaller LoRA ranks
+primarily reduce the memory cost for optimizer states, thus the
+reduction is not significant. Other approaches that train only
+partial LoRA layers can lower both activation and optimizer
+memory costs. However, they allocate trainable LoRA layers
+randomly without considering layer importance.
+In this work, we strategically allocate partial LoRA
+layers to reduce memory requirements for local training
+in resource-constrained clients. Specifically, we propose a
+novel Federated LoRA-based fine-tuning framework with
+Heterogeneous LoRA al Location, called Fed-HeLLo. This
+framework allows clients with different local trainable LoRA
+layers to collaboratively fine-tune an FM. However, it remains
+challenging to ensure that their local model updates can
+effectively contribute to obtain a well-trained global model. To
+address this, we design heterogeneous LoRA allocation (HLA)
+strategies that consider the varying importance of different
+LoRA layers. Our contributions are summarized as follows:
+• To address the memory constraint in heterogeneous
+clients, we propose a novel federated LoRA-based fine-
+tuning framework called Fed-HeLLo. This method en-
+ables clients to collaboratively fine-tune an FM by updat-
+ing different local LoRA layers in each training round.
+To the best of our knowledge, this is the first work to
+design a federated LoRA-based fine-tuning framework
+with heterogeneous LoRA allocation.
+• We design a Fisher Information Matrix score-based HLA
+(FIM-HLA) that leverages dynamic gradient norm infor-
+mation to allocate trainable LoRA layers on the server.
+• To better stabilize the training process, we design a
+Geometrically-Defined HLA (GD-HLA) strategy by con-
+sidering the intrinsic importance of different layers, such
+as the relationships among shallow, middle, and deep
+feature extraction. This strategy allocates trainable LoRA
+layers to different clients so that the collective distribution
+of LoRA layers forms a specific geometrical pattern, such
+as Triangle (▷), Inverted Triangle (◁), Bottleneck (▷ ◁)
+and Uniform (≈). We also extend GD-HLA to a random-
+ized version, Randomized Geometrically-Defined HLA
+(RGD-HLA) for enhanced robustness. By co-designing
+these HLA strategies, we incorporate both the dynamic
+and intrinsic layer importance into our framework.
+• To thoroughly evaluate our approach, we simulate various
+federated LoRA-based fine-tuning settings using diverse
+datasets and varying data distributions for both visual and
+language tasks. The experimental results demonstrate the
+effectiveness and efficiency of our framework.
+Activation
+10740.80 MB
+Optimizer
+345.56 MB
+Parameter
+904.96 MB
+…
+(a) GPU Memory Consumption (b) Num of Heterogeneous Devices
+High-Resource Devices
+with Large GPU Memory
+Medium-Resource Devices
+with Medium GPU Memory
+Low-Resource Devices 
+with Small GPU Memory
+Fig. 1. (a) GPU memory usage for the ViT-base model, which includes a
+12-layer encoder with LoRA applied to each layer. Batch size is 128. (b) The
+distribution of heterogeneous devices in a practical scenario.
+II. R ELATED WORKS
+Parameter-efficient fine-tuning. Resource-constrained de-
+vices cannot train an FM from scratch or fully fine-tune an
+FM due to the numerous trainable parameters. Consequently,
+researchers have turned to PEFT techniques [15], [25], [29],
+[59], which involve updating only a small subset of the model’s
+parameters. It can be mainly categorized into two types:
+additive and selective PEFT methods. Additive PEFT methods
+introduce new trainable layers to the model while keeping
+the pre-trained model weights frozen, enabling efficient task-
+specific fine-tuning. For example, prompt tuning [29] adds
+task-specific soft prompts, which are then fine-tuned to adapt
+the model to new tasks. LoRA [25] introduces trainable low-
+rank matrices that are added to the existing weights of the
+pre-trained model for fine-tuning. Selective PEFT methods
+update only a subset of the pre-trained model’s parameters. For
+instance, BitFit [59] updates only the bias parameters, while
+LN-Norm [4] updates the layer normalization parameters in
+ViT models. Further advancements have been made with
+hybrid approaches that combine multiple PEFT techniques to
+enhance fine-tuning efficiency [23], [69]. Among these PEFT
+methods, LoRA has demonstrated more stable and effective
+performance for complex downstream tasks with mid-size
+datasets [15], [65]. Without loss of generality, we focus on
+LoRA in this work.
+Federated LoRA-based fine-tuning. Given the resource
+challenges posed by full-model fine-tuning [31] in FL, fed-
+erated LoRA-based fine-tuning has gained increasing atten-
+tion [2], [20], [34], [46], [53], [56], [62]. These approaches
+improve the parameter efficiency and reduce computational
+and communication costs [58], [72]. For example, FedIT [62]
+proposes a vanilla federated fine-tuning method with LoRA
+and establishes benchmarks for PEFT in FL. SLoRA [2]
+designs a two-stage fine-tuning method that combines full
+model and LoRA-based fine-tuning to establish a better ini-
+tialization for LoRA weights and improve the global model
+accuracy. FedFMSL [56] proposes a two-stage LoRA fine-
+tuning framework. In the first stage, all LoRA layers are
+trainable to quickly adapt to the current task. In the second
+stage, the model is initialized with the weights obtained
+from the first stage, and a Sparsely Activated LoRA (SAL)
+algorithm is introduced to progressively activate LoRA layers

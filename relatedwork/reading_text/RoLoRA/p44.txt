@@ -1,0 +1,31 @@
+Figure 10: Results with RoBERTa-Large models on GLUE of different budget of finetuning parame-
+ters. It involves 3 clients using rank 2.
+Figure 11: Results with RoBERTa-Large models on GLUE of different budget of finetuning parame-
+ters. It involves 3 clients using rank 1.
+FFA-LoRA can achieve comparable peak accuracy to RoLoRA. However, in federated settings where
+resources are constraiend, RoLoRA is more advantageous.
+rank-1 rank-2 rank-32 rank-64
+FFA-LoRA 80.66 81.51 83.3 83.32
+MNLI RoLoRA 83.93 84.59 85.78 85.79
+Diff 3.27 +3.08 +2.51 +2.47
+FFA-LoRA 69.61 74.01 75.53 75.51
+QQP RoLoRA 77.26 77.41 78.03 78.05
+Diff +7.65 +3.40 +2.5 +2.54
+Table 13: Evaluation on FFA-LoRA and RoLoRA in the centralized setting using only 8 LoRA
+adapters. Increasing ranks can narrow the performance gap between the two schemes.
+A5.6 Align the Communication Cost
+In Figure 12, we conduct a comparison of three methods under the constraint of identical communi-
+cation costs under the assumption that the number of clients is small. To align the communication
+costs across these methods, two approaches are considered. The first approach involves doubling the
+rank of FFA-LoRA and RoLoRA, with results presented in Appendix A5.4. The second approach
+requires doubling the number of layers equipped with LoRA modules. In Figure 12, the latter strategy
+is employed. Specifically, for both FFA-LoRA and RoLoRA, we adjust the communication costs
+by doubling the number of layers equipped with LoRA modules, thereby standardizing the size of
+the transmitted messages. The configurations are presented in Table 14. Figure 12 demonstrates
+that when operating within a constrained communication cost budget, the performance of RoLoRA
+surpasses that of the other two methods for most of the tasks.
+In Table 14, we include the details about layers attached with LoRA adapters.
+A5.7 Commonsense Reasoning Tasks
+We present the configurations for Table 3 in Table 15. We show the results under the same setup but
+using rank-2 LoRA modules in Table 16.
+44

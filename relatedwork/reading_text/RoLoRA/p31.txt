@@ -1,0 +1,95 @@
+where (197) follows byE
+
+(X1a∗)⊤(X1a)
+
+=αmandE[s i] =α.
+Combining (161), (183),(186),(193),(197) and (145),
+1
+m ∥X1a∗ −¯sX1a∥2 = 1
+m(v⊤v+u ⊤
+1 u1 +u ⊤
+2 u2 −2v ⊤u1 −2v ⊤u2 + 2u⊤
+1 u2)(198)
+= (1−α 2)
+
+1 + N(4−m)−2
+N2m(m−2)
+
+(199)
+= (δ0)2(1 + ˜c)(200)
+where δ0 is the angle distance between a and a∗. The quantity ˜c= N(4−m)−2
+N 2m(m−2) =O( 1
+N m) as N and
+mapproach infinity. Therefore,
+E
+"
+1
+N
+NX
+i=1
+1
+m ∥Xia∗b∗⊤
+−X ia¯b⊤∥2
+#
+= (1 + ˜c)(δ0)2∥b∗∥2 (201)
+A3.5 Heterogeneous Case
+Consider a federated setting withNclients, each with the following local linear model
+fi(Xi) =X iab⊤ (202)
+where a∈R d is a unit vector and b∈R d are the LoRA weights corresponding to rank r= 1 . In this
+setting, we model the local data of i-th client such that Yi =X ia∗b∗⊤
+i for some ground truth LoRA
+weightsa ∗ ∈R d, which is a unit vector, and localb ∗
+i ∈R d. We consider the following objective
+min
+a∈Rd,b∈Rd
+1
+N
+NX
+i=1
+li(a,b)(203)
+We consider the local population lossl i(a,b) =∥a ∗b∗⊤
+i −ab ⊤∥2.
+We aim to learn a shared model (a,b ) for all the clients. It is straightforward to observe that (a′,b ′)
+is a global minimizer of if and only if a′b′
+⊤
+=a ∗¯b∗, where ¯b∗ = 1
+N
+PN
+i=1 b∗
+i . The solution is
+unique and satisfies a′ =a ∗ and b′ = ¯b∗. With this global minimizer, we obtain the corresponding
+minimum global error of 1
+N
+PN
+i=1∥a∗(b∗
+i − ¯b∗)⊤∥2.
+We aim to show that the training procedure described in Algorithm 2 learns the global minimizer
+(a∗, ¯b∗). First, we make typical assumption and definition.
+Assumption A3.12.There existsL max <∞(known a priori), s.t.∥ ¯b∗∥ ≤L max.
+Definition A3.13.(Client variance) For γ >0 , we define γ2 := 1
+N
+PN
+i=1∥b∗
+i − ¯b∗∥2, where
+¯b∗ = 1
+N
+PN
+i=1 b∗
+i .
+Theorem A3.14.(Convergence of RoLoRA for linear regressor in heterogeneous setting) Let δt =
+∥(Id −a ∗a∗⊤
+)at∥ be the angle distance between a∗ and at of t-th iteration. Suppose we are in the
+setting described in Section A3.5 and apply Algorithm 2 for optimization. Given a random initial
+a0, an initial angle distance δ0 ∈(0,1) , we set the step size η≤ 1
+2L2max
+and the number of iterations
+T≥ 1
+c(1−(δ0)2) log( δ0
+ϵ )forc∈(0,1). Under these conditions, we achieve the following
+sinθ(a T ,a ∗)≤ϵ,and∥a T (bT+1 )⊤ −a ∗(¯b∗)⊤∥ ≤ϵ∥a ∗(¯b∗)⊤∥
+which we refer to asϵ-accurate recovery of the global minimizer.
+Theorem A3.14 follows by recursively applying Lemma A3.16 forT iterations. We start by computing
+the update rule for a as in Lemma A3.15. Using Lemma A3.15, we analyze the convergence of a in
+Lemma A3.16. We also show the global error that can be achieved by FFA-LoRA within this setting
+in Proposition A3.17.
+31

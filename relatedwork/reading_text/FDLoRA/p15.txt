@@ -1,0 +1,30 @@
+FDLoRA: Personalized Federated Learning of Large Language Model via Dual LoRA Tuning Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+events and parameters. Once parsed, the logs are organized into dis-
+tinct groups using a fixed-size sliding window (the size default is 50),
+each comprising multiple log records. These groupings, designated
+as log sequences, serve as inputs for anomaly detection models
+and facilitate the identification of various patterns present in the
+log data. Note that based on existing work, the content part was
+selected to form the sequence to improve detection performance.
+A4 EXPERIMENT ENVIRONMENT DETAILS
+As shown in Table A1, we present the experimental hardware en-
+vironment and details of LLaMA2-7B. In particular, we used three
+homogenous devices, so 6×V100s were included in total.
+Table A1: The evaluated system and LLM specifications.
+System Overview
+CPU48-core Xeon(R) Gold 6126 CPU @ 2.60GHz
+GPU2×Tesla V100S
+Memeory Capacity187GB DRAM
+Operating SystemCentOS 7.5.1804
+CUDA12.1
+NVIDIA Driver530.30.02
+ML frameworkPytorch 2.1.2
+GPU Specification
+CUDA cores5120
+Memeory Capacity32GB
+Memeory Bandwidth900GB/s
+LLaMA2-7B
+#Tokens2.0T
+#Vocab32,000
+Seq.Length4K
+#Layer32

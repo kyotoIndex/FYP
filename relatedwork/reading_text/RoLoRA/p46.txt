@@ -1,0 +1,39 @@
+Total comm. rounds Batch size Local Epochs Layer type attached with LoRA Layer index attached with LoRA
+10 1 30W k, Wv, Wq, Wo {26, . . . ,31}
+Table 15: Configurations for Commonsense Reasoning tasks.
+BoolQ PIQA SIQA HellaSwag WinoGrande ARC-e ARC-c OBQA
+LoRA 34.36 ±16.90 42.87±14.05 19.12±4.22 26.21±1.91 47.2±0.64 10.31±5.96 9.84±6.13 12.33±7.46
+FFA-LoRA 44.04 ±11.48 51.46±9.81 25.38±11.27 23.86±2.67 46.93±1.54 22.25±7.92 20.65±6.33 20.67±5.33
+RoLoRA 61.3±0.99 60.81±6.35 37.97±5.39 29.62±2.62 49.59±1.2 37.05±2.92 29.09±3.33 28.93±4.64
+Table 16: Results with Llama-2-7B models on commonsense reasoning tasks. It involves 50 clients
+using rank 2.
+Total comm. rounds Batch size Local Epochs Layer type attached with LoRA Layer index attached with LoRA
+100 1 30W k, Wv, Wq, Wo {24, . . . ,31}
+Table 17: Configurations for language generation tasks.
+LoRA FFA-LoRA RoLoRA
+HumanEval 12.96 ±0.37 13.29±0.21 13.45±0.28
+MMLU 45.81 ±0.03 45.80±0.02 45.93±0.01
+human 43.26 ±0.04 43.24±0.01 43.46±0.02
+other 52.67 ±0.06 52.72±0.05 52.83±0.04
+social 51.73 ±0.04 51.64±0.05 51.81±0.04
+stem 37.10 ±0.03 37.12±0.01 37.05±0.02
+Table 18: Results with Llama-2-7B model on HumanEval, and MMLU. We report the average and
+std. over five seeds. The number of clients is 50. The metric used across all tasks is accuracy, where
+higher values indicate better performance.
+Method Comm. cost Time cost
+LoRA 1500.8 KB 0.0415 sec
+FFA-LoRA 750.4 KB 0.0163 sec
+FlexLoRA 1500.8 KB 2.252 sec
+FLoRA 193603.2 KB 2.2179 sec
+RoLoRA 750.4 KB 0.0182 sec
+Table 19: Communication and Time Cost Comparison
+Comm. cost: Total message size sent and received by each client per communication round in the
+MNLI experiment shown in Table 1.
+Time cost: Mean server aggregation time per communication round for the MNLI experiment with
+50 clients in Table 1, averaged over 30 runs.
+MNLI QQP
+LoRA 72.79±5.2357.97±8.23
+FFA-LoRA 79.65±0.5678.16±0.6
+RoLoRA 81.08±0.81 81.64±0.35
+Table 20: Evaluation on differential privacy usingϵ= 10andδ= 1e−6in a 3-client setting.
+46

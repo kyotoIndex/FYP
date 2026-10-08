@@ -1,0 +1,139 @@
+12
+/uni00000013/uni00000015/uni00000018/uni00000018/uni00000013/uni0000001a/uni00000018/uni00000014/uni00000013/uni00000013
+/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000051/uni0000004c/uni00000046/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000035/uni00000052/uni00000058/uni00000051/uni00000047
+/uni00000013
+/uni00000015/uni00000013
+/uni00000017/uni00000013
+/uni00000019/uni00000013
+/uni0000001b/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c
+/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni0000004c/uni00000059/uni00000048/uni00000003/uni00000054/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000016/uni00000015/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000029/uni00000058/uni0000004f/uni0000004f/uni00000003/uni00000033/uni00000055/uni00000048/uni00000046/uni0000004c/uni00000056/uni0000004c/uni00000052/uni00000051
+/uni00000014/uni00000019/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni0000001b/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000017/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+Fig. 8: Accuracy comparison of different communication
+precision schemes.
+all schemes, our proposed IFALoRA with importance-aware
+bandwidth-adaptive quantization scheme achieves the fastest
+convergence and the highest final accuracy. By dynamically
+adjusting the precision of the LoRA parameters based on band-
+width constraints, it ensures efficient communication while
+preserving model performance. Among the fixed-precision
+quantization methods, the 4-bit quantization scheme achieves
+the fastest initial convergence due to its low communication
+overhead, which allows more parameters to be transmitted
+within the bandwidth limit. However, the high quantization er-
+ror in 4-bit precision accumulates over communication rounds,
+leading to noisier updates and the lowest final accuracy. The
+32-bit full-precision scheme, on the other hand, has the slowest
+convergence because of its high communication cost, which
+limits the number of parameter updates within the same bud-
+get. Nevertheless, it achieves relatively higher final accuracy
+by preserving all parameter information. The 16-bit and 8-bit
+quantization methods offer a good trade-off, achieving faster
+convergence than full precision while resulting in minimal loss
+in final accuracy.
+/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni0000004c/uni00000059/uni00000048/uni00000003
+/uni00000003/uni00000054/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000016/uni00000015/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000029/uni00000058/uni0000004f/uni0000004f/uni00000003/uni00000033/uni00000055/uni00000048/uni00000046/uni0000004c/uni00000056/uni0000004c/uni00000052/uni00000051
+/uni00000014/uni00000019/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni0000001b/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000017/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000013
+/uni00000014
+/uni00000015
+/uni00000016
+/uni00000017
+/uni00000018
+/uni00000019/uni00000036/uni0000004c/uni0000005d/uni00000048/uni00000003/uni0000000b/uni00000045/uni0000004c/uni00000057/uni00000056/uni0000000c
+/uni00000014/uni00000048/uni00000019
+1×
+1
+2 ×
+1
+4 ×
+1
+8 ×
+/uni00000032/uni00000055/uni0000004c/uni0000004a/uni0000004c/uni00000051/uni00000044/uni0000004f/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000048/uni00000047/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+/uni00000024/uni00000046/uni00000057/uni00000058/uni00000044/uni0000004f/uni00000003/uni00000037/uni00000055/uni00000044/uni00000051/uni00000056/uni00000050/uni0000004c/uni00000057/uni00000057/uni00000048/uni00000047/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+/uni00000024/uni00000046/uni00000057/uni00000058/uni00000044/uni0000004f/uni00000003/uni00000027/uni0000004c/uni00000056/uni00000046/uni00000044/uni00000055/uni00000047/uni00000048/uni00000047/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+Fig. 9: Average uplink data size of different communication
+precision schemes.
+Fig. 9 presents a comparison of our importance-aware band-
+width adaptive communication quantization scheme against
+fixed-precision quantization methods in terms of the aver-
+age uplink data size per client. The figure illustrates four
+key components: the original data size, the quantized data
+size, the actual transmitted data, and the discarded data due
+to bandwidth constraints. Our adaptive quantization scheme
+ensures that the quantized data size precisely aligns with
+the available bandwidth, thereby eliminating any discarded
+data caused by bandwidth limitations. In contrast, the 32-bit
+full-precision scheme transmits significantly more data than
+the bandwidth can accommodate, resulting in nearly half of
+the data being discarded. As the bit width decreases, the
+proportion of discarded data gradually reduces, with the 16-
+bit and 8-bit quantization schemes exhibiting progressively
+lower levels of discarded data. The 4-bit quantization scheme
+remains entirely within the bandwidth limit, leading to no
+discarded data. From a channel utilization perspective, both
+our adaptive scheme and the 32-bit full-precision scheme fully
+utilize the available bandwidth. However, while the 32-bit
+scheme results in substantial discarded data due to bandwidth
+constraints, our adaptive approach achieves optimal channel
+utilization by ensuring that all transmitted data fits within
+the available bandwidth, avoiding unnecessary data discard. In
+contrast, lower-precision schemes such as 4-bit quantization,
+despite preventing discarded data, do not fully exploit the
+available bandwidth, leading to reduced channel utilization.
+/uni00000013
+/uni00000014/uni00000013/uni00000013
+/uni00000015/uni00000013/uni00000013
+/uni00000016/uni00000013/uni00000013
+/uni00000017/uni00000013/uni00000013
+/uni00000018/uni00000013/uni00000013
+/uni00000019/uni00000013/uni00000013/uni0000002a/uni00000033/uni00000038/uni00000003/uni00000030/uni00000048/uni00000050/uni00000052/uni00000055/uni0000005c/uni00000003/uni0000000b/uni00000030/uni00000025/uni0000000c
+/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016
+/uni00000016/uni00000019/uni00000013/uni00000011/uni00000014/uni00000015
+/uni00000013
+/uni00000014
+/uni00000015
+/uni00000016/uni00000027/uni0000004c/uni00000056/uni00000046/uni00000044/uni00000055/uni00000047/uni00000048/uni00000047/uni00000003/uni00000045/uni0000004c/uni00000057/uni00000056/uni00000003/uni0000000b/uni00000030/uni00000045/uni0000004c/uni00000057/uni00000056/uni0000000c
+/uni00000015/uni00000011/uni0000001b/uni0000001b/uni00000015/uni00000011/uni0000001b/uni0000001b
+/uni00000013/uni00000011/uni00000013/uni00000013/uni00000013/uni00000011/uni00000013/uni00000013
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni0000003d/uni00000048/uni00000055/uni00000052/uni00000033/uni00000044/uni00000047/uni00000047/uni0000004c/uni00000051/uni0000004a/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000011/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni00000011
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000011/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni00000011
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni0000002f/uni0000002f/uni00000030/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni00000011
+/uni00000018/uni00000013
+/uni00000019/uni00000013
+/uni0000001a/uni00000013
+/uni0000001b/uni00000013
+/uni0000001c/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c/uni00000018/uni0000001c/uni00000011/uni00000016/uni0000001b
+/uni0000001b/uni00000016/uni00000011/uni00000019/uni00000013
+/uni0000001b/uni0000001b/uni00000011/uni0000001a/uni00000016/uni0000001b/uni0000001b/uni00000011/uni0000001b/uni0000001c
+Fig. 10: Comparison of performance metrics with
+incorporation of adaptive schemes.
+Fig. 10 plots a comprehensive performance comparison
+when progressively incorporating adaptive aggregation, adap-
+tive communication quantization, and adaptive LLM quan-
+tization, all built upon the foundation of the importance-
+based parameter freezing scheme, evaluated in terms of model
+accuracy, discarded communication bits, and GPU memory
+usage. First, adaptive aggregation significantly improves accu-
+racy from 59.38% (under ZeroPadding aggregation) to 83.60%
+by mitigating parameter dilution. Next, incorporating adap-
+tive communication quantization further boosts accuracy to
+88.73% by dynamically adjusting quantization levels in re-

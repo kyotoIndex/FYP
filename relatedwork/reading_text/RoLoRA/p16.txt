@@ -1,0 +1,69 @@
+A1 Algorithms
+Algorithm 1RoLoRA iterations
+1:Input:number of iterationsT, number of clientsN
+2:fort= 1toTdo
+3:fori= 1toNdo
+4:FixA t,B t+1
+i =GD-update(A t,B t)
+5:TransmitsB t+1
+i to server
+6:end for
+7:Server aggregatesB t+1 = 1
+N
+PN
+i=1 Bt+1
+i , broadcastsB t+1
+8:fori= 1toNdo
+9:FixB t+1,A t+1
+i =GD-update(A t,B t+1)
+10:TransmitsA t+1
+i to server
+11:end for
+12:Server aggregatesA t+1 = 1
+N
+PN
+i=1 At+1
+i , broadcastsA t+1
+13:end for
+Algorithm 2RoLoRA for linear regressor, Alt-min-GD iterations
+1:Input:GD Step sizeη, number of iterationsT, number of clientsN
+2:fort= 1toTdo
+3:Leta←a t−1,b←b t−1.
+4:fori= 1toNdo
+5:set ˜bi ←arg min b li(a,b)
+6:end for
+7: ¯b= 1
+N
+PN
+i=1
+˜bi
+8:fori= 1toNdo
+9:Compute∇ ali(a, ¯b)
+10:end for
+11: ˆa+ ←a− η
+N
+PN
+i=1 ∇ali(a, ¯b), ˆa← ˆa+
+∥ˆa+∥
+12:a t ← ˆa,b t ← ¯b
+13:end for
+A2 Discussion
+While Algorithm 2 is conceptually inspired by alternating optimization techniques in matrix sensing
+and multi-task linear representation learning (MLRL), but it differs in the algorithmic design, and
+application focus.
+Connection to Matrix Sensing.The problem in Eq. (6) is an instance of matrix sensing. Traditional
+matrix sensing methods [22] focus on recovering low-rank structures from centralized data, whereas
+RoLoRA is designed for a federated setting, where both data and computation are decentralized
+across multiple clients. A related line of work is federated matrix factorization, which also applies
+alternating minimization techniques in distributed environments. Wang et al. [39] perform alternating
+minimization between local matrix factors within each communication round but do not alternate
+the aggregation steps. In contrast, RoLoRA alternates both the updates and aggregations of down-
+and up-projection matrices across rounds, fundamentally changing the communication pattern and
+mitigating interference between matrix components during aggregation.
+Connection to MLRL.As discussed in Section 1, we connect the objective of learning down-
+projection matrices in a federated setting to multitask linear representation learning (MLRL)[9, 34, 36,
+12]. We follow a similar derivation framework to MLRL works that employ alternating optimization,
+such as FedRep[9] and Vaswani et al. [36]. However, their focus is on a multi-task setting, where
+the heads are kept diverse and not aggregated. As a result, they perform alternating minimization
+and gradient descent between the local representation and head within each communication round
+16

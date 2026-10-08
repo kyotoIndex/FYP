@@ -1,0 +1,70 @@
+Proposed w/o RP decreases as the batch size increases. At B=32, random projection improves QQP
+accuracy by 2.03 pp, while the improvement reduces to 0.79 pp at B=128. This trend suggests
+that random projection is particularly effective when smaller batch sizes make channel-wise outliers
+less likely to be canceled through batch averaging. As the batch size increases and this implicit
+averaging effect becomes stronger, the additional benefit of random projection becomes smaller.
+Table 9: Comparison with/without random
+projection under DP-SGD (ϵ= 6).
+MethodQQP (B=32) QQP (B=64) QQP (B=128)
+Proposed63.19±0.0173.99±1.4179.94±0.11
+Proposed w/o RP 61.16±2.0370.90±2.7879.15±0.69
+Figure 7 further corroborates this interpretation by
+visualizing the LoRA-A score ratio across different
+batch sizes. At small batch sizes (e.g., B=16), the
+LoRA-A score ratio under non-projection is substan-
+tially higher than that under random projection, indi-
+cating that channel-wise outliers inflate the A com-
+ponent’s score and cause it to be disproportionately
+favored in mode selection. As the batch size increases, the gap between non-projection and random
+projection narrows steadily, and at B=128 the two nearly coincide. This confirms that larger batches
+implicitly suppress outlier effects through averaging, reducing the discrepancy between the two scor-
+ing strategies. Taken together, these results support that the proposed random projection effectively
+mitigates channel-wise gradient outliers and leads to more balanced and reliable score estimation,
+particularly in the small-batch regime typical of DP-SGD training.
+J.2 Single-Pass vs. Two-Pass Score Computation
+Table 10: Comparison of single-pass and
+two-pass under DP-SGD (ϵ= 3).
+Method MNLI (m) MNLI (mm)
+single-pass (ours) 79.15±0.2380.03±0.30
+two-pass inner-loop computation 79.37±0.3180.29±0.26
+We compare two designs for score computation that
+differ in when and how the scores are evaluated rela-
+tive to the communication rounds.
+In thesingle-passdesign (ours), each client computes
+the scores as a by-product of local training and uploads
+them to the server together with the updated LoRA pa-
+rameters. The server then maintains EMA-smoothed
+scores across rounds and uses them to determine the mode vector for thenextround, requiring no
+additional communication beyond the standard parameter exchange. As a result, the mode selection
+at roundtis based on historically smoothed scores rather than the current global model state.
+In thetwo-pass inner-loopdesign, the server first broadcasts both the A and B components of the
+current global model to all clients. Each client then evaluates the scores for both components locally
+and sends them back to the server. The server aggregates the received scores and determines the
+mode vector based on the current global model, after which the selected components are redistributed
+to the clients for local training. This design enables greedy, round-wise mode selection based on the
+most up-to-date global model state, at the cost of an additional communication round and extra local
+computation per round.
+As shown in Table 10, the two-pass inner-loop computation achieves slightly higher performance than
+the single-pass design, improving MNLI (m) and MNLI (mm) by +0.22 and +0.26 pp, respectively.
+However, the performance gap is marginal, and the single-pass design avoids the additional commu-
+nication and computation overhead introduced by the two-pass approach. These results demonstrate
+that the single-pass design provides a favorable trade-off between performance and efficiency.
+J.3 Effect of aggregation rule
+Table 11: Comparison of mode selec-
+tion rules. Experiments are conducted
+under DP-SGD (ϵ= 6) withB= 64.
+Mode Selection Strategy MNLI (m) MNLI (mm)
+Majority voting75.56±1.5176.31±2.38
+Weighted averaging 75.50±1.5876.60±1.97
+Ours (Uniform averaging) 74.48±0.0475.15±0.35
+We further study alternative rules for aggregating layer-wise
+mode decisions across clients. Specifically, we consider
+three variants: (i)majority voting, where each client inde-
+pendently selects its preferred mode and the server adopts
+the mode receiving the majority of votes; (ii)weighted av-
+eraging, which computes a data-size weighted average of
+client scores before selecting a mode; and (iii)uniform av-
+eraging(ours), which averages client scores uniformly and
+determines the mode accordingly. As shown in Table 11,
+majority voting and weighted averaging achieve higher performance than uniform averaging on both
+28

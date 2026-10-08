@@ -1,0 +1,109 @@
+arXiv:2410.10200v2  [cs.LG]  20 Jun 2025
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated
+Fine-Tuning with Heterogeneous Clients
+Zikai Zhang, Rui Hu, Ping Liu, Jiahao Xu
+{zikaiz,ruihu,pingl,jiahaox}@unr.edu
+University of Nevada, Reno
+Reno, NV, USA
+Abstract
+Federated Learning enables the fine-tuning of foundation models
+(FMs) across distributed clients for specific tasks; however, its scal-
+ability is limited by the heterogeneity of client memory capacities.
+In this work, we propose Fed-pilot, a memory-efficient federated
+fine-tuning framework. It enables memory-constrained clients to
+participate in Low-Rank Adaptation (LoRA)-based fine-tuning by
+training only a subset of LoRA modules locally. Fed-pilot identifies
+the optimal selection of trainable LoRA modules as a knapsack
+optimization problem, maximizing model performance under mem-
+ory constraints for each client. To mitigate inconsistencies arising
+from heterogeneous module allocations and Non-IID data, Fed-pilot
+employs a novel aggregation rule that dynamically compensates
+for under-updated layers. Extensive experiments on five diverse
+datasets across various heterogeneous data settings demonstrate
+Fed-pilot’s effectiveness and efficiency compared to state-of-the-art
+methods. To the best of our knowledge, this is the first study on
+federated fine-tuning of FMs that integrates memory-constrained
+optimization. The code will be publicly available.
+CCS Concepts
+• Computing methodologies → Distributed computing method-
+ologies; Machine learning.
+Keywords
+Federated Learning, Low-Rank Adaptation, GPU Memory Con-
+straint
+1 Introduction
+Federated Learning (FL) [20] enables collaborative model training
+across distributed edge devices (clients) under the coordination
+of a central server. In this paradigm, data remains local, and only
+client-computed model updates are sent to the server to iteratively
+refine a shared global model. By reducing data collection costs and
+mitigating privacy risks, FL has emerged as a practical solution
+for scalable machine learning systems. Concurrently, Foundation
+Models (FMs) have become transformative across various domains
+due to their large scale and ability to generalize effectively across di-
+verse datasets. These models have driven significant advancements
+in natural language processing, computer vision, and other fields
+through task-specific fine-tuning [9, 27]. Recent developments, such
+as the Llama-family models [27], exemplify the rapid expansion of
+FMs to billions of parameters, showcasing their unprecedented scale
+and complexity. However, the large parameter count of FMs poses
+significant challenges for deployment in federated settings, as the
+associated computational and communication overhead severely
+limits their ability to efficiently utilize distributed data [24].
+Head
+…
+First LoRA Module
+Frozen
+𝑤LoRA
+Trainable
+𝑤LoRA
+𝑤LoRA
+Last LoRA Module
+Embedding
+Head
+…
+𝑤LoRA
+𝑤LoRA
+𝑤LoRA
+Embedding
+Transformer
+Block
+(c)
+(b)
+（a)
+Figure 1: (a) Accuracy vs. GPU memory consumption for fine-
+tuning the ViT-base model with trainable LoRA modules at
+different positions. (b) Breakdown of memory consumption
+of LoRA fine-tuning. (c) Comparison of training the first
+LoRA module vs. the last LoRA module while keeping the
+rest frozen. See Supplement B.3 for experimental details.
+To address the challenges of deploying FMs in federated set-
+tings, Parameter-Efficient Fine-Tuning (PEFT) [18] methods have
+been widely explored. Among these, Low-Rank Adaptation (LoRA)
+has demonstrated strong performance in efficiently fine-tuning
+FMs, particularly on mid-sized datasets [13]. LoRA achieves this
+by decomposing weight updates into low-rank matrices, training
+only these matrices while keeping the pre-trained weights frozen.
+This approach significantly reduces the number of trainable pa-
+rameters, lowering both the computational cost of training and
+the communication overhead for transmitting model updates in
+FL. Recent studies have explored LoRA’s effectiveness in federated
+fine-tuning [3, 6, 11, 29, 33, 35]. For example, FedIT [33] proposes
+a vanilla integration of LoRA and FedAvg [20], while methods like
+HETLoRA [6], FLoRA [29], and FlexLoRA [3] adjust LoRA ranks to
+accommodate clients’ varying computational capabilities, optimiz-
+ing resource usage in heterogeneous settings.
+However, these methods fail to address a critical challenge in
+fine-tuning FMs in federated settings: the memory bottleneck. Fine-
+tuning FMs requires substantial on-device GPU memory to store
+the CUDA context, model parameters, optimizer states, and inter-
+mediate activations necessary for gradient computation during
+back-propagation. Among these, activations dominate memory us-
+age, as illustrated in Figure 1(b). Although reducing the rank of
+LoRA modules lowers memory costs associated with optimizer
+states (e.g., gradients, momentum), it does not significantly allevi-
+ate the memory demand for activations. This memory requirement
+makes fine-tuning FMs challenging even on powerful GPU servers,
+let alone on those resource-constrained edge or end devices in
+federated settings.
+Recently, FedRA [24] was proposed to mitigate the memory bot-
+tleneck by training only a random subset of LoRA modules on each

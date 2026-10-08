@@ -1,0 +1,83 @@
+7
+Method MNLI-m MNLI-mm SST-2 QNLI QQP RTE Avg.
+LoRA
+LoRA 88.36 ±0.08 88.65 ±0.05 95.19 ±0.09 90.80 ±0.89 85.42 ±1.27 85.84 ±0.36 89.04
+FFA-LoRA 86.46 ±0.04 87.47 ±0.09 95.53 ±0.03 89.24 ±0.84 86.38 ±0.53 87.05 ±0.07 88.69
+FedDPA-LoRA 88.77 ±0.06 88.02 ±0.10 96.10 ±0.05 89.92 ±0.59 86.60 ±0.81 87.36 ±0.15 89.46
+FedSA-LoRA 89.77 ±0.02 87.80 ±0.09 95.72 ±0.03 91.13 ±0.56 86.87 ±0.64 87.75 ±0.02 89.84
+FedAS-LoRA (Ours)89.95 ±0.06 88.86 ±0.49 97.17 ±0.19 92.94 ±0.39 87.95 ±0.56 87.77 ±0.04 90.77
+rsLoRA
+rsLoRA 84.46 ±0.27 86.99 ±0.13 96.49 ±0.09 89.29 ±1.44 86.11 ±0.87 86.42 ±0.22 88.29
+FFA-rsLoRA 89.10 ±0.12 87.85 ±0.25 96.10 ±0.08 89.13 ±0.58 86.02 ±0.34 86.98 ±0.09 89.20
+FedDPA-rsLoRA 89.36 ±0.19 88.67 ±0.29 96.79 ±0.10 90.89 ±1.17 86.68 ±0.02 86.71 ±0.28 89.85
+FedSA-rsLoRA 90.28 ±0.09 88.13 ±0.12 96.75 ±0.06 91.34 ±0.67 86.65 ±0.28 87.52 ±0.07 90.12
+FedAS-rsLoRA (Ours)90.61 ±0.10 89.79 ±0.23 97.02 ±0.07 91.90 ±0.45 87.11 ±0.11 87.58 ±0.08 90.67
+VeRA
+VeRA 89.57 ±0.02 87.79 ±0.11 94.33 ±0.17 91.94 ±0.52 88.67 ±0.48 85.63 ±0.20 89.66
+FFA-VeRA 87.06 ±0.13 86.72 ±0.41 93.12 ±0.35 90.59 ±0.11 87.22 ±0.04 85.15 ±0.29 88.31
+FedDPA-VeRA 87.98 ±0.46 86.78 ±0.36 94.39 ±0.48 91.56 ±0.31 88.71 ±0.35 86.24 ±0.06 89.28
+FedSA-VeRA 89.73 ±0.16 87.26 ±0.03 94.95 ±0.42 92.64 ±0.35 89.05 ±0.11 87.24 ±0.02 90.15
+FedAS-VeRA (Ours)90.28 ±0.54 88.38 ±0.32 95.87 ±0.12 93.08 ±0.11 89.26 ±0.22 87.22 ±0.03 90.68
+TABLE I: Performance of different methods on the GLUE benchmark. MNLI-m denotes MNLI with matched test sets, and
+MNLI-mm denotes MNLI with mismatched test sets.
+QNLI SST-2 MNLI-m
+LoRA 89.11 ±0.41 96.74 ±0.67 86.87 ±0.35
+FFA-LoRA 89.78 ±0.68 96.51 ±0.37 87.16 ±0.24
+FedDPA-LoRA 90.26 ±0.45 96.79 ±0.21 87.90 ±0.20
+FedSA-LoRA 90.34 ±0.67 96.72 ±0.44 88.16 ±0.27
+FedAS-LoRA (Ours)91.04 ±0.34 97.64 ±0.26 88.67 ±0.19
+LoRA 84.15 ±0.52 95.79 ±0.41 83.07 ±0.26
+FFA-LoRA 84.48 ±0.63 95.83 ±0.51 84.25 ±0.42
+FedDPA-LoRA 85.45 ±0.77 95.38 ±0.59 85.80 ±0.54
+FedSA-LoRA 86.11 ±0.50 96.50 ±0.62 86.27 ±0.43
+FedAS-LoRA (Ours)86.64 ±0.41 97.58 ±0.30 87.52 ±0.28
+TABLE II: Performance on QNLI, SST-2, and MNLI-m with
+N= 10clients under uniform and non-uniform sampling.
+The upper block uses a uniform per-round sampling rate of
+0.3, while the lower block uses independent client-specific
+Bernoulli sampling probabilities linearly spaced from0.1to
+0.5.
+under structured input-skew partitions are provided in Ap-
+pendix.
+3) Effect of LoRA Rank:We also explore the model
+performance over varying LoRA ranksr∈ {2,4,8,16}. The
+corresponding results are reported in Table IV. It is noted
+that FedAS-LoRA maintains competitive performance across
+the evaluated ranks. These results indicate that no sharing
+factor policy is consistently preferable across different ranks,
+demonstrating the effectiveness of the rank-aware sharing-
+side selection in FedAS-LoRA.
+VI. CONCLUSION
+In this paper, we studied which LoRA factor should be
+shared across clients and which should remain local during
+federated fine-tuning. Our investigations have shown that
+Method IID Dir(1)Dir(0.5)
+LoRA 90.85 ±0.08 90.96 ±0.46 90.80 ±0.89
+FFA-LoRA 89.51 ±0.25 90.39 ±0.42 89.24 ±0.44
+FedSA-LoRA 91.09 ±0.19 90.89 ±0.47 91.13 ±0.57
+FedAS-LoRA (Ours)91.12 ±0.22 91.58 ±0.11 92.94 ±0.39
+LoRA 95.27 ±0.02 95.41 ±0.04 95.19 ±0.09
+FFA-LoRA 95.45 ±0.03 95.70 ±0.10 95.53 ±0.03
+FedSA-LoRA 96.09 ±0.04 96.56 ±0.04 95.72 ±0.03
+FedAS-LoRA (Ours)96.10 ±0.02 96.79 ±0.04 97.17 ±0.19
+LoRA 88.30 ±0.02 87.78 ±0.05 88.36 ±0.08
+FFA-LoRA 88.69 ±0.03 88.90 ±0.06 86.46 ±0.04
+FedSA-LoRA 89.41 ±0.05 89.01 ±0.04 89.77 ±0.02
+FedAS-LoRA (Ours)89.43 ±0.04 89.02 ±0.03 89.95 ±0.06
+TABLE III: Performance comparison on the QNLI, SST-
+2, and MNLI-m tasks with various degrees of data hetero-
+geneity. From top to bottom, the three blocks correspond to
+QNLI, SST-2, and MNLI-m, respectively.
+Share-A/Local-B and Share-B/Local-A induce input-side
+and output-side projection residuals, respectively. To address
+the structural asymmetry, we proposed FedAS-LoRA, which
+selects the LoRA sharing factor before training and keeps
+the other factor client-specific. We designed a training-free
+RSS metric that compares the energy captured by global and
+local rank-rsubspaces to effectively determine the sharing
+factor. We established the convergence guarantees for both
+sharing strategies under arbitrary client participation. Ex-
+perimental results demonstrated that the preferred sharing
+side can change with the data distribution, adapter rank, and
+participation pattern, while FedAS-LoRA achieves superior
+performance across the evaluated settings.

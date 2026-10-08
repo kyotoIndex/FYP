@@ -1,0 +1,48 @@
+Published as a conference paper at ICLR 2026
+F.2 COMPUTATION, COMMUNICATION,ANDMEMORYOVERHEAD OFFED-PLORA
+We analyze numerical resource overhead in this section. Here, we use HETLoRA Cho et al. (2024)
+as a reference to calculate overhead, since it is the naive extension of FedAvg to heterogeneous
+resource settings. We provide the results as following:
+Computation Overhead.During the FL process, the computation overhead can be analyzed in
+the steps of local parameter initialization, local training, and server-side model aggregation Wu &
+Wang (2022); Zhou et al. (2022). To ground the discussion, we report the per-client, per-round
+computational workloads under BERT-base Devlin et al. (2019) with PF16 precision. The results
+(in terms of FLOPs) are reported using 100 clients with a global rank ofR=16and a local rank
+configuration of{1,4,16}, representing three tiers of resource heterogeneity. The number of clients
+in each tier are 34, 33, and 33, respectively. Each client is assigned 100 training samples. The
+result are summarized in Table 13. Note that, because local initialization, local training, and local
+overhead vary across clients, we report the results for the weakest client withri = 1, as it represents
+the most resource-constrained setting.
+Method Local Initialization (FLOPs) Local Training (FLOPs) Model Aggregation (FLOPs)Local Overhead(FLOPs) Server Overhead(FLOPs)
+HETLoRA3.68×10 4 1.45×1014 2.94×107 - -
+FLoRA6.26×10 5 1.45×1014 8.88×109 +5.89×105 +8.85×109
+FlexLoRA3.68×10 4 1.45×1014 7.71×1010 None+7.70×10 10
+Fed–PLoRA (Ours)1.41×107 1.45×1014 1.10×106 +1.40×107 −2.83×107
+Table 13: Computation overhead of Fed-PLoRA compared with SOTA methods.
+Overall, the dominant computation cost arises from local training, which on the order of10 14
+FLOPs. Our method adds only negligible overhead during local initialization (on the order of10 7
+FLOPs), and reduces computational cost for model aggregation compared to HETLoRA.
+Communication Overhead.The communication cost accounts for both uplink and downlink traffic.
+Here, we report the per-client, per-round uplink and downlink volumes. The measurements are
+obtained using FP16 BERT-base Devlin et al. (2019) with a global rank ofR=16. In Table 14,
+we report the results for the weakest client withr i = 1, which reflects the largest communication
+overhead incurred by our method.
+Method Uplink (MB) Downlink (MB) Overhead (MB)
+HETLoRA 0.04 0.04 -
+FLoRA 0.04 13.54 +13.50
+FlexLoRA 0.04 0.04 None
+Fed–PLoRA (Ours)0.04 0.54 +0.50
+Table 14: Communication overhead of Fed-PLoRA compared with SOTA methods.
+We can see that our method incurs only 0.50 MB of overhead per round for the weakest client,
+which is negligible even in constrained network settings. We further extend our evaluation to larger
+models when analyzing the downlink traffic of Fed-PLoRA. As shown in Table 15, in Fed-PLoRA,
+the downlink traffic is only a few megabytes per round per client, even for models with billions of
+parameters, making it easily deployable over low-bandwidth networks.
+Model Downlink (MB)
+LLaMA-1B 2.79
+OPT-1.3B 2.62
+Mistral-7B-v0.3 7.08
+Llama-3.1-8B 7.09
+Qwen3-4B-Instruct-2507 5.24
+Table 15: Downlink traffic of Fed–PLoRA across model scales.
+31

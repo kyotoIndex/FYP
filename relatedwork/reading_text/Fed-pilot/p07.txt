@@ -1,0 +1,73 @@
+Fed-pilot: Optimizing LoRA Allocation for Efficient Federated Fine-Tuning with Heterogeneous Clients , ,
+Figure 4: Convergence performance on CIFAR-100 and LEDGAR datasets. Rank-based methods are excluded from the results
+as they diverge.
+Table 3: Main results on NI dataset with Llama-1B (Data-
+Juicer) model in both IID and Non-IID settings.
+Methods Model Performance (Rouge-L)
+IID Non-IID (20) Non-IID (15) Avg
+Baseline-EL 57.95 56.28 42.77 52.33
+Baseline-MH 58.58 58.08 56.78 57.81
+Baseline-MS 58.14 57.80 58.03 57.99
+FLoRA 42.63 40.84 37.72 40.39
+FlexLoRA 36.72 34.15 34.45 35.10
+HETLoRA 54.92 58.28 57.83 57.01
+FedRA 58.18 57.10 58.13 57.80
+Ours 58.73 58.59 59.30 58.87
+baseline methods. Compared to Baseline-MS, our method achieves
+improvements of +3.71%, +5.01%, and +6.30% across the three data
+distributions, respectively. This highlights the effectiveness of our
+proposed LoRA allocation optimization, indicating that fine-tuning
+as many LoRA modules as possible is not always beneficial. Our
+method also outperforms FedRA by an average of +11.28%, as FedRA
+relies on random sampling without considering either memory uti-
+lization or the contribution of each LoRA module to model accuracy.
+Compared to Baseline-EL and Baseline-MH, our method achieves
+average performance gains of +47.45% and +42.10%, respectively,
+and demonstrates much more stable performance under Non-IID
+settings. This is because these two methods cannot accommodate
+clients with low memory capacity. Rank-based methods such as
+FLoRA, FlexLoRA, and HETLoRA diverge due to inefficient memory
+management, and extreme low LoRA ranks.
+Results on LEDGAR. Table 2 presents the main results on
+LEDGAR dataset. We report Macro F1 score of the fine-tuned global
+model under both IID and Non-IID (20, 10) settings. Compared to
+FedRA, our method achieves an average improvement of +0.98%.
+Although it shows a slight drop under the IID distribution for our
+method compared to FedRA, it excels in handling Non-IID settings,
+with gains of +1.35% and +1.63% under “Non-IID (20)” and “Non-IID
+(10)” settings, respectively. These results highlight the adaptability
+of our framework to heterogeneous data distributions. Our method
+also outperforms Baseline-MS by +1.94% under the “Non-IID (10)”
+setting. Baseline-EL and Baseline-MH shows a significant decline
+compared to our method, underscoring the importance of incorpo-
+rating comprehensive client data information. Rank-based methods
+such as FLoRA, FlexLoRA, and HETLoRA still diverge when clients
+have extremely low LoRA ranks.
+Results on NI. Table 3 presents the main results on the NI
+dataset. We report the Rouge-L score of the fine-tuned global model
+under both IID and two different Non-IID (20, 15) settings. Our
+method demonstrates significant improvements over rank-based
+baselines, achieving average Rouge-L score gains of +18.48%, +23.77%,
+and +1.86% compared to FLoRA, FlexLoRA, and HETLoRA, respec-
+tively. These improvements are attributed to the inefficiency of
+rank-based methods in memory management, which restricts the
+rank of LoRA modules. Additionally, redistributed methods such as
+stacking and SVD can become unstable when the rank of LoRA mod-
+ules is extremely low. Compared to Baseline-EL and Baseline-MH,
+our method achieves improvements of +16.53% and +2.52%, respec-
+tively, under the Non-IID (15) setting, indicating strong adaptability
+to heterogeneous data distributions. Our method also consistently
+maintains stable performance gains across all data distributions
+when compared to Baseline-MS and FedRA. Notably, under the
+extreme Non-IID setting with 15 tasks per client, it outperforms
+these baselines by +1.27% and +1.17%, respectively. We would like
+to point out that the task-level Non-IID skew in natural language
+datasets does not fully reflect the effectiveness of task heterogeneity,
+which affects trends of the Rouge-L scores reported in the table.
+Results on Dolly-15K. Table 4 presents the main results on
+Dolly-15K dataset. We report Rouge-L scores of the fine-tuned
+global model under both IID and Non-IID (3, 1) settings. From the
+results, our method achieves the highest average Rouge-L score of
+59.39%, outperforming all baselines. Notably, our approach main-
+tains stable Rouge-L scores above 59% across all data distributions.
+In contrast, rank-based methods FLoRA and FlexLoRA achieve

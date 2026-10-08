@@ -1,0 +1,61 @@
+Method Hyperparameters # Trainable Parameters WikiSQL MNLI-m
+Fine-Tune - 175B 73.8 89.5
+PreﬁxEmbed
+lp = 32, li = 8 0.4 M 55.9 84.9
+lp = 64, li = 8 0.9 M 58.7 88.1
+lp = 128, li = 8 1.7 M 60.6 88.0
+lp = 256, li = 8 3.2 M 63.1 88.6
+lp = 512, li = 8 6.4 M 55.9 85.8
+PreﬁxLayer
+lp = 2, li = 2 5.1 M 68.5 89.2
+lp = 8, li = 0 10.1 M 69.8 88.2
+lp = 8, li = 8 20.2 M 70.1 89.5
+lp = 32, li = 4 44.1 M 66.4 89.6
+lp = 64, li = 0 76.1 M 64.9 87.9
+AdapterH
+r = 1 7.1 M 71.9 89.8
+r = 4 21.2 M 73.2 91.0
+r = 8 40.1 M 73.2 91.5
+r = 16 77.9 M 73.2 91.5
+r = 64 304.4 M 72.6 91.5
+LoRA
+rv = 2 4.7 M 73.4 91.7
+rq = rv = 1 4.7 M 73.4 91.3
+rq = rv = 2 9.4 M 73.3 91.4
+rq = rk = rv = ro = 1 9.4 M 74.1 91.2
+rq = rv = 4 18.8 M 73.7 91.3
+rq = rk = rv = ro = 2 18.8 M 73.7 91.7
+rq = rv = 8 37.7 M 73.8 91.6
+rq = rk = rv = ro = 4 37.7 M 74.0 91.7
+rq = rv = 64 301.9 M 73.6 91.4
+rq = rk = rv = ro = 64 603.8 M 73.9 91.4
+LoRA+PE
+rq = rv = 8, lp = 8, li = 4 37.8 M 75.0 91.4
+rq = rv = 32, lp = 8, li = 4 151.1 M 75.9 91.1
+rq = rv = 64, lp = 8, li = 4 302.1 M 76.2 91.3
+LoRA+PL rq = rv = 8, lp = 8, li = 4 52.8 M 72.9 90.2
+Table 15: Hyperparameter analysis of different adaptation approaches on WikiSQL and MNLI. Both
+preﬁx-embedding tuning (PreﬁxEmbed) and preﬁx-layer tuning (PreﬁxLayer) perform worse as we
+increase the number of trainable parameters, while LoRA’s performance stabilizes. Performance is
+measured in validation accuracy.
+Method MNLI(m)-100 MNLI(m)-1k MNLI(m)-10k MNLI(m)-392K
+GPT-3 (Fine-Tune) 60.2 85.8 88.9 89.5
+GPT-3 (PreﬁxEmbed) 37.6 75.2 79.5 88.6
+GPT-3 (PreﬁxLayer) 48.3 82.5 85.9 89.6
+GPT-3 (LoRA) 63.8 85.6 89.2 91.7
+Table 16: Validation accuracy of different methods on subsets of MNLI using GPT-3 175B. MNLI-
+n describes a subset with n training examples. We evaluate with the full validation set. LoRA
+performs exhibits favorable sample-efﬁciency compared to other methods, including ﬁne-tuning.
+To be concrete, let the singular values of Ui⊤
+A Uj
+B to be σ1, σ2,··· , σp where p = min{i, j}. We
+know that the Projection Metric Ham & Lee (2008) is deﬁned as:
+d(Ui
+A, Uj
+B) =
+√p−
+p∑
+i=1
+σ2
+i∈ [0,√p]
+23

@@ -1,0 +1,67 @@
+Published as a conference paper at ICLR 2026
+Method FPB FIQA TFNS Avg
+Untuned Model 50.57+0.42−0.31 29.33+0.51−0.44 49.87+0.28−0.36 40.12+0.39−0.27
+HomogeneousFedIT (Rank=R)63.53+0.33−0.33 28.94+2.30−1.32 64.11+0.45−0.43 52.19+0.48−0.79
+FedIT (Rank=R/2)62.70+0.14−0.31 29.93+1.23−2.31 63.71+0.44−0.33 52.11+0.44−0.78
+Heterogeneous
+R= 8Avg Rank=4
+FLoRA 52.33+0.80−0.68 31.42+0.44−0.24 50.53+0.26−0.45 44.76+0.32−0.28
+FlexLoRA 62.79+0.54−0.78 31.76+0.90−0.68 62.60+1.05−1.33 52.38+0.49−0.53
+HETLoRA 60.06+0.58−0.33 32.01+2.52
+−1.42 60.09+0.58−0.46 50.72+0.92−0.51
+Fed-PLoRA 63.94+1.15
+−1.16 31.68+2.85−2.08 64.19+1.26
+−0.92 53.27+1.11
+−0.85
+Table 3: Comparison of Fed-PLoRA with baselines on financial datasets.
+Results on GLUE.As shown in Table 2, our method, Fed-PLoRA, demonstrates substantial im-
+provements over these baselines on IID GLUE benchmark. Fed-PLoRA improves untuned model
+by +38.62% on average. Compared to FLoRA, Fed-PLoRA achieves average improvements of
++63.46% on CoLA and +42.48% on MRPC. This significant margin shows the detrimental impact
+of FLoRA’s random initialization, which incurs significant perturbation to the local training at every
+round. Compared to FlexLoRA, Fed-PLoRA achieves a notable average improvement of +4.47%
+on the SST-2 dataset. This suggests that while FlexLoRA aims to provide representative low-rank
+matrices with SVD, it can still suffer from significant information loss that leads to initialization
+and aggregation noise, particularly when some clients are constrained to very small LoRA ranks.
+Fed-PLoRA also outperforms HETLoRA by +9.72% on QQP and +5.42% on RTE. This advantage
+can be attributed to the large initialization and aggregation noises in HETLoRA from zero-padding
+and truncation, which Fed-PLoRA is designed to mitigate more effectively. Note that FlexLoRA
+outperforms FedIT with rankRon QNLI, likely because this relatively simple binary QA task can
+be well captured using a low rank, making SVD-based aggregation particularly effective.
+Results on Financial Datasets.As shown in Table 3, Fed-PLoRA achieves average gains of
++13.15% over untuned model, +8.51% over FLoRA, +0.89% over FlexLoRA, and +2.55% over
+HETLoRA. Additionally, both Fed-PLoRA and FlexLoRA here outperforms the homogeneous
+FedIT baselines. As we discussed before, Fed-PLoRA achieves this by maintaining rank-wise align-
+ment of local module updates across clients. FlexLoRA benefits from its SVD-based initialization,
+which aligns low-rank modules with the most informative global directions. When the task is inher-
+ently low-rank, this targeted representation may outperform homogeneous FedIT, which treats all
+directions equally.
+4.2 ADDITIONALDISCUSSIONS
+Adaptability of the PLoRA to Homogeneous Settings and LoRA Variants.
+Figure 3: Performance of PLoRA
+and Fed-PrsLoRA in homoge-
+neous settings.
+Theoretically, PLoRA achieves the same adaptation effect
+and parameter efficiency as standard multi-rank LoRA (see
+Section 3.2) and can be extended to other LoRA variants.
+We adapt it to rsLoRA Kalajdzievski (2023), forming Fed-
+PrsLoRA, and compare with FedIT and another homogeneous
+method FFA-LoRA Sun et al. (2024) (which only sharesBma-
+trices). We evaluate on IID CoLA dataset, the hardest GLUE
+task, under homogeneous settings with different ranks. From
+Figure 3, we observe that Fed-PrsLoRA consistently outper-
+forms Fed-PLoRA, leveraging rsLoRA’s improvements over
+LoRA. Both methods also achieve substantial gains over FFA-
+LoRA (e.g., +10.63% and +10.89% at rank 16) and in some cases surpass FedIT. This advantage
+becomes more pronounced as the rank decreases, underscoring the effectiveness of PLoRA’s paral-
+lelization in resource-limited settings.
+Figure 4: Select-N-Fold vs. other
+selection methods.
+Effectiveness of Select-N-Fold.We also evaluate other strate-
+gies for selecting trainable one-rank PLoRA modules in Fed-
+PLoRA on IID CoLA dataset. We consider: Weight Norm,
+which picks modules with the largest weight norms; Fixed,
+which always selects the firstr i modules; and Select-N-Drop,
+which randomly selectsr i modules like Select-N-Fold but dis-
+cards the rest. As shown in Figure 4, both random strategies
+9

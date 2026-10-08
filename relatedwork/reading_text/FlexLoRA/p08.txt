@@ -1,0 +1,103 @@
+Table 3: Average percentage improvement of
+FlexLoRA over baseline methods (FedAvg, FedIT,
+SLoRA) across different resource distributions,
+calculated over 12 NLP task categories. More de-
+tailed comparison is presented in Figure 4.
+FedAvg FedIT SLoRA Avg
+Uniform 1.99% 0.97% 0.74% 1.23%
+Heavy-Tail (L) 1.24% 0.63% -0.47% 0.47%
+Normal 1.34% 0.75% 0.96% 1.02%
+Heavy-Tail (S) 1.66% 0.95% 1.12% 1.24%
+Avg 1.56% 0.83% 0.59% 1.00%
+0 25 50 75 100 125 150 175 200
+Number of Clients (|C|)
+1.6
+1.7
+1.8
+1.9
+2.0
+2.1
+Loss ( )
+52.02(R-L)
+55.28(R-L) 55.25(R-L)
+55.75(R-L)56.39(R-L) 56.71(R-L)
+58.99(R-L)
+59.28(R-L)57.12(R-L) 57.35(R-L)
+59.03(R-L) 59.51(R-L)
+Resource Distributions
+Homo Rank Loss True
+Heavy Tail Light Loss True
+Uniform Loss True
+Homo Rank Loss Fitted
+Heavy Tail Light Loss Fitted
+Uniform Loss Fitted
+Client Number vs Performance
+Relation: |C| = A1/ 2(A2 log( A3))
+Figure 5: Client number ( |C|) v.s. generaliza-
+tion on heterogeneous distributions. Increasing
+|C| improves both convergence loss and rouge-L
+(scores marked as (R-L)).
+Effect of Specific Resource Distributions. In the majority of cases, the global models augmented
+with FlexLoRA demonstrate marked improvements over the vanilla implementations of FedAvg,
+FedIT, and SLoRA by up to 1.99%, suggesting that the FlexLoRA also improves the natural language
+analysis capabilities. An exception is noted in the SLoRA on the heavy-tail-light distribution,
+potentially due to the predominance of the Type 1 LoRA configuration (rank 8), which may limit
+the overall language processing capabilities when such clients are disproportionately represented.
+This configuration’s minimal rank assignment across all linear layers suggests that the local weight
+aggregation on the server side might not fully leverage the capabilities of clients with larger resources,
+potentially detracting from the model’s performance on certain tasks.
+Effect of Specific Language Tasks. We further illustrate the task-specific improvements of in-
+tegrating FlexLoRA in comparison with the standard FedAvg configuration for various resource
+distributions in Figure 4. The task-wise improvement figures for other FL methods are included in
+Appendix G. We observe that the global models trained using the FlexLoRA aggregation scheme
+generally outperform others on tasks requiring the parsing of logical relationships between sentences.
+Particularly, it gains improvements at most 4% in the overlap extraction task, and around 2.5% in the
+textual entailment, cause-effect classification, and dialogue act recognition task, verifying again the
+effectiveness of FlexLoRA.
+4.5 Aggregation Scheme Study
+0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 20.0
+Communication Round
+1.6
+1.8
+2.0
+2.2
+2.4
+2.6Test Loss
+Effect of SVD
+FL Aggregation
+FedIT rank 200
+FedIT rank 8
+FlexLoRA rank 8
+(a) Losses of FedIT and FlexLoRA-integrated
+FedIT.
+0 100 200 300 400 500 600 700 800
+Order
+10−5
+10−4
+10−3
+10−2
+10−1
+singular value
+block 1 singular value
+block 8 singular value
+block 14 singular value
+block 1 error ratio
+block 8 error ratio
+block 14 error ratio
+rank 30 error ratio
+0.0
+0.2
+0.4
+0.6
+0.8
+Error ratio
+0.16
+q_proj under FlexLoRA w/ heavy-tail-strong distribution
+(b) The qproj’s singular values and estimate error.
+Figure 6: The sub-figure 6(a) shows that FedIT with LoRA rank 8 has comparable test loss curves for
+standard and FlexLoRA integration. At rank 200, though, standard FedIT differs from other versions.
+6(b) depicts singular value distributions and approximation errors, where the red cross indicates the
+average error for rank 30 qproj weights in specific blocks. Further details are in Appendix H.
+SVD on Convergence. FlexLoRA’s aggregation scheme constructs full-size LoRA weights before
+averaging, unlike the conventional FedAvg method’s parameter-wise averaging. To understand the
+8

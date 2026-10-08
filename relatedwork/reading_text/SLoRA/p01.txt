@@ -1,0 +1,78 @@
+SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models
+Sara Babakniya∗1, Ahmed Roushdy Elkordy∗1, Yahya H. Ezzeldin1,
+Qingfeng Liu2, Kee-Bong Song2, Mostafa El-Khamy2, Salman Avestimehr1
+1 University of Southern California, 2 SoC R&D Samsung Semiconductor Inc.
+Abstract
+Transfer learning via fine-tuning pre-trained
+transformer models has gained significant suc-
+cess in delivering state-of-the-art results across
+various NLP tasks. In the absence of central-
+ized data, Federated Learning (FL) can benefit
+from distributed and private data of the FL edge
+clients for fine-tuning. However, due to the
+limited communication, computation, and stor-
+age capabilities of edge devices and the huge
+sizes of popular transformer models, efficient
+fine-tuning is crucial to make federated training
+feasible. This work explores the opportunities
+and challenges associated with applying param-
+eter efficient fine-tuning (PEFT) methods in
+different FL settings for language tasks. Specif-
+ically, our investigation reveals that as the data
+across users becomes more diverse, the gap
+between fully fine-tuning the model and em-
+ploying PEFT methods widens. To bridge this
+performance gap, we propose a method called
+SLoRA, which overcomes the key limitations
+of LoRA in high heterogeneous data scenarios
+through a novel data-driven initialization tech-
+nique. Our experimental results demonstrate
+that SLoRA achieves performance comparable
+to full fine-tuning, with significant sparse up-
+dates with approximately ∼ 1% density while
+reducing training time by up to 90%.
+1 Introduction
+With the popularity of smartphones and personal
+gadgets, valuable user data is distributed more than
+ever. This data can help different companies and
+service providers improve their products and make
+them more efficient and personalized. However,
+privacy is a growing and crucial concern that is in-
+evitable to avoid. Users care about the performance
+of their applications but do not want their private
+data to be accessed by everyone. Federated Learn-
+ing (FL) (McMahan et al., 2017; Kone ˇcn`y et al.,
+2016) is a new paradigm that can solve both prob-
+lems simultaneously. Users collaboratively train a
+∗ Equal contribution (alphabetical order on the last name).
+Figure 1: The impact of client data distribution on the
+performance of full fine-tuning vs. Parameter efficient
+Fine-tuning. While heterogeneity has an adverse effect
+on both of them, parameter efficient methods are more
+vulnerable and experience more accuracy drop in more
+heterogeneous settings.
+common model locally using their private dataset
+and only share their model update with a param-
+eter server that orchestrates the training process
+over multiple training rounds without sharing their
+private data.
+Although FL has already proven beneficial in
+various domains (Kairouz et al., 2021), such as
+next-word prediction and healthcare, it still has crit-
+ical challenges to be deployed on large scales. Here
+we mainly focus on the efficiency of FL and prob-
+lems of clients’ heterogeneous data distribution for
+pre-trained language models.
+Large pre-trained language models have proven
+to perform very well even in the zero-shot setup
+(Brown et al., 2020). However, as the tasks get
+more specialized, these models require fine-tuning
+to enhance their performance on these domain-
+specific tasks (Hu et al., 2021). To provide the
+required privacy while fine-tuning, we can benefit
+from the FL paradigm. But asking the clients to
+fine-tune the models and communicate the update
+has downsides.
+The problem is that fine-tuning can be computa-
+tionally expensive as it might change the parame-
+arXiv:2308.06522v1  [cs.LG]  12 Aug 2023

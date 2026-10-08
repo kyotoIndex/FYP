@@ -1,0 +1,165 @@
+We define the computing resource consumption of the
+LoRA layers in a transformer layer with unit rank during
+local fine-tuning as c. In addition, we use ˆc to denote the
+computing resource consumption for the pre-trained model
+θ during the forward propagation, which is a constant. Then,
+assuming that the total computing resource budgets of device
+i in round h is Ch
+i , the computing resource constraints can be
+expressed as follows:
+ˆc + ∑
+l∈Lh
+i
+ri,l · c ≤ Ch
+i (14)
+Similarly, we useb to denote the communication consumption
+of LoRA layers in a transformer layer with unit rank. Let Bh
+i
+represent the total communication resource budget for device
+i in round h. Then, the communication resource constraints
+can then be formulated as:
+∑
+l∈Lh
+i
+ri,l · b ≤ Bh
+i (15)
+Given a specific task in the FedFT system, LEGEND de-
+termines an appropriate LoRA configuration Rh
+i for device i
+according to the estimation of the device’s resource in round
+h to minimize the overall fine-tuning time ∑H
+h=1 th. Thus, we
+can formulate the problem as follows:
+min
+H
+∑
+h=1
+th
+s.t.
+
+
+
+ri,l−1 ≤ ri,l, ∀l ∈ Lh
+i
+∑l∈Lh
+i
+ri,l ≤ ψ, ∀i ∈ [1,n]
+th
+i = ˆti + kh
+i · µh
+i + ∑l∈Lh
+i
+ri,l · βh
+i , ∀i ∈ [1,n]
+W h = 1
+n ∑n
+i=1(th −th
+i ) ≤ ε, ∀h ∈ [1,H]
+ˆc + ∑l∈Lh
+i
+ri,l · c ≤ Ch
+i , ∀i ∈ [1,n]
+∑l∈Lh
+i
+ri,l · ˆb ≤ Bh
+i , ∀i ∈ [1,n]
+(16)
+The first set of inequalities denotes the constraints of rank
+distribution. The second set of inequalities represents that the
+rank of all LoRA layers cannot exceed the given budget ψ.
+The third set of equations represents the total time of local
+fine-tuning and uploading on device i in round h. The fourth
+set of inequalities represents the average waiting time of all
+devices cannot exceed the predefined threshold ε > 0. The
+last two sets of inequalities express that the accumulated
+computing and communication resources cost cannot exceed
+the computing and communication resource budgets of device
+i in round h, respectively.
+To solve the problem in Equation (16), we propose a greedy-
+based LoRA configuration determination algorithm, termed
+LCD, as shown in Algorithm 1. First, the PS calculates the
+gap kh between the maximum and minimum LoRA depth
+(Line 2) according to the device status information. Then, the
+completion time gap kh
+i between device i and the slowest is
+used to generate the appropriate LoRA depth to adapt hetero-
+geneous devices (Line 3). For example, the most powerful
+device is assigned with maximum LoRA depthL, the weakest
+device is assigned with LoRA depth of L − kh, while other
+devices are assigned values within the gap[L −kh,L] based on
+Algorithm 1 LoRA Configuration Determination
+Input: Total rank budget ψ; the completion time of the de-
+vices th
+i ; parameter λ.
+Output: LoRA configuration Rh
+i = {ri,l|l ∈ [L − kh
+i ,L − 1]}.
+1: function LORACONFIGURATION ( ):
+2: Calculate the gap between the maximum and mini-
+mum LoRA depth in round h
+kh ← ⌈L ·
+th −th
+i,min}
+th ⌉;
+3: Determine the LoRA depth for device i by
+kh
+i ← ⌈kh · th −th
+i
+th ⌉;
+4: Get global rank distribution R = {rl|l ∈ [0,L − 1]}
+using an arithmetic sequence with a common difference
+of λ, where rl = rl−1 + λ.
+5: Adjust LoRA depth kh
+i to ensure the configuration
+meets device-specific computing and communication con-
+straints by Equations 14 and 15.
+6: Generate LoRA configuration Rh
+i = {rh
+i,l|l ∈ [L −
+kh
+i ,L − 1]} for device i, where rh
+i,l = rl ∈ R.
+7: end function
+their capabilities. Secondly, the PS gets the reasonable rank
+distribution R = {rl|l ∈ [0,L −1] for all transformer layers us-
+ing an arithmetic sequence with a common difference of λ in
+round h (line 4). We use the parameter λ to guide the genera-
+tion of the rank distribution, whereλ indicates that the rank of
+LoRA layers added to the transformer layer l is λ greater than
+that of the adjacent transformer layer l − 1, i.e., rl = rl−1 + λ.
+For instance, λ = 1 in our experiments by default. Then, we
+greedily adjust the LoRA depth to ensure the configuration
+meets the device’s capacity (Line 5). Finally, based on global
+rank distribution R and LoRA depth kh
+i , the PS generates the
+LoRA configuration Rh
+i = {rh
+i,l|l ∈ [L − kh
+i ,L − 1]} for device
+i in round h (Line 6).
+4.5 LoRA Aggregation
+After receiving the updated LoRA layers from all devices, the
+PS performs global aggregation. Since the LoRA depth varies
+across devices while the rank of each LoRA layer remains con-
+sistent across all devices, the PS performs adaptive layer-wise
+aggregation on the collected LoRA layers, i.e., aggregating
+each layer based on the number of devices contributing to that
+layer. We use eθh+1
+l to represent the global LoRA layers in
+l-th transformer layer obtained by aggregating the respective
+LoRA layers from nl devices. Formally, the adaptive layer-
+wise aggregation of LoRA layers in transformer layer l can
+be expressed as follows:
+eθh+1
+l = 1
+nl
+nl
+∑
+i=1
+eθh
+i,l (17)
+After aggregation, PS obtains a set of global LoRA layers
+eθh+1 = {eθh+1
+l |l ∈ [0,L −1]}, which will be used for assigning
+different LoRA layers for each device.
+7

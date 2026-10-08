@@ -1,0 +1,1797 @@
+
+
+===== PDF PAGE 1 =====
+
+1
+HAFLQ: Heterogeneous Adaptive Federated LoRA
+Fine-tuned LLM with Quantization
+Yang Su, Na Yan, Yansha Deng, Mischa Dohler, and Robert Schober
+Abstract—Federated fine-tuning of pre-trained Large Lan-
+guage Models (LLMs) enables task-specific adaptation across
+diverse datasets while preserving privacy. However, challenges
+such as high computational and memory demands, heteroge-
+neous client resources, bandwidth constraints, and ineffective
+global aggregation hinder its efficiency. To address these issues,
+we propose HAFLQ (Heterogeneous Adaptive Federated Low-
+Rank Adaptation Fine-tuned LLM with Quantization), a novel
+framework for efficient and scalable federated fine-tuning of
+LLMs in heterogeneous environments. To reduce memory and
+computation demands, we propose a salience-driven adaptive
+LLM quantization framework that evaluates the importance of
+transformer blocks using a salience metric and applies adap-
+tive block-wise quantization accordingly. To handle heteroge-
+neous computational capabilities, we propose an importance-
+based parameter truncation and freezing scheme. To address
+communication bottlenecks, we propose an importance-aware
+bandwidth-adaptive quantization method, which dynamically
+adjusts parameter precision based on importance and bandwidth
+constraints. To improve global model aggregation, we propose an
+adaptive rank-1 matrix-level aggregation strategy, which prevents
+information dilution and accelerates convergence by aggregating
+only updated rank-1 matrices from clients. Experimental results
+on the text classification task demonstrate that HAFLQ reduces
+memory usage by 31%, lowers communication cost by 49%,
+improves accuracy by 50%, and achieves faster convergence
+compared to the baseline method.
+Index Terms—Large Language Model, Low-Rank Adaptation,
+Federated Learning, Quantization.
+I. I NTRODUCTION
+Large Language Models (LLMs) have exhibited exceptional
+performance in understanding and generating natural language
+across a wide range of tasks, including applications in chatbots
+and search engines [2]–[4]. To achieve optimal performance
+on specific tasks, these pre-trained models often require further
+fine-tuning. However, conventional fine-tuning methods are
+typically centralized, involving the collection of raw data on
+a single client, which raises significant privacy concerns. Fed-
+erated Learning (FL), as a privacy-preserving distributed Ma-
+chine Learning (ML) training paradigm [5]–[7], is a promising
+approach to address this issue by enabling collaborative fine-
+tuning across decentralized LLM agents without aggregating
+Yang Su, Na Yan and Yansha Deng are with the Department of Engineer-
+ing, King’s College London, London, WC2R 2LS, U.K. (email: {yang.2.su,
+na.2.yan, yansha.deng }@kcl.ac.uk). (Corresponding author: Yansha Deng).
+This paper will be presented in part at the 2025 IEEE International Conference
+on Communications, to appear [1].
+Mischa Dohler is with the Advanced Technology Group, Ericsson Inc.,
+Silicon Valley, US. (email: mischa.dohler@ericsson.com).
+Robert Schober is with the Institute for Digital Communication, Friedrich-
+Alexander-Universit¨at Erlangen-N¨urnberg, 91052 Erlangen, Germany (e-mail:
+robert.schober@fau.de).
+raw datasets. Integrating FL with LLMs not only addresses
+privacy concerns but also leverages diverse data sources from
+decentralized clients to fine-tune LLMs on specific domains.
+As FL increasingly relies on wireless networks to support
+collaboration across clients, communication has emerged as a
+critical bottleneck in fine-tuning LLMs. Unlike centralized set-
+tings, FL requires frequent transmission of model updates over
+limited-bandwidth connections, posing significant challenges
+for models with billions of parameters, such as LLaMA3-
+8B [8]. Even in half-precision, transmitting these parameters
+demands approximately 16 GB per update, resulting in delays
+that significantly impact training efficiency. Moreover, the
+large parameter size imposes high demands on the client’s
+computational capabilities. For instance, full fine-tuning of
+LLaMA3-8B requires memory for model parameters, opti-
+mizer states (twice the size of the parameters), and gradients
+(equivalent to the size of the parameters). Even with mixed
+precision, it requires at least 64 GB of GPU memory per client,
+posing significant challenges for resource-constrained devices.
+To address these challenges, LLM quantization [9]–[11]
+has been proposed as a solution to alleviate computational
+resource constraints, such as GPU memory usage, in federated
+LLM fine-tuning. The authors in [12] proposed FedPipe, which
+applied low-precision quantization to reduce computational
+resource consumption. However, this approach employs a
+uniform quantization strategy across all clients, overlooking
+the potential heterogeneity in their computational capabilities.
+In practice, clients with powerful GPUs can support full-
+precision LLM fine-tuning without quantization, while aggres-
+sive quantization on such devices may lead to unnecessary per-
+formance loss. Conversely, resource-constrained clients with
+limited GPU memory or computational power can selectively
+apply higher levels of quantization to adapt to their resource
+limitations, highlighting the need for more adaptive strategies.
+In addition to quantization, Parameter-Efficient Fine-Tuning
+(PEFT) methods have been proposed to further alleviate the
+computational and communication challenges in federated
+LLM fine-tuning [13]–[15]. One of the widely used PEFT
+methods is Low-Rank Adaptation (LoRA), which freezes the
+original pre-trained parameters of the LLM and trains a smaller
+number of additional parameters instead [16]. This approach
+significantly reduces computational and storage requirements
+while maintaining a model performance comparable to full
+fine-tuning. The authors in [17] proposed an approach that
+integrates FL with LoRA to enhance the instruction tuning of
+LLMs. This method enables clients to only train and optimize
+the LoRA layers using locally diverse instruction data, reduc-
+ing privacy exposure risks by sharing only the LoRA weights,
+arXiv:2411.06581v2  [cs.LG]  16 May 2025
+
+===== PDF PAGE 2 =====
+
+2
+which significantly lowers the demands on communication and
+client computational capabilities. However, the study assumed
+a uniform LoRA rank across all clients and does not consider
+the potential impact of client resource heterogeneity.
+To accommodate heterogeneous computational capabilities,
+the authors in [18] proposed HETLoRA that assigned different
+LoRA ranks to different clients. To facilitate the aggregation
+and distribution of LoRA matrices with different ranks, this
+work introduced a zero-padding aggregation method and a
+global model truncation distribution method. However, the
+zero-padding aggregation method can dilute the information
+learned by high-rank clients, and the truncation approach may
+lead to performance loss in the models distributed to clients.
+To address the challenges posed by different LoRA ranks,
+the authors in [19] synthesized a full-size LoRA through the
+direct multiplication of the LoRA A and B matrices, ensuring
+consistent dimensions of the full-size LoRA across clients.
+This full-size LoRA is then aggregated to form an updated
+global model, which is then decomposed using Singular Value
+Decomposition (SVD). The SVD components are further pro-
+cessed using a low-rank approximation to fit different client
+ranks before being distributed to the clients. However, the
+reconstruction method in [19] may lose information regarding
+the cross-relation across clients during aggregation, and the
+low-rank approximation distribution method still inevitably
+leads to performance loss.
+On the other hand, to further reduce communication costs in
+federated LoRA fine-tuned LLMs, the authors in [20] proposed
+integrating a quantization strategy for LoRA parameters to
+adapt to bandwidth-limited scenarios. However, this approach
+utilized fixed quantization precision across all clients, and
+failed to account for clients’ communication heterogeneity.
+For instance, clients with good channel conditions could
+support higher precision to accelerate convergence, whereas
+clients with poor channel conditions might require lower
+precision quantization to alleviate communication bottlenecks.
+Moreover, their methods did not consider the importance of
+individual rows and columns in the LoRA A and B matrices,
+treating all parameters equally during transmission. This lack
+of prioritization can lead to inefficient communication, as im-
+portant components may be lost due to bandwidth constraints,
+potentially slowing down convergence and degrading global
+model performance.
+To address the limitations of previous work [12], [17]–[20],
+we propose a novel Heterogeneous Adaptive Federated LoRA
+Fine-tuned LLM with Quantization (HAFLQ) framework to
+handle the challenges posed by heterogeneous client compu-
+tational and communication resources. Our contributions can
+be summarized as follows:
+• Salience-Driven Adaptive Quantization for Efficient
+LLM Deployment. To enable efficient deployment of
+LLMs on heterogeneous devices, we propose a salience-
+driven and resource-aware adaptive quantization scheme.
+By ranking transformer blocks based on their contribu-
+tion to model performance, our method applies higher
+precision to more important blocks while quantizing less
+important ones. Additionally, the quantization strategy is
+dynamically adapted to the computational capabilities and
+memory constraints of each client device. Clients with
+more computational resources retain more blocks in full
+precision, while resource-constrained clients apply lower-
+precision quantization to a larger proportion of blocks.
+• Importance-Aware LoRA Fine-Tuning with Trunca-
+tion and Freezing. To accommodate client resource
+heterogeneity, we propose an importance-based param-
+eter truncation scheme, which allows clients to fine-tune
+LoRA layers with different ranks based on their compu-
+tational capabilities. To avoid performance degradation
+caused by truncation, we further develop an importance-
+based parameter freezing scheme. In this approach, both
+the cloud server and the clients maintain the same high
+LoRA rank, while clients selectively update only the most
+important LoRA rank-1 matrices while keeping others
+frozen.
+• Importance-Aware Bandwidth-Adaptive Communi-
+cation Quantization. To address communication het-
+erogeneity in wireless FL systems, we propose an
+Importance-Aware Bandwidth-Adaptive Communication
+Quantization scheme. This method dynamically adjusts
+the precision of the transmitted parameters based on
+their importance and each client’s bandwidth budget.
+By prioritizing the transmission of the most important
+LoRA rank-1 matrices with higher precision, the scheme
+optimizes bandwidth utilization and improves FL perfor-
+mance under constrained communication conditions.
+• Adaptive Rank-1 Matrix-Level Model Aggregation.
+To improve global model aggregation, we propose an
+adaptive aggregation method at the rank-1 matrix level.
+Instead of aggregating entire LoRA matrices, only the
+clients that update and upload specific rank-1 matrices
+participate in the aggregation process. This prevents in-
+formation dilution and accelerates convergence compared
+to traditional zero-padding methods.
+• We evaluate our methods on the Banking 77 text classi-
+fication task. The salience-driven adaptive LLM quanti-
+zation method reduces memory usage by 31% and com-
+putational costs, enabling efficient deployment on het-
+erogeneous clients without sacrificing performance. Ad-
+ditionally, our importance-based partial freezing scheme
+preserves client model accuracy better than truncation-
+based methods, while the adaptive aggregation method
+achieves faster convergence compared to the zero-
+padding approach in [18]. Finally, our Importance-Aware
+Bandwidth-Adaptive Quantization optimizes bandwidth
+usage, reducing communication cost by 49%, while main-
+taining high accuracy under bandwidth constraints.
+The rest of the paper is organized as follows: Section II
+introduces the system model. Sections III and IV describe
+the salience-driven adaptive LLM quantization scheme and the
+importance-based parameter truncation and freezing schemes,
+respectively. Section V proposes an importance-aware and
+bandwidth-adaptive communication quantization scheme, fol-
+lowed by Section VI, which presents the adaptive global ag-
+gregation scheme. Numerical results are discussed in Section
+VII, and conclusions are summarized in Section VIII.
+
+===== PDF PAGE 3 =====
+
+3
+QPLLM
++
+QPLLM
+B
++
+QPLLM
++
++
++
++
+Importance 
+Score (IS)
+0 1 2
+0 1 2
+0 1 2
+0 1 2
+0 1 2
+0 1 2 012
+012
+01
+2
+012
+012
+012
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+Step 1: Cloud Model Broadcast Step 2: Local Model Training (Two Schemes) Step 4: Dequantization and 
+Global Aggregation
+: Frozen 
+Parameters
+B
+B
+A
+A
+l
+d
+r
+r
+r
+l
+d
+d
+l
+r
+r
+r
+Client 1
+Client 2
+Client 3
+Cloud Server
+0
+0 2
+0 1 2
+012
+0
+2
+0
+Importance-Based 
+Parameter Freezing 
+Scheme (Section IV)
+Importance-Based  
+Parameter Truncation 
+Scheme (Section IV)
+Client 1 Client 1
+Client 2 Client 2
+Client 3Client 3
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+IS
+0 1 2
+3.1 2.11.1
+Quantized Pre-trained 
+LLM (QPLLM)
+Transformer Block (TB)
+QPLLM
+TB1 (INT8)
+TB2 (INT8)
+TB3 (INT8)
+QPLLM
+TB1 (INT8)
+TB2 (INT8)
+TB3 (FP32)
+QPLLM
+TB1 (FP32)
+TB2 (FP32)
+TB3 (FP32)
+or
+0
++
+0 1 2 0
+1
+2
+Cloud Server
++
+0 1 2 0
+1
+2
+B
+A
+PLLM
+PLLM
+A
+Base Station
+Base Station
+Salience-Driven Adaptive 
+LLM Quantization
+(Section III)
+Adaptive LoRA 
+Aggregation (Section VI)
+INT16
+INT16
+INT16
+INT8
+INT8
+INT4
+FP32
+FP32
+FP32
+FP32
+FP32
+FP32
+Quantization 
+(Client Side)
+Importance-Aware 
+Bandwidth-Adaptive 
+Communication 
+Quantization (Section V)
+Dequantiza-
+tion (Server 
+Side)
+Limited 
+Bandwidth
+Step 3: Quantized 
+Parameters Upload
+Fig. 1: HAFLQ framework.
+II. S YSTEM MODEL
+As shown in Fig. 1, our proposed HAFLQ framework
+consists of a cloud server, a base station, and a set ofK clients,
+denoted as K = {1, 2, · · · , K}. Each client and the cloud
+server have a LoRA based LLM, where the parameters of the
+original pre-trained LLM are frozen, and only the incorporated
+low-rank decomposition matrices are trainable. Each client
+k ∈ K has a local dataset Dk = {(xi, yi)}Dk
+i=1, where xi is the
+ith input data sample, yi is the corresponding labeled output,
+and Dk is the number of data samples. Each client connects to
+the base station via wireless channels to transmit parameters
+to the cloud server.
+A. Cloud LoRA Parameter Broadcast
+The updated model parameters of the LoRA-based LLM
+are handled differently at the cloud server and the clients
+to address their respective computational and memory con-
+straints. Specifically, the cloud server retains the pre-trained
+model weights Wpre ∈ Rd×l in full precision, while the clients
+use a quantized version of the pre-trained weights, denoted as
+Wpre,q ∈ Rd×l. For the cloud server, the model parameters
+can be expressed as
+Wserver = Wpre + ∆W = Wpre + BA. (1)
+For the client, the model parameters can be expressed as
+Wclient = Wpre,q + ∆W = Wpre,q + BA, (2)
+where ∆W ∈ Rd×l is the trainable matrix. The low-rank
+decomposition of ∆W is given by ∆W = BA, where B ∈
+Rd×r and A ∈ Rr×l are low-rank matrices. Here, d and l
+are the dimensions of the model’s weight matrix, and r is the
+rank of the low-rank approximation, which is typically much
+smaller than both d and l.
+For different clients k, the LoRA rank is denoted as rk. In
+our importance-based parameter truncation scheme, the client
+LoRA rank rk is selected from the range [rmin, rmax]. In our
+proposed importance-based parameter freezing scheme, rank
+rk is set to be equal to rmax. Regardless of the scheme used, the
+LoRA rank of the global model at the cloud server is denoted
+as rg, where rg = rmax.
+During each communication round, the cloud server broad-
+casts the LoRA parameters, which are the low-rank matrices
+Bg and Ag, to all clients k ∈ K . Taking the communication
+round t as an example, these parameters are denoted as
+Θ(t)
+LoRA = {B(t)
+g , A(t)
+g }, (3)
+where B(t)
+g ∈ Rd×rg and A(t)
+g ∈ Rrg×l.
+B. Local Model Training and Global Aggregation
+In each communication round, the selected set of clients K
+receives the LoRA parameters Θ(t)
+LoRA broadcasted by the cloud
+server. Each client k ∈ K then begins local model training
+using its local dataset Dk. In this process, clients keep the pre-
+trained model weights Wpre frozen. They initialize their local
+LoRA parameters Bt
+k and At
+k with the received Θ(t)
+LoRA and
+optimize these parameters by minimizing a local loss function.
+After completing local training, clients adaptively quan-
+tize their updated LoRA parameters, {B(t+1)
+k , A(t+1)
+k }, into
+{B(t+1)
+k,q , A(t+1)
+k,q } before uploading them to the cloud server.
+Unlike traditional fixed or uniform quantization methods, our
+proposed importance-aware bandwidth-adaptive quantization
+adjusts the precision of each parameter based on its importance
+and the client’s bandwidth constraints. This ensures that the
+most critical rank-1 matrices are prioritized for transmission
+with higher precision, optimizing bandwidth utilization and
+
+===== PDF PAGE 4 =====
+
+4
+minimizing performance degradation in heterogeneous envi-
+ronments.
+Upon receiving updates, the cloud server dequantizes the
+parameters back to {B(t+1)
+k,dq , A(t+1)
+k,dq } and aggregates them
+using our proposed Adaptive Rank-1 Matrix-Level Aggrega-
+tion method. This approach aggregates only the updated and
+important rank-1 matrices, avoiding information dilution and
+accelerating convergence compared to traditional zero-padding
+methods. These innovations enable the HAFLQ framework to
+achieve efficient communication, scalability, and high perfor-
+mance in federated learning.
+C. Wireless Communication Model
+1) Uplink Communication: In our HAFLQ framework,
+each communication round is of fixed duration T and each
+client k is allocated a limited bandwidth Bk. Consequently, the
+number of bits that a client can transmit in a given communica-
+tion round is constrained. To characterize the wireless uplink
+between a client and the base station, we adopt a channel
+model that accounts for path loss, shadowing, and small-scale
+fading.
+a) OFDMA-based Multi-User Access: When multiple
+clients are scheduled to transmit concurrently, an orthogo-
+nal frequency division multiple access (OFDMA) scheme is
+adopted to avoid inter-client interference. We let C denote
+the set of available subchannels, where each subchannel has
+identical bandwidth B0. Then, a binary channel assignment
+vector ρk = [ ρk,1, ρk,2, . . . , ρk,|C|] can be defined for client
+k, where ρk,c = 1 indicates that subchannel c is allocated to
+client k. The constraints
+X
+c∈C
+ρk,c = 1, ∀k ∈ K, (4)
+X
+k∈K
+ρk,c ≤ 1, ∀c ∈ C , (5)
+ensure that each client is assigned exactly one subchannel and
+each subchannel is shared by at most one client in a given
+round. Since all subchannels have equal bandwidth B0, the
+bandwidth allocated to client k is Bk = B0 for all k ∈ K.
+b) Channel Gain and Path Loss: We consider a common
+urban scenario where client k has no line-of-sight (NLoS) to
+the base station [21] and the path loss is modeled as
+P Lk = 32.4 + 20 log10(f) + 30 log10(dk), (6)
+where f is the carrier frequency and dk is the distance between
+client k and the base station.
+Incorporating shadowing and small-scale fading effects, the
+overall channel gain hk is given by
+hk = 10−P Lk/10 ψk χk, (7)
+where the large-scale shadowing effect is modeled as
+ψk = 10ξk/10, ξ k ∼ N (0, σ2), (8)
+and the small-scale Rayleigh fading component is
+χk = |g|2, with g ∼ CN (0, 1). (9)
+Here, N (0, σ2) denotes a real-valued Gaussian distribution
+with zero mean and variance σ2, and CN (0, 1) denotes a
+circularly symmetric complex Gaussian distribution with zero
+mean and unit variance.
+c) Signal-to-Noise Ratio and Data Rate: Assuming that
+each client transmits with power Pk, the Signal-to-Noise Ratio
+(SNR) at the base station for client k is given by
+γk = Pk hk
+N bs
+0 Bk
+, (10)
+where N bs
+0 is the noise power spectral density (PSD) at the
+base station side. Under the Shannon capacity formulation,
+the achievable uplink data rate [22] of client k is
+Rk = Bk log2 (1 + γk) . (11)
+Thus, during the uplink phase of a communication round,
+which lasts for Tul, the total number of bits that client k can
+transmit is
+Mk = TulRk. (12)
+d) Parameter Transmission: In each round, client k
+transmits its updated LoRA parameters, which together occupy
+Sk bits. Since the available bit budget per round is limited
+by (12), we require
+Sk ≤ Mk, (13)
+for successful transmission.
+2) Downlink Communication: In the proposed HAFLQ
+framework, we assume that the base station broadcasts the
+global LoRA parameters Θ(t)
+LoRA = {B(t)
+g , A(t)
+g } to all clients
+in full precision using shared channels. Given the low-rank
+nature of LoRA parameters, their dimensions are significantly
+smaller compared to the full model parameters, resulting in
+low communication overhead. Additionally, the high transmit
+power of the base station ensures that these parameters can
+be reliably delivered to all clients, even under varying channel
+conditions.
+III. S ALIENCE -D RIVEN ADAPTIVE LLM Q UANTIZATION
+In wireless FL systems, clients often have varying compu-
+tational capabilities due to differences in hardware resources
+such as GPU memory and processing power. Deploying LLMs
+across such heterogeneous clients requires computation re-
+source optimization, particularly GPU memory and compu-
+tation.
+To address this, we propose an adaptive quantization ap-
+proach for LLMs that customizes the quantization level based
+on each client’s computational capability. Our method lever-
+ages a salience metric to assess the importance of transformer
+blocks, enabling selective quantization. Important transformer
+blocks, identified as having higher salience, are preserved in
+full precision to maintain model performance, while less im-
+portant blocks are quantized to lower precision. The proportion
+of blocks quantized depends on the GPU memory available to
+the client. Clients with limited GPU memory quantize a larger
+proportion of transformer blocks to fit within their memory
+constraints, while clients with greater GPU memory retain
+more blocks in full precision to maximize model performance.
+
+===== PDF PAGE 5 =====
+
+5
+A. Salience-Driven LLM Transformer Block Importance Eval-
+uation
+In our approach, the pre-trained LLM is composed of L
+transformer blocks that are stacked sequentially. Each trans-
+former block l has parameters WTBl ∈ Rd×d. To evaluate the
+importance of each transformer block, we adopt a salience-
+based metric inspired by SparseGPT [23], which quantifies
+the contribution of each weight element to the model’s output
+error. Specifically, for the weight matrix WTBl in a given
+transformer block, we compute the salience value δi,j for each
+element wi,j using
+δi,j = w2
+i,j
+[H−1]j,j
+(14)
+where [H−1]j,j is the jth diagonal element of inverse Hessian
+matrix H−1. The Hessian matrix H ∈ Rd×d is computed as
+the average outer product of input activation vectors xi in the
+local dataset Dk
+H = 1
+Dk
+DkX
+i=1
+xixT
+i , (15)
+where xi is the input activation vector for the ith sample in the
+dataset Dk. To efficiently compute the diagonal elements of
+H−1, we leverage Cholesky decomposition [24], which avoids
+explicitly inverting H and allows for efficient computation of
+the required diagonal elements.
+Next, we calculate the total salience score for each trans-
+former block WTBl by summing the salience values δi,j of all
+its weight elements
+RTBl =
+dX
+i=1
+dX
+j=1
+δi,j, (16)
+the salience score RTBl represents the overall impact of the
+transformer block l on the model’s output error. Based on these
+salience scores, we rank all transformer blocks in descending
+order of importance.
+This salience-driven evaluation provides the foundation for
+our quantization strategy. During quantization, transformer
+blocks with lower salience scores are prioritized for quan-
+tization, while those with higher salience scores are pre-
+served in full precision to minimize the impact on model
+performance. The proportion of blocks to be quantized is
+dynamically adjusted based on the computational capacity and
+GPU memory size of the target device: for devices with higher
+computational power and larger GPU memory, only a small
+number of blocks are quantized, preserving most blocks in full
+precision. Conversely, for devices with lower computational
+power and smaller GPU memory, a larger proportion of blocks
+are quantized to meet resource constraints.
+B. Block-wise Quantization for LLMs
+To efficiently quantify LLMs while minimizing the loss of
+accuracy, we utilize block-wise quantization [25], [26]. By
+dividing the large weight matrices into smaller blocks and
+quantizing each block independently, this method allows the
+quantization process to better adapt to the local distribution of
+weights.
+1) Divide the Weight Matrix: Given a weight matrix
+WTBl ∈ Rd×d from transformer block l, which is selected
+for quantization, the matrix is divided into several contiguous
+blocks along the row dimension. Specifically, assuming a block
+size of m, the matrix is partitioned into p = d/m blocks:
+W1, W2, . . . ,Wp, where each block Wi ∈ Rm×d contains
+m consecutive rows of the original matrix.
+2) Quantize the Block: For each block Wi, a scale factor
+si is computed based on the range of values within the block
+using
+si = max(Wi) − min(Wi)
+2q − 1 , (17)
+where q denotes the number of quantization bits. The quan-
+tized weights for block Wi are then obtained as
+Wi,q =
+ Wi
+si
+
+, (18)
+where ⌊·⌉ denotes the rounding operation to the nearest integer.
+The quantized weights are stored in a compressed format
+in the device’s GPU memory, to ensure efficient access during
+computation. This storage format significantly reduces mem-
+ory usage compared to full-precision weights, enabling the
+deployment of large models on resource-constrained devices.
+3) Dequantize the Block: The dequantization process oc-
+curs dynamically during the forward pass, both in training and
+inference. Specifically, when a quantized weight block Wi,q
+is needed for computation, it is dequantized on-the-fly using
+the corresponding scale si as
+Wi = si · Wi,q. (19)
+This approach ensures that the computational overhead
+of dequantization is minimized in scenarios where only the
+required blocks are dequantized on-the-fly during computation,
+rather than the entire weight matrix.
+IV. I MPORTANCE -BASED PARAMETER TRUNCATION AND
+FREEZING SCHEMES
+In this section, to handle the heterogeneity of client re-
+sources, we first introduce an importance-based parameter
+truncation scheme at the local LLMs. To address the issue of
+performance degradation resulting from truncation, we sub-
+sequently introduce an importance-based parameter freezing
+scheme at the local LLMs.
+A. Decomposed LoRA Rank-1 Matrix Importance Evaluation
+In practical FL environments, clients often have different
+computational capacities, making it challenging to train all
+clients’ LoRA parameters with a uniform rank across all
+clients. To address this, the LoRA parameter product BA is
+decomposed into smaller, rank-1 matrices. As shown in Fig. 1,
+we take LoRA with rg = 3 as an example. The cloud server
+calculates an importance score for each rank-1 matrix and
+broadcasts this information to the clients. Clients can then
+prioritize these rank-1 matrices, training the most important
+ones first.
+
+===== PDF PAGE 6 =====
+
+6
+1) Matrix Decomposition: The cloud server decomposes
+the product BgAg into rank-1 matrices as
+BgAg =
+rgX
+i=1
+biai, (20)
+where bi ∈ Rd×1 is the ith column vector of Bg, and ai ∈
+R1×l is the ith row vector of Ag.
+2) Element-wise Importance Calculation: To assess the sig-
+nificance of each element within vectors bi and ai, we employ
+a sensitivity-based metric [27]. This involves computing the
+gradient of the global loss function L with respect to each
+element and using the product of the element’s value and its
+gradient as a measure of importance. However, in the context
+of FL, the global model does not have a direct loss function
+L to calculate the gradient, as the training data is distributed
+across multiple clients, and the global model is updated based
+on aggregated client updates. Instead, we approximate the
+gradient by scaling the change in parameter values between
+consecutive communication rounds using the learning rate.
+Then, we define a unified importance function I(wij) for any
+trainable parameter wij as
+I(wij) =
+wij · ∆wij
+η
+ , (21)
+where wij represents element bji in bi, with j ∈ {1, . . . , d},
+or element aiq in ai, with q ∈ {1, . . . , l}. The term ∆wij =
+w(t)
+ij − w(t−1)
+ij represents the change in the parameter value
+between two consecutive global updates, and η is the learning
+rate.
+However, due to the high variability and uncertainty in
+estimating sensitivity from mini-batch samples, it is crucial
+to smooth these importance scores to obtain more reliable
+indicators. We achieve this by applying an exponential moving
+average to the sensitivity scores and quantifying the uncer-
+tainty [28].
+First, the smoothed sensitivity ¯I (t)(wij) is calculated using
+an exponential moving average
+¯I (t)(wij) = β1 ¯I (t−1)(wij) + (1 − β1)I (t)(wij), (22)
+where β1 ∈ [0, 1] is a smoothing factor.
+Next, the uncertainty ¯U (t)(wij) is quantified to capture the
+variability in the sensitivity scores
+¯U (t)(wij) = β2 ¯U (t−1)(wij)+(1 −β2)
+I (t)(wij) − ¯I (t)(wij)
+ ,
+(23)
+where β2 ∈ [0, 1] is another smoothing factor.
+Finally, the combined importance score s(t)(wij) is defined
+as the product of the smoothed sensitivity and the uncertainty:
+s(t)(wij) = ¯I (t)(wij) · ¯U (t)(wij). (24)
+By incorporating these smoothing techniques, we enhance the
+reliability of the importance scores, making them more robust
+to the stochasticity of FL environments.
+3) Aggregation of Importance Scores: To obtain the overall
+importance score for rank-1 matrix biai, we sum the smoothed
+and uncertainty adjusted importance scores for all elements of
+bi and ai. This approach ensures that the aggregated score
+reflects the reliability and significance of each parameter. The
+overall importance score Si of the rank-1 matrix is calculated
+as
+Si =
+dX
+j=1
+s(bji) +
+lX
+q=1
+s(aiq), (25)
+where s(bji) and s(aiq) are the smoothed and uncertainty-
+adjusted importance scores for the elements of bi and ai, re-
+spectively. This aggregation method provides a robust measure
+of the importance of each rank-1 matrix in the decomposition
+of BA.
+4) Broadcast Importance Scores: After calculating the im-
+portance scores S for each rank-1 matrix, we obtain a list of
+scores
+
+S1, S2, . . . , Srg
+
+. This list represents the importance
+of each rank-1 matrix in the decomposition of BA. The list
+of importance scores is then broadcast to all clients.
+B. Importance-based Parameter Truncation Scheme
+To accommodate diverse computational capabilities of
+clients, we allow each client to have a different LoRA rank
+rk ∈ [rmin, rmax]. However, this flexibility introduces the
+challenge of aligning the cloud server’s global model with
+the different LoRA ranks of each client’s local model. To
+address this issue, we propose an importance-based parameter
+truncation scheme.
+1) Truncation Process: In each communication round t, the
+cloud server broadcasts the LoRA parameters Θ(t)
+LoRA to all
+clients. Upon receiving these parameters, each client k ∈ K
+performs the following steps.
+a) Selection of Significant Rank-1 Matrices: Each client
+k ∈ K receives the list of importance scores [S1, S2, . . . , Srg]
+from the server. Based on these scores, client k selects the top
+rk rank-1 matrices as
+IT
+k = topk
+ 
+[S1, S2, . . . , Srg], rk
+
+, (26)
+where IT
+k represents the set of indices corresponding to the
+rank-1 matrices selected by client k.
+b) Truncation of Low-Rank Matrices: Client k then
+truncates the low-rank matrices Bg and Ag to align with
+the local model’s LoRA rank requirement rk. Specifically, the
+client retains rk column vectors bi and rk row vectors ai
+corresponding to the highest importance scores
+BT
+k = Bg[:, IT
+k], AT
+k = Ag[IT
+k , :]. (27)
+2) Local Model Update: The truncated low-rank matrices
+BT
+k and AT
+k are copied to the LoRA parameters of client k’s
+local model. Subsequently, client k trains the local model using
+its local dataset Dk. In the parameters truncation scheme, the
+local loss function for each client k is defined as
+LT
+k(BT
+k, AT
+k) = 1
+|Dk|
+X
+ξ∈Dk
+ℓ
+  
+BT
+k, AT
+k
+
+, ξ | Wpre
+
++ λ
+2
+ 
+∥BT
+k∥2 + ∥AT
+k∥2
+, (28)
+
+===== PDF PAGE 7 =====
+
+7
+where |Dk| denotes the size of the dataset. The function ℓ mea-
+sures the model’s performance on a data sample ξ. Parameters
+BT
+k and AT
+k are the trainable LoRA rank-1 matrices that are
+being optimized. The term λ is the weight decay coefficient,
+which is used to prevent overfitting by penalizing large pa-
+rameter values. The regularization term λ
+2
+ 
+∥BT
+k∥2 + ∥AT
+k∥2
+incorporates the L2 norm, ∥ · ∥, to measure the magnitude of
+the parameters, thereby encouraging smaller parameter values.
+C. Importance-based Parameter Freezing Scheme
+While the truncation process described above offers the
+advantage of simple implementation, it inevitably results
+in performance degradation when distributing the model to
+clients. To address this issue, we propose a novel importance-
+based parameter freezing scheme, where both local models
+and the global model utilize the same maximum LoRA rank,
+denoted as rk = rg = rmax. To accommodate client resource
+constraints, clients will freeze a portion of the LoRA param-
+eters based on their importance. We denote the freezing ratio
+as αk, which represents the proportion of LoRA parameters
+that are frozen relative to all parameters.
+1) Freezing Process: In the HAFLQ framework, each client
+updates its local LoRA parameters by selectively training
+a subset of the parameters based on the importance scores
+received from the cloud server. All LoRA parameters ΘLoRA =
+{Bg, Ag} broadcasted by the server are replicated to the
+client’s local model, where the local LoRA parameters are
+initialized as BF
+k = Bg and AF
+k = Ag, but only the most
+important rank-1 matrices are unfrozen and optimized by the
+client’s local dataset. Based on the freezing ratio αk of each
+client k, (1 − αk)rmax rank-1 matrices will be fine-tuned.
+a) Selection of Significant Rank-1 Matrices: Each client
+k ∈ K receives the list of importance scores [S1, S2, . . . , Srg]
+from the server. Based on these scores, client k selects the
+top (1 − αk)rmax rank-1 matrices to actively train, where αk
+can vary between clients depending on their computational ca-
+pacity and resource availability. The selection is performed by
+choosing the indices corresponding to the highest importance
+scores:
+IF
+k = topk
+ 
+[S1, S2, . . . , Srg], (1 − αk)rmax
+
+, (29)
+where IF
+k is the set of indices of the selected rank-1 matrices
+for client k. The remaining rank-1 matrices’ indices are
+denoted as U F
+k = {1, 2, . . . , rmax} \ I F
+k.
+b) Freezing Low-Rank Matrices: Client k then freezes
+the low-rank matrices BF
+k and AF
+k to align with the local
+model’s LoRA freezing ratio requirements. Specifically, the
+trained LoRA parameter rank-1 matrices are retained as
+BI
+k = BF
+k[:, IF
+k], AI
+k = AF
+k[IF
+k, :]. (30)
+Additionally, the frozen LoRA parameter rank-1 matrices are
+given by
+BU
+k = BF
+k[:, U F
+k], AU
+k = AF
+k[U F
+k , :]. (31)
+2) Local Model Update: Each client k updates its local
+model by minimizing a loss function LF
+k over its dataset Dk.
+The loss function is defined as
+LF
+k(BI
+k , AI
+k)
+= 1
+|Dk|
+X
+ξ∈Dk
+ℓ
+  
+BI
+k , AI
+k
+
+, ξ
+ Wpre, BU
+k , AU
+k
+
++ λ
+2
+ 
+∥BI
+k ∥2 + ∥AI
+k ∥2
+. (32)
+In the importance-based parameters freezing scheme, clients
+receive LoRA parameters {Bg, Ag} from the cloud server
+and replicate all of them to their local LoRA rank-1 matrices.
+However, only the rank-1 matrices indexed by IF
+k are trained
+and optimized, while those indexed by U F
+k remain frozen
+during local training.
+V. I MPORTANCE -AWARE BANDWIDTH -A DAPTIVE
+COMMUNICATION QUANTIZATION
+In wireless FL systems, communication overhead is con-
+strained by limited bandwidth and channel fading, which
+directly impact the maximum number of bits that can be
+transmitted. If all parameters are transmitted in full precision,
+the bandwidth demand would exceed practical limits. On
+the other hand, static quantization with uniform precision
+ignores parameter importance, potentially harming model per-
+formance.
+To address this challenge, we propose an Importance-Aware
+Bandwidth-Adaptive Communication Quantization scheme for
+efficient uploading of LoRA parameters. In this scheme, more
+important LoRA parameters are prioritized for transmission
+and are assigned higher precision (i.e., more bits), while less
+important parameters are transmitted with lower precision.
+The precision of each parameter is dynamically adjusted to
+align with the bandwidth budget Mk of each client k, defined
+in (12) in Section II, ensuring efficient utilization of the
+available communication resources. If the bandwidth budget
+is insufficient to transmit all parameters, the least important
+parameters may be omitted entirely from transmission.
+A. Importance-Based Priority Transmission
+During each communication round, clients upload their lo-
+cally trained LoRA parameters to the central cloud server. The
+specific parameters uploaded depend on the scheme employed.
+In the parameter truncation scheme, each client k uploads
+the LoRA parameters BT
+k and AT
+k, as defined in (27). In the
+parameter freezing scheme, each client k uploads subsets of
+these parameters, denoted as BI
+k and AI
+k, as defined in (30).
+Each LoRA parameter matrix can be decomposed into rank-
+1 matrices, represented as BT
+k[:, i]AT
+k[i, :] for the truncation
+scheme, where i ∈ [0, rk), or BI
+k[:, i]AI
+k[i, :] for the freezing
+scheme, where i ∈ [0, (1 − αk)rmax). Due to the selection
+process IT
+k in (26) and IF
+k in (29), the rank-1 matrices for
+these uploaded parameters are already ordered by decreasing
+importance. The first rank-1 matrix (corresponding to i = 0) is
+the most important one, with subsequent matrices decreasing
+in importance.
+
+===== PDF PAGE 8 =====
+
+8
+To maximize system performance under limited bandwidth,
+clients transmit the rank-1 matrices in the order of their
+importance. Specifically, transmission begins with the most
+important rank-1 matrix, which corresponds to the first column
+of BT
+k and the first row of AT
+k in the truncation scheme, or
+the first column of BI
+k and the first row of AI
+k in the freez-
+ing scheme. Subsequent rank-1 matrices are transmitted in
+sequence, with their importance progressively decreasing. By
+prioritizing the transmission of the most important parameters,
+the system ensures that the limited bandwidth is utilized to
+maximize the overall performance of the FL system.
+B. Importance-Aware Bandwidth-Adaptive Communication
+Quantization
+Building on the importance-based priority transmission
+strategy, we propose an importance-aware bandwidth-adaptive
+communication quantization approach, as detailed in Algo-
+rithm 1. This method prioritizes the transmission of important
+parameters with higher precision while quantizing less impor-
+tant parameters have lower precision, ensuring that the total
+transmitted bits of client k do not exceed the bandwidth budget
+Mk.
+1) Quantization Levels and Bit Allocation: The available
+precision levels are predefined as Q = [32 , 16, 8, 4], rep-
+resenting the number of bits per parameter in the rank-1
+matrix. Specifically, 32-bit represents full precision without
+quantization, while 16-bit, 8-bit, and 4-bit correspond to
+integer quantization (INT16, INT8, INT4). The total number
+of available quantization levels is denoted as |Q|. For each
+quantization level pair (Q[i], Q[i+1]), the algorithm computes
+the bit cost per rank-1 matrix at both higher precision level
+bhigh and the lower precision level blow.
+2) Base Cost Calculation: The base cost assumes all rank-
+1 matrices are transmitted at the lower precision blow · Nk,
+where Nk represents the total number of rank-1 matrices for
+client k. For example, Nk = rk in the truncation scheme or
+Nk = (1 − αk)rmax in the freezing scheme. If the bandwidth
+budget Mk is insufficient to cover this base cost, the algorithm
+skips to the next quantization level pair.
+3) High-Precision Allocation: For the available bandwidth
+Mk, the algorithm determines the number of rank-1 matrices
+nh that can be transmitted at the higher precision Q[i],
+prioritizing matrices with smaller i values (higher importance).
+The remaining matrices Nk − nh are transmitted at the lower
+precision Q[i+1]. Here, the floor function ⌊.⌋ is used to ensure
+that nh is an integer.
+4) Fallback to Lowest Precision: If no suitable quantization
+level pair satisfies the bandwidth constraint, the algorithm
+transmits the most important rank-1 matrices at the low-
+est available precision Q[|Q| − 1]. The number of matrices
+transmitted is determined by the available bandwidth, and
+any remaining matrices are discarded if the bandwidth is
+insufficient.
+C. Quantization at Client and Dequantization at Server
+In our proposed approach, each LoRA rank-1 matrix is
+represented as biai, where bi ∈ Rd×1 and ai ∈ R1×l.
+Algorithm 1 Importance-Aware Bandwidth-Adaptive Com-
+munication Quantization
+Require: LoRA parameters BT
+k, AT
+k for each client k ∈ K
+in truncation scheme or BI
+k , AI
+k in freezing scheme, total
+number of rank-1 matrices Nk, element count per rank-1
+matrix e = d + l, maximum number of transmit bits Mk,
+quantization levels Q = [32, 16, 8, 4].
+1: for i = 0 to |Q| − 2 do
+2: bhigh = Q[i] · e // Bits per rank-1 matrix at higher
+precision
+3: blow = Q[i + 1] · e // Bits per rank-1 matrix at lower
+precision
+4: bbase = blow · Nk // Cost if all at lower precision
+5: if Mk >= bbase then
+6: δ = bhigh − blow // Extra cost at higher precision
+7: nh = min
+ 
+Nk,
+ Mk−bbase
+δ
+
+8: if Truncation Scheme then
+9: Transmit the first nh rank-1 matrices, represented
+as BT
+k[:, j]AT
+k[j, :] for j ∈ [0, nh), at Q[i]-bit
+precision, and the remaining rank-1 matrices at
+Q[i + 1]-bit precision.
+10: else if Freezing Scheme then
+11: Transmit the first nh rank-1 matrices, represented
+as BI
+k[:, j]AI
+k[j, :] for j ∈ [0, nh), at Q[i]-bit
+precision, and the remaining rank-1 matrices at
+Q[i + 1]-bit precision.
+12: end if
+13: end if
+14: end for
+15: bmin ← Q[|Q| − 1] · e
+16: ntrans ←
+j
+Mk
+bmin
+k
+17: Transmit the first ntrans rank-1 matrices at Q[|Q| − 1]-bit,
+and discard the remaining rank-1 matrices.
+Depending on the parameter uploading scheme, these rank-1
+matrices correspond to either BT
+k[:, i]AT
+k[i, :] in the truncation
+scheme or BI
+k[:, i]AI
+k[i, :] in the freezing scheme. To reduce
+communication costs, we quantize vectors ai and bi indepen-
+dently using their respective scale and zero point parameters
+[29]. The quantized vectors and their parameters are then
+transmitted to the server for dequantization.
+1) Quantization at Client: For a given vector v (which can
+be either ai or bi), the quantization process is as follows:
+a) Calculate Scale and Zero Point: For a specified bit
+quantization precision q, the scale sv and zero point zv are
+computed as follows:
+sv = max(v) − min(v)
+2q − 1 , (33)
+zv =
+
+−min(v)
+sv
+
+, (34)
+where max(v) and min(v) represent the maximum and min-
+imum values of the elements in the vector v, respectively.
+b) Quantize the Vector:
+vq = clamp
+ v
+sv
++ zv
+
+, 0, 2q − 1
+
+, (35)
+
+===== PDF PAGE 9 =====
+
+9
+where clamp ( ·) constrains the value within the integer range.
+Note that the scale sv and zero point zv are scalar values
+applied element-wise to the vector v, which means each
+element of v is quantized independently.
+This process is applied separately to bi and ai, resulting
+in quantized vectors bi,q and ai,q, along with their respec-
+tive parameters sbi , zbi and sai , zai. The quantized vectors,
+together with their respective scales and zero points, are then
+transmitted to the cloud server.
+2) Dequantization at Cloud Server: Upon receiving the
+quantized vectors and respective scales and zero points, the
+server performs dequantization first to recover approximations
+of the original vectors:
+bi,dq = sbi · (bi,q − zbi), (36)
+ai,dq = sai · (ai,q − zai), (37)
+where the dequantization is applied to each quantized rank-
+1 matrix bi,q and ai,q using their respective scaling factors
+sai , sbi and zero points zai , zbi.
+VI. A DAPTIVE GLOBAL AGGREGATION AT THE CLOUD
+After dequantization, the server collects the uploaded LoRA
+parameters from all clients and aggregates them to form
+a new global model. For the truncation-based scheme, the
+upload dequantized LoRA parameters are BT
+k,dq and AT
+k,dq. In
+contrast, for the importance-based parameter freezing scheme,
+the upload dequantized LoRA parameters are BI
+k,dq and AI
+k,dq.
+Algorithm 2 Adaptive Aggregation of LoRA Parameters
+Require: Dequantized LoRA parameters BT
+k,dq, AT
+k,dq for
+each client k ∈ K in parameter truncation scheme or
+Dequantized LoRA parameters BI
+k,dq, AI
+k,dq in parameter
+freezing scheme.
+1: Initialize B(t+1)
+g and A(t+1)
+g to zero matrices; Initialize
+total norm list Z with zero value
+2: for k in K do
+3: for each j in Ik do
+4: Z[j] += zk // Equivalent to Z[j] = Z[j] + zk
+5: end for
+6: end for
+7: for k in K do
+8: Index i = 0
+9: for each j in Ik do
+10: if Truncation Scheme then
+11: B(t+1)
+g [:, j] += zk / Z [j] · BT
+k,dq[:, i]
+12: A(t+1)
+g [j, :] += zk / Z [j] · AT
+k,dq[i, :]
+13: else if Freezing Scheme then
+14: B(t+1)
+g [:, j] += zk / Z [j] · BI
+k,dq[:, i]
+15: A(t+1)
+g [j, :] += zk / Z [j] · AI
+k,dq[i, :]
+16: end if
+17: i = i + 1
+18: end for
+19: end for
+20: Broadcast B(t+1)
+g , A(t+1)
+g to all clients
+a) Adaptive Aggregation of LoRA Parameters: The adap-
+tive aggregation is shown in Algorithm 2 . Rather than ag-
+gregating LoRA parameters at the scale of the entire LoRA
+matrices, we perform aggregation at the decomposed rank-
+1 matrix level. For each rank-1 matrix, only the clients that
+update and upload that rank-1 matrix will participate in the
+aggregation process. Each client k contributes to the global
+model based on a sparsity-based norm zk, defined as
+zk =
+(
+∥BT
+k,dqAT
+k,dq∥F , Truncation scheme
+∥BI
+k,dqAI
+k,dq∥F , Freezing scheme , (38)
+where ∥ · ∥F denotes the Frobenius norm. The total norm list
+Z has a length of rg, and Z[j] accumulates the zk values from
+all clients that have updated the jth rank-1 matrix. This list
+is then used to normalize zk to obtain the contribution weight
+for each rank-1 matrix.
+VII. N UMERICAL RESULTS
+In our experiments, we utilize GPT2 [30] as the backbone
+model and test on the Banking77 classification dataset [31].
+The experiment involves 10 clients, one base station, and one
+server, with the dataset evenly distributed among these 10
+clients. We assume that different clients have diverse computa-
+tional capabilities, which correspond to different LoRA ranks
+or freezing ratios. Specifically, in the parameter truncation
+scheme, clients 0 to 2 have a LoRA rank of 2, clients 3 to
+5 have a LoRA rank of 4, and clients 6 to 9 have a LoRA
+rank of 8. The global model at the server is configured with a
+LoRA rank of 8. In the parameter freezing scheme, all clients
+and the cloud server maintain a uniform LoRA rank of 8.
+However, clients 0 to 2 have a freezing ratio of 0.75, clients
+3 to 5 have a freezing ratio of 0.5, and clients 6 to 9 have
+a freezing ratio of 0. All 10 clients participate in the training
+during each communication round. Additionally, the clients
+are positioned at increasing distances from the base station,
+ranging from 1100 meters to 2000 meters in increments of
+100 meters. Specifically, client 0 is located 1100 meters away,
+client 1 at 1200 meters, and so forth, with client 9 positioned
+at 2000 meters. The hyper-parameters for the experiments are
+shown in Table I, while the wireless simulation parameters are
+detailed in Table II.
+TABLE I: Experiment hyper-parameters.
+Parameter Value Parameter Value
+LoRA Dropout 0.1 LoRA Bias None
+LoRA Scaling Factor 32 LoRA Initialization Gaussian
+LoRA Target Module attn.c attn Optimizer Adam
+Learning Rate η 0.001 Weight Decay λ 0.001
+Token Padding Length 256 Token Truncation True
+Smoothing β1, β2 0.85, 0.85 Seed 0, 1, 42
+TABLE II: Wireless system parameters.
+Parameter Value Parameter Value
+Carrier Freq. f 2.4 GHz Bandwidth B0 100, 10 MHz
+Commu. Time Tul 10 ms UE Tx Power Pk 23 dBm
+PSD N bs
+0 -174 dBm/Hz Std. Dev. σ 7.8 dB
+
+===== PDF PAGE 10 =====
+
+10
+/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000002f/uni00000052/uni0000005a/uni00000003/uni00000026/uni00000052/uni00000050/uni00000053/uni00000011/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000030/uni00000048/uni00000047/uni0000004c/uni00000058/uni00000050/uni00000003/uni00000026/uni00000052/uni00000050/uni00000053/uni00000011/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000002b/uni0000004c/uni0000004a/uni0000004b/uni00000003/uni00000026/uni00000052/uni00000050/uni00000053/uni00000011/uni00000013
+/uni00000014/uni00000013/uni00000013
+/uni00000015/uni00000013/uni00000013
+/uni00000016/uni00000013/uni00000013
+/uni00000017/uni00000013/uni00000013
+/uni00000018/uni00000013/uni00000013/uni0000002a/uni00000033/uni00000038/uni00000003/uni00000030/uni00000048/uni00000050/uni00000052/uni00000055/uni0000005c/uni00000003/uni00000038/uni00000056/uni00000044/uni0000004a/uni00000048/uni00000003/uni0000000b/uni00000030/uni00000025/uni0000000c
+/uni00000014/uni0000001c/uni00000016/uni00000011/uni00000017/uni00000018
+/uni00000016/uni00000014/uni00000017/uni00000011/uni0000001a/uni00000019
+/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016
+Fig. 2: GPU memory usage for clients with different
+computing capabilities.
+Fig. 2 plots the GPU memory usage for clients with varying
+computational capabilities under our salience-driven adaptive
+LLM quantization algorithm. The GPT-2 model used in this
+experiment consists of 12 transformer blocks. For clients
+with low computational capabilities, all transformer blocks
+are quantized to 8 bits, resulting in the lowest GPU memory
+usage. For clients with medium computational capabilities, the
+algorithm ranks transformer blocks by salience, keeping 32-
+bit precision for the 6 most salient blocks while quantizing
+the remaining 6 blocks to 8 bits, achieving a balance between
+memory efficiency and model precision. For clients with high
+computational capabilities, all transformer blocks keep 32-
+bit precision, leading to the highest GPU memory usage.
+These results demonstrate the effectiveness of our proposed
+algorithm in dynamically adjusting the quantization strategy to
+optimize resource utilization while accommodating the varying
+computational capabilities of different clients.
+/uni00000013/uni00000015/uni00000013/uni00000017/uni00000013/uni00000019/uni00000013/uni0000001b/uni00000013/uni00000014/uni00000013/uni00000013
+/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000051/uni0000004c/uni00000046/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000035/uni00000052/uni00000058/uni00000051/uni00000047
+/uni00000013
+/uni00000015/uni00000013
+/uni00000017/uni00000013
+/uni00000019/uni00000013
+/uni0000001b/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c/uni0000002c/uni00000029/uni0000003d/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni0000002b/uni00000052/uni00000050/uni0000002f/uni00000052/uni00000035/uni00000024/uni00000003/uni00000055/uni00000003/uni00000020/uni00000003/uni0000001b
+/uni0000002b/uni00000052/uni00000050/uni0000002f/uni00000052/uni00000035/uni00000024/uni00000003/uni00000055/uni00000003/uni00000020/uni00000003/uni00000015
+/uni0000002c/uni00000037/uni00000024/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni0000002c/uni00000029/uni00000024/uni0000002f/uni00000052/uni00000035/uni00000024
+Fig. 3: Accuracy comparison on Banking77 classification.
+Fig. 3 presents the classification accuracy of the global
+model on the Banking77 classification test set as the number
+of communication rounds increases. In this experiment, we
+set the available bandwidth for each client to B0 = 100 MHz,
+ensuring that communication bandwidth is not a limiting factor
+for FL parameter uploads. Our methods, importance-based
+parameter freezing adaptive aggregation LoRA (IFALoRA)
+and importance-based parameter truncation adaptive aggre-
+gation LoRA (ITALoRA), yield fast convergence. We also
+compared with three other algorithms: (1) homogeneous LoRA
+(HomLoRA) r = 2 , where all clients and the cloud server
+use LoRA with a rank of 2; (2) HomLoRA r = 8 , where
+all clients and the cloud server use LoRA with a rank of
+8; and (3) IFZLoRA, which utilizes zero-padding aggregation
+compared to IFALoRA. The results indicate that HomLoRA
+r = 2 fails to converge, and IFZLoRA converges slowly
+with significantly lower accuracy than our ITALoRA and
+IFALoRA. Our methods achieve accuracies close to that of
+HomLoRA r = 8, where all clients use the highest rank.
+TABLE III: Evaluation results on Banking77 classification.
+Model Method Commu.
+Size
+Classification Accuracy
+50 100
+GPT2
+IFZLoRA 7.03M 71.34±2.4 82.06±1.2
+HomLoRA r=8 11.25M 87.48±0.0 89.94±0.2
+HomLoRA r=2 2.81M 21.26±14.0 45.79±16.0
+ITALoRA 7.03M 82.53±2.1 86.70±0.5
+IFALoRA 7.03M 87.36±0.2 89.13±0.2
+Table III presents the performance of five different methods
+on the Banking77 text classification task after 50 and 100
+communication rounds. The values are averaged over experi-
+ments with different random seeds, and the table also records
+the average total parameter size uploaded by 10 clients per
+communication round. Specifically, HomLoRA with rank 8
+achieves the highest accuracy but requires the largest commu-
+nication size. In contrast, IFALoRA and ITALoRA manage to
+achieve nearly comparable accuracy with significantly smaller
+communication sizes, demonstrating a good balance between
+performance and efficiency. HomLoRA with rank 2 shows
+poor performance, indicating a lack of convergence, while
+IFZLoRA improves over HomLoRA r = 2 but still lags behind
+ITALoRA and IFALoRA in terms of accuracy.
+Fig. 4 (a) plots the classification accuracy with the in-
+creasing of communication rounds under ITALoRA when the
+global model is truncated to smaller client ranks. As the
+level of truncation increases, the model’s accuracy decreases,
+indicating a loss of information. In contrast, our IFALoRA
+method in Fig. 4 (b) uses a freezing strategy, eliminating
+the need for truncation. This allows each client to maintain
+the same accuracy performance level as the global model.
+Additionally, both IFALoRA and ITALoRA have the same
+parameter size during training, ensuring communication effi-
+ciency while IFALoRA avoids the performance loss associated
+with truncation.
+Fig. 5 depicts the distribution of the maximum number of
+transmission bits and computational capability among different
+clients. The red bars represent the maximum number of
+transmission bits, while the purple bars indicate the compu-
+tational capability levels. With a fixed bandwidth allocation
+of B0 = 10 MHz for each client, the maximum number of
+transmission bits vary based on the distance to the base station.
+Client 0, being the closest to the base station, can support the
+highest number of transmission bits. As the distance increases,
+the maximum number of transmission bits gradually decreases,
+with client 9 having the lowest value. For computational
+capability, we assign different levels to clients: clients 0 to
+
+===== PDF PAGE 11 =====
+
+11
+/uni00000013/uni00000015/uni00000013/uni00000017/uni00000013/uni00000019/uni00000013/uni0000001b/uni00000013/uni00000014/uni00000013/uni00000013
+/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000051/uni0000004c/uni00000046/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000035/uni00000052/uni00000058/uni00000051/uni00000047
+/uni00000013
+/uni00000015/uni00000013
+/uni00000017/uni00000013
+/uni00000019/uni00000013
+/uni0000001b/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c/uni00000058/uni00000056/uni00000048/uni00000055/uni00000003/uni00000055/uni00000044/uni00000051/uni0000004e/uni00000020/uni00000015
+/uni00000058/uni00000056/uni00000048/uni00000055/uni00000003/uni00000055/uni00000044/uni00000051/uni0000004e/uni00000020/uni00000017
+/uni00000058/uni00000056/uni00000048/uni00000055/uni00000003/uni00000055/uni00000044/uni00000051/uni0000004e/uni00000020/uni0000001b
+(a)
+/uni00000013/uni00000015/uni00000013/uni00000017/uni00000013/uni00000019/uni00000013/uni0000001b/uni00000013/uni00000014/uni00000013/uni00000013
+/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000051/uni0000004c/uni00000046/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000035/uni00000052/uni00000058/uni00000051/uni00000047
+/uni00000013
+/uni00000015/uni00000013
+/uni00000017/uni00000013
+/uni00000019/uni00000013
+/uni0000001b/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c/uni00000058/uni00000056/uni00000048/uni00000055/uni00000003/uni00000049/uni00000055/uni00000048/uni00000048/uni0000005d/uni0000004c/uni00000051/uni0000004a/uni00000003/uni00000055/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000020/uni00000013/uni00000011/uni0000001a/uni00000018
+/uni00000058/uni00000056/uni00000048/uni00000055/uni00000003/uni00000049/uni00000055/uni00000048/uni00000048/uni0000005d/uni0000004c/uni00000051/uni0000004a/uni00000003/uni00000055/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000020/uni00000013/uni00000011/uni00000018
+/uni00000058/uni00000056/uni00000048/uni00000055/uni00000003/uni00000049/uni00000055/uni00000048/uni00000048/uni0000005d/uni0000004c/uni00000051/uni0000004a/uni00000003/uni00000055/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000020/uni00000013
+(b)
+Fig. 4: (a) Client local model performance in ITALoRA. (b)
+Client local model performance in IFALoRA.
+/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000013/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000014/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000015/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000016/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000017/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000018/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000019/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001a/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001b/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001c
+/uni00000015
+/uni00000016
+/uni00000017
+/uni00000018
+/uni00000019
+/uni0000001a/uni00000030/uni00000044/uni0000005b/uni0000004c/uni00000050/uni00000058/uni00000050/uni00000003/uni00000037/uni00000055/uni00000044/uni00000051/uni00000056/uni00000050/uni0000004c/uni00000056/uni00000056/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000025/uni0000004c/uni00000057/uni00000056
+/uni00000030/uni00000044/uni0000005b/uni0000004c/uni00000050/uni00000058/uni00000050/uni00000003/uni00000037/uni00000055/uni00000044/uni00000051/uni00000056/uni00000050/uni0000004c/uni00000056/uni00000056/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000025/uni0000004c/uni00000057/uni00000056
+/uni00000026/uni00000052/uni00000050/uni00000053/uni00000058/uni00000057/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000044/uni0000004f/uni00000003/uni00000026/uni00000044/uni00000053/uni00000044/uni00000045/uni0000004c/uni0000004f/uni0000004c/uni00000057/uni0000005c
+/uni0000002f/uni00000052/uni0000005a
+/uni00000030/uni00000048/uni00000047/uni00000011
+/uni0000002b/uni0000004c/uni0000004a/uni0000004b
+/uni00000026/uni00000052/uni00000050/uni00000053/uni00000058/uni00000057/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000044/uni0000004f/uni00000003/uni00000026/uni00000044/uni00000053/uni00000044/uni00000045/uni0000004c/uni0000004f/uni0000004c/uni00000057/uni0000005c
+Fig. 5: Maximum number of transmission bits and
+computational capability.
+2 have the lowest computational capability, clients 3 to 5 are
+assigned a medium computational capability, and clients 6 to
+9 have the highest computational capability.
+Fig. 6 plots the post-quantization communication size and
+the size reduction achieved for each client against the maxi-
+mum transmission bits under the proposed importance-aware
+bandwidth-adaptive communication quantization scheme.
+Clients 0 to 2, which are relatively closer to the base sta-
+tion, benefit from higher maximum transmission bits and can
+upload their full-precision LoRA parameters without requiring
+quantization. In contrast, clients 3 to 9 have to be quantized
+/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000013/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000014/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000015/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000016/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000017/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000018/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000019/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001a/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001b/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001c/uni00000013
+/uni00000015
+/uni00000017
+/uni00000019
+/uni0000001b/uni00000036/uni0000004c/uni0000005d/uni00000048/uni00000003/uni0000000b/uni00000045/uni0000004c/uni00000057/uni00000056/uni0000000c
+/uni00000014/uni00000048/uni00000019
+/uni00000030/uni00000044/uni0000005b/uni0000004c/uni00000050/uni00000058/uni00000050/uni00000003/uni00000037/uni00000055/uni00000044/uni00000051/uni00000056/uni00000050/uni0000004c/uni00000056/uni00000056/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000025/uni0000004c/uni00000057/uni00000056
+/uni00000033/uni00000052/uni00000056/uni00000057/uni00000010/uni00000054/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000036/uni0000004c/uni0000005d/uni00000048
+/uni00000036/uni0000004c/uni0000005d/uni00000048/uni00000003/uni00000035/uni00000048/uni00000047/uni00000058/uni00000046/uni00000057/uni0000004c/uni00000052/uni00000051
+Fig. 6: Importance-aware bandwidth-adaptive communication
+quantization scheme.
+to reduce the original LORA parameters’ size under the limit
+of maximum transmission bits via our proposed adaptive
+quantization algorithm.
+/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000013/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000014/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000015/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000016/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000017/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000018/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni00000019/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001a/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001b/uni00000026/uni0000004f/uni0000004c/uni00000048/uni00000051/uni00000057/uni00000003/uni0000001c/uni00000013
+/uni00000015/uni00000013
+/uni00000017/uni00000013
+/uni00000019/uni00000013
+/uni0000001b/uni00000013
+/uni00000014/uni00000013/uni00000013/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000011/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000027/uni0000004c/uni00000056/uni00000057/uni00000055/uni0000004c/uni00000045/uni00000058/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni0000000b/uni00000008/uni0000000c
+/uni00000017/uni00000010/uni00000045/uni0000004c/uni00000057
+/uni0000001b/uni00000010/uni00000045/uni0000004c/uni00000057
+/uni00000014/uni00000019/uni00000010/uni00000045/uni0000004c/uni00000057
+/uni00000016/uni00000015/uni00000010/uni00000045/uni0000004c/uni00000057
+Fig. 7: Communication Quantization distribution of
+importance-aware bandwidth-adaptive communication
+quantization.
+Fig. 7 presents the communication quantization distri-
+bution across different clients under our importance-aware
+bandwidth-adaptive communication quantization algorithm.
+The quantization levels are dynamically adjusted based on
+the clients’ communication conditions, leading to the fol-
+lowing trends: Clients 0 to 2 are positioned close to the
+base station, benefiting from higher maximum transmission
+bits. As a result, they exclusively use 32-bit precision for
+transmission. Clients 3 to 5 adopt a mixed-precision scheme
+combining 32-bit and 16-bit quantization. As the distance from
+the base station increases, the proportion of 16-bit precision
+gradually rises, reflecting the need for reduced communication
+overhead. Clients 6 and 7 employ a mix of 16-bit and 8-
+bit quantization, further lowering communication costs while
+maintaining performance. Clients 8 and 9 utilize the most
+aggressive quantization strategy, relying on a combination of
+8-bit and 4-bit precision to stay within bandwidth constraints.
+Fig. 8 plots the classification accuracy comparison of dif-
+ferent communication quantization schemes. All considered
+schemes are based on the IFALoRA framework, with differ-
+ent communication precision methods: full-precision (32-bit),
+half-precision (16-bit), 8-bit quantization, and 4-bit quantiza-
+tion. These methods maintain a fixed precision throughout
+training, prioritizing the transmission of important LoRA
+parameters first. If the number of parameters exceeds the
+bandwidth limit, the remaining ones are discarded. Among
+
+===== PDF PAGE 12 =====
+
+12
+/uni00000013/uni00000015/uni00000018/uni00000018/uni00000013/uni0000001a/uni00000018/uni00000014/uni00000013/uni00000013
+/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000051/uni0000004c/uni00000046/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051/uni00000003/uni00000035/uni00000052/uni00000058/uni00000051/uni00000047
+/uni00000013
+/uni00000015/uni00000013
+/uni00000017/uni00000013
+/uni00000019/uni00000013
+/uni0000001b/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c
+/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni0000004c/uni00000059/uni00000048/uni00000003/uni00000054/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000016/uni00000015/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000029/uni00000058/uni0000004f/uni0000004f/uni00000003/uni00000033/uni00000055/uni00000048/uni00000046/uni0000004c/uni00000056/uni0000004c/uni00000052/uni00000051
+/uni00000014/uni00000019/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni0000001b/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000017/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+Fig. 8: Accuracy comparison of different communication
+precision schemes.
+all schemes, our proposed IFALoRA with importance-aware
+bandwidth-adaptive quantization scheme achieves the fastest
+convergence and the highest final accuracy. By dynamically
+adjusting the precision of the LoRA parameters based on band-
+width constraints, it ensures efficient communication while
+preserving model performance. Among the fixed-precision
+quantization methods, the 4-bit quantization scheme achieves
+the fastest initial convergence due to its low communication
+overhead, which allows more parameters to be transmitted
+within the bandwidth limit. However, the high quantization er-
+ror in 4-bit precision accumulates over communication rounds,
+leading to noisier updates and the lowest final accuracy. The
+32-bit full-precision scheme, on the other hand, has the slowest
+convergence because of its high communication cost, which
+limits the number of parameter updates within the same bud-
+get. Nevertheless, it achieves relatively higher final accuracy
+by preserving all parameter information. The 16-bit and 8-bit
+quantization methods offer a good trade-off, achieving faster
+convergence than full precision while resulting in minimal loss
+in final accuracy.
+/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni0000004c/uni00000059/uni00000048/uni00000003
+/uni00000003/uni00000054/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000016/uni00000015/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000029/uni00000058/uni0000004f/uni0000004f/uni00000003/uni00000033/uni00000055/uni00000048/uni00000046/uni0000004c/uni00000056/uni0000004c/uni00000052/uni00000051
+/uni00000014/uni00000019/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni0000001b/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000017/uni00000010/uni00000045/uni0000004c/uni00000057/uni00000003
+/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000044/uni00000057/uni0000004c/uni00000052/uni00000051
+/uni00000013
+/uni00000014
+/uni00000015
+/uni00000016
+/uni00000017
+/uni00000018
+/uni00000019/uni00000036/uni0000004c/uni0000005d/uni00000048/uni00000003/uni0000000b/uni00000045/uni0000004c/uni00000057/uni00000056/uni0000000c
+/uni00000014/uni00000048/uni00000019
+1×
+1
+2 ×
+1
+4 ×
+1
+8 ×
+/uni00000032/uni00000055/uni0000004c/uni0000004a/uni0000004c/uni00000051/uni00000044/uni0000004f/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni0000004c/uni0000005d/uni00000048/uni00000047/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+/uni00000024/uni00000046/uni00000057/uni00000058/uni00000044/uni0000004f/uni00000003/uni00000037/uni00000055/uni00000044/uni00000051/uni00000056/uni00000050/uni0000004c/uni00000057/uni00000057/uni00000048/uni00000047/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+/uni00000024/uni00000046/uni00000057/uni00000058/uni00000044/uni0000004f/uni00000003/uni00000027/uni0000004c/uni00000056/uni00000046/uni00000044/uni00000055/uni00000047/uni00000048/uni00000047/uni00000003/uni00000047/uni00000044/uni00000057/uni00000044
+Fig. 9: Average uplink data size of different communication
+precision schemes.
+Fig. 9 presents a comparison of our importance-aware band-
+width adaptive communication quantization scheme against
+fixed-precision quantization methods in terms of the aver-
+age uplink data size per client. The figure illustrates four
+key components: the original data size, the quantized data
+size, the actual transmitted data, and the discarded data due
+to bandwidth constraints. Our adaptive quantization scheme
+ensures that the quantized data size precisely aligns with
+the available bandwidth, thereby eliminating any discarded
+data caused by bandwidth limitations. In contrast, the 32-bit
+full-precision scheme transmits significantly more data than
+the bandwidth can accommodate, resulting in nearly half of
+the data being discarded. As the bit width decreases, the
+proportion of discarded data gradually reduces, with the 16-
+bit and 8-bit quantization schemes exhibiting progressively
+lower levels of discarded data. The 4-bit quantization scheme
+remains entirely within the bandwidth limit, leading to no
+discarded data. From a channel utilization perspective, both
+our adaptive scheme and the 32-bit full-precision scheme fully
+utilize the available bandwidth. However, while the 32-bit
+scheme results in substantial discarded data due to bandwidth
+constraints, our adaptive approach achieves optimal channel
+utilization by ensuring that all transmitted data fits within
+the available bandwidth, avoiding unnecessary data discard. In
+contrast, lower-precision schemes such as 4-bit quantization,
+despite preventing discarded data, do not fully exploit the
+available bandwidth, leading to reduced channel utilization.
+/uni00000013
+/uni00000014/uni00000013/uni00000013
+/uni00000015/uni00000013/uni00000013
+/uni00000016/uni00000013/uni00000013
+/uni00000017/uni00000013/uni00000013
+/uni00000018/uni00000013/uni00000013
+/uni00000019/uni00000013/uni00000013/uni0000002a/uni00000033/uni00000038/uni00000003/uni00000030/uni00000048/uni00000050/uni00000052/uni00000055/uni0000005c/uni00000003/uni0000000b/uni00000030/uni00000025/uni0000000c
+/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016/uni00000018/uni00000014/uni0000001c/uni00000011/uni00000014/uni00000016
+/uni00000016/uni00000019/uni00000013/uni00000011/uni00000014/uni00000015
+/uni00000013
+/uni00000014
+/uni00000015
+/uni00000016/uni00000027/uni0000004c/uni00000056/uni00000046/uni00000044/uni00000055/uni00000047/uni00000048/uni00000047/uni00000003/uni00000045/uni0000004c/uni00000057/uni00000056/uni00000003/uni0000000b/uni00000030/uni00000045/uni0000004c/uni00000057/uni00000056/uni0000000c
+/uni00000015/uni00000011/uni0000001b/uni0000001b/uni00000015/uni00000011/uni0000001b/uni0000001b
+/uni00000013/uni00000011/uni00000013/uni00000013/uni00000013/uni00000011/uni00000013/uni00000013
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni0000003d/uni00000048/uni00000055/uni00000052/uni00000033/uni00000044/uni00000047/uni00000047/uni0000004c/uni00000051/uni0000004a/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000011/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni00000011
+/uni0000002c/uni00000029/uni0000002f/uni00000052/uni00000035/uni00000024
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000024/uni0000004a/uni0000004a/uni00000055/uni00000048/uni0000004a/uni00000011
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni00000026/uni00000052/uni00000050/uni00000050/uni00000058/uni00000011/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni00000011
+/uni00000009/uni00000024/uni00000047/uni00000044/uni00000053/uni00000057/uni00000011/uni00000003/uni0000002f/uni0000002f/uni00000030/uni00000003/uni00000034/uni00000058/uni00000044/uni00000051/uni00000057/uni00000011
+/uni00000018/uni00000013
+/uni00000019/uni00000013
+/uni0000001a/uni00000013
+/uni0000001b/uni00000013
+/uni0000001c/uni00000013/uni00000024/uni00000046/uni00000046/uni00000058/uni00000055/uni00000044/uni00000046/uni0000005c/uni00000003/uni0000000b/uni00000008/uni0000000c/uni00000018/uni0000001c/uni00000011/uni00000016/uni0000001b
+/uni0000001b/uni00000016/uni00000011/uni00000019/uni00000013
+/uni0000001b/uni0000001b/uni00000011/uni0000001a/uni00000016/uni0000001b/uni0000001b/uni00000011/uni0000001b/uni0000001c
+Fig. 10: Comparison of performance metrics with
+incorporation of adaptive schemes.
+Fig. 10 plots a comprehensive performance comparison
+when progressively incorporating adaptive aggregation, adap-
+tive communication quantization, and adaptive LLM quan-
+tization, all built upon the foundation of the importance-
+based parameter freezing scheme, evaluated in terms of model
+accuracy, discarded communication bits, and GPU memory
+usage. First, adaptive aggregation significantly improves accu-
+racy from 59.38% (under ZeroPadding aggregation) to 83.60%
+by mitigating parameter dilution. Next, incorporating adap-
+tive communication quantization further boosts accuracy to
+88.73% by dynamically adjusting quantization levels in re-
+
+===== PDF PAGE 13 =====
+
+13
+sponse to bandwidth constraints, thereby eliminating discarded
+bits (reduced from 2.88 Mbits to 0). Finally, the inclusion of
+adaptive LLM quantization reduces GPU memory usage from
+519.13 MB to 360.12 MB while maintaining high accuracy
+(88.89%), thereby demonstrating its effectiveness in optimiz-
+ing resource consumption without compromising performance.
+VIII. C ONCLUSIONS
+In this paper, we proposed the Heterogeneous Adaptive
+Federated LoRA Fine-tuned LLM with Quantization frame-
+work to address privacy concerns in fine-tuning LLMs. To
+accommodate client resource heterogeneity, we first designed a
+salience-driven adaptive quantization scheme that dynamically
+adjusts the proportion of quantized transformer blocks based
+on both the computational capabilities of the clients and
+the importance of the blocks. To further address resource
+heterogeneity, we introduced an importance-based parameter
+truncation scheme at the local LLM. However, the truncation
+process inevitably resulted in performance degradation. To
+mitigate this, we developed an importance-based parameter
+freezing scheme at the local LLM. For the cloud server,
+we proposed an adaptive global model aggregation method
+to counter the information dilution problem caused by the
+zero-padding aggregation method. Moreover, we proposed
+an Importance-Aware Bandwidth-Adaptive Communication
+Quantization scheme, which prioritized the transmission of
+important LoRA rank-1 matrices with higher precision under
+bandwidth constraints. Experimental results demonstrated the
+effectiveness of our framework, with GPU memory usage
+decreasing by 31%, communication cost reduced by 49%, and
+model accuracy improving by 50%. These results highlights
+that our framework effectively supports federated fine-tuning
+of LLMs in real-world heterogeneous environments.
+REFERENCES
+[1] Y . Su, N. Yan, and Y . Deng, “Federated LLMs Fine-tuned with Adaptive
+Importance-Aware LoRA,”arXiv preprint arXiv:2411.06581, Nov. 2024,
+to appear in Proc. IEEE Int. Conf. Commun. (ICC), Jun. 2025.
+[2] W. X. Zhao, K. Zhou, J. Li, T. Tang, X. Wang, Y . Hou, Y . Min, B. Zhang,
+J. Zhang, Z. Dong et al. , “A survey of large language models,” arXiv
+preprint arXiv:2303.18223, Mar. 2023.
+[3] Y . Chang, X. Wang, J. Wang, Y . Wu, L. Yang, K. Zhu, H. Chen, X. Yi,
+C. Wang, Y . Wang et al. , “A survey on evaluation of large language
+models,” ACM Trans. Intell. Syst. Technol. , vol. 15, no. 3, pp. 1–45,
+Mar. 2024.
+[4] H. Naveed, A. U. Khan, S. Qiu, M. Saqib, S. Anwar, M. Usman,
+N. Akhtar, N. Barnes, and A. Mian, “A comprehensive overview of
+large language models,” arXiv preprint arXiv:2307.06435 , Oct. 2024.
+[5] B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas,
+“Communication-efficient learning of deep networks from decentralized
+data,” in Proc. Int. Conf. Artif. Intell. Stat. (AISTATS) . PMLR, 2017,
+pp. 1273–1282.
+[6] C. Zhang, Y . Xie, H. Bai, B. Yu, W. Li, and Y . Gao, “A survey on
+federated learning,” Knowl.-Based Syst., vol. 216, p. 106775, Mar. 2021.
+[7] J. Wen, Z. Zhang, Y . Lan, Z. Cui, J. Cai, and W. Zhang, “A survey
+on federated learning: challenges and applications,” Int. J. Mach. Learn.
+Cybern., vol. 14, no. 2, pp. 513–535, Feb. 2023.
+[8] A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman,
+A. Mathur, A. Schelten, A. Yang, A. Fan et al. , “The llama 3 herd of
+models,” arXiv preprint arXiv:2407.21783 , Aug. 2024.
+[9] Z. Zhou, X. Ning, K. Hong, T. Fu, J. Xu, S. Li, Y . Lou, L. Wang,
+Z. Yuan, X. Li et al., “A survey on efficient inference for large language
+models,” arXiv preprint arXiv:2404.14294 , Jul. 2024.
+[10] X. Zhu, J. Li, Y . Liu, C. Ma, and W. Wang, “A survey on model com-
+pression for large language models,” Trans. Assoc. Comput. Linguist. ,
+vol. 12, pp. 1556–1577, Nov. 2024.
+[11] G. I. Kim, S. Hwang, and B. Jang, “Efficient Compressing and Tuning
+Methods for Large Language Models: A Systematic Literature Review,”
+ACM Comput. Surv., Apr. 2025.
+[12] Z. Fang, Z. Lin, Z. Chen, X. Chen, Y . Gao, and Y . Fang, “Automated
+federated pipeline for parameter-efficient fine-tuning of large language
+models,” arXiv preprint arXiv:2404.06448 , Dec. 2024.
+[13] Z. Han, C. Gao, J. Liu, S. Q. Zhang et al. , “Parameter-efficient fine-
+tuning for large models: A comprehensive survey,” arXiv preprint
+arXiv:2403.14608, Sep. 024.
+[14] L. Xu, H. Xie, S.-Z. J. Qin, X. Tao, and F. L. Wang, “Parameter-efficient
+fine-tuning methods for pretrained language models: A critical review
+and assessment,” arXiv preprint arXiv:2312.12148 , Dec. 2023.
+[15] D. Zhang, T. Feng, L. Xue, Y . Wang, Y . Dong, and J. Tang,
+“Parameter-Efficient Fine-Tuning for Foundation Models,” arXiv
+preprint arXiv:2501.13787, Jan. 2025.
+[16] E. J. Hu, Y . Shen, P. Wallis, Z. Allen-Zhu, Y . Li, S. Wang, L. Wang,
+and W. Chen, “Lora: Low-rank adaptation of large language models,”
+arXiv preprint arXiv:2106.09685 , Oct. 2021.
+[17] J. Zhang, S. Vahidian, M. Kuo, C. Li, R. Zhang, T. Yu, G. Wang,
+and Y . Chen, “Towards building the federatedGPT: Federated instruction
+tuning,” in Proc. Int. Conf. Acoust. Speech Signal Process. (ICASSP) ,
+Apr. 2024.
+[18] Y . J. Cho, L. Liu, Z. Xu, A. Fahrezi, M. Barnes, and G. Joshi,
+“Heterogeneous lora for federated fine-tuning of on-device foundation
+models,” in Proc. Int. Workshop Federated Learn. Age Found. Models,
+NeurIPS 2023, Dec. 2023.
+[19] J. Bai, D. Chen, B. Qian, L. Yao, and Y . Li, “ Federated Fine-tuning
+of Large Language Models under Heterogeneous Tasks and Client
+Resources ,” arXiv preprint arXiv:2402.11505v2 , Feb. 2024.
+[20] J. Zhu, C. Lv, X. Wang, M. Wu, W. Liu, T. Li, Z. Ling, C. Zhang,
+X. Zheng, and X. Huang, “Promoting Data and Model Privacy in
+Federated Learning through Quantized LoRA,” in Proc. Empirical
+Methods Nat. Lang. Process. (EMNLP) , Nov. 2024.
+[21] 3rd Generation Partnership Project (3GPP), “Technical Specification
+Group Radio Access Network; Study on channel model for frequencies
+from 0.5 to 100 GHz (Release 16),” 3GPP TR 38.901 V16.1.0 , Dec.
+2019.
+[22] H. Meshgi, D. Zhao, and R. Zheng, “Optimal Resource Allocation
+in Multicast Device-to-Device Communications Underlaying LTE Net-
+works,” IEEE Trans. Veh. Technol., vol. 66, no. 9, pp. 8357–8371, Sep.
+2017.
+[23] E. Frantar and D. Alistarh, “SparseGPT: Massive Language Models Can
+be Accurately Pruned in One-Shot,” in Proc. Intern. Conf. Mach. Learn.
+ICML, Jul. 2023.
+[24] A. Krishnamoorthy and D. Menon, “Matrix inversion using Cholesky
+decomposition,” in Proc. Signal Process. Algorithms Archit. Arrang.
+Appl. (SPA), Sep. 2013.
+[25] T. Dettmers, M. Lewis, Y . Belkada, and L. Zettlemoyer, “ LLM.int8():
+8-bit Matrix Multiplication for Transformers at Scale ,” in Proc. Neural
+Inf. Process. Syst. (NIPS) , Dec. 2022.
+[26] E. Frantar, S. Ashkboos, T. Hoefler, and D. Alistarh, “Gptq: Accurate
+post-training quantization for generative pre-trained transformers,” in
+Proc. Int. Conf. Learn. Represent. (ICLR) , May 2023.
+[27] P. Molchanov, A. Mallya, S. Tyree, I. Frosio, and J. Kautz, “ Importance
+Estimation for Neural Network Pruning ,” in Proc. Conf. Comput. Vis.
+Pattern Recognit. (CVPR), Jun. 2019.
+[28] Q. Zhang, S. Zuo, C. Liang, A. Bukharin, P. He, W. Chen, and T. Zhao,
+“PLATON: Pruning Large Transformer Models with Upper Confidence
+Bound of Weight Importance,” in Proc. Intern. Conf. Mach. Learn.
+(ICML), vol. 162, Jul. 2022, pp. 26 809–26 823.
+[29] B. Jacob, S. Kligys, B. Chen, M. Zhu, M. Tang, A. Howard, H. Adam,
+and D. Kalenichenko, “Quantization and training of neural networks for
+efficient integer-arithmetic-only inference,” inProc. IEEE Conf. Comput.
+Vis. Pattern Recognit. (CVPR) , Jun. 2018, pp. 2704–2713.
+[30] A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, I. Sutskever et al.,
+“Language models are unsupervised multitask learners,” OpenAI blog ,
+vol. 1, no. 8, p. 9, Feb. 2019.
+[31] I. Casanueva, T. Tem ˇcinas, D. Gerz, M. Henderson, and I. Vuli ´c,
+“Efficient Intent Detection with Dual Sentence Encoders,” in Proc. 2nd
+Worksh. Nat. Lang. Process. Convers. AI (NLP4ConvAI) , Jul. 2020, pp.
+38–45.

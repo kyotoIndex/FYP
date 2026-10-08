@@ -1,0 +1,118 @@
+5
+A. Salience-Driven LLM Transformer Block Importance Eval-
+uation
+In our approach, the pre-trained LLM is composed of L
+transformer blocks that are stacked sequentially. Each trans-
+former block l has parameters WTBl ∈ Rd×d. To evaluate the
+importance of each transformer block, we adopt a salience-
+based metric inspired by SparseGPT [23], which quantifies
+the contribution of each weight element to the model’s output
+error. Specifically, for the weight matrix WTBl in a given
+transformer block, we compute the salience value δi,j for each
+element wi,j using
+δi,j = w2
+i,j
+[H−1]j,j
+(14)
+where [H−1]j,j is the jth diagonal element of inverse Hessian
+matrix H−1. The Hessian matrix H ∈ Rd×d is computed as
+the average outer product of input activation vectors xi in the
+local dataset Dk
+H = 1
+Dk
+DkX
+i=1
+xixT
+i , (15)
+where xi is the input activation vector for the ith sample in the
+dataset Dk. To efficiently compute the diagonal elements of
+H−1, we leverage Cholesky decomposition [24], which avoids
+explicitly inverting H and allows for efficient computation of
+the required diagonal elements.
+Next, we calculate the total salience score for each trans-
+former block WTBl by summing the salience values δi,j of all
+its weight elements
+RTBl =
+dX
+i=1
+dX
+j=1
+δi,j, (16)
+the salience score RTBl represents the overall impact of the
+transformer block l on the model’s output error. Based on these
+salience scores, we rank all transformer blocks in descending
+order of importance.
+This salience-driven evaluation provides the foundation for
+our quantization strategy. During quantization, transformer
+blocks with lower salience scores are prioritized for quan-
+tization, while those with higher salience scores are pre-
+served in full precision to minimize the impact on model
+performance. The proportion of blocks to be quantized is
+dynamically adjusted based on the computational capacity and
+GPU memory size of the target device: for devices with higher
+computational power and larger GPU memory, only a small
+number of blocks are quantized, preserving most blocks in full
+precision. Conversely, for devices with lower computational
+power and smaller GPU memory, a larger proportion of blocks
+are quantized to meet resource constraints.
+B. Block-wise Quantization for LLMs
+To efficiently quantify LLMs while minimizing the loss of
+accuracy, we utilize block-wise quantization [25], [26]. By
+dividing the large weight matrices into smaller blocks and
+quantizing each block independently, this method allows the
+quantization process to better adapt to the local distribution of
+weights.
+1) Divide the Weight Matrix: Given a weight matrix
+WTBl ∈ Rd×d from transformer block l, which is selected
+for quantization, the matrix is divided into several contiguous
+blocks along the row dimension. Specifically, assuming a block
+size of m, the matrix is partitioned into p = d/m blocks:
+W1, W2, . . . ,Wp, where each block Wi ∈ Rm×d contains
+m consecutive rows of the original matrix.
+2) Quantize the Block: For each block Wi, a scale factor
+si is computed based on the range of values within the block
+using
+si = max(Wi) − min(Wi)
+2q − 1 , (17)
+where q denotes the number of quantization bits. The quan-
+tized weights for block Wi are then obtained as
+Wi,q =
+ Wi
+si
+
+, (18)
+where ⌊·⌉ denotes the rounding operation to the nearest integer.
+The quantized weights are stored in a compressed format
+in the device’s GPU memory, to ensure efficient access during
+computation. This storage format significantly reduces mem-
+ory usage compared to full-precision weights, enabling the
+deployment of large models on resource-constrained devices.
+3) Dequantize the Block: The dequantization process oc-
+curs dynamically during the forward pass, both in training and
+inference. Specifically, when a quantized weight block Wi,q
+is needed for computation, it is dequantized on-the-fly using
+the corresponding scale si as
+Wi = si · Wi,q. (19)
+This approach ensures that the computational overhead
+of dequantization is minimized in scenarios where only the
+required blocks are dequantized on-the-fly during computation,
+rather than the entire weight matrix.
+IV. I MPORTANCE -BASED PARAMETER TRUNCATION AND
+FREEZING SCHEMES
+In this section, to handle the heterogeneity of client re-
+sources, we first introduce an importance-based parameter
+truncation scheme at the local LLMs. To address the issue of
+performance degradation resulting from truncation, we sub-
+sequently introduce an importance-based parameter freezing
+scheme at the local LLMs.
+A. Decomposed LoRA Rank-1 Matrix Importance Evaluation
+In practical FL environments, clients often have different
+computational capacities, making it challenging to train all
+clients’ LoRA parameters with a uniform rank across all
+clients. To address this, the LoRA parameter product BA is
+decomposed into smaller, rank-1 matrices. As shown in Fig. 1,
+we take LoRA with rg = 3 as an example. The cloud server
+calculates an importance score for each rank-1 matrix and
+broadcasts this information to the clients. Clients can then
+prioritize these rank-1 matrices, training the most important
+ones first.

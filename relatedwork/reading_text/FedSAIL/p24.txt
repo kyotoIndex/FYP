@@ -1,0 +1,56 @@
+Table 16: DDDT data, training, and evaluation protocol.
+Component Setting
+Clients and splits Eight clients; per client: 1000 training, 256 calibration, 244 validation, and 500 final-test
+examples. All splits are label-balanced and disjoint across splits and replicas.
+Data sources Training/calibration: official training pools. Validation/final test: IMDb/Amazon test
+pools and labeled QQP/QNLI validation pools; no GLUE test-server evaluation.
+Seeds Data partition:2027. Training seeds:83,97,109.
+Backbone and adapters Frozen RoBERTa-large and MLM head; query/value LoRA in all 24 layers, rL = 4 ,
+αLoRA = 16, dropout0.05. IndependentA k initialization andB k = 0.
+Optimization AdamW, learning rate 2×10 −4, weight decay 0, gradient clipping 1, batch size 16,
+CUDA AMP; 10 local iterations per client per round. Optimizer/scaler states remain
+local across rounds.
+Training schedule64 rounds: 32 local warmup rounds and 32 guided rounds, with shared rank s= 1 and
+guidance coefficientβ= 1.
+Inputs and prediction Maximum 128 tokens, preserving instructions, field markers, decision mask, and content
+heads/tails. Mask-token verbalizers: negative/positive (sentiment), different/same (para-
+phrase), and yes/no (entailment).
+Evaluation Terminal round-64 checkpoint. Average accuracy over eight clients within each seed,
+then report mean and sample SD over three seeds. Task columns average two replicas
+and three seeds.
+second moment of local calibration inputs in regime z at layer ℓ and round t, computed without shrinkage
+and with negative eigenvalues clipped to zero. For each of the four dyads d∈ {1,2,3,4} described above, id
+and jd denote its two client indices. To ensure stability against stochastic training noise, we define the layer
+agreement scores ℓ using a temporal median over the collected snapshots:
+sℓ = median t∈{24,28,32}
+
+ 1
+24
+4X
+d=1
+X
+a∈{Q,V}
+X
+z∈Z
+q⊤
+idℓaztqjdℓazt
+
+2
+
+ ,S τ ={ℓ:s ℓ ≥τ}.(10)
+Each snapshot averages 4×2×3 = 24 rank-one Projector Dice values. This threshold τ applies to the pooled
+score rather than individual dyads. Once the mask Sτ is computed at round 32, it remains fixed. Notably,
+we impose no contiguity constraints or minimum layer requirements. For instance, at τ= 0.6 , the selector
+naturally excludes the final six layers in every random seed, consistently identifying that deeper layers encode
+representations too task-specific to benefit from federated sharing.
+Following selection, all arms branch from identical round- 32 optimizer and scaler states. Selected layers
+use the subspace penalty defined in (7) with β= 1 , while unselected layers continue purely local adaptation
+using only the task loss.
+F.3 Threshold Sensitivity
+Table 17 compares full-layer guidance against four different thresholds (τ) applied to the exact same warmup
+geometry. Increasing τ imposes a stricter geometric consensus requirement, restricting sharing to layers with
+robust cross-client agreement.
+The sensitivity sweep clearly demonstrates the efficacy of geometry-guided selection. At τ= 0.6 , restricting
+guidance exclusively to the selected layers reduces the total communication payload by 19.26% while
+retaining predictive performance entirely comparable to full-layer guidance (a minimal difference of +0.100
+24

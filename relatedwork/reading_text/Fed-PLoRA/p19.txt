@@ -1,0 +1,47 @@
+Published as a conference paper at ICLR 2026
+out of 612 tasks; for Dolly-15K, each client receives data from only 1 out of 7 tasks. In the GLUE
+setup, we apply Dirichlet partitioning withα= 0.01, resulting in a highly imbalanced distribution
+of samples across clients. For all other datasets, we adopt IID partitioning.
+C.2 MAINRESULTSETTINGS
+Table 4: FL settings for all experiments.
+Dataset/ConfigurationModel LoRA Client Training Round Learning Rate batch size
+CoLA BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 200 0.001 16SST-2 BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 45 0.001 16MRPC BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 150 0.001 16QQP BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 150 0.001 16QNLI BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 50 0.001 16RTE BERT-base rank=1/4/16, loraalpha=1/4/16, targetmodules=[“query”, “value”] 100 (10%) 150 0.001 16Natural InstructionLlama (Data-Juicer-1B) rank=1/8/16, loraalpha=1/8/16, targetmodules=[“qproj”, “vproj”] 50 (10%) 25 0.00001 4Dolly-15K OPT-1.3B rank=1/8/32, loraalpha=1/8/32, targetmodules=[“qproj”, “vproj”] 50 (10%) 25 0.00001 4Medical Mistral-7B-v0.3 rank=1/2/8, loraalpha=1/2/8, targetmodules=[“qproj”, “vproj”] 50 (10%) 50 0.00005 4Finance Llama-3.1-8B rank=1/2/8, loraalpha=1/2/8, targetmodules=[“qproj”, “vproj”] 50 (10%) 15 0.00005 4MATH Qwen3-4B-Instruct-2507 rank=1/2/8, loraalpha=1/2/8, targetmodules=[“qproj”, “vproj”] 50 (10%) 15 0.00005 4
+FL Settings.As shown in Table 4, the FL configurations for all experiments are comprehensively
+detailed in Table 4. This table outlines the specific models, LoRA parameters, client setups, and
+training hyperparameters employed for each dataset.
+For the GLUE benchmark tasks (CoLA, SST-2, MRPC, QQP, QNLI, and RTE), the BERT-base
+model is utilized. The heterogeneous ranks are set usingR= 16, r m = 4. These experiments
+involve 100 clients. Instruction fine-tuning tasks on Natural Instruction and Dolly-15K employed
+Llama (Data-Juicer-1B) and OPT-1.3B models, respectively. For Natural Instruction,R= 16and
+rm = 8, while for Dolly-15K,R= 16andr m = 8. These setups use 50 clients. Domain-specific
+experiments on Medical and Finance datasets also involve 50 clients. Medical tasks use Mistral-
+7B-v0.3, Finance tasks use Llama-3.1-8B, and both haveR= 16andr m = 2. For mathematical
+reasoning, we further evaluate on the MATH dataset using Qwen3-4B-Instruct-2507 under the same
+federated client setup. All experiments sample 10% of clients uniformly at random per round.
+Across these diverse setups, the number of training rounds was task-specific, varying from 15 to 200,
+as detailed in Table 4. Learning rates are selected for each task group after evaluating a common
+search space of{0.005, 0.001, 0.0005, 0.0001, 0.00005, 0.00001}; specifically, GLUE tasks utilize
+a learning rate of 0.001, Natural Instruction and Dolly-15K tasks are trained with 0.00001, and both
+Medical, Finance, and MATH experiments employ a learning rate of 0.00005. Batch sizes are also
+tailored: 16 for GLUE tasks, 4 for instruction fine-tuning, and 4 for the domain-specific experiments.
+Justification heterogeneous rank settings:We empirically evaluate performance across a wide range
+of LoRA ranks{1, 2, 4, 8, 16, 32, 64}. For the highest-resource clients, we select the largest rank that
+does not lead to overparameterization, following standard practice in FL to ensure a balance between
+model capacity and resource capacity. For clients with mid-level resources, we adopt middle ranks
+so that the average rank does not excced the half of the highest rank, reflecting that majoraty of the
+clients have low resources.
+Justification for rank settings:In homogeneous settings, we evaluate LoRA ranks{1, 2, 4, 8, 16, 32,
+64}to identify the optimal rank. In heterogeneous settings, high-resource clients are assigned this
+optimal rank to avoid over-parameterization while maintaining a balance between model capacity
+and device constraints. Low-resource clients are fixed at rank 1. Mid-resource clients are assigned
+intermediate ranks such that the average rank does not exceed half of the maximum, reflecting the
+realistic case where most clients are resource-limited.
+We evaluate performance across a broad range of LoRA ranks{1, 2, 4, 8, 16, 32, 64}in homoge-
+neous settings and identify the best rank. For high-resource clients in heterogeneous settings, we
+assign the best rank that avoids over-parameterization, ensuring a balance between model capacity
+and device constraints. For mid-resource clients, we choose intermediate ranks such that the average
+rank does not exceed half of the maximum rank, reflecting the realistic scenario where most clients
+have limited resources.
+Implementation Details.Our framework was implemented using PyTorch version 2.6.0 (built
+with CUDA 12.4 support). Key libraries included Hugging Facetransformersversion 4.51.3,
+19

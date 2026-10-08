@@ -1,0 +1,123 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, JUNE 2025 9
+TABLE VI
+MAIN RESULTS OF FED-HELL O COMPARED WITH BASELINES ON
+DOMAIN NET-121 DATASET.
+Methods
+Model Performance (Accuracy)
+IID 25/D1 15/D1 Avg
+Straggler - 49.03 34.87 29.20 37.70
+Exclusive
+RoC
+6:3:1
+54.04 29.69 21.43 35.05
+HETLoRA 54.43 27.98 13.52 31.97
+FlexLoRA 31.12 3.41 0.99 11.84
+FLoRA 1.51 1.15 1.01 1.22
+FedRA 65.39 52.39 48.26 55.34
+Fed-HeLLo 67.25 54.44 50.22 57.30
+Exclusive
+RoC
+1:1:1
+65.23 51.70 46.58 54.50
+HETLoRA 64.26 48.92 35.34 49.50
+FlexLoRA 23.05 1.21 1.21 8.44
+FLoRA 1.79 1.01 1.07 1.29
+FedRA 68.53 55.64 51.07 58.41
+Fed-HeLLo 68.98 58.01 53.74 60.24
+the rank-based method HETLoRA, the performance gains are
+even more significant (+6.40%, +18.21%, +25.29%) as the
+data heterogeneity becomes more extreme. FlexLoRA and
+FLoRA result in lower overall performance, indicating that
+their SVD and stacking techniques hinder the global model’s
+convergence. This is likely due to their noise-alleviation ag-
+gregation being ineffective when not all LoRA layers are
+trainable. Additionally, our method achieves substantial im-
+provements over the SOTA method FedRA, demonstrating the
+effectiveness of leveraging both dynamic and intrinsic layer
+importance in our framework. Similarly, under the 1:1:1 RoC
+setting, our method continues to outperform other methods,
+achieving +1.25% and +10.07% improvements over FedRA
+and HETLoRA, respectively, in the “10/1.0” Non-IID setting.
+Notably, Exclusive Learning outperforms HETLoRA in this
+setting, indicating that rank-based method can be detrimental
+during training. These results underscore the robustness of
+Fed-HeLLo in effectively managing resource heterogeneity
+in CIFAR-100 dataset. Regarding resource efficiency, under
+the 6:3:1 RoC distribution, rank-based methods such as HET-
+LoRA, FlexLoRA, and FLoRA achieve minimal computa-
+tional and memory savings compared to full LoRA layer fine-
+tuning. In contrast, our method reduces computational cost by
+38.41% and saves an average of 1.55 GB of memory. Addition-
+ally, our approach requires only 3.83 MB of communication
+per round, significantly lower than FlexLoRA, which needs to
+transmit full-rank matrices for each client.
+Quantitative Results on LEDGAR: On LEDGAR
+dataset III, our method consistently demonstrates strong per-
+formance. Under the 6:3:1 RoC distribution, Fed-HeLLo im-
+proves the macro F1 score by +13.90% compared to Strag-
+gler Learning and +19.73% compared to Exclusive Learning.
+Notably, in the most extreme Non-IID scenario (10/1.0), Fed-
+HeLLo continues to outperform other methods, with a +5.33%
+improvement over FedRA and a +34.14% improvement over
+HETLoRA. FlexLoRA and FLoRA also perform poorly in
+this scenario. It also indicates that these rank-based methods
+are not scalable to mid-sized FMs due to the limited prior
+information in the pre-trained weights. In the 1:1:1 RoC
+scenario, our method maintains all macro F1 scores above
+60%, and outperforms the SOTA methods HETLoRA and
+FedRA by +11.66%, and +4.17% on average, respectively.
+These observations highlight Fed-HeLLo’s ability to adapt
+to severe data distribution challenges. The results indicate
+that Fed-HeLLo excels in more balanced scenarios while
+remaining effective in environments with significant resource
+and data heterogeneity, making it a robust solution for complex
+datasets like LEDGAR. Regarding resource efficiency, our
+method reduces the average backward computational cost by
+1.18 TFLOPs compared to rank-based methods under the
+6:3:1 RoC scenario and by 0.78 TFLOPs under the 1:1:1
+RoC scenario. It increases average memory usage by only
+0.13 GB compared to Straggler Learning under the 6:3:1
+RoC distribution. However, as the number of low-resource
+devices increases, this gap becomes negligible. Additionally,
+our method decreases training time by 0.34 seconds and 0.79
+seconds compared to the random allocation method FedRA
+under the 6:3:1 and 1:1:1 RoC distributions, respectively,
+benefiting from the designed HLA strategy.
+Quantitative Results on Natural Instruction: We further
+evaluate performance on larger language models for instruc-
+tion fine-tuning tasks, as presented in Table IV. On Natural
+Instruction dataset with the 6:3:1 RoC distribution, our method
+achieves exceptionally high performance on IID scenario, out-
+performing FLoRA, Exclusive Learning, Straggler Learning,
+and HETLoRA by +18.03%, +6.60%, +6.47%, and +5.27%,
+respectively. However, our method outperforms FedRA by
++5.27% with our HLA design. While FlexLoRA performs
+reasonably well, our method still surpasses it by a consid-
+erable margin of +4.25%. In the Non-IID scenario (15/1.0),
+our method shows a slight performance drop compared to
+FlexLoRA, as it may requires more training rounds to optimize
+LoRA layer allocation under Non-IID data distributions (see
+Section IV-D for further discussion). Regarding computa-
+tional efficiency, our method reduces the average backward
+computational cost by 1.41 TFLOPs compared to rank-based
+methods, with the reduction scaling linearly as batch size
+increases (set to 1 in our case). It also lowers average memory
+usage by 1.09 GB compared to rank-based methods and only
+increases it by 0.12 GB relative to Straggler Learning. In
+terms of communication cost, our method remains efficient
+since only the trainable LoRA layer’s parameters need to be
+uploaded, whereas FlexLoRA requires downloading the full-
+rank matrix of LoRA layers, resulting in significantly higher
+communication overhead. Additionally, our method strikes
+a balance between training time and model performance,
+increasing training time by only 1.52 seconds compared to
+Straggler Learning under the 6:3:1 distribution.
+Quantitative Results on Dolly-15K: Dolly-15K presents
+a real-world scenario with human-generated prompt-response
+pairs. As shown in Table V, our method outperforms all
+compared approaches across all RoC distributions, consis-
+tently maintaining stable performance in both IID and Non-
+IID settings. Under the 6:3:1 RoC distribution, our method
+improves the average Rouge-L score by +1.89%, +2.92%,
+and +17.43% compared to Straggler Learning, HETLoRA, and
+FLoRA, respectively. Despite using SVD to obtain LoRA layer

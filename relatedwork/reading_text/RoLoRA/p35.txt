@@ -1,0 +1,25 @@
+Now we show the convergence to the global minimizer. Recall that bT+1 = ¯b∗a∗⊤
+aT and δT =
+∥(Id −a T (aT )⊤)a∗∥, we have
+∥aT (bT+1 )⊤ −a ∗¯b∗⊤
+∥=∥a T (aT )⊤a∗¯b∗⊤
+−a ∗¯b∗⊤
+∥(250)
+=∥(a T (aT )⊤ −I d)a∗¯b∗⊤
+∥(251)
+=∥(I d −a T (aT )⊤)a∗∥ · ∥¯b∗∥(252)
+≤ϵ∥ ¯b∗∥(253)
+=ϵ∥a ∗¯b∗⊤
+∥(254)
+where (254) is due to the fact that∥xy ⊤∥=∥x∥∥y∥and∥a ∗∥= 1.
+Proposition A3.17 shows that for any δ0 ∈(0,1) , the global objective of FFA-LoRA is given by
+(242), comprising two terms: γ2, reflecting the heterogeneity of {b∗
+i }N
+i=1, and ∥¯b∗∥2δ2
+0, due to the
+angular distance between a0 and a∗. By Theorem A3.14, RoLoRA achieves ϵ-accurate recovery of
+the global minimizer, with global loss upper bounded byγ 2 +∥ ¯b∗∥2ϵ2, since RoLoRA reduces the
+angular distance loss from ∥¯b∗∥2δ2
+0 to ∥¯b∗∥2ϵ2. We can make ϵ arbitrarily small by increasing the
+iterations.
+35

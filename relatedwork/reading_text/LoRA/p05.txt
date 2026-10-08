@@ -1,0 +1,50 @@
+guarantees that we do not introduce any additional latency during inference compared to a ﬁne-tuned
+model by construction.
+4.2 A PPLYING LORA TO TRANSFORMER
+In principle, we can apply LoRA to any subset of weight matrices in a neural network to reduce the
+number of trainable parameters. In the Transformer architecture, there are four weight matrices in
+the self-attention module (Wq, Wk, Wv, Wo) and two in the MLP module. We treatWq (or Wk, Wv)
+as a single matrix of dimension dmodel× dmodel, even though the output dimension is usually sliced
+into attention heads. We limit our study to only adapting the attention weights for downstream
+tasks and freeze the MLP modules (so they are not trained in downstream tasks) both for simplicity
+and parameter-efﬁciency.We further study the effect on adapting different types of attention weight
+matrices in a Transformer in Section 7.1. We leave the empirical investigation of adapting the MLP
+layers, LayerNorm layers, and biases to a future work.
+Practical Beneﬁts and Limitations. The most signiﬁcant beneﬁt comes from the reduction in
+memory and storage usage. For a large Transformer trained with Adam, we reduce that VRAM
+usage by up to 2/3 if r≪ dmodel as we do not need to store the optimizer states for the frozen
+parameters. On GPT-3 175B, we reduce the VRAM consumption during training from 1.2TB to
+350GB. With r = 4 and only the query and value projection matrices being adapted, the checkpoint
+size is reduced by roughly 10,000× (from 350GB to 35MB) 4. This allows us to train with signiﬁ-
+cantly fewer GPUs and avoid I/O bottlenecks. Another beneﬁt is that we can switch between tasks
+while deployed at a much lower cost by only swapping the LoRA weights as opposed to all the
+parameters. This allows for the creation of many customized models that can be swapped in and out
+on the ﬂy on machines that store the pre-trained weights in VRAM. We also observe a 25% speedup
+during training on GPT-3 175B compared to full ﬁne-tuning 5 as we do not need to calculate the
+gradient for the vast majority of the parameters.
+LoRA also has its limitations. For example, it is not straightforward to batch inputs to different tasks
+with different A and B in a single forward pass, if one chooses to absorbA and B into W to eliminate
+additional inference latency. Though it is possible to not merge the weights and dynamically choose
+the LoRA modules to use for samples in a batch for scenarios where latency is not critical.
+5 E MPIRICAL EXPERIMENTS
+We evaluate the downstream task performance of LoRA on RoBERTa (Liu et al., 2019), De-
+BERTa (He et al., 2021), and GPT-2 (Radford et al., b), before scaling up to GPT-3 175B (Brown
+et al., 2020). Our experiments cover a wide range of tasks, from natural language understanding
+(NLU) to generation (NLG). Speciﬁcally, we evaluate on the GLUE (Wang et al., 2019) benchmark
+for RoBERTa and DeBERTa. We follow the setup of Li & Liang (2021) on GPT-2 for a direct com-
+parison and add WikiSQL (Zhong et al., 2017) (NL to SQL queries) and SAMSum (Gliwa et al.,
+2019) (conversation summarization) for large-scale experiments on GPT-3. See Appendix C for
+more details on the datasets we use. We use NVIDIA Tesla V100 for all experiments.
+5.1 B ASELINES
+To compare with other baselines broadly, we replicate the setups used by prior work and reuse their
+reported numbers whenever possible. This, however, means that some baselines might only appear
+in certain experiments.
+Fine-Tuning (FT)is a common approach for adaptation. During ﬁne-tuning, the model is initialized
+to the pre-trained weights and biases, and all model parameters undergo gradient updates.A simple
+variant is to update only some layers while freezing others. We include one such baseline reported
+in prior work (Li & Liang, 2021) on GPT-2, which adapts just the last two layers (FTTop2).
+4We still need the 350GB model during deployment; however, storing 100 adapted models only requires
+350GB + 35MB * 100≈ 354GB as opposed to 100 * 350GB≈ 35TB.
+5For GPT-3 175B, the training throughput for full ﬁne-tuning is 32.5 tokens/s per V100 GPU; with the same
+number of weight shards for model parallelism, the throughput is 43.1 tokens/s per V100 GPU for LoRA.
+5

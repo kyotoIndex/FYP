@@ -1,0 +1,35 @@
+A Related Works
+A.1 Federated learning with LoRA
+Recent studies have explored integrating LoRA into FL to alleviate the communication and com-
+putation overhead associated with fine-tuning large-scale models [ 49, 50, 51, 52]. FedIT [ 13] is
+one of the earliest attempts to incorporate LoRA into FL, demonstrating that low-rank adapters can
+effectively reduce communication costs while maintaining competitive performance. However, FedIT
+aggregates the two low-rank components in a straightforward manner and does not explicitly account
+for aggregation errors that arise during the aggregation process. To mitigate aggregation mismatch
+caused by heterogeneous client updates, several extensions have been proposed. FLoRA [ 22] ad-
+dresses heterogeneity and aggregation errors by stacking client-specific LoRA adapters at the server
+for aggregation. FedEx-LoRA [40] alleviates aggregation error by introducing a residual correction
+term added to a fixed pre-trained weight matrix. FlexLoRA [ 41] further addresses heterogeneity
+by reconstructing an ideal weight update matrix from the aggregated client adapters at the server,
+followed by singular value decomposition (SVD) to redistribute LoRA adapters with different ranks
+to individual clients.
+A.2 Differentially private federated LoRA
+More recent studies have investigated federated LoRA under differential privacy (DP) constraints.
+FFA-LoRA [14] provides a detailed analysis of the noise amplification problem that arises when DP
+is applied to federated LoRA training, and mitigates this issue by updating only the B component.
+However, restricting updates to the B component leads to a loss of expressiveness in LoRA. To
+address this limitation, FedSVD [ 16] similarly updates only the B component, while leveraging
+orthogonalization and low-rank decomposition to alleviate the expressiveness loss and improve
+training stability under DP constraints. Another line of work, which is most closely related to our study,
+aims to alleviate aggregation error by adopting alternating optimization strategies. RoLoRA [ 15]
+and LoRA-A2 [53] alternate the optimization of the two LoRA components across communication
+rounds, updating only one component at a time to reduce aggregation mismatch. La-LoRA [ 46]
+further extend alternating optimization from communication rounds to local update steps. While
+these methods empirically improve training stability, they rely on fixed and symmetric alternating
+schedules and do not explicitly account for the asymmetric roles of the two LoRA components
+during training. In summary, existing federated LoRA-based approaches either restrict updates to
+a single component or adopt fixed, symmetric alternating schedules, both of which overlook the
+structural asymmetry between the two LoRA components and the round-wise dynamics of training.
+This motivates AS-LoRA, which makes principled, adaptive per-layer decisions based on training
+dynamics.
+14

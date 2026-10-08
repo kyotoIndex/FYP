@@ -1,0 +1,76 @@
+Stage 2
+Stage 1
+Stage 2
+Stage 1
+Figure 7: The performance of SLoRA using for 20News group dataset on Albert and DistilBERT.
+Table 3: The training time (i.e., computation time) of different methods and the number of training rounds with the
+server for the Albert model on the 20news dataset.
+Method FFT LoRA SFT SLoRA SVD-decomposition
+Computation time(sec/epoch) 0.39 0.43 2 Stage1:2.1 - Stage2:0.43 15.4 (one-time cost)
+Total training rounds 250 1250 1250 350 —
+1.3% of the original model size. For SFT, we train
+the model with a sparsity update of 1.3% to match
+the same target sparsity update of SLoRA.
+Table 4: Performance and training cost of different al-
+gorithm for the 20News group dataset on Albert model.
+#TrainableTrainingAccuracyCommunication
+ParameterTime (min) (%) (Gbits)
+FFT 11.7M 596.7 58.17±4 174
+LoRA 0.14M 49.5 56.5±1.2 9.95
+SFT 0.14M 78.4 57.6±0.3 9.95
+SLoRA 0.14M 40.4 58.6±1 9.95
+We evaluate the performance of SLoRA for the
+20News group dataset on Albert and DistilBERT
+in Fig. 7. As presented in the figure, SLoRA con-
+verges to better accuracy and requires smaller train-
+ing rounds. This is particularly important for low-
+budget and resource-restricted settings of federated
+learning.
+Regarding the model training time (e.g., com-
+putation time), we report the duration based on a
+single GPU. Table 3 summarizes the average train-
+ing time per epoch over 10 distinct runs for various
+methods. We note that the time for SLoRA can be
+computed using the time for Stages 1 and 2. The
+SVD decomposition process is executed only once
+in Stage 2 and can be done efficiently by the server.
+We analyze two aspects of the comparison.
+Firstly, we evaluate the performance of SLoRA
+while matching the communication budget across
+different baselines. In particular, in Stage 1,
+SLoRA communicates larger models compared to
+the other PEFT baselines (SFT and LoRA). To
+ensure a fair comparison, we allow the PEFT base-
+lines to be trained for a longer duration in order to
+match the same communication budget as SLoRA.
+Table 3 summarizes the number of training rounds
+for the baselines. Despite the baselines having even
+higher communication rounds, Fig. 4 demonstrates
+that SLoRA still achieves comparable accuracy to
+the fully fine-tuned model, with a slight marginal
+improvement.
+On the other hand, LoRA and SFT show a perfor-
+mance drop of −1.67 and −0.57 in their maximum
+accuracy, respectively. It’s worth noting that this
+is achieved with a longer training time compared
+to SLoRA. Additionally, SLoRA exhibits higher
+stability than other baselines across different seeds.
+In addition to the communication budget, the
+number of communication rounds is another cru-
+cial aspect of federated learning, especially when
+considering user availability and its impact on com-
+putational resource consumption. Therefore, we
+also compare the performance of SLoRA to the
+baselines while keeping the number of training
+rounds fixed, consistent with that of SLoRA. As
+depicted in Figure 7(b), we observe that the per-
+formance gap between SLoRA and the baselines
+(LoRA and SFT) increases to 4% and 14.2%, re-
+spectively.
+7 Conclusion
+In this work, we have investigated employing PEFT
+methods for fine-tuning language models in the
+FL setting to reduce communication and storage
+costs. We have found that different PEFT methods
+perform poorly compared to FFT as the diversity of
+the data increases. To overcome this limitation, we

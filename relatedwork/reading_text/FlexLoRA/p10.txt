@@ -1,0 +1,51 @@
+FedAvg as baseline FL method and each FL round always sampling 10 participants. From Figure
+5, there is a marked improvement in generalization as the number of participating clients increases.
+Moreover, from Theorem 1, we can derive the functional relationship between client number |C| and
+the generalization loss ϵ as |C| = A1/ϵ2(A2 − log(ϵ − A3)), where A1,2,3 are constants absorbing
+the other factors impacted by specific resource distribution in this experiment. We thus fit these
+coefficients using the derived form and empirical observations, and find that the dotted curves gain
+good fitness for all the tested distributions. There results affirm the preciseness of our Theorem 1
+again, indicating the suitableness of FlexLoRA for cross-device FL scenarios where leveraging a
+broad client pool can boost the generalization across diverse data distributions.
+5 Conclusion
+In this work, we propose a simple yet effective method named FlexLoRA to address the challenges
+posed by resource and data heterogeneity among clients during the federated fine-tuning of LLMs.
+By leveraging larger local LoRA ranks, FlexLoRA not only improves the generalization ability of
+the global model but also ensures that all clients, irrespective of their resource capabilities, can
+contribute meaningfully. Theoretical analysis and extensive experiments verify the effectiveness and
+scalability of FlexLoRA. Due to resource limitations, we have not tested the LLaMA-3 model on
+thousands-client scenarios, which we leave as future work. We hope this study can enlighten more
+future research and development in data-efficient and privacy-preserving enhancement of LLMs.
+References
+[1] Armen Aghajanyan, Sonal Gupta, and Luke Zettlemoyer. Intrinsic dimensionality explains
+the effectiveness of language model fine-tuning. In Chengqing Zong, Fei Xia, Wenjie Li,
+and Roberto Navigli, editors, Proceedings of the 59th Annual Meeting of the Association for
+Computational Linguistics and the 11th International Joint Conference on Natural Language
+Processing (Volume 1: Long Papers), pages 7319–7328, August 2021.
+[2] Sara Babakniya, Ahmed Roushdy Elkordy, Yahya H Ezzeldin, Qingfeng Liu, Kee-Bong Song,
+Mostafa El-Khamy, and Salman Avestimehr. Slora: Federated parameter efficient fine-tuning of
+language models. arXiv preprint arXiv:2308.06522, 2023.
+[3] Jonathan Baxter. A model of inductive bias learning. Journal of Artificial Intelligence Research,
+2000.
+[4] Daoyuan Chen, Dawei Gao, Weirui Kuang, Yaliang Li, and Bolin Ding. pFL-bench: A com-
+prehensive benchmark for personalized federated learning. In Advances in neural information
+processing systems (NeurIPS), 2022.
+[5] Daoyuan Chen, Dawei Gao, Yuexiang Xie, Xuchen Pan, Zitao Li, Yaliang Li, Bolin Ding, and
+Jingren Zhou. Fs-real: Towards real-world cross-device federated learning. In ACM SIGKDD
+Conference on Knowledge Discovery and Data Mining, 2023.
+[6] Daoyuan Chen, Yilun Huang, Zhijian Ma, Hesen Chen, Xuchen Pan, Ce Ge, Dawei Gao, Yuexi-
+ang Xie, Zhaoyang Liu, Jinyang Gao, Yaliang Li, Bolin Ding, and Jingren Zhou. Data-juicer: A
+one-stop data processing system for large language models. In International Conference on
+Management of Data (SIGMOD), 2024.
+[7] Daoyuan Chen, Liuyi Yao, Dawei Gao, Bolin Ding, and Yaliang Li. Efficient personalized
+federated learning via sparse model-adaptation. In International Conference on Machine
+Learning (ICML), 2023.
+[8] Yae Jee Cho, Luyang Liu, Zheng Xu, Aldi Fahrezi, and Gauri Joshi. Heterogeneous low-
+rank approximation for federated fine-tuning of on-device foundation models. arXiv preprint
+arXiv:2401.06432, 2024.
+[9] Mike Conover, Matt Hayes, Ankit Mathur, Jianwei Xie, Jun Wan, Sam Shah, Ali Ghodsi, Patrick
+Wendell, Matei Zaharia, and Reynold Xin. Free dolly: Introducing the world’s first truly open
+instruction-tuned llm, 2023.
+[10] Luca Corinzia, Ami Beuret, and Joachim M Buhmann. Variational federated multi-task learning.
+arXiv preprint arXiv:1906.06268, 2019.
+10

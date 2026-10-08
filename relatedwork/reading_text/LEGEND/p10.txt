@@ -1,0 +1,75 @@
+0 1 2 3 4 5 6 7 8890929496Test accuracy (%)T
+ime (×103s) LEGEND FedAdapter HetLoRA FedLoRA
+(a) SST-2
+0 1 2 3 80828486889092Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×104s) (b) QNLI
+0 1 2 3 4 76788082848688Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×105s) (c) QQP
+0 1 2 80828486Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×105s) (d) MNLI
+Figure 7: Fine-tuning process of four approaches on general language understanding tasks.
+1 2345Completion time (×103s)S
+ST-2 
+LEGEND  FedAdapter HetLoRA  FedLoRA
+(a) Time to reach 95% accuracy
+1 .01.52.02.53.0Completion time (×104s)Q
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Time to reach 90% accuracy
+1 .01.52.02.53.03.5Completion time (×105s)Q
+QP 
+LEGEND  FedAdapter HetLoRA  FedLoRA (c) Time to reach 87% accuracy
+0 .51.01.5Completion time (×105s)M
+NLI 
+LEGEND  FedAdapter HetLoRA  FedLoRA (d) Time to reach 85% accuracy)
+Figure 8: Completion time of four approaches on general language understanding tasks.
+0 5 1 01 52 030405060Test accuracy (%) LEGEND FedAdapter HetLoRA FedLoRATime (×104s)
+(a) Fine-tuning process (MMLU)
+1 2Completion time (×105s)M
+MLU 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Time to reach 60% accuracy
+Figure 9: Results on massive multitask understanding tasks.
+spectively. LEGEND separately achieves a speedup of 1.4×,
+1.7×, and 2.2×, compared with FedAdapter, HetLoRA, and
+FedLoRA. For MNLI, as shown in Figures 7(d) and 8(d),
+LEGEND speeds up the fine-tuning process by about 1.2×,
+1.5×, and 2.1×, compared to FedAdapter, HetLoRA, and Fed-
+LoRA, respectively. Then, we present the experimental results
+for massive multitask understanding and mathematical reason-
+ing tasks in Figures 9 and 10. LEGEND consistently outper-
+forms all other baselines, significantly accelerating the fine-
+tuning process. Specifically, as shown in Figure 9, LEGEND
+achieves a speedup of 1.3 ×, 1.5×, and 2.3 × compared to
+FedAdapter, HetLoRA, and FedLoRA, respectively. In Figure
+10, LEGEND reduces the total completion time required to
+achieve 30% accuracy by approximately 26%, 41%, and 54%
+when compared to FedAdapter, HetLoRA, and FedLoRA, re-
+spectively. These results demonstrate the superiority of LEG-
+END in accelerating the fine-tuning process through joint
+optimization of LoRA depth and rank distribution.
+Secondly, to illustrate the advantage of LEGEND in sav-
+ing communication resources, we evaluate the communica-
+0 2 4 6 8 1 0102030 LEGEND FedAdapter HetLoRA FedLoRATime (×103s)T
+est accuracy (%)
+(a) Fine-tuning process (GSM-8K)
+0 .51.0Completion time (×104s)G
+SM-8K 
+LEGEND  FedAdapter HetLoRA  FedLoRA (b) Time to reach 30% accuracy
+Figure 10: Results on mathematical reasoning tasks.
+tion traffic consumption of these approaches when achiev-
+ing the target accuracy. According to the results in Figure
+11, LEGEND always causes the least communication traf-
+fic among all approaches. For example, as shown in Fig-
+ure 11(a), when achieving 95% accuracy, LEGEND con-
+sumes 9.9GB, while FedAdapter, HetLoRA, and FedLoRA
+consume 14.2GB, 14.7GB, and 16.2GB, respectively. Com-
+pared with FedAdapter, HetLoRA, and FedLoRA, LEGEND
+reduces communication traffic by about 30.0%, 32.1%, and
+38.3%, respectively. On one hand, compared to FedLoRA
+and HetLoRA which add LoRA layers of the same rank to all
+layers, LEGEND generates adaptive LoRA depth and rank
+distribution to accommodate heterogeneous devices. On the
+other hand, unlike FedAdapter which requires multiple device
+groups to find the optimal adapter structure, LEGEND deter-
+mines the suitable LoRA configuration based on the device’s
+status, making fine-tuning more efficient and thus reducing
+communication overhead. Besides, by Figure 11(b), LEG-
+END consumes 12.1GB when achieving 90% accuracy for
+QNLI, reducing the communication traffic by about 1.95GB,
+10

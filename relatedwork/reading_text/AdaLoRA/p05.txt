@@ -1,0 +1,90 @@
+Published as a conference paper at ICLR 2023
+where η > 0 is learning rate. Then, given importance score S(t)
+k , the singular values are pruned
+following
+Λ(t+1)
+k = T (˜Λ(t)
+k , S(t)
+k ), with T (˜Λ(t)
+k , S(t)
+k )ii =
+ ˜Λ(t)
+k,ii S(t)
+k,i is in the top-b(t) of S(t),
+0 otherwise, (6)
+where S(t) = {S(t)
+k,i}1≤k≤n,1≤i≤r contains the importance score of all triplets. Here b(t) is the budget
+of remaining singular values at the t-th step, which we explain more in Section 3.3. In this way, we
+leave more budget to the incremental matrices of higher priority by pruning the singular values of
+less important ones. In the sequel, we introduce several options to design the importance score.
+Magnitude of singular values is the most straightforward way to quantify the importance of every
+triplet, i.e., Sk,i = |λk,i|. In this way, only the least significant singular values are discarded. It
+minimizes the deviation from the original matrix and further stabilizes the training. Many existing
+methods use this criterion to control the rank of matrix (Cai et al., 2010; Koltchinskii et al., 2011;
+Toh & Yun, 2010). However, we remark that such a simple metric cannot properly quantify the
+contribution of parameters to model performance.
+Sensitivity-based importance is another option for importance scoring, which quantifies the sensi-
+tivity of parameters to the training loss (Molchanov et al., 2019; Sanh et al., 2020; Liang et al., 2021;
+Zhang et al., 2022). The prior work, however, leverages the sensitivity to quantify the importance of
+single entries and applies it for unstructured pruning that prunes weights element-wise. When it turns
+to our case, we have to design a new metric as the triplets are discarded group-wise. Every entry’s
+sensitivity ought to be considered and properly combined to quantify the overall contribution of the
+triplet to model performance. Therefore, we propose a newly-designed importance metric in account
+of both the singular value and vectors in triplet Gk,i:
+Sk,i = s(λk,i) + 1
+d1
+d1X
+j=1
+s(Pk,ji) + 1
+d2
+d2X
+j=1
+s(Qk,ij), (7)
+where we calculate the mean importance of Pk,∗i and Qk,i∗ such that Sk,i does not scale with the
+number of parameters in Gk,i. Here s(·) is a specific importance function for single entries. We can
+adopt the sensitivity for s(·), which is defined as the magnitude of the gradient-weight product:
+I(wij) = |wij∇wij L|, (8)
+where wij is any trainable parameter. (8) essentially approximates the change in loss when a parameter
+is zeroed out. If the removal of a parameter has a large influence, then the model is sensitive to it and
+we should retain it (Molchanov et al., 2019; Liang et al., 2021; Zhang et al., 2022).
+However, Zhang et al. (2022) point out that the sensitivity in (8) is not yet a reliable importance indi-
+cator. Such a score is estimated on the sampled mini batch. The stochastic sampling and complicated
+training dynamics incur high variability and large uncertainty for estimating the sensitivity with (8).
+Therefore, Zhang et al. (2022) propose to resolve this issue by sensitivity smoothing and uncertainty
+quantification:
+I
+(t)
+(wij) =β1I
+(t−1)
+(wij) + (1 − β1)I(t)(wij) (9)
+U
+(t)
+(wij) =β2U
+(t−1)
+(wij) + (1 − β2)
+I(t)(wij) − I
+(t)
+(wij)
+, (10)
+where 0 < β1, β2 < 1. I
+(t)
+is the smoothed sensitivity by exponential moving average and U
+(t)
+is
+the uncertainty term quantified by the local variation between I(t) and I
+(t)
+. Then they define the
+importance as the product between I
+(t)
+and U
+(t)
+, which can be another option for s(·):
+s(t)(wij) = I
+(t)
+(wij) · U
+(t)
+(wij). (11)
+We present a detailed ablation study in Section 4.4 to compare the performance of different importance
+metrics. We find the proposed metric (7) based on the sensitivity variant (11) generally performs best.
+We summarize the detailed algorithm in Algorithm 1.
+5

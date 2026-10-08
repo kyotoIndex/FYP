@@ -1,0 +1,56 @@
+Published as a conference paper at ICLR 2026
+Communication.In each round, every client in Fed-PLoRA uploads its local PLoRA update with
+rankr i to the server. The uplink payload scales asO((d+k)r i), which is identical to the uplink cost
+of FLoRA, FlexLoRA, and HETLoRA. Thus, Fed-PLoRA introduces no additional uplink overhead.
+After aggregation, the server sends the global PLoRA module with rankRto every client, giving
+a downlink cost ofO((d+k)R). In comparison, HETLoRA and FlexLoRA send each client a
+personalized global LoRA module of rankr i, resulting in per-client downlink costO((d+k)r i).
+FLoRA incurs a larger downlink cost ofO(dk)as its server sends the updated target module. Thus,
+the downlink cost of Fed-PLoRA is higher than HETLoRA and FlexLoRA byO((d+k)(R−r i))
+per client, but it reduces the downlink cost relative to FLoRA byO(dk−(d+k)R).
+Computation.All methods use an identical local fine-tuning procedure with local rankr i for client
+iafter initialization, so Fed-PLoRA incurs no additional model training cost on the client side.
+The only difference in local computation arises during model initialization, whose cost is negligi-
+ble compared with model training cost. For completeness, we also discuss the initialization cost
+of Fed-PLoRA compared with other methods. During initialization, all methods update their local
+PLoRA/LoRA parameters, either by using the received global PLoRA/LoRA module or by ran-
+domly initializing them. Compared to FlexLoRA and HETLoRA, Fed-PLoRA and FLoRA require
+an additional step. In Fed-PLoRA, clientifolds the remainingR−r i global one-rank PLoRA mod-
+ules into the frozen model weights, which incurs an extra computational cost ofO(dk(R−r i)).
+In FLoRA, every client updates its local target module using the received global target module,
+resulting in an additional computational cost ofO(dk). On the server side, Fed-PLoRA performs
+rank-wise averaging directly on the received local updates, which is lightweight. In HETLoRA,
+the server first expands each local update to rankRbefore averaging, introducing slightly more
+computation than simple rank-wise averaging. FlexLoRA requires an SVD operation to obtain a
+global low-rank update, which is computationally expensive. FLoRA concatenates all local updates
+and computes a full update to the global target module, which also incurs substantial cost. Thus,
+Fed-PLoRA introduces no additional server-side computational overhead compared with the other
+methods and is in fact the most lightweight among them.
+Memory.During local model training, Fed-PLoRA has the same memory footprint for storing
+model parameters, optimizer states, activations, and other training-related tensors as HETLoRA,
+FLoRA, and FlexLoRA. This is because all methods follow the same local fine-tuning procedure
+to update only the LoRA/PLoRA module on top of the frozen backbone. The only difference in
+memory usage arises during model initialization, whose cost is negligible compared to the overall
+fine-tuning memory footprint. During local initialization, each client requires a small temporary
+memory buffer to hold the parameters received from the server. These parameters are immediately
+discarded once initialization completes, resulting in no persistent memory cost. Specifically, in
+Fed-PLoRA, clientitemporarily stores the global PLoRA module of rankR. In HETLoRA and
+FlexLoRA, clientiinstead stores the global LoRA module of rankr i. In contrast, FLoRA requires
+clientito temporarily store the full global target module, whose size scales asO(dk). Thus, Fed-
+PLoRA incurs a temporary memory overhead ofO((d+k)(R−r i))compared with HETLoRA and
+FlexLoRA, but reduces temporary memory usage relative to FLoRA byO(dk−(d+k)R).
+Overall, Fed-PLoRA introduce negligible overhead in communication, computation, and memory.
+Detailed numerical results and measurements are provided in Appendix F.2.
+4 EVALUATION
+Models, Datasets, Baselines, and Experimental Settings.We employ six models with different
+scales in our experiments: BERT-base Devlin et al. (2019), Llama-1B Chen et al. (2024), Llama-3.1-
+8B Meta AI (2024), OPT-1.3B Zhang et al. (2022a), Qwen3-4B-A3B-Instruct-2507 Team (2025),
+and Mistral-7B-v0.3 MistralAI (2023). Following the configurations in the original LoRA paper Hu
+et al. (2021), the LoRA modules are applied to the self-attention layers only. We use datasets across
+multiple domains. For general instruction following, we use Natural Instructions Wang et al. (2022)
+and Dolly-15K Conover et al. (2023) for training and evaluation. For general natural language
+understanding, we adopt the GLUE benchmark Wang et al. (2018). In the finance domain, we train
+on FinGPT FinGPT (2023) and evaluate on FPB Malo et al. (2014), FIQA Maia et al. (2018), and
+TFNS Neural Magic (2022). In the medical domain, we train on MedAlpaca Han et al. (2023) and
+evaluate on PubMedQA Jin et al. (2019), MedMCQA Pal et al. (2022), MedQA Jin et al. (2021), and
+7

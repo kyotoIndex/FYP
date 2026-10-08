@@ -1,0 +1,46 @@
+Towards Building the Federated GPT:
+Federated Instruction Tuning
+Jianyi Zhang1∗, Saeed Vahidian1∗, Martin Kuo1∗, Chunyuan Li2,
+Ruiyi Zhang3, Tong Yu3, Yufan Zhou3, Guoyin Wang4, Yiran Chen1†
+1 Duke University, 2 Microsoft Research, 3 Adobe Research, 4 Amazon
+Abstract
+While "instruction-tuned" generative large language models (LLMs) have demon-
+strated an impressive ability to generalize to new tasks, the training phases heavily
+rely on large amounts of diverse and high-quality instruction data (such as ChatGPT
+and GPT-4). Unfortunately, acquiring high-quality instructions, especially when it
+comes to human-written instructions, can pose significant challenges both in terms
+of cost and accessibility. Moreover, concerns related to privacy can further limit
+access to such data, making the process of obtaining it a complex and nuanced
+undertaking. Consequently, this hinders the generality of the tuned models and
+may restrict their effectiveness in certain contexts. To tackle this issue, our study
+introduces a new approach called Federated Instruction Tuning (FedIT), which
+leverages federated learning (FL) as the learning framework for the instruction
+tuning of LLMs. This marks the first exploration of FL-based instruction tuning
+for LLMs. This is especially important since text data is predominantly gener-
+ated by end users. For example, collecting extensive amounts of everyday user
+conversations in different languages can be a useful approach to improving the gen-
+eralizability of LLMs, allowing them to generate authentic and natural responses.
+Therefore, it is imperative to design and adapt FL approaches to effectively leverage
+these users’ diverse instructions stored on local devices, while preserving privacy
+and ensuring data security. In the current paper, by conducting widely used GPT-4
+auto-evaluation, we demonstrate that by exploiting the heterogeneous and diverse
+sets of instructions on the client’s end with the proposed framework FedIT, we
+improved the performance of LLMs compared to centralized training with only
+limited local instructions. Further, in this paper, we developed a Github repository
+named Shepherd. This repository offers a foundational framework for exploring
+federated fine-tuning of LLMs using heterogeneous instructions across diverse
+categories. The framework is designed for ease of use, adaptability, and scalability
+to accommodate large datasets. Additionally, it facilitates the seamless integration
+of novel algorithms and configurations, making it a convenient tool for researchers
+and practitioners in the NLP community.
+∗Equal contribution, work done at Duke University.
+†The condensed version of this paper was accepted by ICASSP 2024. This work is supported in part by the
+grants NSF-2112562, NSF-2332744 and ARO W911NF-23-2-0224.
+Copyright 2024 IEEE. Published in ICASSP 2024 - 2024 IEEE International Conference on Acoustics, Speech
+and Signal Processing (ICASSP), scheduled for 14-19 April 2024 in Seoul, Korea. Personal use of this material
+is permitted. However, permission to reprint/republish this material for advertising or promotional purposes
+or for creating new collective works for resale or redistribution to servers or lists, or to reuse any copyrighted
+component of this work in other works, must be obtained from the IEEE. Contact: Manager, Copyrights and
+Permissions / IEEE Service Center / 445 Hoes Lane / P.O. Box 1331 / Piscataway, NJ 08855-1331, USA.
+Telephone: + Intl. 908-562-3966.
+arXiv:2305.05644v2  [cs.CL]  29 Jan 2024
