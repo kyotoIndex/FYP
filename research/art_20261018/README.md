@@ -1,44 +1,39 @@
-# ART / amplified restricted training — curated research package
+# 放大受限训练（ART）
 
-本目录整理了 2026-10-18 完成的放大受限训练（代码中的 `amp`，暂称 ART）算法设计、实现、实验计划、汇总与原始 JSON 运行记录。
+## 研究背景
 
-## Main result
+联邦微调中的客户端往往具有不同的算力、存储和通信能力。异构 LoRA 允许弱客户端只训练 (r) 个低秩分量，而强客户端训练完整的 (R) 个分量，从而适应这种差异。核心目标是：在保留异构预算的同时，不让弱客户端的受限训练拖低全局任务性能。
 
-在 RoBERTa-base / MNLI、10% strong clients、异构 LoRA rank（R=8, r=2）、AdamW 设定下：
+## 现有工作的不足与动机
 
-- amp：core weak accuracy **80.12 ± 0.14**
-- full-train reference：**80.17 ± 0.12**
-- homogeneous r8 upper reference：**80.19 ± 0.06**
-- restricted L2 owner baseline：**77.85 ± 0.53**
+已有的受限组件训练和稀疏上传方案，通常会把未选分量从本地前向中移除，或在服务器聚合时把未训练分量按零处理。这些做法在特定的 SGD 或均匀覆盖假设下有其解释，但在 AdamW、强弱客户端混合和逐分量覆盖不均时，会产生本地状态偏移、有效步长缩小和跨轮振荡。简单地放大学习率也无法复现完整训练的多轮行为。
 
-三个配对 seed 中 amp 均超过 L2，平均差约 +2.27 pp；稳定性为 0.35，对照 vref 为 0.37，L2 为 2.69。
+## 本文研究的问题
 
-Batch 2 的单因素对照：
+当弱客户端只能训练 (r<R) 个 LoRA 分量时，能否让它们从当前全局模型出发，恢复与完整训练相当的有效本地进展，并在不同客户端训练不同分量的情况下正确聚合，从而缩小异构 rank 带来的下游任务性能差距？
 
-- amp - FSLoRA-style state sketch：+0.42 pp
-- amp - learning-rate compensation：+0.76 pp
-- FSLoRA-style Hájek - zero-fill：+2.62 pp
-- gradient-path control：约 -0.11 pp
+## 解决问题的挑战
 
-C2 decoder transfer 作为边界实验保留：Qwen2.5-0.5B 上 amp 为 78.36，full-train reference 为 79.87；该结果用于限定适用范围。
+1. 受限客户端每一步能够利用的 LoRA 更新方向减少，局部降损速度随 (r/R) 缩小。
+2. 不同分量由不同客户端覆盖，拥有者平均和 zero-fill 会改变强弱客户端的相对权重。
+3. 在 AdamW 下，前向放大、梯度放大和学习率补偿并不等价。
+4. 方法收益必须与 state sketch、聚合方式和随机波动区分开，并通过配对 seed 的任务指标验证。
 
-## Layout
+## 本文方法与贡献
 
-- `design/`: 算法设计、路线图、文献关系、C2 设计和资源边界
-- `code/`: SCRA/ART 实现、测试、运行入口和 Slurm 入口
-- `configs/`: 批量实验与 C2 的实际计划 JSON
-- `results/`: 汇总 Markdown、汇总 JSON、identity 和逐轮结果 JSON
+我们提出放大受限训练（Amplified Restricted Training, ART；代码中为 `amp`）：
 
-## Reproduction entry points
+- 未选分量保留当前全局值，弱客户端从全局模型开始本地训练；
+- 仅将已选分量的本轮 LoRA 增量在本地前向中放大 (alpha=R/r)，上传未放大的原始增量；
+- 使用覆盖均衡的分量分配和基于包含概率校正的 Hájek 聚合；
+- 通过单因素对照分离“增量放大”“state sketch”和“聚合校正”的作用。
 
-在具备依赖和数据/模型环境后，可从以下文件开始：
+在 RoBERTa-base/MNLI 的三 seed 验证中，ART 的核心弱客户端准确率为 **80.12 ± 0.14**，完整训练参照为 **80.17 ± 0.12**，restricted L2 基线为 **77.85 ± 0.53**。Batch 2 进一步观察到：ART 比相同梯度路径的 FSLoRA-style state sketch 高 **0.42 pp**，比学习率补偿高 **0.76 pp**，Hájek 比 zero-fill 高 **2.62 pp**。当前主张聚焦这一 encoder/AdamW 异构 LoRA 设定；decoder 实验作为适用范围边界保留。
 
-- `code/README.md`
-- `code/run.py`
-- `code/make_batch.py`
-- `code/make_batch2.py`
-- `code/make_c2fed.py`
-- `code/tests/test_scra.py`
-- `code/tests/test_c2.py`
+## 材料
 
-运行数据、权重、缓存、Slurm 日志和本地环境目录没有纳入该整理分支。
+- `design/`：算法设计、路线图、文献关系和 C2 设计
+- `code/`：实现、测试和运行入口
+- `configs/`：实际实验计划
+- `results/`：汇总、identity 和逐轮 JSON 结果
+- `PROVENANCE.md`：分支来源和代码版本说明
