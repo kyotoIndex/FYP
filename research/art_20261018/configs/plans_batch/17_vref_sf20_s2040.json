@@ -1,0 +1,132 @@
+{
+  "id": "scra_batch_20261018_vref_sf20_s2040",
+  "project_root": "/home/student/t330025090/FYP/federated_finetuning",
+  "cache_directory": "runs/client_influence_20261015_sgd_v1/shared_token_cache",
+  "manifest_path": "data/mnli_r1_seed2026/manifest.json",
+  "run_root": "runs/scra_batch_20261018/vref_sf20_s2040",
+  "model": {
+    "family": "roberta",
+    "name": "models/roberta-base",
+    "revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+    "local_files_only": true
+  },
+  "num_labels": 3,
+  "lora": {
+    "full_rank": 8,
+    "weak_rank": 2,
+    "scale": 2.0
+  },
+  "federation": {
+    "rounds": 150,
+    "clients_per_round": 10
+  },
+  "train": {
+    "lr": 0.0002,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "local_steps": 20,
+    "batch_size": 8,
+    "gradient_clip": 1.0,
+    "eval_batch_size": 64
+  },
+  "evaluation": {
+    "every_rounds": 10
+  },
+  "checkpoint_every": 5,
+  "cpu_threads": 4,
+  "d0": {
+    "seed": 2040,
+    "strong_fraction": 0.2,
+    "allocation": "balanced",
+    "aggregation": "hajek",
+    "shadow_strong_replay": false,
+    "kappa_beta": 0.9,
+    "kappa_warmup": 20,
+    "snapshot_rounds": [
+      20,
+      60,
+      120
+    ],
+    "windows": [
+      [
+        1,
+        10
+      ],
+      [
+        11,
+        20
+      ],
+      [
+        21,
+        30
+      ],
+      [
+        31,
+        40
+      ],
+      [
+        41,
+        50
+      ],
+      [
+        51,
+        60
+      ],
+      [
+        61,
+        70
+      ],
+      [
+        71,
+        80
+      ],
+      [
+        81,
+        90
+      ],
+      [
+        91,
+        100
+      ],
+      [
+        101,
+        110
+      ],
+      [
+        111,
+        120
+      ],
+      [
+        121,
+        130
+      ],
+      [
+        131,
+        140
+      ],
+      [
+        141,
+        150
+      ]
+    ],
+    "save_stats": false,
+    "weak_train_full": true
+  },
+  "d1": {
+    "seed": 7100,
+    "core_per_domain": 3,
+    "demoted_per_domain": 1
+  },
+  "criteria": {
+    "min_relative_bias": 0.05,
+    "min_window_cosine": 0.3,
+    "max_K_star": 50,
+    "min_cv2_for_neyman": 0.1,
+    "max_update_growth": 3.0,
+    "late_start_round": 110
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "id": "c2_fed_20261018_main_L2",
+  "project_root": "/home/student/t330025090/FYP/federated_finetuning",
+  "cache_directory": "runs/c2_llm_cache_qwen2.5-0.5b",
+  "manifest_path": "data/mnli_r1_seed2026/manifest.json",
+  "run_root": "runs/c2_fed_20261018/main_L2",
+  "model": {
+    "family": "qwen2",
+    "name": "models/qwen2.5-0.5b",
+    "local_files_only": true,
+    "dtype": "bfloat16",
+    "attn_implementation": "sdpa"
+  },
+  "lora": {
+    "full_rank": 64,
+    "weak_rank": 8,
+    "scale": 2.0
+  },
+  "federation": {
+    "clients_per_round": 10
+  },
+  "train": {
+    "lr": 0.0002,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "local_steps": 20,
+    "batch_size": 8,
+    "gradient_clip": 1.0,
+    "eval_batch_size": 32
+  },
+  "cpu_threads": 4,
+  "d0": {
+    "seed": 2040,
+    "strong_fraction": 0.1
+  },
+  "c2": {
+    "seed": 7400,
+    "draws": 12,
+    "snapshot_rounds": [
+      0,
+      5,
+      30
+    ],
+    "snapshot_run_rounds": 30,
+    "eval_per_client": 40,
+    "probe_examples": 64,
+    "max_len": 256,
+    "amp_alpha": "auto",
+    "learnable_min_core_acc": 0.45,
+    "checkpoint_every": 5,
+    "eval_seed": 2040
+  },
+  "c2fed_report": {
+    "lr_select_round": 10,
+    "late_window": [
+      40,
+      60
+    ],
+    "early_window": [
+      5,
+      20
+    ],
+    "osc_from": 20
+  },
+  "c2fed": {
+    "method": "L2",
+    "rounds": 60,
+    "eval_every": 5,
+    "checkpoint_every": 5,
+    "diag_every": 10
+  }
+}
