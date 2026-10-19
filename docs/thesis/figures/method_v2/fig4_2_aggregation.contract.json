@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-19",
+  "audience": "ML researchers reading the method chapter",
+  "column_width_mm": 178,
+  "languages": [
+    "zh",
+    "en"
+  ],
+  "output_formats": [
+    "drawio",
+    "svg",
+    "pdf",
+    "png"
+  ],
+  "schematic": true,
+  "palette": "paper-palette.yaml",
+  "caption_source": "README.md",
+  "geometry_source": "build_figures.py",
+  "icons": "none; native vector matrices, operators and connectors",
+  "review": {
+    "native_svg": "visually reviewed",
+    "pdf": "rendered and visually reviewed",
+    "grayscale": "main figure rendered and visually reviewed"
+  },
+  "figure": "4.2",
+  "claim": "Hájek and zero-fill aggregation normalize the same sparse raw uploads differently.",
+  "five_second_message": "One upload pattern yields component-specific Hájek denominators or a common all-client zero-fill denominator.",
+  "panels": [
+    "(a) the same raw uploads",
+    "(b) inverse-inclusion coefficients and zero-fill coefficients with their column denominators"
+  ],
+  "example_source": "aggregation_example.json",
+  "sources": [
+    "../../../../federated_finetuning/experiments/scra_diagnostics_20261017/scra/core.py"
+  ],
+  "encoding": {
+    "same_hue": "component identity",
+    "dashed_cell": "unsent component",
+    "matrix_numbers": "weighting coefficients",
+    "output_bar_length": "constant decorative length; does not represent magnitude"
+  },
+  "assumptions": [
+    "three equally weighted participants",
+    "heterogeneous ranks [1,2,4] with R=4",
+    "inclusion probabilities [1/4,1/2,1]"
+  ]
+}

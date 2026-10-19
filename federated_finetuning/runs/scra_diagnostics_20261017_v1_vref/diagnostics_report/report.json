@@ -1,0 +1,136 @@
+{
+  "plan_id": "scra_diagnostics_20261017_v1_vref",
+  "criteria": {
+    "min_relative_bias": 0.05,
+    "min_window_cosine": 0.3,
+    "max_K_star": 50,
+    "min_cv2_for_neyman": 0.1,
+    "max_update_growth": 3.0,
+    "late_start_round": 110
+  },
+  "d0": {
+    "relative_systematic_bias": 0.04965175843667609,
+    "adjacent_window_cosine": 0.025460117629596164,
+    "adjacent_round_cosine_descriptive": 0.0037868416402488947,
+    "systematic_energy_ratio": 0.012441781349480152,
+    "var_owner_sum": 0.036387793719768524,
+    "var_hajek_sum": 0.03940757364034653,
+    "bias_sq_sum": 0.0002618629951030016,
+    "K_star_rounds": 11.53190781840022,
+    "sigma_cv2_within_adapter": 0.00015593857096973807,
+    "sigma_cv2_all_blocks": 0.005129914730787277,
+    "sigma_cv2_all_blocks_relative_to_update": 0.0017006653361022472,
+    "shadow_strong_mode_relative": 0.0,
+    "shadow_kappa_last": null,
+    "shadow_kappa_mean_last50": null,
+    "shadow_a_mean_last50": null,
+    "vector_kappa_windows": [],
+    "vector_kappa_last3_mean": null,
+    "vector_a_last3": null,
+    "accuracy": {
+      "core_clients": 30,
+      "late_start_round": 110,
+      "L2_d0": {
+        "core": 80.15222777176294,
+        "all": 81.21550689284416
+      },
+      "r8": {
+        "core": 80.12731978634649,
+        "all": 81.22354384827852
+      },
+      "r2": {
+        "core": 78.38903982580256,
+        "all": 79.72471416402269
+      },
+      "L0_prefix": {
+        "core": 78.04171671956138,
+        "all": 79.61505233643219
+      },
+      "L2_main": {
+        "core": 77.71944279671676,
+        "all": 79.15772053976444
+      },
+      "L2_recovered_fraction_core": 1.014329098868892,
+      "L0_recovered_fraction_core": -0.1998084969768013,
+      "remaining_gap_core_pp": -0.024907985416447787
+    },
+    "update_norm_late_over_early": 0.9317532247402364,
+    "loss_first10": 1.0018388577848671,
+    "loss_last10": 0.5249106476013549,
+    "final_macro_accuracy": 0.8156526411798707,
+    "curve": [
+      [
+        0,
+        0.33331902718168804
+      ],
+      [
+        10,
+        0.6745417707819233
+      ],
+      [
+        20,
+        0.7439629329465786
+      ],
+      [
+        30,
+        0.7637880784941173
+      ],
+      [
+        40,
+        0.7807963993536805
+      ],
+      [
+        50,
+        0.7848517085113226
+      ],
+      [
+        60,
+        0.792625273826529
+      ],
+      [
+        70,
+        0.7938112516344379
+      ],
+      [
+        80,
+        0.800718788359523
+      ],
+      [
+        90,
+        0.8039460407031936
+      ],
+      [
+        100,
+        0.803748354393658
+      ],
+      [
+        110,
+        0.8090480142944628
+      ],
+      [
+        120,
+        0.8063905520096099
+      ],
+      [
+        130,
+        0.8131895377453519
+      ],
+      [
+        140,
+        0.8164945994129126
+      ],
+      [
+        150,
+        0.8156526411798707
+      ]
+    ],
+    "checks": {
+      "F2_bias_large_enough": false,
+      "F3_direction_persistent": false,
+      "F3_K_star_small_enough": true,
+      "E1_neyman_worthwhile": false,
+      "F9_no_update_blowup": true
+    }
+  },
+  "d1": []
+}

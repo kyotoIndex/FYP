@@ -1,0 +1,128 @@
+{
+  "id": "headroom_strongfrac_20261017_v1",
+  "project_root": "/home/student/t330025090/FYP/federated_finetuning",
+  "cache_directory": "runs/client_influence_20261015_sgd_v1/shared_token_cache",
+  "manifest_path": "data/mnli_r1_seed2026/manifest.json",
+  "run_root": "runs/headroom_strongfrac_20261017_v1",
+  "model": {
+    "family": "roberta",
+    "name": "models/roberta-base",
+    "revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+    "local_files_only": true
+  },
+  "num_labels": 3,
+  "lora": {
+    "full_rank": 8,
+    "weak_rank": 2,
+    "scale": 2.0
+  },
+  "federation": {
+    "rounds": 150,
+    "clients_per_round": 10
+  },
+  "train": {
+    "lr": 0.0002,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "local_steps": 20,
+    "batch_size": 8,
+    "gradient_clip": 1.0,
+    "eval_batch_size": 64
+  },
+  "personalize": {
+    "steps": 20
+  },
+  "evaluation": {
+    "every_rounds": 10
+  },
+  "checkpoint_every": 5,
+  "cpu_threads": 4,
+  "cells": [
+    {
+      "method": "fedavg_r8",
+      "seed": 2040
+    },
+    {
+      "method": "fedavg_r2",
+      "seed": 2040
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2040,
+      "strong_fraction": 0.1
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2040,
+      "strong_fraction": 0.2
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2040,
+      "strong_fraction": 0.4
+    },
+    {
+      "method": "fedavg_r8",
+      "seed": 2041
+    },
+    {
+      "method": "fedavg_r2",
+      "seed": 2041
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2041,
+      "strong_fraction": 0.1
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2041,
+      "strong_fraction": 0.2
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2041,
+      "strong_fraction": 0.4
+    },
+    {
+      "method": "fedavg_r8",
+      "seed": 2042
+    },
+    {
+      "method": "fedavg_r2",
+      "seed": 2042
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2042,
+      "strong_fraction": 0.1
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2042,
+      "strong_fraction": 0.2
+    },
+    {
+      "method": "hetero_r8r2",
+      "seed": 2042,
+      "strong_fraction": 0.4
+    }
+  ],
+  "sweep": {
+    "fractions": [
+      0.1,
+      0.2,
+      0.4
+    ],
+    "late_start_round": 110,
+    "threshold_pp_every_seed": 1.0,
+    "targets": [
+      78,
+      80
+    ]
+  }
+}

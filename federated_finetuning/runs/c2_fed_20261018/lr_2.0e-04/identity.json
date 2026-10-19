@@ -1,0 +1,138 @@
+{
+  "plan": {
+    "id": "c2_fed_20261018_lr_2.0e-04",
+    "project_root": "/home/student/t330025090/FYP/federated_finetuning",
+    "cache_directory": "/home/student/t330025090/FYP/federated_finetuning/runs/c2_llm_cache_qwen2.5-0.5b",
+    "manifest_path": "/home/student/t330025090/FYP/federated_finetuning/data/mnli_r1_seed2026/manifest.json",
+    "run_root": "/home/student/t330025090/FYP/federated_finetuning/runs/c2_fed_20261018/lr_2.0e-04",
+    "model": {
+      "family": "qwen2",
+      "name": "/home/student/t330025090/FYP/federated_finetuning/models/qwen2.5-0.5b",
+      "local_files_only": true,
+      "dtype": "bfloat16",
+      "attn_implementation": "sdpa"
+    },
+    "lora": {
+      "full_rank": 64,
+      "weak_rank": 8,
+      "scale": 2.0
+    },
+    "federation": {
+      "clients_per_round": 10
+    },
+    "train": {
+      "lr": 0.0002,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "weight_decay": 0.0,
+      "local_steps": 20,
+      "batch_size": 8,
+      "gradient_clip": 1.0,
+      "eval_batch_size": 32
+    },
+    "cpu_threads": 4,
+    "d0": {
+      "seed": 2041,
+      "strong_fraction": 0.1
+    },
+    "c2": {
+      "seed": 7400,
+      "draws": 12,
+      "snapshot_rounds": [
+        0,
+        5,
+        30
+      ],
+      "snapshot_run_rounds": 30,
+      "eval_per_client": 40,
+      "probe_examples": 64,
+      "max_len": 256,
+      "amp_alpha": "auto",
+      "learnable_min_core_acc": 0.45,
+      "checkpoint_every": 5,
+      "eval_seed": 2040
+    },
+    "c2fed_report": {
+      "lr_select_round": 10,
+      "late_window": [
+        40,
+        60
+      ],
+      "early_window": [
+        5,
+        20
+      ],
+      "osc_from": 20
+    },
+    "c2fed": {
+      "method": "r8",
+      "rounds": 10,
+      "eval_every": 5,
+      "checkpoint_every": 5,
+      "diag_restricted_rounds": 5
+    }
+  },
+  "plan_sha256": "6444be736c9d001df253ef5cc3da89fa0d629a7495829bc0c46dead7e51299c9",
+  "code_hashes": {
+    "scra/__init__.py": "53dbe20352539af446e91960743f1ba5b1d06d76a993f498b29460eb9d0eb07a",
+    "scra/analyze.py": "6ebea5fa97f7f2ba0f2d82d7c857b73d491f26bc2cbd8c2e66082ae1f2c34092",
+    "scra/batch.py": "2b776d4fb20454258a1cee68838c0c44568980007e0b9d03d289f2abdc520ba8",
+    "scra/batch2.py": "e15abb8c5b391b10a9ff8c847f187f7a047ad7572fa8d040051e0f5fab906f2a",
+    "scra/c2fed.py": "e1d2121763ed6085fef1d1887ed3a81c4e8e0c5fdf3b91ab6962099d83972cdc",
+    "scra/c2probe.py": "367f7387e08343a132f77b92b63ac5b870a3d37b14df1c1dd14c0215ff48a09d",
+    "scra/core.py": "cbcaccd8fbd095445fb63086848bbb2cd87d6d438110d67314e2f8e23996b933",
+    "scra/d0.py": "a483068bdfb6197290f6ad03eacf7a7cd6715dc8b91e1288f5523c247661a55a",
+    "scra/d1.py": "412b08646c1d09b8a7ff841d50a7cdbffa54e36e9b1f1a34160361aa5a44bc89",
+    "scra/d2.py": "d4f548b5b51fb42c804576d0d06d2264391ee7908bdde6dde91bc2961ccb4089",
+    "scra/d3.py": "9ab0ed7f4b316d03412cabf20d66e4671eb06c83b6f0d4aca3f55b1c3d9442e5",
+    "scra/data.py": "d7101ec722d75a37e2876d872b1f9311dbadcfca45361cf74f939fd6cb539f94",
+    "scra/llm.py": "a35585670474903c2fe9c55fb695c853fe129cadcdf3b8bb382535e3418e83db",
+    "scra/model.py": "3531803a2b562deebd452b7539138677980b8d7d271fe1054b0a34d5911d30d1"
+  },
+  "model_dir": "/home/student/t330025090/FYP/federated_finetuning/models/qwen2.5-0.5b",
+  "model_revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+  "model_config_sha256": "479dcf0c5286339e41ad3992cd08ae88a467c4187587936248e2b7c96283484b",
+  "cache_fingerprint": {
+    "manifest_sha256": "c7ed0e219a1c0cfd5132a7a88eb02aabb115ee6da9bd7cf1163d01b0a4752d5f",
+    "train_jsonl_sha256": "20c672ed6e0aa70eaec0fde2455932e99dd86f6dbd2e80f72073da20231a863e",
+    "validation_jsonl_sha256": "aabd6d60feece7a41affa78e50e5fdb67c16a4b18b16a2f14fc1205637b477e5",
+    "tokenizer_sha256": {
+      "tokenizer.json": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+      "tokenizer_config.json": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+      "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+      "merges.txt": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+    },
+    "max_len": 256,
+    "label_words": [
+      " yes",
+      " maybe",
+      " no"
+    ],
+    "template": [
+      "Premise: ",
+      "\nHypothesis: ",
+      "\nDoes the premise entail the hypothesis? Answer:"
+    ]
+  },
+  "cache_sha256": {
+    "train": "04b80ba9a224e3623d1f7663653f2e5f18247b7bf069917c198283e5a00e90bc",
+    "validation": "bd3d2f6657566f0616ac7eb080697db3227a7137567b3469c12d1844288dd1f3"
+  },
+  "label_words": [
+    " yes",
+    " maybe",
+    " no"
+  ],
+  "label_token_ids": [
+    9834,
+    7196,
+    902
+  ],
+  "torch": "2.8.0+cu128",
+  "transformers": "4.57.1",
+  "host": "hpcgpu13",
+  "gpu": "NVIDIA GeForce RTX 4090 D"
+}

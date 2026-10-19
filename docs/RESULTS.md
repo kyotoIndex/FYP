@@ -1,83 +1,66 @@
-# Experiment Registry And Current Findings
+# 完成结果与实验口径
 
-## Canonical Main Run
+2026-10-19。结果取自保存的逐轮轨迹。运行 `python scripts/reproduce_results.py` 可离线重建两份 RoBERTa 汇总和一份 Qwen 报告，并与发布的 JSON 逐项比较；统一表输出至 `generated/results/MAIN_RESULTS.md`。
 
-Directory: `results/expanded_sst2_bert_base_dirichlet_v1`
+## 主结果
 
-Protocol:
+所有主比较使用训练 seed 2040、2041、2042；数据 seed 为 2026。下表为三种子均值 ± **样本标准差（ddof=1）**，单位为百分比。完整配置、轮次窗口和分区见 [REPRODUCE](REPRODUCE.md)。
 
-- SST-2 with `bert-base-uncased`
-- 20 clients; 10 uniformly sampled without replacement per round
-- 30 rounds; one local epoch; 512 samples per client
-- seeds 7, 13, and 21
-- Dirichlet label skew, alpha 0.3
-- 12 low-, 6 medium-, and 2 high-resource clients
-- LoRA rank 16 on query/value projections
-- 320 proxy and 552 disjoint evaluation examples
-- nine methods in one runner under shared initialization/data/order policies
+| 模型 | 方法 | 2040 | 2041 | 2042 | 均值 ± SD |
+|---|---|---:|---:|---:|---:|
+| RoBERTa | 全秩训练、全量上传 r8 | 80.13 | 80.26 | 80.19 | 80.19 ± 0.07 |
+| RoBERTa | 完整训练、部分上传 vref | 80.15 | 80.32 | 80.02 | 80.17 ± 0.15 |
+| RoBERTa | **AmpLoRA / Hájek** | 80.05 | 80.32 | 79.99 | **80.12 ± 0.17** |
+| RoBERTa | 不放大的受限训练 L2 | 77.72 | 77.28 | 78.56 | 77.85 ± 0.65 |
+| Qwen | 全秩训练、全量上传 r8（实际 R=64） | 82.52 | 82.27 | 81.80 | 82.19 ± 0.36 |
+| Qwen | 完整训练、部分上传 vref_zf | 80.93 | 80.48 | 80.02 | 80.48 ± 0.46 |
+| Qwen | **AmpLoRA / 零填充收缩 amp_zf** | 80.87 | 80.30 | 80.05 | **80.41 ± 0.42** |
+| Qwen | 完整训练、部分上传 vref / Hájek | 79.92 | 80.30 | 79.38 | 79.87 ± 0.46 |
+| Qwen | amp / Hájek | 78.45 | 78.35 | 78.27 | 78.36 ± 0.09 |
+| Qwen | FSLoRA 风格 | 80.40 | 80.43 | 79.78 | 80.21 ± 0.37 |
 
-Audit status:
+RoBERTa 的本地训练差距由 2.32pp 缩至 0.05pp；Qwen 收缩配置下，受限训练与相同上传参照的差距为 −0.07pp。Qwen 完整全量上传到部分上传参照仍有 1.72pp 差距。RoBERTa 的轮间波动为 amp 0.35、vref 0.37、L2 2.69。
 
-- 810 metric rows (9 methods x 30 rounds x 3 seeds)
-- 8,100 allocation rows (10 selected clients per metric row)
-- all allocation invariants pass
-- 12 allocation/scheduling unit tests pass
+主指标是 **30 个核心弱客户端**的宏平均准确率：这些客户端所在领域没有强客户端。RoBERTa 在第 110、120、130、140、150 轮取均值；Qwen 在第 40、45、50、55、60 轮取均值，使用各客户端最多 40 条的固定验证子集。官方 development 数据另行保存为 final splits；当前研究数字使用上述验证口径。
 
-Key final-round results:
+早期 RoBERTa 批次 1 的报告使用总体 SD（ddof=0），因此原表写作 amp ±0.14、L2 ±0.53；批次 2 与本页使用样本 SD。均值与每 seed 结果相同。
 
-| Method | Accuracy mean +/- SD | Mean time (s) | Mean communication (MB) |
-|---|---:|---:|---:|
-| Fed-HeLLo | 0.8979 +/- 0.0058 | 190.4 | 834.1 |
-| FedRA Random Partial | 0.8973 +/- 0.0121 | 185.1 | 834.1 |
-| FIM-HLA | 0.8961 +/- 0.0118 | 192.5 | 834.1 |
-| RGD-HLA | 0.8943 +/- 0.0154 | 189.0 | 834.1 |
-| PCLA-v1 | 0.8895 +/- 0.0126 | 188.3 | 878.7 |
-| FedLoRA | 0.8859 +/- 0.0189 | 313.7 | 1353.5 |
-| Resource-only | 0.8653 +/- 0.0420 | 179.8 | 834.1 |
-| Importance-resource | 0.7621 +/- 0.2211 | 193.5 | 920.2 |
-| LEGEND-like | 0.7512 +/- 0.2126 | 228.7 | 1100.2 |
+## RoBERTa 机制对照与稳健性
 
-Interpretation:
+| 比较 / 干预 | 后期准确率变化 |
+|---|---:|
+| amp − 同梯度路径 FSLoRA 状态草图 | +0.42pp，三种子配对 |
+| amp − LoRA 学习率补偿 | +0.76pp，三种子配对 |
+| FSLoRA 前向下，Hájek − zero-fill | +2.62pp，三种子配对 |
+| amp − FSLoRA 风格 | +2.95pp，三种子配对 |
+| amp − Fed-PLoRA 风格 | +2.96pp，三种子配对 |
+| amp − FLASC 风格 | +0.79pp，三种子配对 |
+| α=2 替代 α=4 | −0.58pp，seed 2040 |
+| owner 替代 Hájek | −0.45pp，seed 2040 |
+| prefix 替代 balanced 分配 | −1.55pp，seed 2040 |
 
-- PCLA-v1 is more efficient than full FedLoRA and slightly improves its final
-  accuracy, but it does not outperform Fed-HeLLo or random partial allocation.
-- Fed-HeLLo and random partial allocation differ by only 0.0006 in final mean;
-  this three-seed run does not establish statistical superiority.
-- PCLA-v1's requested four clusters collapse to two used IDs and mostly separate
-  low-resource from medium/high-resource clients. The current clustering rule
-  does not demonstrate data-driven personalization.
-- Importance-resource and LEGEND-like each suffer a near-random seed, producing
-  very large variance. Their mean final accuracy must not be reported without
-  the error bars and per-seed context.
-- The reported time is a heterogeneous compute/communication simulation based
-  on measured local operations and configured device factors. It is not a
-  physical multi-device wall-clock benchmark.
+r=1、混合秩 {1,2,4}、20% 强端三组稳健性实验，分别追回 L2→vref 差距的 1.01、0.89、0.92（seed 2040）。FSLoRA、Fed-PLoRA、FLASC 风格对照在本项目统一 AdamW 协议中实现；具体差异在 [batch2 原始说明](../federated_finetuning/experiments/scra_diagnostics_20261017/FIX_BATCH2_CONTROLS_2026-10-18.md)与[文献核对](designs/literature_check_2026-10-18_amplified_restricted.md)。
 
-## Other Result Directories
+[批次 1 完整报告](../federated_finetuning/runs/scra_batch_20261018/SUMMARY.md) · [批次 2 完整报告](../federated_finetuning/runs/scra_batch2_20261018/SUMMARY.md) · [机制与实验图](../federated_finetuning/experiments/scra_diagnostics_20261017/figures/INDEX.md)
 
-| Directory | Role | Status |
-|---|---|---|
-| `formal_comparison_sst2_bert_base_v1` | Earlier 5-client, 12-round comparison | Complete; secondary evidence |
-| `controlled_sst2_bert_base_v1` | Audited Fed-HeLLo mechanism run | Complete; mechanism check |
-| `controlled_sst2_bert_base` | Earlier controlled output | Complete but superseded by `_v1` |
-| `controlled_sst2` | BERT-mini target directory | Empty; checkpoint incompatible with installed safety policy |
+## Qwen：聚合方式的反转
 
-Completed run-level `run_config.json` files retain their historical paths. They
-are immutable provenance records from before the workspace reorganization. The
-current configs use the self-contained `data/` and `results/` paths.
+Qwen 的 38 组记录包含学习率选择、α 扫描、主比较、定位对照、补 seed、聚合比较及三个完整 60 轮重放。学习率按照第 10 轮开发指标选为 2e-4。L2 为 33.70%，Fed-PLoRA 风格为 33.07%（均为 seed 2040）。
 
-## Next Algorithm Direction
+| 三种子配对差值 | 均值 | 95% t 区间 |
+|---|---:|---|
+| amp_zf − vref_zf | −0.07pp | [−0.34, +0.20] |
+| amp_zf − amp（Hájek） | +2.05pp | [+1.23, +2.87] |
+| FSLoRA 前向下 zero-fill − Hájek | +2.28pp | [+2.09, +2.47] |
+| amp_zf − FSLoRA 风格 | +0.20pp | [−0.56, +0.96] |
+| r8 − vref_zf | +1.72pp | [+1.43, +2.00] |
 
-Implement PCLA-v2 as a new method and protocol, not an in-place rewrite of v1:
+同一方法的本地规则下，两个模型对聚合归一化的偏好不同。Qwen 的弱组件覆盖较少，zero-fill 的收缩提高了精度；服务器步长 0.25 的单 seed 对照为 80.92%，与 amp_zf 的 80.87% 接近。算法通过显式配置选择聚合，详细公式见 [METHOD](METHOD.md)。
 
-1. Cluster using layer-wise marginal utility or update features; do not mix raw
-   resource tier directly into the clustering feature.
-2. Put compute and communication into explicit budget constraints.
-3. Jointly allocate active layers and rank.
-4. Define rank-aware aggregation, ideally with a global shared adapter plus
-   cluster residual adapters.
-5. Add EMA/periodic importance updates and allocation-stability regularization.
-6. Run `K={1,2,3,4}` and Dirichlet-alpha ablations with the same random baseline.
-7. Report final accuracy, late-round mean, time-to-target, communication, and
-   Pareto plots.
+三个旧版本代表运行的完整重放全部通过，保存结果中各评测轮的准确率差为零；原有报告的版本核对与协议比较逻辑继续保留。[Qwen 完整报告](../federated_finetuning/runs/c2_fed_20261018/REPORT_C2_1.md)与 [C2 最终设计记录](designs/c2_1_design_2026-10-18.md)列出全部配对比较和判据。
 
+## 资源与后续工作
+
+发布实现使用完整 rank 张量与梯度掩码，实验在单 GPU 进程中模拟客户端和部分上传。通信预算以 LoRA 因子元素数计数；folded 参数化的内存与计算估算、实测成本以及源码来源集中记录于 [PROVENANCE](PROVENANCE.md)。
+
+后续工作以论文与展示为主：定名、完成 Qwen 结果图、整理算法框与章节。连续自适应聚合、更大模型与更多任务可作为研究展望。
