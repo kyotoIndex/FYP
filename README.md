@@ -2,7 +2,7 @@
 
 **Adaptive Parameter-Efficient Fine-Tuning for Federated Large Models**
 
-客户端只训练和上传部分 LoRA 组件时，怎样保持完整本地训练的精度？本项目研究本地增量放大与按组件聚合，在 RoBERTa-base 和 Qwen2.5-0.5B 的 MNLI 联邦微调中给出实现、配对实验、原始轨迹和复现入口。**AmpLoRA 为论文写作阶段暂名**，早期记录使用 ART / `amp`。
+客户端只训练和上传部分 LoRA 组件时，怎样保持完整本地训练的精度？本项目研究本地增量放大与按组件聚合，在 RoBERTa-base 和 Qwen2.5-0.5B 的 MNLI 联邦微调中给出实现、配对实验、原始轨迹和复现入口。**AmpLoRA**
 
 [开始复现](docs/REPRODUCE.md) · [学习指南](docs/LEARNING_GUIDE.md) · [方法与公式](docs/METHOD.md) · [结果与消融](docs/RESULTS.md) · [来源与环境](docs/PROVENANCE.md)
 
