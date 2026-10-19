@@ -73,6 +73,4 @@ pytest -q
 | 论文提纲、可编辑方法图 | [docs/thesis/](docs/thesis/thesis_outline_2026-10-19.md) |
 | 研究演进及旧分支 | [docs/HISTORY.md](docs/HISTORY.md) |
 
-[本次整理验证记录](docs/RELEASE_CHECK.md)：46 项测试通过，三份结果 JSON 完整复算，官方数据分区从零重建通过。
-
-项目状态：核心实验已完成，进入论文与展示整理。算法细节以 `docs/METHOD.md` 和代码为准，实验数字由 `scripts/reproduce_results.py` 从发布轨迹复算。协作规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+协作规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
