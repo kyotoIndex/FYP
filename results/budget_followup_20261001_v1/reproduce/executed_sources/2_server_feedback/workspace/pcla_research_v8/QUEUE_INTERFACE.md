@@ -1,7 +1,0 @@
-# v8 configuration and queue interface
-
-`scripts/build_pcla_v8_configs.py --package PRO_DIR --root RUN_ROOT --loader-template RUN_ROOT/checks/loader_template.json` writes 128 DEV JSON files under `RUN_ROOT/configs/development01` and 108 unresolved V slot JSON files. Compile on the host where the real manifest, token cache, model and B8 wire file are readable. Each expanded config retains the complete received recipe, source/input hashes, model revision, scope receipt hash and explicit binding status. Compilation never releases a job.
-
-`scripts/dispatch_pcla_v8.py --root RUN_ROOT initialize` creates blocked queue records and preserves existing records on restart. `release-family --family FAMILY --gate-receipt PATH` requires an accepted integration gate receipt for that family and verifies bound inputs. `worker` runs inside an existing one-GPU Slurm step, claims one pending job using `flock`, binds its GPU UUID and four CPU cores, then selects another job after the child exits. It never automatically retries running, failed or audited jobs. A successful trajectory enters `executed_pending_audit`; `complete-audit --job-id ID --receipt PATH` requires an independent receipt binding the result SHA256 before changing it to `completed`.
-
-CPU checks: `python -m pytest -q tests_v8/test_configuration.py tests_v8/test_queue.py`. On a remote host set `PCLA_V8_PACKAGE` and `PCLA_V8_RUN_ROOT` for the package-backed fixture.

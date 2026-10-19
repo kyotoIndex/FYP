@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-19",
+  "audience": "ML researchers reading the method chapter",
+  "column_width_mm": 178,
+  "languages": [
+    "zh",
+    "en"
+  ],
+  "output_formats": [
+    "drawio",
+    "svg",
+    "pdf",
+    "png"
+  ],
+  "schematic": true,
+  "palette": "paper-palette.yaml",
+  "caption_source": "README.md",
+  "geometry_source": "build_figures.py",
+  "icons": "none; native vector matrices, operators and connectors",
+  "review": {
+    "native_svg": "visually reviewed",
+    "pdf": "rendered and visually reviewed",
+    "grayscale": "main figure rendered and visually reviewed"
+  },
+  "figure": "4.1",
+  "claim": "Local forward amplification is separated from unamplified selected-factor communication.",
+  "five_second_message": "Assign paired components; amplify local progress against the round-start anchor; upload raw factor changes.",
+  "panels": [
+    "(a) paired B columns / A rows with ranks 1, 2, 4",
+    "(b) frozen W0, current Ui, round-start Ut, and stop-gradient extra gain",
+    "(c) sparse raw factor changes, component aggregation and next-round broadcast"
+  ],
+  "formula": "h = W0 x + Ui x + (alpha_i - 1) stopgrad[(Ui - Ut)x]; alpha_i = R/r_i",
+  "example": {
+    "R": 4,
+    "client_ranks": [
+      1,
+      2,
+      4
+    ],
+    "selected_components_1_based": [
+      [
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        1,
+        2,
+        3,
+        4
+      ]
+    ]
+  },
+  "sources": [
+    "../../../designs/algorithm_design_2026-10-18_amplified_restricted.md",
+    "../../../../federated_finetuning/experiments/scra_diagnostics_20261017/scra/model.py"
+  ],
+  "encoding": {
+    "same_hue": "same paired rank-1 component across global, client and upload matrices",
+    "gray": "fixed components retained in forward",
+    "pale_components": "round-start frozen anchor",
+    "gold": "extra local forward gain",
+    "dashed_return": "next-round broadcast"
+  }
+}

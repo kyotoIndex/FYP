@@ -1,0 +1,236 @@
+{
+  "plan_id": "scra_batch2_20261018_fslora_hajek_s2041",
+  "seed": 2041,
+  "strong_clients": [
+    10,
+    11,
+    12,
+    40,
+    41
+  ],
+  "allocation": "balanced",
+  "aggregation": "hajek",
+  "R": 8,
+  "r": 2,
+  "weak_train_full": false,
+  "weak_lr_scale": 1.0,
+  "weak_shrink": {
+    "mode": "none"
+  },
+  "weak_forward": "fslora",
+  "dataset": {
+    "path": "/home/student/t330025090/FYP/federated_finetuning/data/mnli_r1_seed2026/manifest.json",
+    "task": "multinli",
+    "scenario": "R1",
+    "partition": "genre",
+    "data_seed": 2026,
+    "train_rows": 372557,
+    "validation_rows": 19681,
+    "unassigned_validation_rows": 0,
+    "roles": {
+      "weak": 30,
+      "strong": 20
+    }
+  },
+  "rho_population": 0.09848694293759076,
+  "client_domains": {
+    "0": "fiction",
+    "1": "fiction",
+    "2": "fiction",
+    "3": "fiction",
+    "4": "fiction",
+    "5": "fiction",
+    "6": "fiction",
+    "7": "fiction",
+    "8": "fiction",
+    "9": "fiction",
+    "10": "government",
+    "11": "government",
+    "12": "government",
+    "13": "government",
+    "14": "government",
+    "15": "government",
+    "16": "government",
+    "17": "government",
+    "18": "government",
+    "19": "government",
+    "20": "slate",
+    "21": "slate",
+    "22": "slate",
+    "23": "slate",
+    "24": "slate",
+    "25": "slate",
+    "26": "slate",
+    "27": "slate",
+    "28": "slate",
+    "29": "slate",
+    "30": "telephone",
+    "31": "telephone",
+    "32": "telephone",
+    "33": "telephone",
+    "34": "telephone",
+    "35": "telephone",
+    "36": "telephone",
+    "37": "telephone",
+    "38": "telephone",
+    "39": "telephone",
+    "40": "travel",
+    "41": "travel",
+    "42": "travel",
+    "43": "travel",
+    "44": "travel",
+    "45": "travel",
+    "46": "travel",
+    "47": "travel",
+    "48": "travel",
+    "49": "travel"
+  },
+  "plan": {
+    "id": "scra_batch2_20261018_fslora_hajek_s2041",
+    "project_root": "/home/student/t330025090/FYP/federated_finetuning",
+    "cache_directory": "/home/student/t330025090/FYP/federated_finetuning/runs/client_influence_20261015_sgd_v1/shared_token_cache",
+    "manifest_path": "/home/student/t330025090/FYP/federated_finetuning/data/mnli_r1_seed2026/manifest.json",
+    "run_root": "/home/student/t330025090/FYP/federated_finetuning/runs/scra_batch2_20261018/fslora_hajek_s2041",
+    "model": {
+      "family": "roberta",
+      "name": "/home/student/t330025090/FYP/federated_finetuning/models/roberta-base",
+      "revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+      "local_files_only": true
+    },
+    "num_labels": 3,
+    "lora": {
+      "full_rank": 8,
+      "weak_rank": 2,
+      "scale": 2.0
+    },
+    "federation": {
+      "rounds": 150,
+      "clients_per_round": 10
+    },
+    "train": {
+      "lr": 0.0002,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "weight_decay": 0.0,
+      "local_steps": 20,
+      "batch_size": 8,
+      "gradient_clip": 1.0,
+      "eval_batch_size": 64
+    },
+    "evaluation": {
+      "every_rounds": 10
+    },
+    "checkpoint_every": 5,
+    "cpu_threads": 4,
+    "d0": {
+      "seed": 2041,
+      "strong_fraction": 0.1,
+      "allocation": "balanced",
+      "aggregation": "hajek",
+      "shadow_strong_replay": false,
+      "kappa_beta": 0.9,
+      "kappa_warmup": 20,
+      "snapshot_rounds": [
+        20,
+        60,
+        120
+      ],
+      "windows": [
+        [
+          1,
+          10
+        ],
+        [
+          11,
+          20
+        ],
+        [
+          21,
+          30
+        ],
+        [
+          31,
+          40
+        ],
+        [
+          41,
+          50
+        ],
+        [
+          51,
+          60
+        ],
+        [
+          61,
+          70
+        ],
+        [
+          71,
+          80
+        ],
+        [
+          81,
+          90
+        ],
+        [
+          91,
+          100
+        ],
+        [
+          101,
+          110
+        ],
+        [
+          111,
+          120
+        ],
+        [
+          121,
+          130
+        ],
+        [
+          131,
+          140
+        ],
+        [
+          141,
+          150
+        ]
+      ],
+      "save_stats": false,
+      "weak_forward": "fslora"
+    },
+    "d1": {
+      "seed": 7100,
+      "core_per_domain": 3,
+      "demoted_per_domain": 1
+    },
+    "criteria": {
+      "min_relative_bias": 0.05,
+      "min_window_cosine": 0.3,
+      "max_K_star": 50,
+      "min_cv2_for_neyman": 0.1,
+      "max_update_growth": 3.0,
+      "late_start_round": 110
+    }
+  },
+  "torch": "2.8.0+cu128",
+  "host": "hpcgpu13",
+  "code_hashes": {
+    "scra/__init__.py": "53dbe20352539af446e91960743f1ba5b1d06d76a993f498b29460eb9d0eb07a",
+    "scra/analyze.py": "6ebea5fa97f7f2ba0f2d82d7c857b73d491f26bc2cbd8c2e66082ae1f2c34092",
+    "scra/batch.py": "2b776d4fb20454258a1cee68838c0c44568980007e0b9d03d289f2abdc520ba8",
+    "scra/batch2.py": "e15abb8c5b391b10a9ff8c847f187f7a047ad7572fa8d040051e0f5fab906f2a",
+    "scra/core.py": "cbcaccd8fbd095445fb63086848bbb2cd87d6d438110d67314e2f8e23996b933",
+    "scra/d0.py": "a483068bdfb6197290f6ad03eacf7a7cd6715dc8b91e1288f5523c247661a55a",
+    "scra/d1.py": "412b08646c1d09b8a7ff841d50a7cdbffa54e36e9b1f1a34160361aa5a44bc89",
+    "scra/d2.py": "d4f548b5b51fb42c804576d0d06d2264391ee7908bdde6dde91bc2961ccb4089",
+    "scra/d3.py": "9ab0ed7f4b316d03412cabf20d66e4671eb06c83b6f0d4aca3f55b1c3d9442e5",
+    "scra/data.py": "d7101ec722d75a37e2876d872b1f9311dbadcfca45361cf74f939fd6cb539f94",
+    "scra/model.py": "e2a7e20625122de7337728ee1c9e8a87eeddf2536569a02c5f154f8cf77dd271"
+  },
+  "gpu": "NVIDIA GeForce RTX 4090 D"
+}

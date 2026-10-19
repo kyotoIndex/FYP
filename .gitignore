@@ -1,28 +1,24 @@
-# Python caches and local environments
+.DS_Store
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.venv/
-.conda/
-.conda-*/
-
-# IDE and operating-system files
-.idea/
-.vscode/
-Thumbs.db
-.DS_Store
-
-# Hugging Face and local dataset caches
-.hf_cache/
-.hf_datasets_cache/
-
-# Large model artifacts: keep configuration/tokenizer files, not weights
-models/**/model*.safetensors
-*.bin
+.venv*/
+*.egg-info/
+build/
+dist/
+.env
+.env.*
+*.pem
+*.key
+.reproduction/
+generated/
+/federated_finetuning/models/
+/federated_finetuning/data/
+/federated_finetuning/runs/*cache*/
+**/logs/
 *.pt
 *.pth
-*.ckpt
-
-# Local logs and temporary outputs
-*.log
-*.tmp
+*.safetensors
+*.bin
+*.out
+*.err

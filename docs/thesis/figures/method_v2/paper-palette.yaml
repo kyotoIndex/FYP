@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "palette_id": "fyp-adaptive-peft-components-v2",
+  "paper_id": "adaptive-peft-federated-large-models",
+  "status": "frozen",
+  "description": "Matrix-based method figures. Four matched component identities plus one extra-gain hue; existing amp/vref/L2 chart colors retained.",
+  "semantic": {
+    "canvas": "#FFFFFF",
+    "ink": "#172033",
+    "muted": "#596675",
+    "stroke": "#DDE2E8",
+    "neutral": "#596675",
+    "accent": "#2A78D6",
+    "secondary": "#805CBB",
+    "success": "#1BAF7A",
+    "warning": "#EDA100",
+    "danger": "#EB6834"
+  },
+  "chart_roles": {
+    "ours": "#2A78D6",
+    "vref": "#1BAF7A",
+    "restricted_L2": "#EB6834",
+    "alpha_alternative": "#EDA100",
+    "other_baselines": "#596675",
+    "upper_bound": "#172033",
+    "uncertainty": "#DDE2E8"
+  },
+  "rules": {
+    "freeze_before_final_figures": true,
+    "same_entity_same_color_across_figures": true,
+    "ours_color_constant": true,
+    "baseline_color_constant": true,
+    "status_color_requires_redundant_encoding": true,
+    "maximum_semantic_hues": 5,
+    "card_tints_derive_from_semantic_hues": true,
+    "background_policy": "white"
+  },
+  "diagram_roles": {
+    "component_1": "#2A78D6",
+    "component_2": "#1BAF7A",
+    "component_3": "#805CBB",
+    "component_4": "#EB6834",
+    "extra_gain": "#EDA100",
+    "frozen": "#DDE2E8"
+  }
+}

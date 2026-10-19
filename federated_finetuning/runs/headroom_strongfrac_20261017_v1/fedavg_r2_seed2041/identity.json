@@ -1,0 +1,226 @@
+{
+  "method": "fedavg_r2",
+  "seed": 2041,
+  "plan_id": "headroom_strongfrac_20261017_v1",
+  "client_ranks": {
+    "0": 2,
+    "1": 2,
+    "2": 2,
+    "3": 2,
+    "4": 2,
+    "5": 2,
+    "6": 2,
+    "7": 2,
+    "8": 2,
+    "9": 2,
+    "10": 2,
+    "11": 2,
+    "12": 2,
+    "13": 2,
+    "14": 2,
+    "15": 2,
+    "16": 2,
+    "17": 2,
+    "18": 2,
+    "19": 2,
+    "20": 2,
+    "21": 2,
+    "22": 2,
+    "23": 2,
+    "24": 2,
+    "25": 2,
+    "26": 2,
+    "27": 2,
+    "28": 2,
+    "29": 2,
+    "30": 2,
+    "31": 2,
+    "32": 2,
+    "33": 2,
+    "34": 2,
+    "35": 2,
+    "36": 2,
+    "37": 2,
+    "38": 2,
+    "39": 2,
+    "40": 2,
+    "41": 2,
+    "42": 2,
+    "43": 2,
+    "44": 2,
+    "45": 2,
+    "46": 2,
+    "47": 2,
+    "48": 2,
+    "49": 2
+  },
+  "strong_fraction": null,
+  "strong_clients": [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49
+  ],
+  "dataset": {
+    "path": "/home/student/t330025090/FYP/federated_finetuning/data/mnli_r1_seed2026/manifest.json",
+    "task": "multinli",
+    "scenario": "R1",
+    "partition": "genre",
+    "data_seed": 2026,
+    "train_rows": 372557,
+    "validation_rows": 19681,
+    "unassigned_validation_rows": 0,
+    "roles": {
+      "weak": 30,
+      "strong": 20
+    }
+  },
+  "plan": {
+    "id": "headroom_strongfrac_20261017_v1",
+    "project_root": "/home/student/t330025090/FYP/federated_finetuning",
+    "cache_directory": "/home/student/t330025090/FYP/federated_finetuning/runs/client_influence_20261015_sgd_v1/shared_token_cache",
+    "manifest_path": "/home/student/t330025090/FYP/federated_finetuning/data/mnli_r1_seed2026/manifest.json",
+    "run_root": "/home/student/t330025090/FYP/federated_finetuning/runs/headroom_strongfrac_20261017_v1",
+    "model": {
+      "family": "roberta",
+      "name": "/home/student/t330025090/FYP/federated_finetuning/models/roberta-base",
+      "revision": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+      "local_files_only": true
+    },
+    "num_labels": 3,
+    "lora": {
+      "full_rank": 8,
+      "weak_rank": 2,
+      "scale": 2.0
+    },
+    "federation": {
+      "rounds": 150,
+      "clients_per_round": 10
+    },
+    "train": {
+      "lr": 0.0002,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "weight_decay": 0.0,
+      "local_steps": 20,
+      "batch_size": 8,
+      "gradient_clip": 1.0,
+      "eval_batch_size": 64
+    },
+    "personalize": {
+      "steps": 20
+    },
+    "evaluation": {
+      "every_rounds": 10
+    },
+    "checkpoint_every": 5,
+    "cpu_threads": 4,
+    "cells": [
+      {
+        "method": "fedavg_r8",
+        "seed": 2040
+      },
+      {
+        "method": "fedavg_r2",
+        "seed": 2040
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2040,
+        "strong_fraction": 0.1
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2040,
+        "strong_fraction": 0.2
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2040,
+        "strong_fraction": 0.4
+      },
+      {
+        "method": "fedavg_r8",
+        "seed": 2041
+      },
+      {
+        "method": "fedavg_r2",
+        "seed": 2041
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2041,
+        "strong_fraction": 0.1
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2041,
+        "strong_fraction": 0.2
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2041,
+        "strong_fraction": 0.4
+      },
+      {
+        "method": "fedavg_r8",
+        "seed": 2042
+      },
+      {
+        "method": "fedavg_r2",
+        "seed": 2042
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2042,
+        "strong_fraction": 0.1
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2042,
+        "strong_fraction": 0.2
+      },
+      {
+        "method": "hetero_r8r2",
+        "seed": 2042,
+        "strong_fraction": 0.4
+      }
+    ],
+    "sweep": {
+      "fractions": [
+        0.1,
+        0.2,
+        0.4
+      ],
+      "late_start_round": 110,
+      "threshold_pp_every_seed": 1.0,
+      "targets": [
+        78,
+        80
+      ]
+    }
+  },
+  "torch": "2.8.0+cu128",
+  "device": "cuda",
+  "host": "hpcgpu13",
+  "gpu": "NVIDIA GeForce RTX 4090 D"
+}

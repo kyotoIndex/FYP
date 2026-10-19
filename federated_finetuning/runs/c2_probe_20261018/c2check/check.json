@@ -1,0 +1,49 @@
+{
+  "label_words": [
+    " yes",
+    " maybe",
+    " no"
+  ],
+  "label_token_ids": [
+    9834,
+    7196,
+    902
+  ],
+  "label_words_single_token": true,
+  "cache_splits": {
+    "train": {
+      "rows": 372557,
+      "max_len": 256,
+      "mean_len": 54.96542542483432
+    },
+    "validation": {
+      "rows": 19681,
+      "max_len": 256,
+      "mean_len": 54.9709364361567
+    }
+  },
+  "clients": 50,
+  "strong_clients": [
+    10,
+    11,
+    12,
+    40,
+    41
+  ],
+  "core_weak_clients": 30,
+  "adapters": 168,
+  "lora_params_millions": 35.192832,
+  "logits_shape": [
+    4,
+    151936
+  ],
+  "one_step_loss": 2.3852505683898926,
+  "one_step_loss_finite": true,
+  "base_model_accuracy": {
+    "all": 0.5825,
+    "core": 0.5775,
+    "chance": 0.3333333333333333
+  },
+  "peak_memory_mib": 2087.59619140625,
+  "note": "peak memory here is not resource evidence (unassigned components are not folded)"
+}
