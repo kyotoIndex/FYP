@@ -45,10 +45,13 @@ class LoRALinear(nn.Module):
             return sketched.detach() + plain - plain.detach()
         update = nn.functional.linear(hidden, self.lora_b)
         if self.amp is not None:
-            # Forward-only amplification: the value is B0A0 + alpha * (BA - B0A0), the extra term is detached,
-            # so parameter gradients follow the unamplified product BA. This equals exactly the true gradient
-            # of the amplified model divided by alpha: the same direction, and under Adam the same step up to
-            # eps; gradient clipping sees the scale of unamplified training.
+            # Forward-only amplification: the value is B0A0 + alpha * (BA - B0A0) and the extra term is detached,
+            # so autograd only follows the unamplified branch BA. For a given gradient at this layer's output,
+            # the gradients of this layer's A and B are the amplified model's local gradients divided by alpha.
+            # The gradient passed to the layer input (and so to every earlier layer) also follows BA only,
+            # whereas the amplified model's input Jacobian is (1 - alpha) B0A0 + alpha BA. Over the whole
+            # network this is a defined update rule, not the amplified model's true gradient divided by alpha.
+            # Gradient clipping sees the scale of unamplified training.
             alpha, a0, b0 = self.amp
             start = nn.functional.linear(nn.functional.linear(inputs, a0), b0)
             update = update + (alpha - 1.0) * (update - start).detach()
